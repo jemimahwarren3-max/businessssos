@@ -1,0 +1,557 @@
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { Loader2, Minus, Package, Plus, Search, Upload } from "lucide-react";
+import { AppShell } from "@/components/app-shell";
+import { ImportDialog } from "@/components/import-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { addProduct, getProducts, importProductsFn, updateStock } from "@/lib/business.functions";
+import {
+  productImportRowSchema,
+  productSchema,
+  type ProductImportRow,
+} from "@/lib/business.schemas";
+import { formatMoney, formatNumber, readableError } from "@/lib/format";
+import type { ImportColumn } from "@/lib/spreadsheet";
+
+const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "name", label: "Name", required: true, aliases: ["product", "item", "productname"] },
+  { key: "sku", label: "SKU", required: false, aliases: ["code"] },
+  { key: "barcode", label: "Barcode", required: false, aliases: [] },
+  { key: "costPrice", label: "Cost Price", required: false, aliases: ["cost"] },
+  { key: "sellingPrice", label: "Selling Price", required: false, aliases: ["price", "sellprice"] },
+  { key: "stock", label: "Stock", required: false, aliases: ["quantity", "qty", "stockonhand"] },
+  {
+    key: "minStock",
+    label: "Min Stock",
+    required: false,
+    aliases: ["reorderlevel", "minimumstock"],
+  },
+  { key: "unit", label: "Unit", required: false, aliases: [] },
+  { key: "taxRate", label: "Tax Rate", required: false, aliases: ["tax"] },
+];
+
+export const Route = createFileRoute("/_authenticated/inventory")({
+  head: () => ({
+    meta: [
+      { title: "Inventory — BusinessOS AI" },
+      {
+        name: "description",
+        content: "Track products, stock levels, cost and selling prices, and restock alerts.",
+      },
+      { property: "og:title", content: "Inventory — BusinessOS AI" },
+      { property: "og:description", content: "Know exactly what you have in stock." },
+    ],
+  }),
+  component: Inventory,
+});
+
+type ProductRow = {
+  id: string;
+  name: string;
+  sku: string | null;
+  unit: string;
+  cost_price: number;
+  selling_price: number;
+  stock: number;
+  min_stock: number;
+};
+
+const EMPTY_PRODUCT = {
+  name: "",
+  sku: "",
+  unit: "unit",
+  costPrice: "",
+  sellingPrice: "",
+  stock: "",
+  minStock: "0",
+  description: "",
+};
+
+function Inventory() {
+  const navigate = useNavigate();
+  const workspace = useWorkspace();
+  const queryClient = useQueryClient();
+  const businessId = workspace.data?.business.id;
+  const currency = workspace.data?.business.currency ?? "USD";
+  const canEdit = ["owner", "admin", "manager"].includes(workspace.data?.role ?? "");
+
+  const [search, setSearch] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_PRODUCT);
+  const [stockTarget, setStockTarget] = useState<{
+    product: ProductRow;
+    mode: "in" | "out";
+  } | null>(null);
+  const [stockQty, setStockQty] = useState("");
+  const [stockReason, setStockReason] = useState("");
+
+  const fetchProducts = useServerFn(getProducts);
+  const createProduct = useServerFn(addProduct);
+  const adjustStock = useServerFn(updateStock);
+  const importProductsRows = useServerFn(importProductsFn);
+
+  useEffect(() => {
+    if (!workspace.isLoading && workspace.data === null) {
+      navigate({ to: "/onboarding", replace: true });
+    }
+  }, [workspace.isLoading, workspace.data, navigate]);
+
+  const products = useQuery({
+    queryKey: ["products", businessId, search],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchProducts({ data: { businessId: businessId!, search } }),
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      const parsed = productSchema.parse({
+        businessId,
+        name: form.name,
+        sku: form.sku,
+        unit: form.unit || "unit",
+        costPrice: form.costPrice || 0,
+        sellingPrice: form.sellingPrice || 0,
+        stock: form.stock || 0,
+        minStock: form.minStock || 0,
+        taxRate: 0,
+        description: form.description,
+      });
+      return createProduct({ data: parsed });
+    },
+    onSuccess: async () => {
+      setAddOpen(false);
+      setForm(EMPTY_PRODUCT);
+      toast.success("Product added.");
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "We couldn't add that product.")),
+  });
+
+  const stockMutation = useMutation({
+    mutationFn: async () => {
+      if (!stockTarget) throw new Error("No product selected");
+      return adjustStock({
+        data: {
+          businessId: businessId!,
+          productId: stockTarget.product.id,
+          movementType: stockTarget.mode === "in" ? "stock_in" : "stock_out",
+          quantity: stockQty,
+          reason: stockReason,
+        },
+      });
+    },
+    onSuccess: async () => {
+      setStockTarget(null);
+      setStockQty("");
+      setStockReason("");
+      toast.success("Stock updated.");
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "We couldn't update the stock.")),
+  });
+
+  if (!workspace.data) {
+    return (
+      <div className="mx-auto max-w-6xl space-y-4 p-6">
+        <Skeleton className="h-9 w-56" />
+        <Skeleton className="h-80" />
+      </div>
+    );
+  }
+
+  const rows = (products.data ?? []) as ProductRow[];
+
+  return (
+    <AppShell
+      businessName={workspace.data.business.name}
+      role={workspace.data.role}
+      plan={workspace.data.plan}
+      title="Inventory"
+      subtitle="Everything you sell, and how much of it you have left."
+      actions={
+        canEdit ? (
+          <>
+            <Button variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
+              <Upload className="size-4" aria-hidden="true" /> Import
+            </Button>
+            <Button className="gap-1.5" onClick={() => setAddOpen(true)}>
+              <Plus className="size-4" aria-hidden="true" /> Add product
+            </Button>
+          </>
+        ) : null
+      }
+    >
+      <div className="relative max-w-sm">
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, SKU or barcode"
+          className="pl-9"
+          aria-label="Search products"
+        />
+      </div>
+
+      <div className="surface mt-4 overflow-hidden">
+        {products.isLoading ? (
+          <div className="space-y-3 p-5">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-12" />
+            ))}
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="px-6 py-16 text-center">
+            <Package className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
+            <h2 className="mt-3 text-lg font-semibold">
+              {search ? "No products match that search" : "No products yet"}
+            </h2>
+            <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
+              {search
+                ? "Try a shorter search term."
+                : "Add your first product and BusinessOS AI will start tracking stock, profit and restock alerts for you."}
+            </p>
+            {canEdit && !search ? (
+              <Button className="mt-5 gap-1.5" onClick={() => setAddOpen(true)}>
+                <Plus className="size-4" aria-hidden="true" /> Add your first product
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <ul className="divide-y divide-border lg:hidden">
+              {rows.map((product) => (
+                <li key={product.id} className="p-4">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{product.name}</p>
+                      <p className="text-[13px] text-muted-foreground">
+                        {product.sku ? `${product.sku} · ` : ""}
+                        {formatMoney(Number(product.selling_price), currency)}
+                      </p>
+                    </div>
+                    <StockBadge product={product} />
+                  </div>
+                  {canEdit ? (
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => setStockTarget({ product, mode: "in" })}
+                      >
+                        <Plus className="size-3.5" aria-hidden="true" /> Stock in
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => setStockTarget({ product, mode: "out" })}
+                      >
+                        <Minus className="size-3.5" aria-hidden="true" /> Stock out
+                      </Button>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+
+            <table className="hidden w-full text-sm lg:table">
+              <thead>
+                <tr className="border-b border-border text-left text-[12px] uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Product</th>
+                  <th className="px-5 py-3 font-medium">Cost</th>
+                  <th className="px-5 py-3 font-medium">Price</th>
+                  <th className="px-5 py-3 font-medium">Stock</th>
+                  {canEdit ? <th className="px-5 py-3 text-right font-medium">Actions</th> : null}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((product) => (
+                  <tr key={product.id}>
+                    <td className="max-w-[280px] px-5 py-3">
+                      <p className="truncate font-medium">{product.name}</p>
+                      <p className="text-[13px] text-muted-foreground">
+                        {product.sku ?? "No SKU"} · per {product.unit}
+                      </p>
+                    </td>
+                    <td className="px-5 py-3 tabular-nums text-muted-foreground">
+                      {formatMoney(Number(product.cost_price), currency)}
+                    </td>
+                    <td className="px-5 py-3 font-medium tabular-nums">
+                      {formatMoney(Number(product.selling_price), currency)}
+                    </td>
+                    <td className="px-5 py-3">
+                      <StockBadge product={product} />
+                    </td>
+                    {canEdit ? (
+                      <td className="px-5 py-3">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => setStockTarget({ product, mode: "in" })}
+                          >
+                            <Plus className="size-3.5" aria-hidden="true" /> In
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => setStockTarget({ product, mode: "out" })}
+                          >
+                            <Minus className="size-3.5" aria-hidden="true" /> Out
+                          </Button>
+                        </div>
+                      </td>
+                    ) : null}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </div>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add a product</DialogTitle>
+            <DialogDescription>
+              Only the name and prices are required. You can edit everything later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="p-name">Product name</Label>
+              <Input
+                id="p-name"
+                value={form.name}
+                maxLength={160}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="2kg White Sugar"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-sku">SKU / code (optional)</Label>
+              <Input
+                id="p-sku"
+                value={form.sku}
+                maxLength={60}
+                onChange={(e) => setForm({ ...form, sku: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-unit">Unit</Label>
+              <Input
+                id="p-unit"
+                value={form.unit}
+                maxLength={24}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                placeholder="unit, kg, box"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-cost">Cost price ({currency})</Label>
+              <Input
+                id="p-cost"
+                inputMode="decimal"
+                value={form.costPrice}
+                onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-price">Selling price ({currency})</Label>
+              <Input
+                id="p-price"
+                inputMode="decimal"
+                value={form.sellingPrice}
+                onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-stock">Stock on hand</Label>
+              <Input
+                id="p-stock"
+                inputMode="decimal"
+                value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-min">Alert me below</Label>
+              <Input
+                id="p-min"
+                inputMode="decimal"
+                value={form.minStock}
+                onChange={(e) => setForm({ ...form, minStock: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="p-desc">Notes (optional)</Label>
+              <Textarea
+                id="p-desc"
+                rows={2}
+                maxLength={600}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => addMutation.mutate()}
+              disabled={addMutation.isPending || form.name.trim().length === 0}
+              className="gap-1.5"
+            >
+              {addMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Save product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(stockTarget)} onOpenChange={(open) => !open && setStockTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{stockTarget?.mode === "in" ? "Add stock" : "Remove stock"}</DialogTitle>
+            <DialogDescription>
+              {stockTarget
+                ? `${stockTarget.product.name} — currently ${formatNumber(
+                    Number(stockTarget.product.stock),
+                  )} ${stockTarget.product.unit}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="s-qty">Quantity</Label>
+              <Input
+                id="s-qty"
+                autoFocus
+                inputMode="decimal"
+                value={stockQty}
+                onChange={(e) => setStockQty(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="s-reason">Reason (optional)</Label>
+              <Input
+                id="s-reason"
+                value={stockReason}
+                maxLength={240}
+                onChange={(e) => setStockReason(e.target.value)}
+                placeholder={stockTarget?.mode === "in" ? "New delivery" : "Damaged / expired"}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setStockTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => stockMutation.mutate()}
+              disabled={stockMutation.isPending || Number(stockQty) <= 0}
+              className="gap-1.5"
+            >
+              {stockMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Update stock
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ImportDialog<ProductImportRow>
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import products"
+        description="Bring in a product list from a spreadsheet — opening stock is recorded as a stock-in movement."
+        columns={PRODUCT_IMPORT_COLUMNS}
+        templateFilename="products-template"
+        parseRow={(record, rowNumber) => {
+          const result = productImportRowSchema.safeParse({
+            name: record["name"],
+            sku: record["sku"],
+            barcode: record["barcode"],
+            unit: record["unit"] || "unit",
+            costPrice: record["costPrice"] || 0,
+            sellingPrice: record["sellingPrice"] || 0,
+            stock: record["stock"] || 0,
+            minStock: record["minStock"] || 0,
+            taxRate: record["taxRate"] || 0,
+          });
+          if (!result.success) {
+            return {
+              rowNumber,
+              ok: false,
+              error: result.error.issues[0]?.message ?? "Invalid row",
+            };
+          }
+          return {
+            rowNumber,
+            ok: true,
+            value: result.data,
+            summary: `${result.data.name} — ${formatNumber(result.data.stock)} ${result.data.unit} @ ${formatMoney(result.data.sellingPrice, currency)}`,
+          };
+        }}
+        onImport={async (rows) => {
+          const outcome = await importProductsRows({ data: { businessId: businessId!, rows } });
+          await queryClient.invalidateQueries({ queryKey: ["products"] });
+          await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          return outcome;
+        }}
+      />
+    </AppShell>
+  );
+}
+
+function StockBadge({ product }: { product: ProductRow }) {
+  const stock = Number(product.stock);
+  const min = Number(product.min_stock);
+  const className =
+    stock <= 0
+      ? "bg-danger-soft text-destructive"
+      : stock <= min
+        ? "bg-warning-soft text-warning-foreground"
+        : "bg-success-soft text-success";
+  return (
+    <span
+      className={`inline-flex shrink-0 rounded-lg px-2.5 py-1 text-[13px] font-semibold tabular-nums ${className}`}
+    >
+      {stock <= 0 ? "Out of stock" : `${formatNumber(stock)} ${product.unit}`}
+    </span>
+  );
+}
