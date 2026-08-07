@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "env:staging": "node scripts/switch-env.mjs staging",
+    "env:production": "node scripts/switch-env.mjs production"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

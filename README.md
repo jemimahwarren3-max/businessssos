@@ -1843,3 +1843,17 @@ redirect URI in your Google Cloud OAuth client.
 `npm run build` produces a plain Node server in `.output/server` — run it with
 `node .output/server/index.mjs`, or deploy it to Docker, Railway, Render, Fly.io, or any
 other Node host.
+
+### Environments
+
+There are two Supabase projects: `businessos` (production, live data) and `businessos-staging`
+(safe to break). `.env` is whichever one is currently active; `.env.staging` and `.env.production`
+hold the credentials for each so you can switch without hunting them down:
+
+```sh
+npm run env:staging      # point .env at staging (the default — use this day to day)
+npm run env:production   # point .env at production — only when you deliberately mean to
+```
+
+Both projects run the same migrations in `supabase/migrations/`. When you add a new one, apply
+it to staging first, verify it, then apply it to production the same way.
