@@ -1,17 +1,28 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser, requestPasswordReset, signIn, signUp } from "@/lib/auth/auth.functions";
+import { readableError } from "@/lib/format";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup", "reset"]).default("signin").catch("signin"),
+  // Only ever used to bounce back to an invite link after auth — deliberately
+  // narrow (not a general-purpose redirect target) to rule out open-redirect
+  // abuse via a crafted /auth?redirect= link.
+  redirect: z
+    .string()
+    .regex(/^\/invite\/[a-zA-Z0-9]+$/)
+    .optional()
+    .catch(undefined),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -31,61 +42,34 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-function friendlyAuthError(message: string) {
-  const m = message.toLowerCase();
-  if (m.includes("invalid login")) return "That email and password don't match an account.";
-  if (m.includes("already registered") || m.includes("already been registered"))
-    return "An account with that email already exists. Try signing in instead.";
-  if (m.includes("email not confirmed"))
-    return "Please confirm your email first — check your inbox for the link.";
-  if (m.includes("password")) return "Your password must be at least 8 characters.";
-  return "We couldn't complete that. Please try again.";
-}
-
 function AuthPage() {
-  const { mode } = Route.useSearch();
+  const { mode, redirect } = Route.useSearch();
+  const destination = redirect ?? "/dashboard";
   const navigate = useNavigate();
+  const fetchCurrentUser = useServerFn(getCurrentUser);
+  const signInFn = useServerFn(signIn);
+  const signUpFn = useServerFn(signUp);
+  const requestResetFn = useServerFn(requestPasswordReset);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [busy, setBusy] = useState<null | "email" | "google">(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [busy, setBusy] = useState<null | "email">(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const needsAcceptance = mode === "signup" && !acceptedTerms;
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+    fetchCurrentUser().then((user) => {
+      if (user) navigate({ to: destination, replace: true });
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
-        navigate({ to: "/dashboard", replace: true });
-      }
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [navigate]);
-
-  async function handleGoogle() {
-    setBusy("google");
-    // Redirects the whole page to Google, then back to redirectTo — the
-    // onAuthStateChange listener above takes it from there.
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    });
-    if (error) {
-      setBusy(null);
-      toast.error("Google sign-in didn't work. Please try again or use your email.");
-    }
-  }
+  }, [navigate, fetchCurrentUser, destination]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setBusy("email");
     try {
       if (mode === "reset") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        if (error) throw error;
+        await requestResetFn({ data: { email: email.trim() } });
         setSentTo(email.trim());
         toast.success("Password reset link sent.");
         return;
@@ -95,28 +79,24 @@ function AuthPage() {
           toast.error("Please use a password with at least 8 characters.");
           return;
         }
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: fullName.trim() },
-          },
+        if (!acceptedTerms) {
+          toast.error("Please accept the Terms of Service and Privacy Policy first.");
+          return;
+        }
+        const result = await signUpFn({
+          data: { email: email.trim(), password, fullName: fullName.trim(), acceptedTerms },
         });
-        if (error) throw error;
-        if (!data.session) {
+        if (result.needsEmailConfirmation) {
           setSentTo(email.trim());
           return;
         }
+        navigate({ to: destination, replace: true });
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error) throw error;
+      await signInFn({ data: { email: email.trim(), password } });
+      navigate({ to: destination, replace: true });
     } catch (error) {
-      toast.error(friendlyAuthError((error as Error).message ?? ""));
+      toast.error(readableError(error as Error, "We couldn't complete that. Please try again."));
     } finally {
       setBusy(null);
     }
@@ -160,12 +140,12 @@ function AuthPage() {
                 <Tabs value={mode} className="mt-6">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="signin" asChild>
-                      <Link to="/auth" search={{ mode: "signin" }}>
+                      <Link to="/auth" search={{ mode: "signin", redirect }}>
                         Sign in
                       </Link>
                     </TabsTrigger>
                     <TabsTrigger value="signup" asChild>
-                      <Link to="/auth" search={{ mode: "signup" }}>
+                      <Link to="/auth" search={{ mode: "signup", redirect }}>
                         Create account
                       </Link>
                     </TabsTrigger>
@@ -208,7 +188,7 @@ function AuthPage() {
                       {mode === "signin" ? (
                         <Link
                           to="/auth"
-                          search={{ mode: "reset" }}
+                          search={{ mode: "reset", redirect }}
                           className="text-[13px] text-primary hover:underline"
                         >
                           Forgot password?
@@ -227,7 +207,45 @@ function AuthPage() {
                     />
                   </div>
                 ) : null}
-                <Button type="submit" className="w-full" disabled={busy !== null}>
+                {mode === "signup" ? (
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="acceptedTerms"
+                      checked={acceptedTerms}
+                      onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                      className="mt-0.5"
+                    />
+                    <Label
+                      htmlFor="acceptedTerms"
+                      className="text-[13px] font-normal leading-relaxed text-muted-foreground"
+                    >
+                      I agree to the{" "}
+                      <a
+                        href="/legal/terms"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        Terms of Service
+                      </a>{" "}
+                      and{" "}
+                      <a
+                        href="/legal/privacy"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        Privacy Policy
+                      </a>
+                      .
+                    </Label>
+                  </div>
+                ) : null}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={busy !== null || needsAcceptance}
+                >
                   {busy === "email" ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                   ) : null}
@@ -239,39 +257,22 @@ function AuthPage() {
                 </Button>
               </form>
 
-              {mode !== "reset" ? (
-                <>
-                  <div className="my-5 flex items-center gap-3 text-[13px] text-muted-foreground">
-                    <span className="h-px flex-1 bg-border" />
-                    or
-                    <span className="h-px flex-1 bg-border" />
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2"
-                    onClick={handleGoogle}
-                    disabled={busy !== null}
-                  >
-                    {busy === "google" ? (
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                        <path
-                          fill="currentColor"
-                          d="M21.35 11.1h-9.17v2.98h5.26c-.23 1.4-1.66 4.1-5.26 4.1-3.17 0-5.76-2.62-5.76-5.86s2.59-5.86 5.76-5.86c1.8 0 3.01.77 3.7 1.43l2.52-2.43C16.75 3.9 14.7 3 12.18 3 7.03 3 2.86 7.14 2.86 12.32s4.17 9.32 9.32 9.32c5.38 0 8.94-3.78 8.94-9.1 0-.61-.07-1.08-.17-1.44Z"
-                        />
-                      </svg>
-                    )}
-                    Continue with Google
-                  </Button>
-                </>
-              ) : (
+              {mode === "reset" ? (
                 <Button asChild variant="ghost" className="mt-4 w-full">
-                  <Link to="/auth" search={{ mode: "signin" }}>
+                  <Link to="/auth" search={{ mode: "signin", redirect }}>
                     Back to sign in
                   </Link>
                 </Button>
-              )}
+              ) : null}
+
+              {mode !== "reset" ? (
+                <p className="mt-4 text-center text-[13px] text-muted-foreground">
+                  Signing in with your business name instead?{" "}
+                  <Link to="/staff-login" className="text-primary hover:underline">
+                    Go there
+                  </Link>
+                </p>
+              ) : null}
 
               <p className="mt-6 text-[12px] leading-relaxed text-muted-foreground">
                 By continuing you agree that your business data is stored securely and is only

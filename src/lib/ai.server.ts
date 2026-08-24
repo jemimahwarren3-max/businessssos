@@ -1,10 +1,15 @@
-import { AppError, assertRole, loadDashboard, loadReports, type Db } from "./business.server";
-import { OllamaProvider } from "./ai/ollama-provider";
+import { AppError, assertPermission, loadDashboard, loadReports, type Db } from "./business.server";
+import { GroqProvider } from "./ai/groq-provider";
 import type { ChatMessage } from "./ai/provider";
 import { formatMoney } from "./format";
+import { checkRateLimit } from "./rate-limit.server";
 
-const FINANCE_ROLES = ["owner", "admin", "manager", "accountant"];
 const HISTORY_LIMIT = 12;
+// Bounds cumulative Groq cost per business independent of how many staff
+// members share the per-minute bucket — a 24h window via the same
+// check_rate_limit primitive the per-minute limits use.
+const DAILY_LIMIT = 100;
+const DAILY_WINDOW_SECONDS = 60 * 60 * 24;
 
 const SYSTEM_PROMPT = `You are the BusinessOS AI assistant, built into a small-business management app.
 Answer questions about the business using ONLY the data given to you below — never invent numbers,
@@ -15,15 +20,19 @@ invoices, record sales, etc.) — you can only discuss the numbers you're given.
 
 /** Builds a compact, structured snapshot of the business — never raw DB
  * access — so the model only ever sees the minimum it needs to answer. */
-export async function buildBusinessSummary(supabase: Db, businessId: string): Promise<string> {
+export async function buildBusinessSummary(
+  supabase: Db,
+  businessId: string,
+  days = 30,
+): Promise<string> {
   const [dashboard, reports] = await Promise.all([
-    loadDashboard(supabase, businessId, 30),
-    loadReports(supabase, businessId, 30),
+    loadDashboard(supabase, businessId, days),
+    loadReports(supabase, businessId, days),
   ]);
   const c = reports.currency;
 
   const lines = [
-    `All figures cover the last 30 days and are in ${c}.`,
+    `All figures cover the last ${days} days and are in ${c}.`,
     `Total sales: ${formatMoney(reports.totalSales, c)}`,
     `Gross profit: ${formatMoney(reports.totalProfit, c)} (${reports.profitMargin.toFixed(1)}% margin)`,
     `Total expenses: ${formatMoney(reports.totalExpenses, c)}`,
@@ -41,7 +50,7 @@ export async function buildBusinessSummary(supabase: Db, businessId: string): Pr
         .join("; ")}`,
     );
   } else {
-    lines.push("No sales recorded in the last 30 days.");
+    lines.push(`No sales recorded in the last ${days} days.`);
   }
 
   if (reports.topCustomers.length > 0) {
@@ -81,7 +90,18 @@ export async function askAssistant(
   businessId: string,
   messages: AssistantMessage[],
 ): Promise<{ answer: string }> {
-  await assertRole(supabase, businessId, FINANCE_ROLES);
+  await assertPermission(supabase, businessId, "ai.use");
+
+  const withinDailyLimit = await checkRateLimit(
+    `ai-daily-assistant:business:${businessId}`,
+    DAILY_LIMIT,
+    DAILY_WINDOW_SECONDS,
+  );
+  if (!withinDailyLimit) {
+    throw new AppError(
+      "This business has reached its daily AI assistant usage limit. Please try again tomorrow.",
+    );
+  }
 
   const summary = await buildBusinessSummary(supabase, businessId);
   const chatMessages: ChatMessage[] = [
@@ -89,14 +109,12 @@ export async function askAssistant(
     ...messages.slice(-HISTORY_LIMIT),
   ];
 
-  const provider = new OllamaProvider();
+  const provider = new GroqProvider();
   try {
     const answer = await provider.chat(chatMessages);
     return { answer };
   } catch (error) {
     console.error("[businessos] ai assistant failed", error);
-    throw new AppError(
-      "The AI assistant isn't available right now. Make sure Ollama is running locally, then try again.",
-    );
+    throw new AppError("The AI assistant isn't available right now. Please try again shortly.");
   }
 }

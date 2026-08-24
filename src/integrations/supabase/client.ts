@@ -1,32 +1,50 @@
 import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_AUTH_STORAGE_KEY } from "./auth-storage-key";
+import { createSupabaseFetch } from "./supabase-fetch";
 import type { Database } from "./types";
 
-function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
-}
+// The real session (access + refresh token) never touches the browser —
+// it lives server-side in an httpOnly, encrypted cookie (see
+// lib/auth/session.server.ts). This client only ever needs to (a) kick off
+// the Google OAuth redirect and (b) briefly hold the PKCE code_verifier that
+// flow generates until /auth/callback exchanges it server-side.
+//
+// supabase-js ties both of those to the same `storage` option (keyed
+// `<storageKey>` for the session, `<storageKey>-code-verifier` for the
+// PKCE verifier) and — critically — only honors a custom `storage` adapter
+// at all when `persistSession: true`; with it `false` it silently falls
+// back to an in-memory store that a full-page OAuth redirect would wipe,
+// breaking the flow. So persistSession has to stay true, and this adapter
+// selectively passes only the `-code-verifier` key through to a real
+// (short-lived, non-httpOnly — it's a single-use nonce, not a credential)
+// cookie; everything else, including the actual session object, is routed
+// to a plain in-memory Map that's discarded on reload instead.
+const ephemeralMemory = new Map<string, string>();
 
-function createSupabaseFetch(supabaseKey: string): typeof fetch {
-  return (input, init) => {
-    const headers = new Headers(
-      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
-    );
-
-    if (init?.headers) {
-      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+const authStorage = {
+  getItem(key: string) {
+    if (!key.endsWith("-code-verifier")) return ephemeralMemory.get(key) ?? null;
+    if (typeof document === "undefined") return null;
+    const match = document.cookie.match(new RegExp(`(?:^|; )${encodeURIComponent(key)}=([^;]*)`));
+    return match ? decodeURIComponent(match[1] ?? "") : null;
+  },
+  setItem(key: string, value: string) {
+    if (!key.endsWith("-code-verifier")) {
+      ephemeralMemory.set(key, value);
+      return;
     }
-
-    // New Supabase API keys are opaque strings, not bearer JWTs.
-    if (
-      isNewSupabaseApiKey(supabaseKey) &&
-      headers.get("Authorization") === `Bearer ${supabaseKey}`
-    ) {
-      headers.delete("Authorization");
+    if (typeof document === "undefined") return;
+    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; path=/; max-age=600; SameSite=Lax`;
+  },
+  removeItem(key: string) {
+    if (!key.endsWith("-code-verifier")) {
+      ephemeralMemory.delete(key);
+      return;
     }
-
-    headers.set("apikey", supabaseKey);
-    return fetch(input, { ...init, headers });
-  };
-}
+    if (typeof document === "undefined") return;
+    document.cookie = `${encodeURIComponent(key)}=; path=/; max-age=0; SameSite=Lax`;
+  },
+};
 
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
@@ -50,9 +68,11 @@ function createSupabaseClient() {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
-      storage: typeof window !== "undefined" ? localStorage : undefined,
+      flowType: "pkce",
+      storageKey: SUPABASE_AUTH_STORAGE_KEY,
+      storage: authStorage,
       persistSession: true,
-      autoRefreshToken: true,
+      autoRefreshToken: false,
     },
   });
 }

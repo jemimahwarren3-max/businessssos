@@ -3,8 +3,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Loader2, Plus, Search } from "lucide-react";
+import { Download, FileText, Loader2, Plus, Printer, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import {
   addInvoice,
   addPayment,
@@ -39,6 +40,7 @@ import {
 import { invoiceSchema, PAYMENT_METHODS, type LineItemInput } from "@/lib/business.schemas";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import { computeTotals } from "@/lib/invoice-calc";
+import { downloadXlsx } from "@/lib/xlsx-export";
 
 export const Route = createFileRoute("/_authenticated/invoices")({
   head: () => ({
@@ -55,8 +57,6 @@ export const Route = createFileRoute("/_authenticated/invoices")({
   component: Invoices,
 });
 
-const FINANCE_ROLES = ["owner", "admin", "manager", "accountant"];
-const PAYMENT_ROLES = ["owner", "admin", "manager", "cashier", "accountant"];
 const CUSTOM = "__none";
 
 const EMPTY_ITEM: LineItemInput = {
@@ -112,9 +112,8 @@ function Invoices() {
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
-  const role = workspace.data?.role ?? "";
-  const canCreate = FINANCE_ROLES.includes(role);
-  const canRecordPayment = PAYMENT_ROLES.includes(role);
+  const canCreate = hasPermission(workspace.data, "invoices.manage");
+  const canRecordPayment = hasPermission(workspace.data, "payments.record");
 
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -256,27 +255,54 @@ function Invoices() {
     ? Number(detail.data.invoice.total) - Number(detail.data.invoice.amount_paid)
     : 0;
 
+  function exportExcel() {
+    downloadXlsx("invoices", [
+      {
+        name: "Invoices",
+        headers: ["Number", "Customer", "Issue date", "Due date", "Total", "Paid", "Status"],
+        rows: rows.map((inv) => [
+          inv.invoice_number,
+          inv.customer_name ?? "",
+          inv.issue_date,
+          inv.due_date ?? "",
+          inv.total,
+          inv.amount_paid,
+          inv.status,
+        ]),
+      },
+    ]);
+  }
+
   return (
     <AppShell
       businessName={workspace.data.business.name}
       role={workspace.data.role}
       plan={workspace.data.plan}
+      isReadOnly={workspace.data.isReadOnly}
+      billingEnabled={workspace.data.billingEnabled}
       title="Invoices"
       subtitle="Bill customers and keep track of who's paid."
       actions={
-        canCreate ? (
-          <Button
-            className="gap-1.5"
-            onClick={() => {
-              setForm(EMPTY_FORM);
-              setItems([{ ...EMPTY_ITEM }]);
-              setCreateKey(crypto.randomUUID());
-              setCreateOpen(true);
-            }}
-          >
-            <Plus className="size-4" aria-hidden="true" /> New invoice
-          </Button>
-        ) : null
+        <>
+          {rows.length > 0 ? (
+            <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
+              <Download className="size-4" aria-hidden="true" /> Export to Excel
+            </Button>
+          ) : null}
+          {canCreate ? (
+            <Button
+              className="gap-1.5"
+              onClick={() => {
+                setForm(EMPTY_FORM);
+                setItems([{ ...EMPTY_ITEM }]);
+                setCreateKey(crypto.randomUUID());
+                setCreateOpen(true);
+              }}
+            >
+              <Plus className="size-4" aria-hidden="true" /> New invoice
+            </Button>
+          ) : null}
+        </>
       }
     >
       <div className="relative max-w-sm">
@@ -393,14 +419,14 @@ function Invoices() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Customer</Label>
+              <Label htmlFor="invoice-customer">Customer</Label>
               <Select
                 value={form.customerId || CUSTOM}
                 onValueChange={(value) =>
                   setForm({ ...form, customerId: value === CUSTOM ? "" : value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="invoice-customer">
                   <SelectValue placeholder="No customer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -452,7 +478,7 @@ function Invoices() {
               products={(products.data ?? []).map((p) => ({
                 id: p.id,
                 name: p.name,
-                selling_price: Number(p.selling_price),
+                price: Number(p.selling_price),
                 tax_rate: Number(p.tax_rate),
               }))}
               currency={currency}
@@ -625,8 +651,52 @@ function Invoices() {
                 </div>
               ) : null}
 
+              {(() => {
+                const joined = detail.data.invoice as unknown as {
+                  customers: { name: string; phone: string | null; email: string | null } | null;
+                  businesses: {
+                    name: string;
+                    address: string | null;
+                    phone: string | null;
+                    email: string | null;
+                  } | null;
+                };
+                return (
+                  <div className="hidden print:block print-area">
+                    <DocumentPrintView
+                      kind="invoice"
+                      number={detail.data.invoice.invoice_number}
+                      issueDate={detail.data.invoice.issue_date}
+                      secondDateLabel="Due"
+                      secondDate={detail.data.invoice.due_date}
+                      business={
+                        joined.businesses ?? {
+                          name: workspace.data!.business.name,
+                          address: null,
+                          phone: null,
+                          email: null,
+                        }
+                      }
+                      customer={joined.customers}
+                      items={detail.data.items}
+                      subtotal={detail.data.invoice.subtotal}
+                      discount={detail.data.invoice.discount}
+                      tax={detail.data.invoice.tax}
+                      total={detail.data.invoice.total}
+                      amountPaid={detail.data.invoice.amount_paid}
+                      notes={detail.data.invoice.notes}
+                      terms={detail.data.invoice.terms}
+                      currency={currency}
+                    />
+                  </div>
+                );
+              })()}
+
               <DialogFooter className="flex-wrap gap-2 sm:justify-between">
                 <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+                    <Printer className="size-4" aria-hidden="true" /> Print
+                  </Button>
                   {detail.data.invoice.status === "draft" && canCreate ? (
                     <Button
                       variant="outline"
@@ -693,12 +763,12 @@ function Invoices() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Payment method</Label>
+              <Label htmlFor="invoice-payment-method">Payment method</Label>
               <Select
                 value={payment?.method ?? "cash"}
                 onValueChange={(value) => setPayment((p) => (p ? { ...p, method: value } : p))}
               >
-                <SelectTrigger>
+                <SelectTrigger id="invoice-payment-method">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

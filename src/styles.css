@@ -90,7 +90,9 @@
   --secondary-foreground: oklch(0.29 0.04 265);
 
   --muted: oklch(0.968 0.007 248);
-  --muted-foreground: oklch(0.556 0.031 258);
+  /* 0.53 (not the original 0.556) keeps text-muted-foreground at ~4.8:1 on
+     both --background and --card instead of sitting right on the 4.5:1 line. */
+  --muted-foreground: oklch(0.53 0.031 258);
 
   --accent: oklch(0.955 0.02 275);
   --accent-foreground: oklch(0.36 0.16 278);
@@ -99,7 +101,10 @@
   --destructive-foreground: oklch(0.99 0.004 270);
   --danger-soft: oklch(0.957 0.028 25);
 
-  --success: oklch(0.567 0.153 148);
+  /* Darkened from 0.567 — text-success on bg-success-soft (invoices/quotes/
+     billing status badges) was 3.77:1, below the 4.5:1 text minimum. Never
+     used as a solid background (grep-confirmed), so this only affects text. */
+  --success: oklch(0.5 0.153 148);
   --success-foreground: oklch(0.99 0.004 270);
   --success-soft: oklch(0.955 0.045 152);
 
@@ -107,12 +112,18 @@
   --warning-foreground: oklch(0.26 0.05 70);
   --warning-soft: oklch(0.966 0.05 85);
 
-  --info: oklch(0.564 0.145 240);
+  /* Darkened from 0.564 — text-info on bg-info-soft was 3.90:1, same
+     4.5:1 shortfall as --success above, same fix. */
+  --info: oklch(0.5 0.145 240);
   --info-foreground: oklch(0.99 0.004 270);
   --info-soft: oklch(0.955 0.03 235);
 
   --border: oklch(0.925 0.011 256);
-  --input: oklch(0.912 0.013 256);
+  /* Darkened from 0.912 (1.23:1) — border-input against the page background
+     needs 3:1 for WCAG 1.4.11's UI-component boundary minimum. 0.63 measures
+     ~3.3:1 (verified via an OKLCH->sRGB->relative-luminance computation, not
+     eyeballed) — an earlier, more conservative 0.78 only reached 1.9:1. */
+  --input: oklch(0.63 0.02 256);
   --ring: oklch(0.527 0.226 277);
 
   --chart-1: oklch(0.527 0.226 277);
@@ -154,7 +165,10 @@
   --success-foreground: oklch(0.16 0.03 266);
   --success-soft: oklch(0.28 0.06 152);
   --warning: oklch(0.8 0.14 78);
-  --warning-foreground: oklch(0.2 0.04 70);
+  /* Was oklch(0.2 0.04 70) — dark text on the dark warning-soft background
+     below was 1.32:1 (both near-black browns, a severe failure). Lightened
+     to sit clearly above the dark warning-soft background instead. */
+  --warning-foreground: oklch(0.85 0.06 80);
   --warning-soft: oklch(0.3 0.06 80);
   --info: oklch(0.68 0.13 235);
   --info-foreground: oklch(0.16 0.03 266);
@@ -196,6 +210,17 @@
     outline: 2px solid var(--color-ring);
     outline-offset: 2px;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @utility surface {
@@ -221,4 +246,23 @@
     linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black, transparent);
+}
+
+/* Printing an invoice/quote: only .print-area (shown via Tailwind's
+   hidden/print:block on the element itself) should end up on the page —
+   everything else (dialog backdrop, sidebar, app header) is hidden here
+   regardless of its own display state. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    padding: 2rem;
+  }
 }

@@ -69,6 +69,7 @@ export const productSchema = z.object({
   minStock: z.coerce.number().min(0).max(99999999).default(0),
   taxRate: z.coerce.number().min(0).max(100).default(0),
   description: z.string().trim().max(600).optional().or(z.literal("")),
+  supplierId: z.string().uuid().optional().or(z.literal("")),
 });
 export type ProductInput = z.infer<typeof productSchema>;
 
@@ -81,6 +82,25 @@ export const customerSchema = z.object({
   notes: z.string().trim().max(600).optional().or(z.literal("")),
 });
 export type CustomerInput = z.infer<typeof customerSchema>;
+
+export const supplierSchema = z.object({
+  businessId: z.string().uuid(),
+  name: z.string().trim().min(1, "Supplier name is required").max(160),
+  contactPerson: z.string().trim().max(160).optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  email: z.string().trim().email("Enter a valid email").max(200).optional().or(z.literal("")),
+  address: z.string().trim().max(240).optional().or(z.literal("")),
+  notes: z.string().trim().max(600).optional().or(z.literal("")),
+});
+export type SupplierInput = z.infer<typeof supplierSchema>;
+
+export const updateSupplierSchema = supplierSchema.extend({ supplierId: z.string().uuid() });
+export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;
+
+export const supplierIdSchema = z.object({
+  businessId: z.string().uuid(),
+  supplierId: z.string().uuid(),
+});
 
 export const businessIdSchema = z.object({ businessId: z.string().uuid() });
 
@@ -185,6 +205,15 @@ export const quoteSchema = z.object({
   items: z.array(lineItemSchema).min(1, "Add at least one item"),
 });
 export type QuoteInput = z.infer<typeof quoteSchema>;
+
+export const purchaseOrderSchema = z.object({
+  businessId: z.string().uuid(),
+  supplierId: z.string().uuid().optional().or(z.literal("")),
+  orderDate: z.string().min(1),
+  notes: z.string().trim().max(600).optional().or(z.literal("")),
+  items: z.array(lineItemSchema).min(1, "Add at least one item"),
+});
+export type PurchaseOrderInput = z.infer<typeof purchaseOrderSchema>;
 
 export const quoteIdSchema = z.object({
   businessId: z.string().uuid(),
@@ -299,6 +328,50 @@ export const importSalesHistorySchema = z.object({
   rows: z.array(saleHistoryImportRowSchema).min(1).max(500),
 });
 
+export const customerImportRowSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(160),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  email: z.string().trim().email("Enter a valid email").max(200).optional().or(z.literal("")),
+  address: z.string().trim().max(240).optional().or(z.literal("")),
+  notes: z.string().trim().max(600).optional().or(z.literal("")),
+});
+export type CustomerImportRow = z.infer<typeof customerImportRowSchema>;
+
+export const importCustomersSchema = z.object({
+  businessId: z.string().uuid(),
+  rows: z.array(customerImportRowSchema).min(1).max(500),
+});
+
+export const saleLineImportRowSchema = z.object({
+  saleDate: z.string().min(1, "Date is required"),
+  product: z.string().trim().min(1, "Product is required").max(160),
+  quantity: z.coerce.number().positive("Quantity must be greater than zero").max(99999999),
+  unitPrice: z.coerce.number().min(0, "Price cannot be negative").max(99999999).optional(),
+  customer: z.string().trim().max(160).optional().or(z.literal("")),
+  paymentMethod: paymentMethodSchema.default("cash"),
+});
+export type SaleLineImportRow = z.infer<typeof saleLineImportRowSchema>;
+
+export const importSalesDetailedSchema = z.object({
+  businessId: z.string().uuid(),
+  rows: z.array(saleLineImportRowSchema).min(1).max(500),
+});
+
+/* -------------------------------- billing -------------------------------- */
+
+export const subscriptionCheckoutSchema = z.object({
+  businessId: z.string().uuid(),
+  plan: z.enum(["pro"]),
+  channel: z.enum(["web", "ecocash", "onemoney"]),
+  phone: z.string().trim().max(20).optional(),
+});
+export type SubscriptionCheckoutInput = z.infer<typeof subscriptionCheckoutSchema>;
+
+export const checkPaymentSchema = z.object({
+  businessId: z.string().uuid(),
+  reference: z.string().trim().min(1),
+});
+
 /* ----------------------------- AI assistant ------------------------------ */
 
 export const assistantMessageSchema = z.object({
@@ -309,4 +382,84 @@ export const assistantMessageSchema = z.object({
 export const askAssistantSchema = z.object({
   businessId: z.string().uuid(),
   messages: z.array(assistantMessageSchema).min(1).max(20),
+});
+
+/* ------------------------------- quick add -------------------------------- */
+
+export const quickEntrySchema = z.object({
+  businessId: z.string().uuid(),
+  text: z.string().trim().min(1).max(500),
+});
+
+/* --------------------------------- team ----------------------------------- */
+
+export const teamRoleSchema = z.enum(["owner", "admin", "manager", "cashier", "accountant"]);
+
+export const createInviteSchema = z.object({
+  businessId: z.string().uuid(),
+  role: teamRoleSchema,
+});
+
+export const inviteTokenSchema = z.object({
+  token: z.string().trim().min(1).max(200),
+});
+
+export const revokeInviteSchema = z.object({
+  businessId: z.string().uuid(),
+  inviteId: z.string().uuid(),
+});
+
+export const updateTeamMemberRoleSchema = z.object({
+  businessId: z.string().uuid(),
+  memberUserId: z.string().uuid(),
+  role: teamRoleSchema,
+});
+
+export const removeTeamMemberSchema = z.object({
+  businessId: z.string().uuid(),
+  memberUserId: z.string().uuid(),
+});
+
+const staffPasswordSchema = z.string().min(8, "Use at least 8 characters.");
+
+export const createStaffAccountSchema = z.object({
+  businessId: z.string().uuid(),
+  displayName: z.string().trim().min(1, "Name is required").max(80),
+  password: staffPasswordSchema,
+  role: teamRoleSchema,
+});
+
+export const resetStaffPasswordSchema = z.object({
+  businessId: z.string().uuid(),
+  memberUserId: z.string().uuid(),
+  newPassword: staffPasswordSchema,
+});
+
+export const staffLoginSchema = z.object({
+  businessName: z.string().trim().min(1).max(120),
+  name: z.string().trim().min(1).max(80),
+});
+
+export const setStaffPasswordSchema = z.object({
+  businessId: z.string().uuid(),
+  password: staffPasswordSchema,
+});
+
+export const verifyShopLoginSchema = z.object({
+  businessName: z.string().trim().min(1).max(120),
+  password: z.string().min(1).max(200),
+});
+
+export const setRolePermissionSchema = z.object({
+  businessId: z.string().uuid(),
+  role: z.enum(["admin", "manager", "cashier", "accountant"]),
+  permissionKey: z.string().trim().min(1).max(80),
+  granted: z.boolean(),
+});
+
+/* ------------------------------- insights -------------------------------- */
+
+export const weeklyReportSchema = z.object({
+  businessId: z.string().uuid(),
+  forceRegenerate: z.boolean().optional(),
 });

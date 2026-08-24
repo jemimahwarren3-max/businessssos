@@ -44,8 +44,83 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// Paynow's resulturl callback — a raw, unauthenticated x-www-form-urlencoded
+// POST, not a TanStack `createServerFn` call, so it has to be handled here
+// rather than as a route.
+//
+// Authenticity gate: Paynow doesn't send a signature header — it embeds a
+// SHA512 hash directly in the POST body, computed against our
+// PAYNOW_INTEGRATION_KEY (see node_modules/paynow's actual source; the
+// README documents a different, nonexistent API). parseStatusUpdate() below
+// verifies that hash and throws if it doesn't match, which is what proves
+// this request genuinely came from Paynow — reject with 401 before doing
+// any DB lookup if it fails.
+//
+// Even once authenticated, we still never trust the status field on the
+// wire: always re-poll Paynow ourselves via our own stored poll_url before
+// crediting anything. See src/lib/payments/paynow.server.ts for why.
+async function verifyPaynowWebhookBody(raw: string): Promise<string | null> {
+  const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
+  const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
+  if (!integrationId || !integrationKey) return null;
+
+  const { Paynow } = await import("paynow");
+  const paynow = new Paynow(integrationId, integrationKey);
+  try {
+    const status = paynow.parseStatusUpdate(raw);
+    return status.reference ?? null;
+  } catch (error) {
+    console.error("[paynow webhook] hash verification failed", error);
+    return null;
+  }
+}
+
+async function handlePaynowWebhook(request: Request): Promise<Response> {
+  try {
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const { createAnonClient } = await import("./lib/auth/session.server");
+    const { data: allowed } = await createAnonClient().rpc("check_rate_limit", {
+      _key: `paynow-webhook:ip:${ip}`,
+      _limit: 30,
+      _window_seconds: 60,
+    });
+    if (allowed === false) return new Response("Too Many Requests", { status: 429 });
+
+    const raw = await request.text();
+    const reference = await verifyPaynowWebhookBody(raw);
+    if (!reference) return new Response("Unauthorized", { status: 401 });
+
+    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("subscription_payments")
+      .select("reference, poll_url, status")
+      .eq("reference", reference)
+      .maybeSingle();
+    if (error) {
+      console.error("[paynow webhook] lookup failed", error);
+      return new Response("Error", { status: 500 });
+    }
+    if (!row) return new Response("Unknown reference", { status: 404 });
+
+    if (row.status === "created") {
+      const { pollAndConfirmPayment } = await import("./lib/payments/paynow.server");
+      await pollAndConfirmPayment(row.reference, row.poll_url);
+    }
+
+    return new Response("OK", { status: 200 });
+  } catch (error) {
+    console.error("[paynow webhook]", error);
+    return new Response("Error", { status: 500 });
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname === "/api/webhooks/paynow") {
+      return handlePaynowWebhook(request);
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

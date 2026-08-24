@@ -1,8 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
+import { isBillingEnabled } from "@/lib/feature-flags.server";
 import type {
   ConvertQuoteInput,
   CreateBusinessInput,
+  CustomerImportRow,
   CustomerInput,
   ExpenseImportRow,
   ExpenseInput,
@@ -12,11 +15,15 @@ import type {
   PaymentInput,
   ProductImportRow,
   ProductInput,
+  PurchaseOrderInput,
   QuoteInput,
   QuoteStatusInput,
   SaleHistoryImportRow,
   SaleInput,
+  SaleLineImportRow,
   StockAdjustInput,
+  SupplierInput,
+  UpdateSupplierInput,
 } from "./business.schemas";
 
 export type Db = SupabaseClient<Database>;
@@ -28,7 +35,7 @@ function fail(message: string): never {
   throw new AppError(message);
 }
 
-function dbFail(context: string, error: unknown): never {
+export function dbFail(context: string, error: unknown): never {
   console.error(`[businessos] ${context}`, error);
   const code = (error as { code?: string } | null)?.code;
   const message = (error as { message?: string } | null)?.message;
@@ -50,8 +57,11 @@ export type Workspace = {
     logo_url: string | null;
   };
   role: string;
+  permissions: string[];
   plan: string;
   planStatus: string;
+  isReadOnly: boolean;
+  billingEnabled: boolean;
 };
 
 /** Server-side authorization: confirm the caller belongs to the business. */
@@ -70,6 +80,54 @@ export async function assertRole(supabase: Db, businessId: string, roles: string
   });
   if (error) dbFail("role check", error);
   if (!data) fail("Your role doesn't allow this action.");
+}
+
+/** The data-driven successor to assertRole — checks a permission key against
+ * business_role_permissions (owner always passes) instead of a hardcoded
+ * role array. RLS policies and RPC-embedded has_business_role checks
+ * throughout the schema are a separate, lower-level layer this doesn't
+ * replace — only application-layer call sites use this. */
+export async function assertPermission(supabase: Db, businessId: string, permission: string) {
+  const { data, error } = await supabase.rpc("has_permission", {
+    _business_id: businessId,
+    _permission: permission,
+  });
+  if (error) dbFail("permission check", error);
+  if (!data) fail("Your role doesn't allow this action.");
+}
+
+const READ_ONLY_MESSAGE =
+  "Your trial has ended. Upgrade to Pro to keep creating and editing — your existing data is still safe and visible.";
+
+/** True if a subscription in this state is allowed to write — active, or
+ * still inside an unexpired trial. Shared by assertCanWrite (server-side
+ * enforcement) and loadWorkspace (so the UI can show a read-only banner).
+ * Always true while BILLING_ENABLED=false (free beta) — the underlying
+ * subscription/trial data keeps accumulating normally either way (see
+ * create_business_with_owner), so re-enabling billing later doesn't need a
+ * data migration, only flipping the flag back. */
+function canWriteForSubscription(
+  subscription: { status: string; trial_ends_at: string | null } | null,
+) {
+  if (!isBillingEnabled()) return true;
+  if (!subscription) return true; // fail open — shouldn't happen post atomic business creation
+  if (subscription.status === "active") return true;
+  return Boolean(
+    subscription.status === "trialing" &&
+    subscription.trial_ends_at &&
+    new Date(subscription.trial_ends_at) > new Date(),
+  );
+}
+
+/** Gate for every write (create/update/delete) — read paths never call this. */
+export async function assertCanWrite(supabase: Db, businessId: string) {
+  const { data: subscription, error } = await supabase
+    .from("subscriptions")
+    .select("status, trial_ends_at")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (error) dbFail("check subscription status", error);
+  if (!canWriteForSubscription(subscription)) fail(READ_ONLY_MESSAGE);
 }
 
 export async function recordAudit(
@@ -98,7 +156,18 @@ export async function recordAudit(
   if (error) console.error("[businessos] audit log failed", error);
 }
 
+// Hit on essentially every authenticated page load, so it's the one query
+// in this app actually worth caching (see src/lib/cache/redis.server.ts —
+// no-ops entirely if Upstash isn't configured, so this is safe to ship
+// before you've set it up). Only the found-workspace case is cached, not
+// "no workspace yet" (the mid-onboarding case) — that's rare enough that
+// re-checking it every time costs nothing, and caching a null would need
+// extra bookkeeping to tell apart from a genuine cache miss.
 export async function loadWorkspace(supabase: Db, userId: string): Promise<Workspace | null> {
+  const cacheKey = workspaceCacheKey(userId);
+  const cached = await cacheGet<Workspace>(cacheKey);
+  if (cached) return cached;
+
   const { data: membership, error } = await supabase
     .from("business_members")
     .select("role, business_id")
@@ -110,27 +179,53 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   if (error) dbFail("load membership", error);
   if (!membership) return null;
 
-  const [{ data: business, error: bizError }, { data: subscription }] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select("id, name, business_type, currency, onboarding_completed, logo_url")
-      .eq("id", membership.business_id)
-      .maybeSingle(),
-    supabase
-      .from("subscriptions")
-      .select("plan, status")
-      .eq("business_id", membership.business_id)
-      .maybeSingle(),
-  ]);
+  const [{ data: business, error: bizError }, { data: subscription }, { data: permissions }] =
+    await Promise.all([
+      supabase
+        .from("businesses")
+        .select("id, name, business_type, currency, onboarding_completed, logo_url")
+        .eq("id", membership.business_id)
+        .maybeSingle(),
+      supabase
+        .from("subscriptions")
+        .select("plan, status, trial_ends_at")
+        .eq("business_id", membership.business_id)
+        .maybeSingle(),
+      // Every member's own effective permission set — owner gets everything,
+      // everyone else gets exactly what business_role_permissions grants
+      // their role, defaulted to today's behavior on first access.
+      supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
+    ]);
   if (bizError) dbFail("load business", bizError);
   if (!business) return null;
 
-  return {
+  const workspace: Workspace = {
     business,
     role: membership.role,
+    permissions: permissions ?? [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
+    isReadOnly: !canWriteForSubscription(subscription ?? null),
+    billingEnabled: isBillingEnabled(),
   };
+  await cacheSet(cacheKey, workspace, 60);
+  return workspace;
+}
+
+/** Call after anything that changes a business's plan/status or a member's
+ * role — every active member's cached workspace needs to reflect it, not
+ * just whoever triggered the change. A 60s TTL bounds staleness even if a
+ * future write path forgets this, but real writes shouldn't rely on that. */
+export async function invalidateWorkspaceCacheForBusiness(
+  supabase: Db,
+  businessId: string,
+): Promise<void> {
+  const { data: members } = await supabase
+    .from("business_members")
+    .select("user_id")
+    .eq("business_id", businessId)
+    .eq("is_active", true);
+  await Promise.all((members ?? []).map((m) => cacheDel(workspaceCacheKey(m.user_id))));
 }
 
 export async function createBusinessRecord(
@@ -141,66 +236,77 @@ export async function createBusinessRecord(
   const existing = await loadWorkspace(supabase, userId);
   if (existing) return existing.business.id;
 
-  const { data: business, error } = await supabase
-    .from("businesses")
-    .insert({
-      name: input.name,
-      business_type: input.businessType,
-      currency: input.currency,
-      phone: input.phone || null,
-      address: input.address || null,
-      created_by: userId,
-      onboarding_completed: true,
-    })
-    .select("id")
-    .single();
-  if (error || !business) dbFail("create business", error);
-
-  const { error: memberError } = await supabase.from("business_members").insert({
-    business_id: business.id,
-    user_id: userId,
-    role: "owner",
+  const { data: businessId, error } = await supabase.rpc("create_business_with_owner", {
+    _name: input.name,
+    _business_type: input.businessType,
+    _currency: input.currency,
+    _phone: input.phone ?? "",
+    _address: input.address ?? "",
   });
-  if (memberError) dbFail("create owner membership", memberError);
+  if (error || !businessId) dbFail("create business", error);
 
-  const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-  await supabase.from("business_settings").insert({ business_id: business.id });
-  await supabase.from("subscriptions").insert({
-    business_id: business.id,
-    plan: "business",
-    status: "trialing",
-    trial_ends_at: trialEnd,
-    current_period_start: new Date().toISOString(),
-    current_period_end: trialEnd,
-  });
+  // Best-effort — the business itself is already fully committed above, so a
+  // failure here shouldn't roll anything back or block the user.
   await supabase.from("notifications").insert({
-    business_id: business.id,
+    business_id: businessId,
     user_id: userId,
     type: "welcome",
     title: "Welcome to BusinessOS AI",
-    message: "Your 14-day Business trial has started. Add your first products to begin.",
+    message: isBillingEnabled()
+      ? "Your 3-day Pro trial has started. Add your first products to begin."
+      : "You're in! BusinessOS is free during our beta — add your first products to begin.",
     severity: "info",
   });
   await recordAudit(supabase, {
-    businessId: business.id,
+    businessId,
     userId,
     action: "business.created",
     entityType: "business",
-    entityId: business.id,
+    entityId: businessId,
     summary: `Created business ${input.name}`,
   });
 
-  return business.id;
+  return businessId;
+}
+
+/* -------------------------------- billing -------------------------------- */
+
+export async function loadBillingSummary(supabase: Db, businessId: string) {
+  await assertMember(supabase, businessId);
+
+  const [{ data: subscription, error: subError }, { data: payments, error: payError }] =
+    await Promise.all([
+      supabase
+        .from("subscriptions")
+        .select("plan, status, interval, trial_ends_at, current_period_start, current_period_end")
+        .eq("business_id", businessId)
+        .maybeSingle(),
+      supabase
+        .from("subscription_payments")
+        .select("reference, plan, interval, amount, currency, status, created_at, paid_at")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
+  if (subError) dbFail("load subscription", subError);
+  if (payError) dbFail("load subscription payments", payError);
+
+  return { subscription: subscription ?? null, payments: payments ?? [] };
 }
 
 /* ------------------------------- products ------------------------------- */
 
-export async function listProducts(supabase: Db, businessId: string, search: string) {
+export async function listProducts(
+  supabase: Db,
+  businessId: string,
+  search: string,
+  supplierId?: string,
+) {
   await assertMember(supabase, businessId);
   let query = supabase
     .from("products")
     .select(
-      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at",
+      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id",
     )
     .eq("business_id", businessId)
     .is("deleted_at", null)
@@ -208,56 +314,31 @@ export async function listProducts(supabase: Db, businessId: string, search: str
     .limit(100);
   const term = search.trim();
   if (term) query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`);
+  if (supplierId) query = query.eq("supplier_id", supplierId);
   const { data, error } = await query;
   if (error) dbFail("list products", error);
   return data ?? [];
 }
 
-export async function createProduct(supabase: Db, userId: string, input: ProductInput) {
-  await assertRole(supabase, input.businessId, ["owner", "admin", "manager"]);
-  if (input.sellingPrice < input.costPrice) {
-    // allowed, but worth surfacing later as an insight — not an error.
-  }
+export async function createProduct(supabase: Db, input: ProductInput) {
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase
-    .from("products")
-    .insert({
-      business_id: input.businessId,
-      name: input.name,
-      sku: input.sku || null,
-      barcode: input.barcode || null,
-      unit: input.unit,
-      cost_price: input.costPrice,
-      selling_price: input.sellingPrice,
-      stock: input.stock,
-      min_stock: input.minStock,
-      tax_rate: input.taxRate,
-      description: input.description || null,
+    .rpc("create_product", {
+      _business_id: input.businessId,
+      _name: input.name,
+      _sku: input.sku || "",
+      _barcode: input.barcode || "",
+      _unit: input.unit,
+      _cost_price: input.costPrice,
+      _selling_price: input.sellingPrice,
+      _stock: input.stock,
+      _min_stock: input.minStock,
+      _tax_rate: input.taxRate,
+      _description: input.description || "",
+      _supplier_id: input.supplierId || null,
     })
-    .select("id, name, stock")
     .single();
   if (error || !data) dbFail("create product", error);
-
-  if (input.stock > 0) {
-    await supabase.from("inventory_movements").insert({
-      business_id: input.businessId,
-      product_id: data.id,
-      movement_type: "stock_in",
-      quantity: input.stock,
-      stock_before: 0,
-      stock_after: input.stock,
-      reason: "Opening stock",
-      created_by: userId,
-    });
-  }
-  await recordAudit(supabase, {
-    businessId: input.businessId,
-    userId,
-    action: "product.created",
-    entityType: "product",
-    entityId: data.id,
-    summary: `Added product ${data.name}`,
-    newValues: { name: input.name, selling_price: input.sellingPrice, stock: input.stock },
-  });
   return data;
 }
 
@@ -268,7 +349,8 @@ export async function importProducts(
   userId: string,
   input: { businessId: string; rows: ProductImportRow[] },
 ): Promise<ImportResult> {
-  await assertRole(supabase, input.businessId, ["owner", "admin", "manager"]);
+  await assertPermission(supabase, input.businessId, "inventory.import");
+  await assertCanWrite(supabase, input.businessId);
   let imported = 0;
   const errors: string[] = [];
 
@@ -324,61 +406,17 @@ export async function importProducts(
   return { imported, skipped: errors.length, errors };
 }
 
-export async function adjustStock(supabase: Db, userId: string, input: StockAdjustInput) {
-  await assertRole(supabase, input.businessId, ["owner", "admin", "manager"]);
-  const { data: product, error } = await supabase
-    .from("products")
-    .select("id, name, stock")
-    .eq("id", input.productId)
-    .eq("business_id", input.businessId)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (error) dbFail("load product", error);
-  if (!product) fail("That product could not be found.");
-
-  const signed = input.movementType === "stock_out" ? -input.quantity : input.quantity;
-  const before = Number(product.stock);
-  const after = before + signed;
-
-  const { data: settings } = await supabase
-    .from("business_settings")
-    .select("allow_negative_stock")
-    .eq("business_id", input.businessId)
-    .maybeSingle();
-  if (after < 0 && !settings?.allow_negative_stock) {
-    fail(`Not enough stock. ${product.name} only has ${before} left.`);
-  }
-
-  const { error: updateError } = await supabase
-    .from("products")
-    .update({ stock: after })
-    .eq("id", product.id)
-    .eq("business_id", input.businessId);
-  if (updateError) dbFail("update stock", updateError);
-
-  const { error: movementError } = await supabase.from("inventory_movements").insert({
-    business_id: input.businessId,
-    product_id: product.id,
-    movement_type: input.movementType,
-    quantity: signed,
-    stock_before: before,
-    stock_after: after,
-    reason: input.reason || null,
-    created_by: userId,
+export async function adjustStock(supabase: Db, input: StockAdjustInput) {
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase.rpc("adjust_stock", {
+    _business_id: input.businessId,
+    _product_id: input.productId,
+    _movement_type: input.movementType,
+    _quantity: input.quantity,
+    _reason: input.reason || "",
   });
-  if (movementError) dbFail("record movement", movementError);
-
-  await recordAudit(supabase, {
-    businessId: input.businessId,
-    userId,
-    action: "inventory.adjusted",
-    entityType: "product",
-    entityId: product.id,
-    summary: `${product.name}: stock ${before} → ${after}`,
-    oldValues: { stock: before },
-    newValues: { stock: after, movement: input.movementType },
-  });
-  return { stock: after };
+  if (error) dbFail("adjust stock", error);
+  return { stock: data as number };
 }
 
 /* ------------------------------ customers ------------------------------ */
@@ -400,13 +438,8 @@ export async function listCustomers(supabase: Db, businessId: string, search: st
 }
 
 export async function createCustomer(supabase: Db, userId: string, input: CustomerInput) {
-  await assertRole(supabase, input.businessId, [
-    "owner",
-    "admin",
-    "manager",
-    "cashier",
-    "accountant",
-  ]);
+  await assertPermission(supabase, input.businessId, "customers.create");
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase
     .from("customers")
     .insert({
@@ -431,15 +464,119 @@ export async function createCustomer(supabase: Db, userId: string, input: Custom
   return data;
 }
 
+/* ------------------------------ suppliers ------------------------------ */
+
+export async function listSuppliers(supabase: Db, businessId: string, search: string) {
+  await assertPermission(supabase, businessId, "suppliers.view");
+  let query = supabase
+    .from("suppliers")
+    .select("id, name, contact_person, phone, email, address, notes, outstanding_amount")
+    .eq("business_id", businessId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const term = search.trim();
+  if (term) query = query.or(`name.ilike.%${term}%,phone.ilike.%${term}%,email.ilike.%${term}%`);
+  const { data, error } = await query;
+  if (error) dbFail("list suppliers", error);
+  return data ?? [];
+}
+
+export async function createSupplier(supabase: Db, userId: string, input: SupplierInput) {
+  await assertPermission(supabase, input.businessId, "suppliers.create");
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase
+    .from("suppliers")
+    .insert({
+      business_id: input.businessId,
+      name: input.name,
+      contact_person: input.contactPerson || null,
+      phone: input.phone || null,
+      email: input.email || null,
+      address: input.address || null,
+      notes: input.notes || null,
+    })
+    .select("id, name")
+    .single();
+  if (error || !data) dbFail("create supplier", error);
+  await recordAudit(supabase, {
+    businessId: input.businessId,
+    userId,
+    action: "supplier.created",
+    entityType: "supplier",
+    entityId: data.id,
+    summary: `Added supplier ${data.name}`,
+  });
+  return data;
+}
+
+export async function updateSupplier(supabase: Db, userId: string, input: UpdateSupplierInput) {
+  await assertPermission(supabase, input.businessId, "suppliers.edit");
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase
+    .from("suppliers")
+    .update({
+      name: input.name,
+      contact_person: input.contactPerson || null,
+      phone: input.phone || null,
+      email: input.email || null,
+      address: input.address || null,
+      notes: input.notes || null,
+    })
+    .eq("id", input.supplierId)
+    .eq("business_id", input.businessId)
+    .select("id, name")
+    .maybeSingle();
+  if (error) dbFail("update supplier", error);
+  if (!data) fail("That supplier could not be found.");
+  await recordAudit(supabase, {
+    businessId: input.businessId,
+    userId,
+    action: "supplier.updated",
+    entityType: "supplier",
+    entityId: data.id,
+    summary: `Updated supplier ${data.name}`,
+  });
+  return data;
+}
+
+export async function deleteSupplier(
+  supabase: Db,
+  userId: string,
+  businessId: string,
+  supplierId: string,
+) {
+  await assertPermission(supabase, businessId, "suppliers.delete");
+  await assertCanWrite(supabase, businessId);
+  const { data, error } = await supabase
+    .from("suppliers")
+    .delete()
+    .eq("id", supplierId)
+    .eq("business_id", businessId)
+    .select("id, name")
+    .maybeSingle();
+  if (error) dbFail("delete supplier", error);
+  if (!data) fail("That supplier could not be found.");
+  await recordAudit(supabase, {
+    businessId,
+    userId,
+    action: "supplier.deleted",
+    entityType: "supplier",
+    entityId: data.id,
+    summary: `Deleted supplier ${data.name}`,
+  });
+}
+
 /* --------------------------------- sales --------------------------------- */
 
 export async function createSale(supabase: Db, input: SaleInput) {
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase.rpc("create_sale", {
     _business_id: input.businessId,
-    _customer_id: input.customerId || null,
+    _customer_id: (input.customerId || null) as never,
     _discount: input.discount,
     _payment_method: input.paymentMethod,
-    _notes: input.notes || null,
+    _notes: (input.notes || null) as never,
     _items: input.items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
@@ -511,7 +648,7 @@ export async function getInvoiceDetail(supabase: Db, businessId: string, invoice
   const [invoiceRes, itemsRes, paymentsRes] = await Promise.all([
     supabase
       .from("invoices")
-      .select("*, customers(name, phone, email)")
+      .select("*, customers(name, phone, email), businesses(name, address, phone, email)")
       .eq("id", invoiceId)
       .eq("business_id", businessId)
       .maybeSingle(),
@@ -557,13 +694,14 @@ export async function getInvoiceDetail(supabase: Db, businessId: string, invoice
 }
 
 export async function createInvoice(supabase: Db, input: InvoiceInput) {
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase.rpc("create_invoice", {
     _business_id: input.businessId,
-    _customer_id: input.customerId || null,
+    _customer_id: (input.customerId || null) as never,
     _issue_date: input.issueDate,
-    _due_date: input.dueDate || null,
-    _notes: input.notes || null,
-    _terms: input.terms || null,
+    _due_date: (input.dueDate || null) as never,
+    _notes: (input.notes || null) as never,
+    _terms: (input.terms || null) as never,
     _discount: input.discount,
     _items: toItemsPayload(input.items),
     _idempotency_key: input.idempotencyKey,
@@ -573,6 +711,7 @@ export async function createInvoice(supabase: Db, input: InvoiceInput) {
 }
 
 export async function setInvoiceStatus(supabase: Db, input: InvoiceStatusInput) {
+  await assertCanWrite(supabase, input.businessId);
   const { error } = await supabase.rpc("set_invoice_status", {
     _business_id: input.businessId,
     _invoice_id: input.invoiceId,
@@ -583,12 +722,13 @@ export async function setInvoiceStatus(supabase: Db, input: InvoiceStatusInput) 
 }
 
 export async function recordInvoicePayment(supabase: Db, input: PaymentInput) {
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase.rpc("record_invoice_payment", {
     _business_id: input.businessId,
     _invoice_id: input.invoiceId,
     _amount: input.amount,
     _method: input.method,
-    _reference: input.reference || null,
+    _reference: (input.reference || null) as never,
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("record payment", error);
@@ -645,7 +785,7 @@ export async function getQuoteDetail(supabase: Db, businessId: string, quoteId: 
   const [quoteRes, itemsRes] = await Promise.all([
     supabase
       .from("quotes")
-      .select("*, customers(name, phone, email)")
+      .select("*, customers(name, phone, email), businesses(name, address, phone, email)")
       .eq("id", quoteId)
       .eq("business_id", businessId)
       .maybeSingle(),
@@ -679,13 +819,14 @@ export async function getQuoteDetail(supabase: Db, businessId: string, quoteId: 
 }
 
 export async function createQuote(supabase: Db, input: QuoteInput) {
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase.rpc("create_quote", {
     _business_id: input.businessId,
-    _customer_id: input.customerId || null,
+    _customer_id: (input.customerId || null) as never,
     _issue_date: input.issueDate,
-    _valid_until: input.validUntil || null,
-    _notes: input.notes || null,
-    _terms: input.terms || null,
+    _valid_until: (input.validUntil || null) as never,
+    _notes: (input.notes || null) as never,
+    _terms: (input.terms || null) as never,
     _discount: input.discount,
     _items: toItemsPayload(input.items),
   });
@@ -693,8 +834,58 @@ export async function createQuote(supabase: Db, input: QuoteInput) {
   return { id: data as string };
 }
 
+/* --------------------------- purchase orders --------------------------- */
+
+export type PurchaseOrderRow = {
+  id: string;
+  po_number: string;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  order_date: string;
+  total: number;
+  status: string;
+};
+
+export async function listPurchaseOrders(
+  supabase: Db,
+  businessId: string,
+): Promise<PurchaseOrderRow[]> {
+  await assertMember(supabase, businessId);
+  const { data, error } = await supabase
+    .from("purchase_orders")
+    .select("id, po_number, supplier_id, order_date, total, status, suppliers(name)")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) dbFail("list purchase orders", error);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    po_number: row.po_number,
+    supplier_id: row.supplier_id,
+    supplier_name: (row.suppliers as unknown as { name: string } | null)?.name ?? null,
+    order_date: row.order_date,
+    total: Number(row.total),
+    status: row.status,
+  }));
+}
+
+export async function createPurchaseOrder(supabase: Db, input: PurchaseOrderInput) {
+  await assertPermission(supabase, input.businessId, "purchase_orders.create");
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase.rpc("create_purchase_order", {
+    _business_id: input.businessId,
+    _supplier_id: (input.supplierId || null) as never,
+    _order_date: input.orderDate,
+    _notes: (input.notes || null) as never,
+    _items: toItemsPayload(input.items),
+  });
+  if (error) dbFail("create purchase order", error);
+  return { id: data as string };
+}
+
 export async function setQuoteStatus(supabase: Db, userId: string, input: QuoteStatusInput) {
-  await assertRole(supabase, input.businessId, ["owner", "admin", "manager", "accountant"]);
+  await assertPermission(supabase, input.businessId, "quotes.manage");
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase
     .from("quotes")
     .update({ status: input.status })
@@ -718,10 +909,11 @@ export async function setQuoteStatus(supabase: Db, userId: string, input: QuoteS
 }
 
 export async function convertQuote(supabase: Db, input: ConvertQuoteInput) {
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase.rpc("convert_quote_to_invoice", {
     _business_id: input.businessId,
     _quote_id: input.quoteId,
-    _due_date: input.dueDate || null,
+    _due_date: (input.dueDate || null) as never,
   });
   if (error) dbFail("convert quote", error);
   return { invoiceId: data as string };
@@ -759,7 +951,8 @@ export async function listExpenses(
 }
 
 export async function createExpense(supabase: Db, userId: string, input: ExpenseInput) {
-  await assertRole(supabase, input.businessId, ["owner", "admin", "manager", "accountant"]);
+  await assertPermission(supabase, input.businessId, "expenses.create");
+  await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase
     .from("expenses")
     .insert({
@@ -793,7 +986,8 @@ export async function deleteExpense(
   businessId: string,
   expenseId: string,
 ) {
-  await assertRole(supabase, businessId, ["owner", "admin"]);
+  await assertPermission(supabase, businessId, "expenses.delete");
+  await assertCanWrite(supabase, businessId);
   const { data, error } = await supabase
     .from("expenses")
     .delete()
@@ -820,7 +1014,8 @@ export async function importExpenses(
   userId: string,
   input: { businessId: string; rows: ExpenseImportRow[] },
 ): Promise<ImportResult> {
-  await assertRole(supabase, input.businessId, ["owner", "admin", "manager", "accountant"]);
+  await assertPermission(supabase, input.businessId, "expenses.import");
+  await assertCanWrite(supabase, input.businessId);
   let imported = 0;
   const errors: string[] = [];
 
@@ -861,7 +1056,8 @@ export async function importSalesHistory(
   userId: string,
   input: { businessId: string; rows: SaleHistoryImportRow[] },
 ): Promise<ImportResult> {
-  await assertRole(supabase, input.businessId, ["owner", "admin", "manager", "accountant"]);
+  await assertPermission(supabase, input.businessId, "sales.import");
+  await assertCanWrite(supabase, input.businessId);
   let imported = 0;
   const errors: string[] = [];
 
@@ -876,7 +1072,7 @@ export async function importSalesHistory(
       _sale_date: saleDate.toISOString(),
       _total: row.total,
       _cost: row.cost,
-      _description: row.description || null,
+      _description: (row.description || null) as never,
     });
     if (error) {
       errors.push(`Row ${index + 2}: ${row.saleDate} — couldn't be saved`);
@@ -891,6 +1087,107 @@ export async function importSalesHistory(
     action: "sales.imported",
     entityType: "sale",
     summary: `Imported ${imported} historical sale${imported === 1 ? "" : "s"} from a spreadsheet`,
+    newValues: { imported, skipped: errors.length },
+  });
+
+  return { imported, skipped: errors.length, errors };
+}
+
+export async function importCustomers(
+  supabase: Db,
+  userId: string,
+  input: { businessId: string; rows: CustomerImportRow[] },
+): Promise<ImportResult> {
+  await assertPermission(supabase, input.businessId, "customers.import");
+  await assertCanWrite(supabase, input.businessId);
+  let imported = 0;
+  const errors: string[] = [];
+
+  for (const [index, row] of input.rows.entries()) {
+    const { error } = await supabase.from("customers").insert({
+      business_id: input.businessId,
+      name: row.name,
+      phone: row.phone || null,
+      email: row.email || null,
+      address: row.address || null,
+      notes: row.notes || null,
+    });
+    if (error) {
+      errors.push(`Row ${index + 2}: ${row.name || "unnamed customer"} — couldn't be saved`);
+      continue;
+    }
+    imported++;
+  }
+
+  await recordAudit(supabase, {
+    businessId: input.businessId,
+    userId,
+    action: "customers.imported",
+    entityType: "customer",
+    summary: `Imported ${imported} customer${imported === 1 ? "" : "s"} from a spreadsheet`,
+    newValues: { imported, skipped: errors.length },
+  });
+
+  return { imported, skipped: errors.length, errors };
+}
+
+/** Real line-item historical sales — one row = one product = one sale.
+ * Resolves product/customer names against this business's own records
+ * (same deterministic substring search Inventory/Customers search already
+ * use) before calling import_sale_line, which decrements stock and writes
+ * every timestamp as the row's own date rather than "now". Kept as its own
+ * RPC rather than a create_sale parameter — see import_sale_line's own
+ * comment for why. */
+export async function importSalesDetailed(
+  supabase: Db,
+  userId: string,
+  input: { businessId: string; rows: SaleLineImportRow[] },
+): Promise<ImportResult> {
+  await assertPermission(supabase, input.businessId, "sales.import");
+  await assertCanWrite(supabase, input.businessId);
+  let imported = 0;
+  const errors: string[] = [];
+
+  for (const [index, row] of input.rows.entries()) {
+    const saleDate = new Date(row.saleDate);
+    if (Number.isNaN(saleDate.getTime())) {
+      errors.push(`Row ${index + 2}: invalid date "${row.saleDate}"`);
+      continue;
+    }
+    const products = await listProducts(supabase, input.businessId, row.product);
+    const product = products[0];
+    if (!product) {
+      errors.push(`Row ${index + 2}: no product matching "${row.product}"`);
+      continue;
+    }
+    let customerId: string | null = null;
+    if (row.customer) {
+      const customers = await listCustomers(supabase, input.businessId, row.customer);
+      customerId = customers[0]?.id ?? null;
+    }
+    const { error } = await supabase.rpc("import_sale_line", {
+      _business_id: input.businessId,
+      _sale_date: saleDate.toISOString(),
+      _product_id: product.id,
+      _quantity: row.quantity,
+      _unit_price: (row.unitPrice ?? null) as never,
+      _customer_id: customerId as never,
+      _payment_method: row.paymentMethod,
+      _notes: null as never,
+    });
+    if (error) {
+      errors.push(`Row ${index + 2}: ${row.product} — couldn't be saved`);
+      continue;
+    }
+    imported++;
+  }
+
+  await recordAudit(supabase, {
+    businessId: input.businessId,
+    userId,
+    action: "sales.imported_detailed",
+    entityType: "sale",
+    summary: `Imported ${imported} detailed sale${imported === 1 ? "" : "s"} from a spreadsheet`,
     newValues: { imported, skipped: errors.length },
   });
 
@@ -938,11 +1235,17 @@ export async function loadDashboard(
       .eq("business_id", businessId)
       .eq("status", "completed")
       .gte("created_at", windowStart.toISOString()),
+    // No date filter is possible here by design — an unpaid invoice from
+    // last year is still "outstanding" today — so .limit() is the only
+    // available bound. Safety net only: a business that somehow exceeds it
+    // would see an understated outstanding total, not an error, but this is
+    // far beyond realistic usage for this app's target market.
     supabase
       .from("invoices")
       .select("customer_id, total, amount_paid, status, due_date")
       .eq("business_id", businessId)
-      .in("status", ["sent", "partially_paid", "overdue"]),
+      .in("status", ["sent", "partially_paid", "overdue"])
+      .limit(2000),
     supabase
       .from("products")
       .select("id, name, stock, min_stock, unit")
@@ -1155,11 +1458,15 @@ export async function loadReports(
         .eq("business_id", businessId)
         .eq("status", "completed")
         .gte("created_at", windowStart.toISOString()),
+      // Safety net only (see the invoices query in loadDashboard for the
+      // same tradeoff) — the highest-cardinality table in the schema, one
+      // row per line item per sale.
       supabase
         .from("sale_items")
         .select("product_id, name, quantity, line_total")
         .eq("business_id", businessId)
-        .gte("created_at", windowStart.toISOString()),
+        .gte("created_at", windowStart.toISOString())
+        .limit(20000),
       supabase
         .from("expenses")
         .select("category, amount")

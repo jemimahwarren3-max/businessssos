@@ -30,10 +30,49 @@ export default tseslint.config(
                 "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
             },
           ],
+          patterns: [
+            {
+              group: [
+                "*/client.server",
+                "*/client.server.ts",
+                "@/integrations/supabase/client.server",
+              ],
+              message:
+                "supabaseAdmin bypasses RLS entirely — it's allowlisted for exactly the files that need it (see src/integrations/supabase/client.server.ts's header comment). Adding a new caller means widening that allowlist below, deliberately, not importing it here.",
+            },
+          ],
         },
       ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+  {
+    // Allowlist for supabaseAdmin (service-role, bypasses RLS) — see the
+    // restricted-imports message above. Keep this list exactly as long as it
+    // needs to be, no longer.
+    files: [
+      "src/server.ts",
+      "src/lib/payments/paynow.server.ts",
+      "src/lib/admin/admin.server.ts",
+      "src/lib/account-deletion.server.ts",
+      "src/lib/legal-acceptance.server.ts",
+      "src/lib/team.server.ts",
+      "src/integrations/supabase/client.server.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "server-only",
+              message:
+                "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
+            },
+          ],
+        },
+      ],
     },
   },
   eslintPluginPrettier,

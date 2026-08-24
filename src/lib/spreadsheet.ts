@@ -1,5 +1,43 @@
 import { readSheet } from "read-excel-file/browser";
 
+const MAX_IMPORT_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+const MAX_IMPORT_ROWS = 500;
+const MAX_IMPORT_COLUMNS = 100;
+const MAX_CELL_LENGTH = 5000;
+const MAX_TOTAL_CHARACTERS = 250_000;
+
+function sanitizeCellValue(value: unknown): string {
+  if (value == null) return "";
+  return String(value)
+    .replace(/\u0000/g, "")
+    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .replace(/<[^>]*>/g, "")
+    .trim()
+    .slice(0, MAX_CELL_LENGTH);
+}
+
+function validateParsedRows(rows: string[][]): string[][] {
+  if (rows.length > MAX_IMPORT_ROWS) {
+    throw new Error(
+      `This file has too many rows. Please split it into smaller files (max ${MAX_IMPORT_ROWS}).`,
+    );
+  }
+
+  const rowLengths = rows.map((row) => row.length);
+  if (rowLengths.some((length) => length > MAX_IMPORT_COLUMNS)) {
+    throw new Error(
+      `This file has too many columns. Please keep it under ${MAX_IMPORT_COLUMNS} columns.`,
+    );
+  }
+
+  const totalCharacters = rows.reduce((sum, row) => sum + row.join("").length, 0);
+  if (totalCharacters > MAX_TOTAL_CHARACTERS) {
+    throw new Error("This file is too large after parsing. Please split it into smaller files.");
+  }
+
+  return rows.map((row) => row.map((cell) => sanitizeCellValue(cell)));
+}
+
 /** Handles quoted fields, embedded commas/newlines, and escaped quotes ("" inside a quoted field). */
 export function parseCsvText(text: string): string[][] {
   const rows: string[][] = [];
@@ -41,18 +79,31 @@ export function parseCsvText(text: string): string[][] {
     row.push(field);
     if (row.some((cell) => cell.trim() !== "")) rows.push(row);
   }
-  return rows;
+  return validateParsedRows(rows);
 }
 
 export async function parseSpreadsheetFile(file: File): Promise<string[][]> {
+  if (file.size === 0) {
+    throw new Error("The selected file is empty.");
+  }
+  if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+    throw new Error(
+      `The selected file is too large. Please keep imports under ${Math.round(MAX_IMPORT_FILE_SIZE_BYTES / (1024 * 1024))}MB.`,
+    );
+  }
+
   const name = file.name.toLowerCase();
   if (name.endsWith(".csv")) {
     const text = await file.text();
+    if (text.includes("\u0000")) {
+      throw new Error("The selected file contains unsupported characters.");
+    }
     return parseCsvText(text);
   }
   if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
     const rows = await readSheet(file);
-    return rows.map((row) => row.map((cell) => (cell == null ? "" : String(cell))));
+    const parsedRows = rows.map((row) => row.map((cell) => (cell == null ? "" : String(cell))));
+    return validateParsedRows(parsedRows);
   }
   throw new Error("Please upload a .csv, .xlsx or .xls file.");
 }

@@ -16,6 +16,7 @@ import {
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PLAN_MONTHLY_USD } from "@/lib/billing-plans";
 import {
   Accordion,
   AccordionContent,
@@ -75,55 +76,22 @@ const features = [
   {
     icon: BarChart3,
     title: "Reports in plain language",
-    body: "\"Customers who owe you\" instead of \"accounts receivable.\" Business reporting without the jargon.",
+    body: '"Customers who owe you" instead of "accounts receivable." Business reporting without the jargon.',
   },
 ];
 
 const plans = [
   {
-    name: "Free",
+    name: "Founding Beta",
     price: "$0",
-    note: "For testing the platform",
-    items: ["50 products", "50 invoices / month", "100 sales / month", "1 user", "Basic reports"],
-  },
-  {
-    name: "Starter",
-    price: "$9",
-    note: "For small shops",
+    note: `Free while we build with our founding users — $${PLAN_MONTHLY_USD.pro}/mo after the beta, with clear notice before anything changes`,
     items: [
-      "500 products",
-      "Unlimited sales & invoices",
+      "Unlimited products, sales & invoices",
+      "Unlimited users",
       "Customers & suppliers",
-      "Expenses & reports",
-      "PDF exports",
-      "3 users",
-    ],
-  },
-  {
-    name: "Business",
-    price: "$19",
-    note: "Most popular",
-    featured: true,
-    items: [
-      "2,500 products",
-      "10 users",
-      "Business Health score",
-      "AI Assistant ready",
+      "Business Health score & AI Assistant",
       "Advanced inventory & profit analysis",
-      "Custom invoice branding",
-    ],
-  },
-  {
-    name: "Pro",
-    price: "$39",
-    note: "For growing businesses",
-    items: [
-      "Unlimited products & users",
-      "Multiple locations",
-      "Advanced analytics",
-      "Advanced permissions",
-      "Multi-branch management",
-      "Priority support",
+      "PDF exports & custom invoice branding",
     ],
   },
 ];
@@ -150,7 +118,7 @@ function Landing() {
           </nav>
           <div className="flex shrink-0 items-center gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link to="/auth">Sign in</Link>
+              <Link to="/staff-login">Sign in</Link>
             </Button>
             <Button asChild size="sm">
               <Link to="/auth" search={{ mode: "signup" }}>
@@ -169,13 +137,12 @@ function Landing() {
             Built for shops, not accountants
           </Badge>
           <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-6xl">
-            Run your business.{" "}
-            <span className="brand-gradient-text">Not your spreadsheets.</span>
+            Run your business. <span className="brand-gradient-text">Not your spreadsheets.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Inventory, sales, invoices, expenses and intelligent business insights in one simple
-            platform. Everything is connected — a sale updates your stock, your customer balance
-            and your profit, automatically.
+            platform. Everything is connected — a sale updates your stock, your customer balance and
+            your profit, automatically.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="gap-2">
@@ -188,7 +155,7 @@ function Landing() {
             </Button>
           </div>
           <p className="mt-4 text-[13px] text-muted-foreground">
-            14-day Business trial · No credit card needed · Your data stays yours
+            Free during our beta · No credit card needed · Your data stays yours
           </p>
 
           <div className="surface mt-14 overflow-hidden p-2 shadow-pop">
@@ -240,24 +207,34 @@ function Landing() {
               Most business software gets in the way
             </h2>
             <ul className="mt-5 space-y-3 text-[15px] text-muted-foreground">
-              <li>Stock counts live in a notebook, sales live in a phone, invoices live in Word.</li>
+              <li>
+                Stock counts live in a notebook, sales live in a phone, invoices live in Word.
+              </li>
               <li>Accounting tools ask for terminology nobody in the shop uses.</li>
               <li>By the time the numbers are added up, the month is already over.</li>
             </ul>
           </div>
           <div className="surface p-6">
             <h3 className="text-lg font-semibold">BusinessOS connects it all</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              One flow, one source of truth:
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground">One flow, one source of truth:</p>
             <div className="mt-4 flex flex-wrap gap-2 text-[13px] font-medium">
-              {["Product", "Inventory", "Sale", "Customer", "Invoice", "Payment", "Profit", "Insight"].map(
-                (step) => (
-                  <span key={step} className="rounded-lg bg-accent px-2.5 py-1.5 text-accent-foreground">
-                    {step}
-                  </span>
-                ),
-              )}
+              {[
+                "Product",
+                "Inventory",
+                "Sale",
+                "Customer",
+                "Invoice",
+                "Payment",
+                "Profit",
+                "Insight",
+              ].map((step) => (
+                <span
+                  key={step}
+                  className="rounded-lg bg-accent px-2.5 py-1.5 text-accent-foreground"
+                >
+                  {step}
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -299,27 +276,19 @@ function Landing() {
       </section>
 
       <section id="pricing" className="mx-auto max-w-6xl px-4 py-14">
-        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Simple, honest pricing</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Monthly prices shown. Annual billing saves you two months.
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Free during our beta</h2>
+        <p className="mt-2 max-w-lg text-sm text-muted-foreground">
+          BusinessOS is currently free while we build with our founding users. Pricing may be
+          introduced later — we'll give you clear notice before anything changes.
         </p>
-        <div className="mt-8 grid gap-4 lg:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:max-w-xl">
           {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={
-                plan.featured
-                  ? "surface relative border-primary p-6 shadow-raised"
-                  : "surface p-6"
-              }
-            >
-              {plan.featured ? (
-                <Badge className="absolute -top-2.5 left-6">Most popular</Badge>
-              ) : null}
+            <div key={plan.name} className="surface relative border-primary p-6 shadow-raised">
+              <Badge className="absolute -top-2.5 left-6">Founding user</Badge>
               <h3 className="text-base font-semibold">{plan.name}</h3>
               <p className="mt-2 text-3xl font-bold tracking-tight">
                 {plan.price}
-                <span className="text-sm font-medium text-muted-foreground">/month</span>
+                <span className="text-sm font-medium text-muted-foreground">/month for now</span>
               </p>
               <p className="mt-1 text-[13px] text-muted-foreground">{plan.note}</p>
               <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
@@ -330,13 +299,9 @@ function Landing() {
                   </li>
                 ))}
               </ul>
-              <Button
-                asChild
-                className="mt-6 w-full"
-                variant={plan.featured ? "default" : "outline"}
-              >
+              <Button asChild className="mt-6 w-full">
                 <Link to="/auth" search={{ mode: "signup" }}>
-                  {plan.name === "Free" ? "Start free" : `Try ${plan.name}`}
+                  Join the free beta
                 </Link>
               </Button>
             </div>
@@ -357,11 +322,31 @@ function Landing() {
           <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { icon: Lock, t: "Encrypted connections", b: "All traffic runs over HTTPS." },
-              { icon: BadgeCheck, t: "Secure sign-in", b: "Email verification and password reset built in." },
-              { icon: ShieldCheck, t: "Business-level isolation", b: "Database rules block access to any business you're not a member of." },
-              { icon: Users, t: "Role-based permissions", b: "Owner, admin, manager, cashier and accountant, enforced on the server." },
-              { icon: FileText, t: "Audit logs", b: "Sensitive actions are recorded and can't be edited by app users." },
-              { icon: Wallet, t: "Protected payments", b: "Subscription state is verified with the payment provider, never trusted from the browser." },
+              {
+                icon: BadgeCheck,
+                t: "Secure sign-in",
+                b: "Email verification and password reset built in.",
+              },
+              {
+                icon: ShieldCheck,
+                t: "Business-level isolation",
+                b: "Database rules block access to any business you're not a member of.",
+              },
+              {
+                icon: Users,
+                t: "Role-based permissions",
+                b: "Owner, admin, manager, cashier and accountant, enforced on the server.",
+              },
+              {
+                icon: FileText,
+                t: "Audit logs",
+                b: "Sensitive actions are recorded and can't be edited by app users.",
+              },
+              {
+                icon: Wallet,
+                t: "Protected payments",
+                b: "Subscription state is verified with the payment provider, never trusted from the browser.",
+              },
             ].map((item) => (
               <div key={item.t} className="rounded-xl border border-border bg-muted/40 p-4">
                 <item.icon className="size-4.5 text-primary" aria-hidden="true" />
@@ -379,8 +364,8 @@ function Landing() {
           <AccordionItem value="q1">
             <AccordionTrigger>Do I need to be good with computers?</AccordionTrigger>
             <AccordionContent>
-              No. If you can use a phone, you can use BusinessOS. We avoid accounting jargon — you'll
-              see "customers who owe you" instead of "accounts receivable".
+              No. If you can use a phone, you can use BusinessOS. We avoid accounting jargon —
+              you'll see "customers who owe you" instead of "accounts receivable".
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="q2">

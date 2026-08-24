@@ -3,8 +3,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileCheck2, Loader2, Plus, Search } from "lucide-react";
+import { Download, FileCheck2, Loader2, Plus, Printer, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import {
   addQuote,
   convertQuoteToInvoice,
@@ -39,6 +40,7 @@ import {
 import { quoteSchema, type LineItemInput } from "@/lib/business.schemas";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import { computeTotals } from "@/lib/invoice-calc";
+import { downloadXlsx } from "@/lib/xlsx-export";
 
 export const Route = createFileRoute("/_authenticated/quotes")({
   head: () => ({
@@ -55,7 +57,6 @@ export const Route = createFileRoute("/_authenticated/quotes")({
   component: Quotes,
 });
 
-const FINANCE_ROLES = ["owner", "admin", "manager", "accountant"];
 const NONE = "__none";
 
 const EMPTY_ITEM: LineItemInput = {
@@ -110,8 +111,7 @@ function Quotes() {
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
-  const role = workspace.data?.role ?? "";
-  const canManage = FINANCE_ROLES.includes(role);
+  const canManage = hasPermission(workspace.data, "quotes.manage");
 
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -232,26 +232,52 @@ function Quotes() {
 
   const rows = quotes.data ?? [];
 
+  function exportExcel() {
+    downloadXlsx("quotes", [
+      {
+        name: "Quotes",
+        headers: ["Number", "Customer", "Issue date", "Valid until", "Total", "Status"],
+        rows: rows.map((q) => [
+          q.quote_number,
+          q.customer_name ?? "",
+          q.issue_date,
+          q.valid_until ?? "",
+          q.total,
+          q.status,
+        ]),
+      },
+    ]);
+  }
+
   return (
     <AppShell
       businessName={workspace.data.business.name}
       role={workspace.data.role}
       plan={workspace.data.plan}
+      isReadOnly={workspace.data.isReadOnly}
+      billingEnabled={workspace.data.billingEnabled}
       title="Quotes"
       subtitle="Send quotations, then convert accepted ones into invoices."
       actions={
-        canManage ? (
-          <Button
-            className="gap-1.5"
-            onClick={() => {
-              setForm(EMPTY_FORM);
-              setItems([{ ...EMPTY_ITEM }]);
-              setCreateOpen(true);
-            }}
-          >
-            <Plus className="size-4" aria-hidden="true" /> New quote
-          </Button>
-        ) : null
+        <>
+          {rows.length > 0 ? (
+            <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
+              <Download className="size-4" aria-hidden="true" /> Export to Excel
+            </Button>
+          ) : null}
+          {canManage ? (
+            <Button
+              className="gap-1.5"
+              onClick={() => {
+                setForm(EMPTY_FORM);
+                setItems([{ ...EMPTY_ITEM }]);
+                setCreateOpen(true);
+              }}
+            >
+              <Plus className="size-4" aria-hidden="true" /> New quote
+            </Button>
+          ) : null}
+        </>
       }
     >
       <div className="relative max-w-sm">
@@ -362,14 +388,14 @@ function Quotes() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Customer</Label>
+              <Label htmlFor="quote-customer">Customer</Label>
               <Select
                 value={form.customerId || NONE}
                 onValueChange={(value) =>
                   setForm({ ...form, customerId: value === NONE ? "" : value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="quote-customer">
                   <SelectValue placeholder="No customer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -421,7 +447,7 @@ function Quotes() {
               products={(products.data ?? []).map((p) => ({
                 id: p.id,
                 name: p.name,
-                selling_price: Number(p.selling_price),
+                price: Number(p.selling_price),
                 tax_rate: Number(p.tax_rate),
               }))}
               currency={currency}
@@ -573,7 +599,50 @@ function Quotes() {
                 </div>
               ) : null}
 
+              {(() => {
+                const joined = detail.data.quote as unknown as {
+                  customers: { name: string; phone: string | null; email: string | null } | null;
+                  businesses: {
+                    name: string;
+                    address: string | null;
+                    phone: string | null;
+                    email: string | null;
+                  } | null;
+                };
+                return (
+                  <div className="hidden print:block print-area">
+                    <DocumentPrintView
+                      kind="quote"
+                      number={detail.data.quote.quote_number}
+                      issueDate={detail.data.quote.issue_date}
+                      secondDateLabel="Valid until"
+                      secondDate={detail.data.quote.valid_until}
+                      business={
+                        joined.businesses ?? {
+                          name: workspace.data!.business.name,
+                          address: null,
+                          phone: null,
+                          email: null,
+                        }
+                      }
+                      customer={joined.customers}
+                      items={detail.data.items}
+                      subtotal={detail.data.quote.subtotal}
+                      discount={detail.data.quote.discount}
+                      tax={detail.data.quote.tax}
+                      total={detail.data.quote.total}
+                      notes={detail.data.quote.notes}
+                      terms={detail.data.quote.terms}
+                      currency={currency}
+                    />
+                  </div>
+                );
+              })()}
+
               <DialogFooter className="flex-wrap gap-2">
+                <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+                  <Printer className="size-4" aria-hidden="true" /> Print
+                </Button>
                 {detail.data.quote.status === "draft" && canManage ? (
                   <Button
                     variant="outline"

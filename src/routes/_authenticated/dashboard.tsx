@@ -37,7 +37,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { title: "Dashboard — BusinessOS AI" },
       {
         name: "description",
-        content: "Today's sales, profit, outstanding payments, low stock and your business health score.",
+        content:
+          "Today's sales, profit, outstanding payments, low stock and your business health score.",
       },
       { property: "og:title", content: "Dashboard — BusinessOS AI" },
       { property: "og:description", content: "See how your business is doing today." },
@@ -53,6 +54,22 @@ const RANGES = [
   { key: "90", label: "3 months" },
   { key: "365", label: "1 year" },
 ];
+
+// The area chart below conveys this same trend purely visually — screen
+// reader users get this sentence instead via role="img"/aria-label.
+function salesChartSummary(
+  series: { label: string; sales: number; profit: number }[],
+  currency: string,
+) {
+  if (series.length === 0) return "No sales data for this period.";
+  const first = series[0]!;
+  const last = series[series.length - 1]!;
+  return (
+    `Sales and profit from ${first.label} to ${last.label}: ` +
+    `sales went from ${formatMoney(first.sales, currency)} to ${formatMoney(last.sales, currency)}, ` +
+    `profit went from ${formatMoney(first.profit, currency)} to ${formatMoney(last.profit, currency)}.`
+  );
+}
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -95,6 +112,8 @@ function Dashboard() {
       businessName={workspace.data.business.name}
       role={workspace.data.role}
       plan={workspace.data.plan}
+      isReadOnly={workspace.data.isReadOnly}
+      billingEnabled={workspace.data.billingEnabled}
       title={`${greeting()}`}
       subtitle={`Here's how ${workspace.data.business.name} is doing.`}
       actions={
@@ -154,7 +173,11 @@ function Dashboard() {
               </TabsList>
             </Tabs>
           </div>
-          <div className="mt-5 h-64">
+          <div
+            className="mt-5 h-64"
+            role={data ? "img" : undefined}
+            aria-label={data ? salesChartSummary(data.series, currency) : undefined}
+          >
             {dashboard.isLoading ? (
               <Skeleton className="h-full w-full" />
             ) : (
@@ -231,9 +254,15 @@ function Dashboard() {
                 {data.health.signals.map((signal) => (
                   <li key={signal.text} className="flex gap-2">
                     {signal.tone === "good" ? (
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                      <CheckCircle2
+                        className="mt-0.5 size-4 shrink-0 text-success"
+                        aria-hidden="true"
+                      />
                     ) : signal.tone === "warn" ? (
-                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+                      <AlertTriangle
+                        className="mt-0.5 size-4 shrink-0 text-warning"
+                        aria-hidden="true"
+                      />
                     ) : (
                       <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden="true" />
                     )}
@@ -253,7 +282,10 @@ function Dashboard() {
         {data && data.lowStock.length > 0 ? (
           <ul className="mt-4 divide-y divide-border">
             {data.lowStock.map((item) => (
-              <li key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3">
+              <li
+                key={item.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3"
+              >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{item.name}</p>
                   <p className="text-[13px] text-muted-foreground">

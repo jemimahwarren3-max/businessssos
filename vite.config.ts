@@ -4,6 +4,7 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ command }) => {
   return {
@@ -47,6 +48,55 @@ export default defineConfig(({ command }) => {
       // Node target: deployable with `node .output/server/index.mjs`, Docker, or any Node host.
       ...(command === "build" ? [nitro({ preset: "node-server" })] : []),
       viteReact(),
+      // Offline support: only the authenticated app (dashboard, sales, inventory —
+      // all client-rendered, see _authenticated/route.tsx's ssr:false) is covered.
+      // The public site and auth pages always need a live connection.
+      VitePWA({
+        registerType: "autoUpdate",
+        injectRegister: "auto",
+        includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png", "icon-512-maskable.png"],
+        // Nitro's node-server preset writes the client bundle to
+        // .output/public, not Vite's nominal `dist` — without this the
+        // plugin precaches nothing and drops sw.js where nothing serves it.
+        outDir: "./.output/public",
+        manifest: {
+          name: "BusinessOS AI",
+          short_name: "BusinessOS",
+          description: "Run your business, not your spreadsheets.",
+          theme_color: "#4F46E5",
+          background_color: "#F8FAFC",
+          display: "standalone",
+          start_url: "/dashboard",
+          // SVG covers browser installs; the PNGs exist for Android — the
+          // TWA/Bubblewrap build (Play Store packaging) needs real raster
+          // icons, and a dedicated maskable one so Android's circle/squircle
+          // icon masks don't clip it (padded so the glyph sits in the safe
+          // zone — see scripts that generated public/icon-*.png).
+          icons: [
+            { src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+            { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+            {
+              src: "/icon-512-maskable.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
+            },
+          ],
+        },
+        workbox: {
+          globPatterns: ["**/*.{js,css,ico,svg}"],
+          navigateFallback: "/dashboard",
+          navigateFallbackDenylist: [/^\/$/, /^\/auth/, /^\/reset-password/],
+          runtimeCaching: [
+            {
+              urlPattern: ({ request }) => request.destination === "document",
+              handler: "NetworkFirst",
+              options: { cacheName: "html-shell", networkTimeoutSeconds: 3 },
+            },
+          ],
+        },
+      }),
     ],
   };
 });

@@ -1,23 +1,32 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
+  AlertTriangle,
   BarChart3,
   Boxes,
   ChevronDown,
+  ClipboardList,
+  Download,
   FileCheck2,
   FileText,
   HelpCircle,
   LayoutDashboard,
+  Lightbulb,
   LogOut,
   Receipt,
   Settings,
   ShoppingCart,
   Sparkles,
+  Truck,
+  UserX,
   Users,
+  Wand2,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { signOutFn } from "@/lib/auth/auth.functions";
 import { Logo } from "@/components/logo";
+import { QuickEntryDialog } from "@/components/quick-entry-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,19 +43,25 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/sales", label: "Sales", icon: ShoppingCart },
   { to: "/inventory", label: "Inventory", icon: Boxes },
+  { to: "/suppliers", label: "Suppliers", icon: Truck },
+  { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
   { to: "/invoices", label: "Invoices", icon: FileText },
   { to: "/quotes", label: "Quotes", icon: FileCheck2 },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/insights", label: "Insights", icon: Lightbulb },
   { to: "/assistant", label: "AI Assistant", icon: Sparkles },
 ] as const;
 
 // Bottom nav stays to four items so it's usable on a small screen —
 // Dashboard, Sales, Inventory, Invoices are the highest-frequency actions.
-const MOBILE_NAV = [NAV[0], NAV[1], NAV[2], NAV[3]] as const;
+// Looked up by path rather than array index so inserting a new NAV entry
+// elsewhere (e.g. Suppliers) can never silently bump one of these out.
+const MOBILE_PATHS = ["/dashboard", "/sales", "/inventory", "/invoices"] as const;
+const MOBILE_NAV = MOBILE_PATHS.map((to) => NAV.find((item) => item.to === to)!);
 
-const ROLE_LABEL: Record<string, string> = {
+export const ROLE_LABEL: Record<string, string> = {
   owner: "Owner",
   admin: "Admin",
   manager: "Manager",
@@ -59,6 +74,8 @@ export function AppShell({
   businessName,
   role,
   plan,
+  isReadOnly,
+  billingEnabled = true,
   title,
   subtitle,
   actions,
@@ -67,6 +84,8 @@ export function AppShell({
   businessName: string;
   role: string;
   plan: string;
+  isReadOnly?: boolean;
+  billingEnabled?: boolean;
   title: string;
   subtitle?: string;
   actions?: ReactNode;
@@ -74,16 +93,24 @@ export function AppShell({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const signOutServerFn = useServerFn(signOutFn);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true, search: { mode: "signin" } });
+    await signOutServerFn();
+    navigate({ to: "/staff-login", replace: true });
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+      >
+        Skip to main content
+      </a>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="px-5 py-4">
           <Logo to="/dashboard" />
@@ -107,26 +134,38 @@ export function AppShell({
               </Link>
             );
           })}
-          <p className="px-3 pb-1 pt-5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Coming next
-          </p>
-          {["Suppliers"].map((label) => (
-            <span
-              key={label}
-              className="flex cursor-not-allowed items-center justify-between rounded-lg px-3 py-2 text-sm text-muted-foreground/70"
-            >
-              {label}
-              <span className="text-[10px] uppercase tracking-wide">soon</span>
-            </span>
-          ))}
         </nav>
         <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
-          <span className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted-foreground/70">
-            <Settings className="size-4.5" aria-hidden="true" /> Settings
-          </span>
-          <span className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-muted-foreground/70">
+          <Link
+            to="/settings/team"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <Users className="size-4.5" aria-hidden="true" /> Team
+          </Link>
+          <Link
+            to="/settings/billing"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <Settings className="size-4.5" aria-hidden="true" /> Billing
+          </Link>
+          <Link
+            to="/settings/data"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <Download className="size-4.5" aria-hidden="true" /> Export data
+          </Link>
+          <Link
+            to="/settings/account"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <UserX className="size-4.5" aria-hidden="true" /> Account
+          </Link>
+          <Link
+            to="/help"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
             <HelpCircle className="size-4.5" aria-hidden="true" /> Help
-          </span>
+          </Link>
           <button
             onClick={signOut}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
@@ -150,9 +189,22 @@ export function AppShell({
               </Badge>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Badge variant="outline" className="hidden capitalize sm:inline-flex">
-                {plan} plan
-              </Badge>
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setQuickAddOpen(true)}
+              >
+                <Wand2 className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Quick add</span>
+              </Button>
+              {billingEnabled ? (
+                <Link to="/settings/billing" className="hidden sm:inline-flex">
+                  <Badge variant="outline" className="capitalize">
+                    {plan} plan
+                  </Badge>
+                </Link>
+              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-1">
@@ -171,7 +223,25 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 lg:pb-12">
+        {isReadOnly ? (
+          <div className="border-b border-warning/30 bg-warning-soft px-4 py-2.5 text-[13px] text-warning-foreground">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+                Your trial has ended. You can still view everything, but upgrade to keep creating
+                and editing.
+              </span>
+              <Link
+                to="/settings/billing"
+                className="shrink-0 font-semibold underline underline-offset-2"
+              >
+                Upgrade now
+              </Link>
+            </div>
+          </div>
+        ) : null}
+
+        <main id="main-content" className="mx-auto max-w-6xl px-4 pb-28 pt-6 lg:pb-12">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h1 className="truncate text-2xl font-bold tracking-tight sm:text-[28px]">{title}</h1>
@@ -206,6 +276,8 @@ export function AppShell({
           })}
         </div>
       </nav>
+
+      <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { formatMoney } from "@/lib/format";
 export type ProductOption = {
   id: string;
   name: string;
-  selling_price: number;
+  price: number;
   tax_rate: number;
 };
 
@@ -45,7 +45,7 @@ export function LineItemsEditor({
     updateItem(index, {
       productId: product.id,
       name: product.name,
-      unitPrice: product.selling_price,
+      unitPrice: product.price,
       taxRate: product.tax_rate,
     });
   }

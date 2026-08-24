@@ -12,22 +12,26 @@ import {
   YAxis,
 } from "recharts";
 import { BarChart3, Download, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { ImportDialog } from "@/components/import-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWorkspace } from "@/hooks/use-workspace";
-import { getReports, importSalesHistoryFn } from "@/lib/business.functions";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { getReports, importSalesDetailedFn, importSalesHistoryFn } from "@/lib/business.functions";
 import {
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
   saleHistoryImportRowSchema,
+  saleLineImportRowSchema,
   type SaleHistoryImportRow,
+  type SaleLineImportRow,
 } from "@/lib/business.schemas";
 import { downloadCsv } from "@/lib/csv";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/format";
 import type { ImportColumn } from "@/lib/spreadsheet";
+import { downloadXlsx } from "@/lib/xlsx-export";
 
 const SALE_HISTORY_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "saleDate", label: "Date", required: true, aliases: ["saledate"] },
@@ -35,6 +39,36 @@ const SALE_HISTORY_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "cost", label: "Cost", required: false, aliases: ["costofgoods", "cogs"] },
   { key: "description", label: "Description", required: false, aliases: ["notes"] },
 ];
+
+const SALE_LINE_IMPORT_COLUMNS: ImportColumn[] = [
+  { key: "saleDate", label: "Date", required: true, aliases: ["saledate"] },
+  { key: "product", label: "Product", required: true, aliases: ["item", "productname", "sku"] },
+  { key: "quantity", label: "Quantity", required: true, aliases: ["qty"] },
+  { key: "unitPrice", label: "Unit Price", required: false, aliases: ["price", "unitprice"] },
+  { key: "customer", label: "Customer", required: false, aliases: ["customername"] },
+  {
+    key: "paymentMethod",
+    label: "Payment Method",
+    required: false,
+    aliases: ["payment", "method"],
+  },
+];
+
+// The area chart below conveys this same trend purely visually — screen
+// reader users get this sentence instead via role="img"/aria-label.
+function salesChartSummary(
+  series: { label: string; sales: number; profit: number }[],
+  currency: string,
+) {
+  if (series.length === 0) return "No sales data for this period.";
+  const first = series[0]!;
+  const last = series[series.length - 1]!;
+  return (
+    `Sales and profit from ${first.label} to ${last.label}: ` +
+    `sales went from ${formatMoney(first.sales, currency)} to ${formatMoney(last.sales, currency)}, ` +
+    `profit went from ${formatMoney(first.profit, currency)} to ${formatMoney(last.profit, currency)}.`
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
@@ -51,7 +85,6 @@ export const Route = createFileRoute("/_authenticated/reports")({
   component: Reports,
 });
 
-const FINANCE_ROLES = ["owner", "admin", "manager", "accountant"];
 const RANGES = [
   { key: "7", label: "7 days" },
   { key: "30", label: "30 days" },
@@ -70,14 +103,15 @@ function Reports() {
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
-  const role = workspace.data?.role ?? "";
-  const canView = FINANCE_ROLES.includes(role);
-  const canImport = ["owner", "admin", "manager", "accountant"].includes(role);
+  const canView = hasPermission(workspace.data, "reports.financial");
+  const canImport = hasPermission(workspace.data, "sales.import");
 
   const [range, setRange] = useState("30");
   const [importOpen, setImportOpen] = useState(false);
+  const [detailedImportOpen, setDetailedImportOpen] = useState(false);
   const fetchReports = useServerFn(getReports);
   const importSalesHistoryRows = useServerFn(importSalesHistoryFn);
+  const importSalesDetailedRows = useServerFn(importSalesDetailedFn);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -106,6 +140,8 @@ function Reports() {
         businessName={workspace.data.business.name}
         role={workspace.data.role}
         plan={workspace.data.plan}
+        isReadOnly={workspace.data.isReadOnly}
+        billingEnabled={workspace.data.billingEnabled}
         title="Reports"
         subtitle="See how your business is really doing."
       >
@@ -122,18 +158,83 @@ function Reports() {
 
   const data = reports.data;
 
+  async function exportExcel() {
+    if (!data) return;
+    try {
+      await downloadXlsx(`report-${range}d`, [
+        {
+          name: "Summary",
+          headers: ["Metric", "Value"],
+          rows: [
+            ["Total sales", data.totalSales],
+            ["Gross profit", data.totalProfit],
+            ["Profit margin %", data.profitMargin],
+            ["Total tax", data.totalTax],
+            ["Total discount", data.totalDiscount],
+            ["Total expenses", data.totalExpenses],
+            ["Net profit", data.netProfit],
+          ],
+        },
+        {
+          name: "Top Products",
+          headers: ["Product", "Quantity sold", "Revenue"],
+          rows: data.topProducts.map((p) => [p.name, p.quantity, p.revenue]),
+        },
+        {
+          name: "Top Customers",
+          headers: ["Customer", "Purchased", "Currently owes"],
+          rows: data.topCustomers.map((c) => [c.name, c.total, c.outstanding]),
+        },
+        {
+          name: "Expenses by Category",
+          headers: ["Category", "Amount"],
+          rows: data.expensesByCategory.map((e) => [
+            EXPENSE_CATEGORY_LABEL[e.category] ?? e.category,
+            e.amount,
+          ]),
+        },
+        {
+          name: "Payments by Method",
+          headers: ["Method", "Amount"],
+          rows: data.paymentsByMethod.map((p) => [
+            PAYMENT_METHOD_LABEL[p.method] ?? p.method,
+            p.amount,
+          ]),
+        },
+      ]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "We couldn't export that report.");
+    }
+  }
+
   return (
     <AppShell
       businessName={workspace.data.business.name}
       role={workspace.data.role}
       plan={workspace.data.plan}
+      isReadOnly={workspace.data.isReadOnly}
+      billingEnabled={workspace.data.billingEnabled}
       title="Reports"
       subtitle="See how your business is really doing."
       actions={
         <>
+          {data ? (
+            <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
+              <Download className="size-4" aria-hidden="true" /> Export to Excel
+            </Button>
+          ) : null}
           {canImport ? (
             <Button variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
               <Upload className="size-4" aria-hidden="true" /> Import history
+            </Button>
+          ) : null}
+          {canImport ? (
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => setDetailedImportOpen(true)}
+            >
+              <Upload className="size-4" aria-hidden="true" /> Import detailed sales
             </Button>
           ) : null}
           <Tabs value={range} onValueChange={setRange}>
@@ -173,7 +274,11 @@ function Reports() {
         <p className="text-[13px] text-muted-foreground">
           Based on completed sales in this period.
         </p>
-        <div className="mt-5 h-64">
+        <div
+          className="mt-5 h-64"
+          role={data ? "img" : undefined}
+          aria-label={data ? salesChartSummary(data.series, currency) : undefined}
+        >
           {!data ? (
             <Skeleton className="h-full w-full" />
           ) : (
@@ -469,7 +574,7 @@ function Reports() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import sales history"
-        description="Bring in past sales for reporting — this never changes today's stock levels."
+        description="Quick totals for charts only — one row per day's revenue and cost. Never touches stock or links to specific products or customers."
         columns={SALE_HISTORY_IMPORT_COLUMNS}
         templateFilename="sales-history-template"
         parseRow={(record, rowNumber) => {
@@ -500,6 +605,51 @@ function Reports() {
           const outcome = await importSalesHistoryRows({ data: { businessId: businessId!, rows } });
           await queryClient.invalidateQueries({ queryKey: ["reports"] });
           await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          return outcome;
+        }}
+      />
+
+      <ImportDialog<SaleLineImportRow>
+        open={detailedImportOpen}
+        onOpenChange={setDetailedImportOpen}
+        title="Import detailed sales"
+        description="Real transactions — matched against your existing products and customers, decrements stock, and shows up in Top Products/Top Customers. Leave Unit Price blank to use the product's current price."
+        columns={SALE_LINE_IMPORT_COLUMNS}
+        templateFilename="detailed-sales-template"
+        parseRow={(record, rowNumber) => {
+          const result = saleLineImportRowSchema.safeParse({
+            saleDate: record["saleDate"],
+            product: record["product"],
+            quantity: record["quantity"],
+            unitPrice: record["unitPrice"] ? record["unitPrice"] : undefined,
+            customer: record["customer"],
+            paymentMethod: record["paymentMethod"] ? record["paymentMethod"] : undefined,
+          });
+          if (!result.success) {
+            return {
+              rowNumber,
+              ok: false,
+              error: result.error.issues[0]?.message ?? "Invalid row",
+            };
+          }
+          if (Number.isNaN(new Date(result.data.saleDate).getTime())) {
+            return { rowNumber, ok: false, error: `Invalid date "${result.data.saleDate}"` };
+          }
+          return {
+            rowNumber,
+            ok: true,
+            value: result.data,
+            summary: `${result.data.saleDate} · ${result.data.product} × ${formatNumber(result.data.quantity)}${result.data.customer ? ` — ${result.data.customer}` : ""}`,
+          };
+        }}
+        onImport={async (rows) => {
+          const outcome = await importSalesDetailedRows({
+            data: { businessId: businessId!, rows },
+          });
+          await queryClient.invalidateQueries({ queryKey: ["reports"] });
+          await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          await queryClient.invalidateQueries({ queryKey: ["products"] });
+          await queryClient.invalidateQueries({ queryKey: ["customers"] });
           return outcome;
         }}
       />

@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Plus, Receipt, Trash2, Upload } from "lucide-react";
+import { Download, Loader2, Plus, Receipt, Trash2, Upload } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ImportDialog } from "@/components/import-dialog";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { addExpense, getExpenses, importExpensesFn, removeExpense } from "@/lib/business.functions";
 import {
   EXPENSE_CATEGORIES,
@@ -37,6 +37,7 @@ import {
 } from "@/lib/business.schemas";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import type { ImportColumn } from "@/lib/spreadsheet";
+import { downloadXlsx } from "@/lib/xlsx-export";
 
 const EXPENSE_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "expenseDate", label: "Date", required: true, aliases: ["expensedate"] },
@@ -61,7 +62,6 @@ export const Route = createFileRoute("/_authenticated/expenses")({
   component: Expenses,
 });
 
-const FINANCE_ROLES = ["owner", "admin", "manager", "accountant"];
 const RANGES = [
   { key: "30", label: "30 days" },
   { key: "90", label: "3 months" },
@@ -85,9 +85,8 @@ function Expenses() {
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
-  const role = workspace.data?.role ?? "";
-  const canManage = FINANCE_ROLES.includes(role);
-  const canDelete = ["owner", "admin"].includes(role);
+  const canManage = hasPermission(workspace.data, "expenses.create");
+  const canDelete = hasPermission(workspace.data, "expenses.delete");
 
   const [range, setRange] = useState("30");
   const [open, setOpen] = useState(false);
@@ -156,24 +155,50 @@ function Expenses() {
     );
   }
 
+  function exportExcel() {
+    downloadXlsx("expenses", [
+      {
+        name: "Expenses",
+        headers: ["Date", "Category", "Vendor", "Description", "Method", "Amount"],
+        rows: rows.map((e) => [
+          e.expense_date,
+          e.category,
+          e.vendor ?? "",
+          e.description ?? "",
+          e.method,
+          e.amount,
+        ]),
+      },
+    ]);
+  }
+
   return (
     <AppShell
       businessName={workspace.data.business.name}
       role={workspace.data.role}
       plan={workspace.data.plan}
+      isReadOnly={workspace.data.isReadOnly}
+      billingEnabled={workspace.data.billingEnabled}
       title="Expenses"
       subtitle="Rent, salaries, supplies — everything your business spends."
       actions={
-        canManage ? (
-          <>
-            <Button variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
-              <Upload className="size-4" aria-hidden="true" /> Import
+        <>
+          {rows.length > 0 ? (
+            <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
+              <Download className="size-4" aria-hidden="true" /> Export to Excel
             </Button>
-            <Button className="gap-1.5" onClick={() => setOpen(true)}>
-              <Plus className="size-4" aria-hidden="true" /> Add expense
-            </Button>
-          </>
-        ) : null
+          ) : null}
+          {canManage ? (
+            <>
+              <Button variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
+                <Upload className="size-4" aria-hidden="true" /> Import
+              </Button>
+              <Button className="gap-1.5" onClick={() => setOpen(true)}>
+                <Plus className="size-4" aria-hidden="true" /> Add expense
+              </Button>
+            </>
+          ) : null}
+        </>
       }
     >
       <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -303,14 +328,14 @@ function Expenses() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Category</Label>
+              <Label htmlFor="ex-category">Category</Label>
               <Select
                 value={form.category}
                 onValueChange={(value) =>
                   setForm({ ...form, category: value as typeof form.category })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="ex-category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -344,12 +369,12 @@ function Expenses() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Payment method</Label>
+              <Label htmlFor="ex-payment-method">Payment method</Label>
               <Select
                 value={form.method}
                 onValueChange={(value) => setForm({ ...form, method: value as typeof form.method })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="ex-payment-method">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

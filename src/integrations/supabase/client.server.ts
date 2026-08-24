@@ -1,35 +1,14 @@
-// Server-side Supabase client with service role key - bypasses RLS.
-// Use this for admin operations in server functions and server routes only.
-// For user-authenticated queries (with RLS), use the auth middleware instead.
+// Server-side Supabase client with service role key — bypasses RLS entirely.
+// This is deliberately hard to reach for: `eslint.config.js` blocks importing
+// this module from anywhere except an explicit allowlist (currently
+// src/server.ts's webhook handler and lib/payments/paynow.server.ts, both of
+// which run with no user session to scope a normal RLS-enforced client to).
+// Adding a new caller means widening that allowlist on purpose, not routing
+// around it. For anything with a user session, use the RLS-scoped client
+// from the auth middleware instead — see auth-middleware.ts.
 import { createClient } from "@supabase/supabase-js";
+import { createSupabaseFetch } from "./supabase-fetch";
 import type { Database } from "./types";
-
-function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
-}
-
-function createSupabaseFetch(supabaseKey: string): typeof fetch {
-  return (input, init) => {
-    const headers = new Headers(
-      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
-    );
-
-    if (init?.headers) {
-      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
-    }
-
-    // New Supabase API keys are opaque strings, not bearer JWTs.
-    if (
-      isNewSupabaseApiKey(supabaseKey) &&
-      headers.get("Authorization") === `Bearer ${supabaseKey}`
-    ) {
-      headers.delete("Authorization");
-    }
-
-    headers.set("apikey", supabaseKey);
-    return fetch(input, { ...init, headers });
-  };
-}
 
 function createSupabaseAdminClient() {
   const SUPABASE_URL = process.env["SUPABASE_URL"];

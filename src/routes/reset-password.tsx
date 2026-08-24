@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser, updatePassword } from "@/lib/auth/auth.functions";
+import { readableError } from "@/lib/format";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,20 +26,19 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPassword() {
   const navigate = useNavigate();
+  const fetchCurrentUser = useServerFn(getCurrentUser);
+  const updatePasswordFn = useServerFn(updatePassword);
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
-    });
-    supabase.auth.getSession().then(({ data: session }) => {
-      if (session.session) setReady(true);
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
+    // By the time this page loads, /auth/callback has already exchanged the
+    // recovery link's code and established the session server-side — this
+    // just confirms it actually happened before letting the form submit.
+    fetchCurrentUser().then((user) => setReady(Boolean(user)));
+  }, [fetchCurrentUser]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -50,14 +51,15 @@ function ResetPassword() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await updatePasswordFn({ data: { password } });
+      toast.success("Password updated.");
+      navigate({ to: "/dashboard", replace: true });
+    } catch (error) {
+      toast.error(readableError(error as Error, "Couldn't update your password."));
+    } finally {
+      setSaving(false);
     }
-    toast.success("Password updated.");
-    navigate({ to: "/dashboard", replace: true });
   }
 
   return (

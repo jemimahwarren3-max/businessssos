@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBusiness } from "@/lib/business.functions";
+import { createBusiness, setStaffPasswordFn } from "@/lib/business.functions";
 import {
   BUSINESS_TYPES,
   CURRENCIES,
@@ -35,12 +35,13 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
   component: Onboarding,
 });
 
-const STEPS = ["Business name", "Business type", "Currency", "Finish"];
+const STEPS = ["Business name", "Business type", "Locale", "Finish"];
 
 function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const create = useServerFn(createBusiness);
+  const setShopPassword = useServerFn(setStaffPasswordFn);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<CreateBusinessInput>({
     name: "",
@@ -49,22 +50,106 @@ function Onboarding() {
     phone: "",
     address: "",
   });
+  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [shopPassword, setShopPasswordValue] = useState("");
+  const [shopPasswordDone, setShopPasswordDone] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async () => {
       const parsed = createBusinessSchema.parse(form);
       return create({ data: parsed });
     },
-    onSuccess: async () => {
+    onSuccess: async (newBusinessId) => {
       await queryClient.invalidateQueries({ queryKey: ["workspace"] });
       toast.success("Your business is ready.");
-      navigate({ to: "/dashboard", replace: true });
+      setBusinessId(newBusinessId);
     },
     onError: (error: Error) => toast.error(error.message || "We couldn't create your business."),
   });
 
+  const shopPasswordMutation = useMutation({
+    mutationFn: () =>
+      setShopPassword({ data: { businessId: businessId!, password: shopPassword } }),
+    onSuccess: () => {
+      setShopPasswordDone(true);
+      toast.success("Shop password set.");
+    },
+    onError: (error: Error) => toast.error(error.message || "Couldn't set the shop password."),
+  });
+
   const canContinue =
     step === 0 ? form.name.trim().length >= 2 : step === 2 ? form.currency.length === 3 : true;
+
+  if (businessId) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="border-b border-border px-4 py-4">
+          <Logo />
+        </header>
+        <div className="mx-auto w-full max-w-lg flex-1 px-4 py-10">
+          <div className="surface p-6 text-center">
+            <div className="mx-auto grid size-12 place-items-center rounded-full bg-primary/10">
+              <Check className="size-6 text-primary" aria-hidden="true" />
+            </div>
+            <h1 className="mt-4 text-xl font-bold tracking-tight">{form.name} is ready</h1>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+              You and your team sign in with your business name (
+              <span className="font-medium text-foreground">{form.name}</span>) and a shop password
+              — set that below.
+            </p>
+
+            {shopPasswordDone ? (
+              <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-success-soft px-3 py-2.5 text-sm text-success">
+                <Check className="size-4" aria-hidden="true" />
+                Shop password set.
+              </div>
+            ) : (
+              <form
+                className="mt-6 space-y-3 text-left"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  shopPasswordMutation.mutate();
+                }}
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="onboarding-shop-password">Set a shop password</Label>
+                  <Input
+                    id="onboarding-shop-password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                    value={shopPassword}
+                    onChange={(e) => setShopPasswordValue(e.target.value)}
+                    placeholder="At least 8 characters"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="w-full gap-1.5"
+                  disabled={shopPasswordMutation.isPending || shopPassword.length < 8}
+                >
+                  {shopPasswordMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  Set shop password
+                </Button>
+              </form>
+            )}
+
+            <Button
+              className="mt-3 w-full"
+              disabled={!shopPasswordDone}
+              onClick={() => navigate({ to: "/dashboard", replace: true })}
+            >
+              Continue to dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -231,7 +316,11 @@ function Onboarding() {
                 Continue <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
             ) : (
-              <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="gap-1.5">
+              <Button
+                onClick={() => mutation.mutate()}
+                disabled={mutation.isPending}
+                className="gap-1.5"
+              >
                 {mutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : null}

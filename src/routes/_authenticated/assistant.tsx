@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { askAssistantFn } from "@/lib/business.functions";
 import { readableError } from "@/lib/format";
 
@@ -28,8 +28,6 @@ export const Route = createFileRoute("/_authenticated/assistant")({
   component: Assistant,
 });
 
-const FINANCE_ROLES = ["owner", "admin", "manager", "accountant"];
-
 const SUGGESTIONS = [
   "How did my business perform this month?",
   "What products are running low?",
@@ -43,8 +41,7 @@ function Assistant() {
   const navigate = useNavigate();
   const workspace = useWorkspace();
   const businessId = workspace.data?.business.id;
-  const role = workspace.data?.role ?? "";
-  const canUse = FINANCE_ROLES.includes(role);
+  const canUse = hasPermission(workspace.data, "ai.use");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -97,6 +94,8 @@ function Assistant() {
         businessName={workspace.data.business.name}
         role={workspace.data.role}
         plan={workspace.data.plan}
+        isReadOnly={workspace.data.isReadOnly}
+        billingEnabled={workspace.data.billingEnabled}
         title="AI Assistant"
         subtitle="Ask questions about your business."
       >
@@ -116,6 +115,8 @@ function Assistant() {
       businessName={workspace.data.business.name}
       role={workspace.data.role}
       plan={workspace.data.plan}
+      isReadOnly={workspace.data.isReadOnly}
+      billingEnabled={workspace.data.billingEnabled}
       title="AI Assistant"
       subtitle="Answers are grounded in your last 30 days of data — nothing is invented."
       actions={
@@ -212,6 +213,7 @@ function Assistant() {
                 send(input);
               }
             }}
+            aria-label="Message"
             placeholder="Ask about sales, stock, customers…"
             rows={1}
             className="max-h-32 min-h-[42px] resize-none"

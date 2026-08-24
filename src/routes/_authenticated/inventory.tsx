@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Minus, Package, Plus, Search, Upload } from "lucide-react";
+import { Download, Loader2, Minus, Package, Plus, Search, Upload } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ImportDialog } from "@/components/import-dialog";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { addProduct, getProducts, importProductsFn, updateStock } from "@/lib/business.functions";
+import {
+  addProduct,
+  getProducts,
+  getSuppliers,
+  importProductsFn,
+  updateStock,
+} from "@/lib/business.functions";
 import {
   productImportRowSchema,
   productSchema,
@@ -28,22 +41,44 @@ import {
 } from "@/lib/business.schemas";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
 import type { ImportColumn } from "@/lib/spreadsheet";
+import { downloadXlsx } from "@/lib/xlsx-export";
 
+// Aliases are matched after lowercasing and stripping spaces/underscores/
+// hyphens (see normalizeHeader in lib/spreadsheet.ts), so "Retail Price",
+// "retail_price" and "RetailPrice" all normalize to the same "retailprice"
+// candidate — only one form needs listing here. Terms below lean on common
+// Southern African retail/stock-take vocabulary (SOH, retail price, VAT)
+// since that's this app's actual user base, not just US/UK spreadsheet norms.
 const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "name", label: "Name", required: true, aliases: ["product", "item", "productname"] },
-  { key: "sku", label: "SKU", required: false, aliases: ["code"] },
-  { key: "barcode", label: "Barcode", required: false, aliases: [] },
-  { key: "costPrice", label: "Cost Price", required: false, aliases: ["cost"] },
-  { key: "sellingPrice", label: "Selling Price", required: false, aliases: ["price", "sellprice"] },
-  { key: "stock", label: "Stock", required: false, aliases: ["quantity", "qty", "stockonhand"] },
+  { key: "sku", label: "SKU", required: false, aliases: ["code", "productcode", "itemcode"] },
+  { key: "barcode", label: "Barcode", required: false, aliases: ["upc", "ean"] },
+  {
+    key: "costPrice",
+    label: "Cost Price",
+    required: false,
+    aliases: ["cost", "buyprice", "buyingprice", "wholesaleprice"],
+  },
+  {
+    key: "sellingPrice",
+    label: "Selling Price",
+    required: false,
+    aliases: ["price", "sellprice", "retailprice", "retail", "unitprice"],
+  },
+  {
+    key: "stock",
+    label: "Stock",
+    required: false,
+    aliases: ["quantity", "qty", "stockonhand", "soh", "onhand", "qtyonhand", "stockqty"],
+  },
   {
     key: "minStock",
     label: "Min Stock",
     required: false,
-    aliases: ["reorderlevel", "minimumstock"],
+    aliases: ["reorderlevel", "reorderpoint", "minimumstock", "minqty", "minquantity"],
   },
-  { key: "unit", label: "Unit", required: false, aliases: [] },
-  { key: "taxRate", label: "Tax Rate", required: false, aliases: ["tax"] },
+  { key: "unit", label: "Unit", required: false, aliases: ["uom", "units"] },
+  { key: "taxRate", label: "Tax Rate", required: false, aliases: ["tax", "vat", "taxpercent"] },
 ];
 
 export const Route = createFileRoute("/_authenticated/inventory")({
@@ -81,7 +116,12 @@ const EMPTY_PRODUCT = {
   stock: "",
   minStock: "0",
   description: "",
+  supplierId: "",
 };
+
+// Radix Select reserves value="" for "no selection" — this sentinel stands
+// in for "no supplier" and is mapped back to "" before validation.
+const NO_SUPPLIER = "none";
 
 function Inventory() {
   const navigate = useNavigate();
@@ -103,6 +143,7 @@ function Inventory() {
   const [stockReason, setStockReason] = useState("");
 
   const fetchProducts = useServerFn(getProducts);
+  const fetchSuppliers = useServerFn(getSuppliers);
   const createProduct = useServerFn(addProduct);
   const adjustStock = useServerFn(updateStock);
   const importProductsRows = useServerFn(importProductsFn);
@@ -119,6 +160,12 @@ function Inventory() {
     queryFn: () => fetchProducts({ data: { businessId: businessId!, search } }),
   });
 
+  const suppliers = useQuery({
+    queryKey: ["suppliers", businessId],
+    enabled: Boolean(businessId) && addOpen,
+    queryFn: () => fetchSuppliers({ data: { businessId: businessId!, search: "" } }),
+  });
+
   const addMutation = useMutation({
     mutationFn: async () => {
       const parsed = productSchema.parse({
@@ -132,6 +179,7 @@ function Inventory() {
         minStock: form.minStock || 0,
         taxRate: 0,
         description: form.description,
+        supplierId: form.supplierId,
       });
       return createProduct({ data: parsed });
     },
@@ -180,24 +228,51 @@ function Inventory() {
 
   const rows = (products.data ?? []) as ProductRow[];
 
+  function exportExcel() {
+    downloadXlsx("inventory", [
+      {
+        name: "Inventory",
+        headers: ["Name", "SKU", "Unit", "Cost", "Price", "Stock", "Min stock"],
+        rows: rows.map((p) => [
+          p.name,
+          p.sku ?? "",
+          p.unit,
+          p.cost_price,
+          p.selling_price,
+          p.stock,
+          p.min_stock,
+        ]),
+      },
+    ]);
+  }
+
   return (
     <AppShell
       businessName={workspace.data.business.name}
       role={workspace.data.role}
       plan={workspace.data.plan}
+      isReadOnly={workspace.data.isReadOnly}
+      billingEnabled={workspace.data.billingEnabled}
       title="Inventory"
       subtitle="Everything you sell, and how much of it you have left."
       actions={
-        canEdit ? (
-          <>
-            <Button variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
-              <Upload className="size-4" aria-hidden="true" /> Import
+        <>
+          {rows.length > 0 ? (
+            <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
+              <Download className="size-4" aria-hidden="true" /> Export to Excel
             </Button>
-            <Button className="gap-1.5" onClick={() => setAddOpen(true)}>
-              <Plus className="size-4" aria-hidden="true" /> Add product
-            </Button>
-          </>
-        ) : null
+          ) : null}
+          {canEdit ? (
+            <>
+              <Button variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
+                <Upload className="size-4" aria-hidden="true" /> Import
+              </Button>
+              <Button className="gap-1.5" onClick={() => setAddOpen(true)}>
+                <Plus className="size-4" aria-hidden="true" /> Add product
+              </Button>
+            </>
+          ) : null}
+        </>
       }
     >
       <div className="relative max-w-sm">
@@ -411,6 +486,27 @@ function Inventory() {
                 value={form.minStock}
                 onChange={(e) => setForm({ ...form, minStock: e.target.value })}
               />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="p-supplier">Supplier (optional)</Label>
+              <Select
+                value={form.supplierId || NO_SUPPLIER}
+                onValueChange={(value) =>
+                  setForm({ ...form, supplierId: value === NO_SUPPLIER ? "" : value })
+                }
+              >
+                <SelectTrigger id="p-supplier">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_SUPPLIER}>No supplier</SelectItem>
+                  {(suppliers.data ?? []).map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="p-desc">Notes (optional)</Label>
