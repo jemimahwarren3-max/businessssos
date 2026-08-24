@@ -60,7 +60,15 @@ function Onboarding() {
       return create({ data: parsed });
     },
     onSuccess: async (newBusinessId) => {
-      await queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      // Evicts outright rather than invalidating — the dashboard's first
+      // visit (redirecting here) already cached workspace:null with a 60s
+      // staleTime, and invalidate alone leaves that stale null as the
+      // synchronously-served value on the next mount (React Query returns
+      // cached data immediately while revalidating in the background), so
+      // the dashboard's "no workspace -> back to onboarding" effect fires
+      // on the stale null before the real refetch ever lands. Removing the
+      // entry forces a genuine isLoading:true fetch next time instead.
+      queryClient.removeQueries({ queryKey: ["workspace"] });
       toast.success("Your business is ready.");
       setBusinessId(newBusinessId);
     },
