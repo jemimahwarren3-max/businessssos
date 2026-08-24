@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import { DataExportPrintView } from "@/components/data-export-print-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { exportBusinessDataFn } from "@/lib/business.functions";
@@ -71,6 +72,7 @@ function DataExport() {
   const workspace = useWorkspace();
   const businessId = workspace.data?.business.id;
   const canExport = hasPermission(workspace.data, "business.export_data");
+  const [printData, setPrintData] = useState<Record<string, unknown> | null>(null);
 
   const exportData = useServerFn(exportBusinessDataFn);
 
@@ -80,8 +82,24 @@ function DataExport() {
     }
   }, [workspace.isLoading, workspace.data, navigate]);
 
+  // The print view has to actually be in the DOM before window.print() can
+  // pick it up — printData is only set once the export finishes loading, so
+  // this fires right after that render commits. Cleared on "afterprint"
+  // (fires once the browser's print/save-as-PDF dialog closes) rather than
+  // immediately, since window.print() returns before the user is done with it.
+  useEffect(() => {
+    if (!printData) return;
+    const timer = setTimeout(() => window.print(), 50);
+    const clear = () => setPrintData(null);
+    window.addEventListener("afterprint", clear);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("afterprint", clear);
+    };
+  }, [printData]);
+
   const exportMutation = useMutation({
-    mutationFn: async (format: "json" | "xlsx") => ({
+    mutationFn: async (format: "json" | "xlsx" | "pdf") => ({
       format,
       result: await exportData({ data: { businessId: businessId! } }),
     }),
@@ -89,10 +107,13 @@ function DataExport() {
       const stamp = new Date().toISOString().slice(0, 10);
       if (format === "json") {
         downloadJson(`businessos-export-${stamp}.json`, result);
-      } else {
+        toast.success("Your data has been downloaded.");
+      } else if (format === "xlsx") {
         await downloadExcel(`businessos-export-${stamp}`, result as Record<string, unknown>);
+        toast.success("Your data has been downloaded.");
+      } else {
+        setPrintData(result as Record<string, unknown>);
       }
-      toast.success("Your data has been downloaded.");
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't export your data.")),
   });
@@ -121,7 +142,8 @@ function DataExport() {
           <p className="mt-1 text-sm text-muted-foreground">
             Products, customers, sales, invoices, quotes, expenses, and stock history — everything
             tied to your business — as a single file you can keep, back up, or move elsewhere. JSON
-            keeps every field for a full backup; Excel is easier to open and browse.
+            keeps every field for a full backup; Excel is easier to open and browse; PDF is best for
+            printing or sharing a read-only copy.
           </p>
         </div>
 
@@ -156,9 +178,32 @@ function DataExport() {
               )}
               Download my data (Excel)
             </Button>
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              disabled={exportMutation.isPending}
+              onClick={() => exportMutation.mutate("pdf")}
+            >
+              {exportMutation.isPending && exportMutation.variables === "pdf" ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <FileText className="size-4" aria-hidden="true" />
+              )}
+              Download my data (PDF)
+            </Button>
           </div>
         )}
       </div>
+
+      {printData ? (
+        <div className="hidden print:block print-area">
+          <DataExportPrintView
+            businessName={workspace.data.business.name}
+            exportedAt={(printData["exportedAt"] as string) ?? new Date().toISOString()}
+            data={printData}
+          />
+        </div>
+      ) : null}
     </AppShell>
   );
 }
