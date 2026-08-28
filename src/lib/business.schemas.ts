@@ -457,6 +457,11 @@ export const setRolePermissionSchema = z.object({
   granted: z.boolean(),
 });
 
+export const listAuditLogsSchema = z.object({
+  businessId: z.string().uuid(),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
 /* ------------------------------- insights -------------------------------- */
 
 export const weeklyReportSchema = z.object({

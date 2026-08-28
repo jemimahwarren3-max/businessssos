@@ -16,6 +16,7 @@ import {
   importSalesDetailedSchema,
   importSalesHistorySchema,
   inviteTokenSchema,
+  listAuditLogsSchema,
   invoiceIdSchema,
   invoiceSchema,
   invoiceStatusSchema,
@@ -43,6 +44,7 @@ import {
   weeklyReportSchema,
 } from "./business.schemas";
 import { z } from "zod";
+import { listAuditLogs } from "./audit.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
 import { getAnomalies, getInventoryForecast, getWeeklyReport } from "./insights.server";
@@ -622,4 +624,11 @@ export const setRolePermissionFn = createServerFn({ method: "POST" })
       data.permissionKey,
       data.granted,
     ),
+  );
+
+export const getAuditLogsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(listAuditLogsSchema, data))
+  .handler(async ({ data, context }) =>
+    listAuditLogs(context.supabase as Db, data.businessId, data.offset),
   );

@@ -12,6 +12,7 @@ import {
   FileCheck2,
   FileText,
   HelpCircle,
+  History,
   LayoutDashboard,
   Lightbulb,
   LogOut,
@@ -153,6 +154,12 @@ export function AppShell({
             className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
           >
             <Download className="size-4.5" aria-hidden="true" /> Export data
+          </Link>
+          <Link
+            to="/settings/audit-log"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <History className="size-4.5" aria-hidden="true" /> Audit log
           </Link>
           <Link
             to="/settings/account"

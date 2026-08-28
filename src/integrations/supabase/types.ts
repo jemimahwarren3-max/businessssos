@@ -1800,6 +1800,19 @@ export type Database = {
           created_at: string;
         }[];
       };
+      list_audit_logs: {
+        Args: { _business_id: string; _limit?: number; _offset?: number };
+        Returns: {
+          id: string;
+          created_at: string;
+          actor_name: string;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          summary: string | null;
+          result: string;
+        }[];
+      };
       remove_team_member: {
         Args: { _business_id: string; _member_user_id: string };
         Returns: undefined;
