@@ -26,6 +26,7 @@ import {
   clearServerSession,
   createAnonClient,
   createExchangeClient,
+  createMfaScopedClient,
   setServerSession,
   tryGetAuthedContext,
 } from "./session.server";
@@ -57,6 +58,9 @@ const updatePasswordLimit = [
 // exactly the kind of surface that normally gets a tight attempt throttle.
 const mfaLimit = [
   authedRateLimit({ keyPrefix: "mfa", maxRequests: 8, windowSeconds: 60 }),
+] as const;
+const signOutOthersLimit = [
+  authedRateLimit({ keyPrefix: "auth-signout-others", maxRequests: 5, windowSeconds: 60 }),
 ] as const;
 
 const emailSchema = z.string().trim().toLowerCase().email();
@@ -211,11 +215,27 @@ export const exchangeOAuthCode = createServerFn({ method: "POST" })
 export const signOutFn = createServerFn({ method: "POST" }).handler(async () => {
   const ctx = await tryGetAuthedContext();
   if (ctx) {
-    await ctx.supabase.auth.signOut();
+    // ctx.supabase only ever carries the access token as a bearer header —
+    // signOut() needs a client that's actually been through auth.setSession()
+    // to know which refresh token to revoke (same requirement as the MFA
+    // client below); without it, signOut() reports success but the refresh
+    // token silently stays valid. Confirmed live: a bearer-only client's
+    // signOut() left the old refresh token usable indefinitely.
+    const client = await createMfaScopedClient(ctx.tokens);
+    await client.auth.signOut();
   }
   await clearServerSession();
   return { ok: true };
 });
+
+export const signOutOtherDevicesFn = createServerFn({ method: "POST" })
+  .middleware(signOutOthersLimit)
+  .handler(async ({ context }) => {
+    const client = await createMfaScopedClient(context.tokens);
+    const { error } = await client.auth.signOut({ scope: "others" });
+    if (error) throw new Error("Couldn't sign out other devices. Please try again.");
+    return { ok: true };
+  });
 
 export const getCurrentUser = createServerFn({ method: "GET" }).handler(async () => {
   const ctx = await tryGetAuthedContext();

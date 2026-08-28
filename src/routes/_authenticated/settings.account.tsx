@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
+import { AlertTriangle, LogOut, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
   enrollMfaFn,
   getMfaStatusFn,
   signOutFn,
+  signOutOtherDevicesFn,
   unenrollMfaFn,
   verifyMfaChallengeFn,
   verifyMfaEnrollmentFn,
@@ -175,6 +176,46 @@ function SecuritySection() {
   );
 }
 
+/** Signs out every session but this one — the current browser's own
+ * refresh token is deliberately untouched (Supabase's signOut({scope:
+ * "others"}), confirmed live), so this can't accidentally lock the person
+ * out of the device they're using to click it. */
+function DevicesSection() {
+  const signOutOthersFn = useServerFn(signOutOtherDevicesFn);
+
+  const signOutOthersMutation = useMutation({
+    mutationFn: () => signOutOthersFn(),
+    onSuccess: () => toast.success("Signed out of every other device."),
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Couldn't sign out other devices.")),
+  });
+
+  return (
+    <div className="surface max-w-xl space-y-3 p-5">
+      <div>
+        <h2 className="text-lg font-semibold">Sign out other devices</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          If you think someone else has access to your account, sign out every other browser and
+          device at once. This one stays signed in.
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        className="gap-1.5"
+        disabled={signOutOthersMutation.isPending}
+        onClick={() => signOutOthersMutation.mutate()}
+      >
+        {signOutOthersMutation.isPending ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <LogOut className="size-4" aria-hidden="true" />
+        )}
+        Sign out all other devices
+      </Button>
+    </div>
+  );
+}
+
 function AccountSettings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -227,6 +268,10 @@ function AccountSettings() {
     >
       <div className="mb-4">
         <SecuritySection />
+      </div>
+
+      <div className="mb-4">
+        <DevicesSection />
       </div>
 
       <div className="surface max-w-xl space-y-4 border-destructive/30 p-5">
