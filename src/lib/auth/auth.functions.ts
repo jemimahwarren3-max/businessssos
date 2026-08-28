@@ -6,6 +6,7 @@ import { deleteMyAccount } from "@/lib/account-deletion.server";
 import type { Db } from "@/lib/business.server";
 import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
+import { isPasswordBreached } from "./breach-check.server";
 import {
   challengeTotp,
   enrollTotp,
@@ -91,6 +92,9 @@ export const signIn = createServerFn({ method: "POST" })
     return { userId: result.user.id };
   });
 
+const BREACHED_PASSWORD_MESSAGE =
+  "That password has appeared in known data breaches, so it's not safe to use. Please choose a different one.";
+
 function friendlySignUpError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("password")) return "Your password must be at least 8 characters.";
@@ -109,6 +113,9 @@ export const signUp = createServerFn({ method: "POST" })
   .middleware(signUpLimit)
   .inputValidator((data: unknown) => signUpSchema.parse(data))
   .handler(async ({ data }) => {
+    if (await isPasswordBreached(data.password)) {
+      throw new Error(BREACHED_PASSWORD_MESSAGE);
+    }
     const { data: result, error } = await createAnonClient().auth.signUp({
       email: data.email,
       password: data.password,
@@ -193,6 +200,9 @@ export const updatePassword = createServerFn({ method: "POST" })
   .middleware(updatePasswordLimit)
   .inputValidator((data: unknown) => updatePasswordSchema.parse(data))
   .handler(async ({ data, context }) => {
+    if (await isPasswordBreached(data.password)) {
+      throw new Error(BREACHED_PASSWORD_MESSAGE);
+    }
     const { error } = await context.supabase.auth.updateUser({ password: data.password });
     if (error) throw new Error("Couldn't update your password. Please try again.");
     return { ok: true };

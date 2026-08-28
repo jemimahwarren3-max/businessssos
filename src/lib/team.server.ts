@@ -1,6 +1,10 @@
 import { AppError, assertPermission, dbFail, recordAudit, type Db } from "./business.server";
+import { isPasswordBreached } from "./auth/breach-check.server";
 import { createAnonClient } from "./auth/session.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+const BREACHED_PASSWORD_MESSAGE =
+  "That password has appeared in known data breaches, so it's not safe to use. Please choose a different one.";
 
 export type TeamMember = {
   id: string;
@@ -173,6 +177,9 @@ export async function createStaffAccount(
   role: string,
 ): Promise<{ userId: string }> {
   await assertPermission(supabase, businessId, "users.invite");
+  if (await isPasswordBreached(password)) {
+    throw new AppError(BREACHED_PASSWORD_MESSAGE);
+  }
 
   const email = `staff-${crypto.randomUUID()}@internal.businessos.local`;
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -234,6 +241,9 @@ export async function resetStaffPassword(
       'That team member signs in with email — they can use "Forgot password" instead.',
     );
   }
+  if (await isPasswordBreached(newPassword)) {
+    throw new AppError(BREACHED_PASSWORD_MESSAGE);
+  }
 
   const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(memberUserId, {
     password: newPassword,
@@ -280,6 +290,9 @@ export async function setStaffPassword(
   password: string,
 ): Promise<void> {
   await assertPermission(supabase, businessId, "business.settings");
+  if (await isPasswordBreached(password)) {
+    throw new AppError(BREACHED_PASSWORD_MESSAGE);
+  }
   const { error } = await supabase.rpc("set_staff_password", {
     _business_id: businessId,
     _password: password,
