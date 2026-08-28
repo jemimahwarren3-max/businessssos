@@ -8,12 +8,16 @@ const MAX_TOTAL_CHARACTERS = 250_000;
 
 function sanitizeCellValue(value: unknown): string {
   if (value == null) return "";
-  return String(value)
-    .replace(/\u0000/g, "")
-    .replace(/[\u0000-\u001F\u007F]/g, "")
-    .replace(/<[^>]*>/g, "")
-    .trim()
-    .slice(0, MAX_CELL_LENGTH);
+  return (
+    String(value)
+      // eslint-disable-next-line no-control-regex -- stripping control chars is the point
+      .replace(/\u0000/g, "")
+      // eslint-disable-next-line no-control-regex -- stripping control chars is the point
+      .replace(/[\u0000-\u001F\u007F]/g, "")
+      .replace(/<[^>]*>/g, "")
+      .trim()
+      .slice(0, MAX_CELL_LENGTH)
+  );
 }
 
 function validateParsedRows(rows: string[][]): string[][] {

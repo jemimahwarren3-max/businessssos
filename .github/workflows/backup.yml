@@ -1,0 +1,53 @@
+name: Nightly production backup
+
+# Supabase's free tier ships with zero automated backups (pitr_enabled:
+# false, no scheduled snapshots) — confirmed live via the Management API
+# against the production project. This is the free substitute: a logical
+# dump (public + auth schemas — auth is included so restored rows keep the
+# same user IDs business_members/etc. reference, not just the app's own
+# tables) taken nightly, encrypted, and kept as a workflow artifact for 14
+# days. See docs/disaster-recovery.md for how to actually restore from one.
+#
+# GitHub's runners have normal outbound IPv4/IPv6 — the IPv6-only direct
+# connection that fails on the developer's local network works fine here.
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # 02:00 UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Dump production database
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          pg_dump \
+            "host=db.maidxfntfpnkcqnuhozo.supabase.co port=5432 dbname=postgres user=postgres sslmode=require" \
+            --schema=public --schema=auth \
+            --no-owner --no-privileges \
+            --format=custom \
+            --file=backup.dump
+
+      - name: Encrypt backup
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "$PASSPHRASE" backup.dump
+          rm backup.dump
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-backup-${{ github.run_id }}
+          path: backup.dump.gpg
+          retention-days: 14
+          if-no-files-found: error
