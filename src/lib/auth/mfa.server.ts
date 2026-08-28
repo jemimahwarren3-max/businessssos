@@ -64,6 +64,17 @@ export async function verifyTotpEnrollment(tokens: SupabaseTokens, factorId: str
 /** Same challenge/verify pair, for a returning admin whose current session
  * is still aal1 (a fresh sign-in, or an already-enrolled factor that just
  * hasn't been verified yet this session). */
+/** Unlike the admin panel (MFA mandatory, no way off), a business user who
+ * enrolled voluntarily can turn it back off — e.g. after losing their
+ * authenticator device. Requires the caller to already be aal2 (Supabase
+ * enforces this itself), so turning MFA off still needs a valid code from
+ * the outgoing factor first. */
+export async function unenrollTotp(tokens: SupabaseTokens, factorId: string) {
+  const client = await createMfaScopedClient(tokens);
+  const { error } = await client.auth.mfa.unenroll({ factorId });
+  if (error) throw new Error(error.message || "Couldn't turn off MFA. Please try again.");
+}
+
 export async function challengeTotp(tokens: SupabaseTokens, factorId: string) {
   const client = await createMfaScopedClient(tokens);
   const { data, error } = await client.auth.mfa.challenge({ factorId });

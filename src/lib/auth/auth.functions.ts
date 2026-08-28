@@ -7,6 +7,14 @@ import type { Db } from "@/lib/business.server";
 import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
 import {
+  challengeTotp,
+  enrollTotp,
+  getMfaStatus,
+  unenrollTotp,
+  verifyTotpChallenge,
+  verifyTotpEnrollment,
+} from "./mfa.server";
+import {
   clearServerSession,
   createAnonClient,
   createExchangeClient,
@@ -34,6 +42,13 @@ const oauthCallbackLimit = [
 ] as const;
 const updatePasswordLimit = [
   authedRateLimit({ keyPrefix: "auth-update-password", maxRequests: 5, windowSeconds: 60 }),
+] as const;
+// Same "authedRateLimit already composes requireSupabaseAuth" reasoning as
+// admin.functions.ts — context.tokens is available with no other wiring.
+// Tighter than the general API limit: these accept a 6-digit TOTP code,
+// exactly the kind of surface that normally gets a tight attempt throttle.
+const mfaLimit = [
+  authedRateLimit({ keyPrefix: "mfa", maxRequests: 8, windowSeconds: 60 }),
 ] as const;
 
 const emailSchema = z.string().trim().toLowerCase().email();
@@ -188,5 +203,73 @@ export const deleteAccountFn = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await deleteMyAccount(context.supabase as Db, context.userId);
     await clearServerSession();
+    return { ok: true };
+  });
+
+/* -------------------------------- MFA -------------------------------- *
+ * Same enroll/challenge/verify primitives the admin panel uses (see
+ * src/lib/auth/mfa.server.ts and src/lib/admin/admin.functions.ts) — just
+ * offered to any signed-in user instead of gated to platform admins, and
+ * optional rather than mandatory (see unenrollMfaFn, which admin has no
+ * equivalent of on purpose). */
+
+export const getMfaStatusFn = createServerFn({ method: "GET" })
+  .middleware(mfaLimit)
+  .handler(async ({ context }) => getMfaStatus(context.tokens));
+
+export const enrollMfaFn = createServerFn({ method: "POST" })
+  .middleware(mfaLimit)
+  .handler(async ({ context }) => enrollTotp(context.tokens));
+
+const verifyEnrollSchema = z.object({
+  factorId: z.string().min(1),
+  code: z.string().trim().length(6),
+});
+export const verifyMfaEnrollmentFn = createServerFn({ method: "POST" })
+  .middleware(mfaLimit)
+  .inputValidator((data: unknown) => verifyEnrollSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { accessToken, refreshToken } = await verifyTotpEnrollment(
+      context.tokens,
+      data.factorId,
+      data.code,
+    );
+    // The verify call upgrades the session to aal2 — reseal the cookie with
+    // the new tokens now, or the next request would still read back aal1.
+    await setServerSession({ accessToken, refreshToken });
+    return { ok: true };
+  });
+
+const mfaChallengeSchema = z.object({ factorId: z.string().min(1) });
+export const challengeMfaFn = createServerFn({ method: "POST" })
+  .middleware(mfaLimit)
+  .inputValidator((data: unknown) => mfaChallengeSchema.parse(data))
+  .handler(async ({ data, context }) => challengeTotp(context.tokens, data.factorId));
+
+const verifyMfaChallengeSchema = z.object({
+  factorId: z.string().min(1),
+  challengeId: z.string().min(1),
+  code: z.string().trim().length(6),
+});
+export const verifyMfaChallengeFn = createServerFn({ method: "POST" })
+  .middleware(mfaLimit)
+  .inputValidator((data: unknown) => verifyMfaChallengeSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { accessToken, refreshToken } = await verifyTotpChallenge(
+      context.tokens,
+      data.factorId,
+      data.challengeId,
+      data.code,
+    );
+    await setServerSession({ accessToken, refreshToken });
+    return { ok: true };
+  });
+
+const unenrollMfaSchema = z.object({ factorId: z.string().min(1) });
+export const unenrollMfaFn = createServerFn({ method: "POST" })
+  .middleware(mfaLimit)
+  .inputValidator((data: unknown) => unenrollMfaSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await unenrollTotp(context.tokens, data.factorId);
     return { ok: true };
   });

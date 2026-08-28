@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   challengeAdminMfaFn,
   checkPlatformAdmin,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin/admin.functions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MfaChallenge, MfaEnroll } from "@/components/mfa";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,10 @@ type OverrideTarget = { businessId: string; businessName: string } | null;
 
 function AdminPage() {
   const checkStatus = useServerFn(checkPlatformAdmin);
+  const enrollFn = useServerFn(enrollAdminMfaFn);
+  const verifyEnrollFn = useServerFn(verifyAdminMfaEnrollmentFn);
+  const challengeFn = useServerFn(challengeAdminMfaFn);
+  const verifyChallengeFn = useServerFn(verifyAdminMfaChallengeFn);
   const status = useQuery({
     queryKey: ["admin-mfa-status"],
     queryFn: () => checkStatus(),
@@ -78,165 +83,35 @@ function AdminPage() {
   }
 
   if (!status.data.enrolled) {
-    return <MfaEnroll onDone={() => status.refetch()} />;
-  }
-  if (status.data.currentLevel !== "aal2") {
-    return <MfaChallenge factorId={status.data.factorId!} onDone={() => status.refetch()} />;
-  }
-  return <AdminDashboard />;
-}
-
-function MfaEnroll({ onDone }: { onDone: () => void }) {
-  const enrollFn = useServerFn(enrollAdminMfaFn);
-  const verifyFn = useServerFn(verifyAdminMfaEnrollmentFn);
-  const [factorId, setFactorId] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-
-  const startMutation = useMutation({
-    mutationFn: () => enrollFn(),
-    onSuccess: (result) => {
-      setFactorId(result.factorId);
-      setQrCode(result.qrCode);
-      setSecret(result.secret);
-    },
-    onError: (error: Error) => toast.error(readableError(error, "Couldn't start MFA enrollment.")),
-  });
-
-  const verifyMutation = useMutation({
-    mutationFn: () => verifyFn({ data: { factorId: factorId!, code: code.trim() } }),
-    onSuccess: () => {
-      toast.success("MFA enabled.");
-      onDone();
-    },
-    onError: (error: Error) => toast.error(readableError(error, "That code didn't work.")),
-  });
-
-  return (
-    <div className="mx-auto max-w-sm p-6 pt-24">
-      <div className="surface space-y-4 p-6 text-center">
-        <ShieldCheck className="mx-auto size-8 text-primary" aria-hidden="true" />
-        <div>
-          <h1 className="text-lg font-bold">Set up admin authentication</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            This account requires an authenticator app before you can continue.
-          </p>
-        </div>
-
-        {!qrCode ? (
-          <Button
-            className="w-full"
-            disabled={startMutation.isPending}
-            onClick={() => startMutation.mutate()}
-          >
-            {startMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            ) : null}
-            Start setup
-          </Button>
-        ) : (
-          <>
-            <img
-              src={qrCode}
-              alt="Scan this QR code with your authenticator app"
-              className="mx-auto size-40"
-            />
-            <p className="break-all text-[11px] text-muted-foreground">
-              Or enter manually: <span className="font-mono">{secret}</span>
-            </p>
-            <div className="space-y-1.5 text-left">
-              <Label htmlFor="mfa-code">6-digit code</Label>
-              <Input
-                id="mfa-code"
-                inputMode="numeric"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="000000"
-                autoFocus
-              />
-            </div>
-            <Button
-              className="w-full"
-              disabled={verifyMutation.isPending || code.trim().length !== 6}
-              onClick={() => verifyMutation.mutate()}
-            >
-              {verifyMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : null}
-              Confirm
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MfaChallenge({ factorId, onDone }: { factorId: string; onDone: () => void }) {
-  const challengeFn = useServerFn(challengeAdminMfaFn);
-  const verifyFn = useServerFn(verifyAdminMfaChallengeFn);
-  const [challengeId, setChallengeId] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-
-  const startMutation = useMutation({
-    mutationFn: () => challengeFn({ data: { factorId } }),
-    onSuccess: (result) => setChallengeId(result.challengeId),
-    onError: (error: Error) => toast.error(readableError(error, "Couldn't start verification.")),
-  });
-
-  const verifyMutation = useMutation({
-    mutationFn: () =>
-      verifyFn({ data: { factorId, challengeId: challengeId!, code: code.trim() } }),
-    onSuccess: () => onDone(),
-    onError: (error: Error) => toast.error(readableError(error, "That code didn't work.")),
-  });
-
-  useEffect(() => {
-    startMutation.mutate();
-    // Only ever run once, on mount — startMutation is a new object identity
-    // every render (useMutation doesn't memoize it), so including it would
-    // re-trigger the challenge on every render instead of just once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div className="mx-auto max-w-sm p-6 pt-24">
-      <div className="surface space-y-4 p-6 text-center">
-        <KeyRound className="mx-auto size-8 text-primary" aria-hidden="true" />
-        <div>
-          <h1 className="text-lg font-bold">Verify it's you</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Enter the code from your authenticator app.
-          </p>
-        </div>
-        <div className="space-y-1.5 text-left">
-          <Label htmlFor="mfa-challenge-code">6-digit code</Label>
-          <Input
-            id="mfa-challenge-code"
-            inputMode="numeric"
-            maxLength={6}
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="000000"
-            autoFocus
-            disabled={!challengeId}
+    return (
+      <div className="mx-auto max-w-sm p-6 pt-24">
+        <div className="surface p-6">
+          <MfaEnroll
+            onDone={() => status.refetch()}
+            enrollFn={enrollFn}
+            verifyFn={verifyEnrollFn}
+            title="Set up admin authentication"
+            description="This account requires an authenticator app before you can continue."
           />
         </div>
-        <Button
-          className="w-full"
-          disabled={!challengeId || verifyMutation.isPending || code.trim().length !== 6}
-          onClick={() => verifyMutation.mutate()}
-        >
-          {verifyMutation.isPending ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : null}
-          Verify
-        </Button>
       </div>
-    </div>
-  );
+    );
+  }
+  if (status.data.currentLevel !== "aal2") {
+    return (
+      <div className="mx-auto max-w-sm p-6 pt-24">
+        <div className="surface p-6">
+          <MfaChallenge
+            factorId={status.data.factorId!}
+            onDone={() => status.refetch()}
+            challengeFn={challengeFn}
+            verifyFn={verifyChallengeFn}
+          />
+        </div>
+      </div>
+    );
+  }
+  return <AdminDashboard />;
 }
 
 function AdminDashboard() {
