@@ -15,6 +15,7 @@ import {
   verifyTotpChallenge,
   verifyTotpEnrollment,
 } from "./mfa.server";
+import { verifyCurrentPassword } from "./reauth.server";
 import {
   clearServerSession,
   createAnonClient,
@@ -66,6 +67,12 @@ const signUpSchema = z.object({
 });
 const requestResetSchema = z.object({ email: emailSchema });
 const updatePasswordSchema = z.object({ password: passwordSchema });
+// Step-up re-authentication: re-checked right before a high-risk action
+// (deleting the account, turning off MFA) so a hijacked session cookie alone
+// isn't enough to perform it — the actor also has to know the password.
+const stepUpSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your password to continue."),
+});
 
 async function establishSession(session: { access_token: string; refresh_token: string }) {
   await setServerSession({
@@ -210,7 +217,12 @@ export const updatePassword = createServerFn({ method: "POST" })
 
 export const deleteAccountFn = createServerFn({ method: "POST" })
   .middleware(deleteAccountLimit)
-  .handler(async ({ context }) => {
+  .inputValidator((data: unknown) => stepUpSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const email = (context.claims as { email?: string }).email;
+    if (!email || !(await verifyCurrentPassword(email, data.currentPassword))) {
+      throw new Error("Incorrect password.");
+    }
     await deleteMyAccount(context.supabase as Db, context.userId);
     await clearServerSession();
     return { ok: true };
@@ -275,11 +287,18 @@ export const verifyMfaChallengeFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const unenrollMfaSchema = z.object({ factorId: z.string().min(1) });
+const unenrollMfaSchema = z.object({
+  factorId: z.string().min(1),
+  currentPassword: z.string().min(1, "Enter your password to continue."),
+});
 export const unenrollMfaFn = createServerFn({ method: "POST" })
   .middleware(mfaLimit)
   .inputValidator((data: unknown) => unenrollMfaSchema.parse(data))
   .handler(async ({ data, context }) => {
+    const email = (context.claims as { email?: string }).email;
+    if (!email || !(await verifyCurrentPassword(email, data.currentPassword))) {
+      throw new Error("Incorrect password.");
+    }
     await unenrollTotp(context.tokens, data.factorId);
     return { ok: true };
   });

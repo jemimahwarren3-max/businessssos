@@ -46,6 +46,8 @@ function SecuritySection() {
   const unenrollFn = useServerFn(unenrollMfaFn);
   const fetchStatus = useServerFn(getMfaStatusFn);
   const [enrolling, setEnrolling] = useState(false);
+  const [confirmingUnenroll, setConfirmingUnenroll] = useState(false);
+  const [unenrollPassword, setUnenrollPassword] = useState("");
 
   const status = useQuery({
     queryKey: ["mfa-status"],
@@ -53,9 +55,14 @@ function SecuritySection() {
   });
 
   const unenrollMutation = useMutation({
-    mutationFn: () => unenrollFn({ data: { factorId: status.data!.factorId! } }),
+    mutationFn: () =>
+      unenrollFn({
+        data: { factorId: status.data!.factorId!, currentPassword: unenrollPassword },
+      }),
     onSuccess: async () => {
       toast.success("Two-factor authentication turned off.");
+      setConfirmingUnenroll(false);
+      setUnenrollPassword("");
       await queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't turn off MFA.")),
@@ -80,25 +87,63 @@ function SecuritySection() {
       </div>
 
       {status.data.enrolled && status.data.currentLevel === "aal2" ? (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
-          <div className="flex items-center gap-2 text-sm">
-            <ShieldCheck className="size-4.5 text-success" aria-hidden="true" />
-            <span className="font-medium">Enabled</span>
+        <div className="space-y-3 rounded-lg border border-border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <ShieldCheck className="size-4.5 text-success" aria-hidden="true" />
+              <span className="font-medium">Enabled</span>
+            </div>
+            {!confirmingUnenroll ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setConfirmingUnenroll(true)}
+              >
+                <ShieldOff className="size-4" aria-hidden="true" />
+                Turn off
+              </Button>
+            ) : null}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            disabled={unenrollMutation.isPending}
-            onClick={() => unenrollMutation.mutate()}
-          >
-            {unenrollMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <ShieldOff className="size-4" aria-hidden="true" />
-            )}
-            Turn off
-          </Button>
+          {confirmingUnenroll ? (
+            <div className="space-y-2 border-t border-border pt-3">
+              <Label htmlFor="unenroll-password">
+                Enter your password to confirm turning off two-factor authentication
+              </Label>
+              <Input
+                id="unenroll-password"
+                type="password"
+                autoComplete="current-password"
+                value={unenrollPassword}
+                onChange={(e) => setUnenrollPassword(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={unenrollMutation.isPending || !unenrollPassword}
+                  onClick={() => unenrollMutation.mutate()}
+                >
+                  {unenrollMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  Confirm turn off
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={unenrollMutation.isPending}
+                  onClick={() => {
+                    setConfirmingUnenroll(false);
+                    setUnenrollPassword("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : status.data.enrolled ? (
         // Reached this page already enrolled but below aal2 this session —
@@ -137,6 +182,7 @@ function AccountSettings() {
   const role = workspace.data?.role ?? "";
   const isOwner = role === "owner";
   const [confirmText, setConfirmText] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
 
   const deleteAccount = useServerFn(deleteAccountFn);
   const signOutServerFn = useServerFn(signOutFn);
@@ -148,7 +194,7 @@ function AccountSettings() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteAccount(),
+    mutationFn: () => deleteAccount({ data: { currentPassword: deletePassword } }),
     onSuccess: async () => {
       // deleteAccountFn already clears the server session, but signOutFn
       // also tears down the client-side Supabase auth state cleanly.
@@ -217,10 +263,21 @@ function AccountSettings() {
           />
         </div>
 
+        <div className="space-y-1.5">
+          <Label htmlFor="delete-password">Enter your password to confirm</Label>
+          <Input
+            id="delete-password"
+            type="password"
+            autoComplete="current-password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+          />
+        </div>
+
         <Button
           variant="destructive"
           className="gap-1.5"
-          disabled={confirmText !== CONFIRM_TEXT || deleteMutation.isPending}
+          disabled={confirmText !== CONFIRM_TEXT || !deletePassword || deleteMutation.isPending}
           onClick={() => deleteMutation.mutate()}
         >
           {deleteMutation.isPending ? (
