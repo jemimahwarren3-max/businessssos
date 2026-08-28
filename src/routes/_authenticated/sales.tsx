@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  Camera,
   History,
   Loader2,
   Minus,
@@ -16,6 +17,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -127,6 +129,7 @@ function Sales() {
   const canSell = hasPermission(workspace.data, "sales.create");
 
   const [search, setSearch] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [discount, setDiscount] = useState("0");
@@ -289,6 +292,28 @@ function Sales() {
     }
   }
 
+  // A camera scan is a one-shot lookup, not a reactive search — done as a
+  // direct fetch rather than routing through the `search` state, since
+  // updating `search` and waiting for the query to catch up would need its
+  // own effect just to know when the scan's answer has actually arrived.
+  async function handleBarcodeDetected(code: string) {
+    if (!businessId) return;
+    try {
+      const results = isOnline
+        ? await fetchProducts({ data: { businessId, search: code } })
+        : await searchCachedProducts(businessId, code);
+      const match = results.find((p) => p.barcode === code);
+      if (match) {
+        addToCart(match);
+        toast.success(`Added ${match.name}`);
+      } else {
+        toast.error("No product found with that barcode.");
+      }
+    } catch {
+      toast.error("Couldn't look up that barcode. Please try again.");
+    }
+  }
+
   function updateQuantity(productId: string, quantity: number) {
     if (quantity <= 0) {
       setCart((prev) => prev.filter((item) => item.productId !== productId));
@@ -435,20 +460,31 @@ function Sales() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="order-2 space-y-4 lg:order-1">
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              autoFocus
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search by name, SKU or scan a barcode"
-              className="pl-9"
-              aria-label="Search products"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search by name, SKU or scan a barcode"
+                className="pl-9"
+                aria-label="Search products"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Scan a barcode with the camera"
+              onClick={() => setScannerOpen(true)}
+            >
+              <Camera className="size-4" aria-hidden="true" />
+            </Button>
           </div>
 
           <div className="surface overflow-hidden">
@@ -719,6 +755,12 @@ function Sales() {
           ) : null}
         </div>
       </div>
+
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onDetected={(code) => void handleBarcodeDetected(code)}
+      />
 
       <Dialog open={Boolean(receipt)} onOpenChange={(open) => !open && setReceipt(null)}>
         <DialogContent className="sm:max-w-sm">

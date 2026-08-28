@@ -53,7 +53,10 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => 
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("X-Frame-Options", "DENY");
     headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    // camera=(self) — the barcode scanner (src/components/barcode-scanner-dialog.tsx)
+    // needs getUserMedia video access from this origin; still blocked for any
+    // third-party embed. Everything else here stays fully disabled — genuinely unused.
+    headers.set("Permissions-Policy", "camera=(self), microphone=(), geolocation=(), payment=()");
     headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
     headers.set("Content-Security-Policy", CSP);
   }
