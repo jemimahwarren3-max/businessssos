@@ -44,6 +44,8 @@ import {
   setStaffPasswordSchema,
   staffLoginSchema,
   setRolePermissionSchema,
+  commissionReportSchema,
+  setCommissionRateSchema,
   verifyShopLoginSchema,
   stockAdjustSchema,
   subscriptionCheckoutSchema,
@@ -69,8 +71,10 @@ import {
   acceptInvite,
   createInvite,
   createStaffAccount,
+  getCommissionReport,
   getInvitePreview,
   getRolePermissions,
+  setMemberCommissionRate,
   listPendingInvites,
   listPermissionCatalog,
   listTeamMembers,
@@ -702,6 +706,20 @@ export const setRolePermissionFn = createServerFn({ method: "POST" })
       data.permissionKey,
       data.granted,
     ),
+  );
+
+export const getCommissionReportFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(commissionReportSchema, data))
+  .handler(async ({ data, context }) =>
+    getCommissionReport(context.supabase as Db, data.businessId, data.days),
+  );
+
+export const setCommissionRateFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(setCommissionRateSchema, data))
+  .handler(async ({ data, context }) =>
+    setMemberCommissionRate(context.supabase as Db, data.businessId, data.memberUserId, data.rate),
   );
 
 export const getAuditLogsFn = createServerFn({ method: "POST" })

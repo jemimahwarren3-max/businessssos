@@ -513,6 +513,17 @@ export const setRolePermissionSchema = z.object({
   granted: z.boolean(),
 });
 
+export const commissionReportSchema = z.object({
+  businessId: z.string().uuid(),
+  days: z.coerce.number().int().min(1).max(365).default(30),
+});
+
+export const setCommissionRateSchema = z.object({
+  businessId: z.string().uuid(),
+  memberUserId: z.string().uuid(),
+  rate: z.coerce.number().min(0, "Rate cannot be negative").max(100, "Rate can't exceed 100%"),
+});
+
 export const listAuditLogsSchema = z.object({
   businessId: z.string().uuid(),
   offset: z.coerce.number().int().min(0).default(0),

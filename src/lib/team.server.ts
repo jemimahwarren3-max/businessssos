@@ -381,3 +381,53 @@ export async function setRolePermission(
     summary: `${granted ? "Granted" : "Revoked"} ${permissionKey} for ${role}`,
   });
 }
+
+export type CommissionRow = {
+  user_id: string;
+  display_name: string;
+  commission_rate: number;
+  sales_count: number;
+  sales_total: number;
+  commission_earned: number;
+};
+
+export async function getCommissionReport(
+  supabase: Db,
+  businessId: string,
+  days: number,
+): Promise<CommissionRow[]> {
+  await assertPermission(supabase, businessId, "roles.manage");
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - (days - 1));
+  const { data, error } = await supabase.rpc("get_commission_report", {
+    _business_id: businessId,
+    _start_date: start.toISOString().slice(0, 10),
+    _end_date: end.toISOString().slice(0, 10),
+  });
+  if (error) dbFail("load commission report", error);
+  return (data ?? []).map((row) => ({
+    ...row,
+    commission_rate: Number(row.commission_rate),
+    sales_total: Number(row.sales_total),
+    commission_earned: Number(row.commission_earned),
+  }));
+}
+
+/** set_member_commission_rate already audit-logs itself (see the
+ * migration) — no recordAudit call here, matching every other RPC in this
+ * session that owns its own audit entry rather than duplicating it in JS. */
+export async function setMemberCommissionRate(
+  supabase: Db,
+  businessId: string,
+  memberUserId: string,
+  rate: number,
+): Promise<void> {
+  await assertPermission(supabase, businessId, "roles.manage");
+  const { error } = await supabase.rpc("set_member_commission_rate", {
+    _business_id: businessId,
+    _member_user_id: memberUserId,
+    _rate: rate,
+  });
+  if (error) dbFail("set commission rate", error);
+}

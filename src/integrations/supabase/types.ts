@@ -178,6 +178,7 @@ export type Database = {
       business_members: {
         Row: {
           business_id: string;
+          commission_rate: number;
           created_at: string;
           id: string;
           invited_by: string | null;
@@ -189,6 +190,7 @@ export type Database = {
         };
         Insert: {
           business_id: string;
+          commission_rate?: number;
           created_at?: string;
           id?: string;
           invited_by?: string | null;
@@ -200,6 +202,7 @@ export type Database = {
         };
         Update: {
           business_id?: string;
+          commission_rate?: number;
           created_at?: string;
           id?: string;
           invited_by?: string | null;
@@ -1963,6 +1966,17 @@ export type Database = {
         };
         Returns: string;
       };
+      get_commission_report: {
+        Args: { _business_id: string; _end_date: string; _start_date: string };
+        Returns: {
+          commission_earned: number;
+          commission_rate: number;
+          display_name: string;
+          sales_count: number;
+          sales_total: number;
+          user_id: string;
+        }[];
+      };
       get_invite_preview: {
         Args: { _token: string };
         Returns: {
@@ -2129,6 +2143,10 @@ export type Database = {
           _invoice_id: string;
           _status: Database["public"]["Enums"]["doc_status"];
         };
+        Returns: undefined;
+      };
+      set_member_commission_rate: {
+        Args: { _business_id: string; _member_user_id: string; _rate: number };
         Returns: undefined;
       };
       set_purchase_order_status: {

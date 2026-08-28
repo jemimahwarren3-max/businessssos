@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { BarChart3, Download, Upload } from "lucide-react";
+import { BarChart3, Download, Percent, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { ImportDialog } from "@/components/import-dialog";
@@ -105,6 +105,7 @@ function Reports() {
   const currency = workspace.data?.business.currency ?? "USD";
   const canView = hasPermission(workspace.data, "reports.financial");
   const canImport = hasPermission(workspace.data, "sales.import");
+  const canViewCommission = hasPermission(workspace.data, "roles.manage");
 
   const [range, setRange] = useState("30");
   const [importOpen, setImportOpen] = useState(false);
@@ -218,6 +219,15 @@ function Reports() {
       subtitle="See how your business is really doing."
       actions={
         <>
+          {canViewCommission ? (
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => navigate({ to: "/commission" })}
+            >
+              <Percent className="size-4" aria-hidden="true" /> Commission
+            </Button>
+          ) : null}
           {data ? (
             <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
               <Download className="size-4" aria-hidden="true" /> Export to Excel

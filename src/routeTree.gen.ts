@@ -17,6 +17,7 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as StaffLoginRouteImport } from './routes/staff-login'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
+import { Route as AuthenticatedCommissionRouteImport } from './routes/_authenticated/commission'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
@@ -83,6 +84,11 @@ const StaffLoginRoute = StaffLoginRouteImport.update({
 const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
   id: '/assistant',
   path: '/assistant',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCommissionRoute = AuthenticatedCommissionRouteImport.update({
+  id: '/commission',
+  path: '/commission',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/staff-login': typeof StaffLoginRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/commission': typeof AuthenticatedCommissionRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/expenses': typeof AuthenticatedExpensesRoute
@@ -279,6 +286,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/staff-login': typeof StaffLoginRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/commission': typeof AuthenticatedCommissionRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/expenses': typeof AuthenticatedExpensesRoute
@@ -318,6 +326,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/staff-login': typeof StaffLoginRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
+  '/_authenticated/commission': typeof AuthenticatedCommissionRoute
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/staff-login'
     | '/assistant'
+    | '/commission'
     | '/customers'
     | '/dashboard'
     | '/expenses'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/staff-login'
     | '/assistant'
+    | '/commission'
     | '/customers'
     | '/dashboard'
     | '/expenses'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/staff-login'
     | '/_authenticated/assistant'
+    | '/_authenticated/commission'
     | '/_authenticated/customers'
     | '/_authenticated/dashboard'
     | '/_authenticated/expenses'
@@ -535,6 +547,13 @@ declare module '@tanstack/react-router' {
       path: '/assistant'
       fullPath: '/assistant'
       preLoaderRoute: typeof AuthenticatedAssistantRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/commission': {
+      id: '/_authenticated/commission'
+      path: '/commission'
+      fullPath: '/commission'
+      preLoaderRoute: typeof AuthenticatedCommissionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/customers': {
@@ -738,6 +757,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
+  AuthenticatedCommissionRoute: typeof AuthenticatedCommissionRoute
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
@@ -762,6 +782,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
+  AuthenticatedCommissionRoute: AuthenticatedCommissionRoute,
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
