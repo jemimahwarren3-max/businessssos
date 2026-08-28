@@ -1857,3 +1857,21 @@ npm run env:production   # point .env at production — only when you deliberate
 
 Both projects run the same migrations in `supabase/migrations/`. When you add a new one, apply
 it to staging first, verify it, then apply it to production the same way.
+
+### Deploying
+
+Render's free tier only gives one service, so there's no separate staging *deployment* — the
+single Render service (`businessos-ai` in `render.yaml`) is production, always. "Staging" is
+just the second Supabase project, tested by pointing your local `npm run dev` at it
+(`npm run env:staging`). Paying for a second Render service would give you a real staging
+deployment if that gap ever matters enough to justify the cost.
+
+Given that, treat this as the actual promotion gate before pushing to `main` (which Render
+auto-deploys from):
+
+1. `.env` points at staging (`npm run env:staging`) while you build and test locally.
+2. New migration? Applied to staging and verified there first (see above).
+3. `.github/workflows/ci.yml` passes on the push — it runs the same tsc/lint/test/build checks
+   you'd otherwise have to remember to run by hand. Don't push to `main` with it red.
+4. Only then apply the migration to production and push — Render deploys whatever's on `main`
+   automatically.

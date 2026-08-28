@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as HealthRouteImport } from './routes/health'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as StaffLoginRouteImport } from './routes/staff-login'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
@@ -60,6 +61,11 @@ const AdminRoute = AdminRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
+  '/health': typeof HealthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/staff-login': typeof StaffLoginRoute
   '/assistant': typeof AuthenticatedAssistantRoute
@@ -252,6 +259,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
+  '/health': typeof HealthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/staff-login': typeof StaffLoginRoute
   '/assistant': typeof AuthenticatedAssistantRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
+  '/health': typeof HealthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/staff-login': typeof StaffLoginRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/health'
     | '/reset-password'
     | '/staff-login'
     | '/assistant'
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/health'
     | '/reset-password'
     | '/staff-login'
     | '/assistant'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/admin'
     | '/auth'
+    | '/health'
     | '/reset-password'
     | '/staff-login'
     | '/_authenticated/assistant'
@@ -429,6 +441,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRouteWithChildren
+  HealthRoute: typeof HealthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   StaffLoginRoute: typeof StaffLoginRoute
   InviteTokenRoute: typeof InviteTokenRoute
@@ -468,6 +481,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -738,6 +758,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRouteWithChildren,
+  HealthRoute: HealthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   StaffLoginRoute: StaffLoginRoute,
   InviteTokenRoute: InviteTokenRoute,
