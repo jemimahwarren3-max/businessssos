@@ -33,6 +33,7 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSaleHistoryRouteImport } from './routes/_authenticated/sale-history'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedSuppliersRouteImport } from './routes/_authenticated/suppliers'
+import { Route as AuthenticatedTimeClockRouteImport } from './routes/_authenticated/time-clock'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LegalAccessibilityRouteImport } from './routes/legal.accessibility'
@@ -169,6 +170,11 @@ const AuthenticatedSuppliersRoute = AuthenticatedSuppliersRouteImport.update({
   path: '/suppliers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTimeClockRoute = AuthenticatedTimeClockRouteImport.update({
+  id: '/time-clock',
+  path: '/time-clock',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -264,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
+  '/time-clock': typeof AuthenticatedTimeClockRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/accessibility': typeof LegalAccessibilityRoute
@@ -302,6 +309,7 @@ export interface FileRoutesByTo {
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
+  '/time-clock': typeof AuthenticatedTimeClockRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/accessibility': typeof LegalAccessibilityRoute
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/_authenticated/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/suppliers': typeof AuthenticatedSuppliersRoute
+  '/_authenticated/time-clock': typeof AuthenticatedTimeClockRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/accessibility': typeof LegalAccessibilityRoute
@@ -382,6 +391,7 @@ export interface FileRouteTypes {
     | '/sale-history'
     | '/sales'
     | '/suppliers'
+    | '/time-clock'
     | '/auth/callback'
     | '/invite/$token'
     | '/legal/accessibility'
@@ -420,6 +430,7 @@ export interface FileRouteTypes {
     | '/sale-history'
     | '/sales'
     | '/suppliers'
+    | '/time-clock'
     | '/auth/callback'
     | '/invite/$token'
     | '/legal/accessibility'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sale-history'
     | '/_authenticated/sales'
     | '/_authenticated/suppliers'
+    | '/_authenticated/time-clock'
     | '/auth/callback'
     | '/invite/$token'
     | '/legal/accessibility'
@@ -661,6 +673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuppliersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/time-clock': {
+      id: '/_authenticated/time-clock'
+      path: '/time-clock'
+      fullPath: '/time-clock'
+      preLoaderRoute: typeof AuthenticatedTimeClockRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/callback'
@@ -773,6 +792,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSaleHistoryRoute: typeof AuthenticatedSaleHistoryRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedSuppliersRoute: typeof AuthenticatedSuppliersRoute
+  AuthenticatedTimeClockRoute: typeof AuthenticatedTimeClockRoute
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
@@ -798,6 +818,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSaleHistoryRoute: AuthenticatedSaleHistoryRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedSuppliersRoute: AuthenticatedSuppliersRoute,
+  AuthenticatedTimeClockRoute: AuthenticatedTimeClockRoute,
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
   AuthenticatedSettingsAuditLogRoute: AuthenticatedSettingsAuditLogRoute,
   AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,

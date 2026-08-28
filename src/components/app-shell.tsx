@@ -8,6 +8,7 @@ import {
   Bell,
   Boxes,
   ChevronDown,
+  Clock,
   ClipboardList,
   Download,
   FileCheck2,
@@ -256,6 +257,12 @@ export function AppShell({
             className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
           >
             <Users className="size-4.5" aria-hidden="true" /> Team
+          </Link>
+          <Link
+            to="/time-clock"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <Clock className="size-4.5" aria-hidden="true" /> Time clock
           </Link>
           <Link
             to="/settings/billing"

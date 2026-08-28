@@ -1780,6 +1780,44 @@ export type Database = {
           },
         ];
       };
+      time_entries: {
+        Row: {
+          business_id: string;
+          clock_in: string;
+          clock_out: string | null;
+          created_at: string;
+          id: string;
+          note: string | null;
+          user_id: string;
+        };
+        Insert: {
+          business_id: string;
+          clock_in?: string;
+          clock_out?: string | null;
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          user_id: string;
+        };
+        Update: {
+          business_id?: string;
+          clock_in?: string;
+          clock_out?: string | null;
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1835,10 +1873,24 @@ export type Database = {
         Returns: undefined;
       };
       admin_platform_stats: { Args: never; Returns: Json };
+      adjust_time_entry: {
+        Args: {
+          _business_id: string;
+          _clock_in: string;
+          _clock_out: string;
+          _entry_id: string;
+        };
+        Returns: undefined;
+      };
       check_rate_limit: {
         Args: { _key: string; _limit: number; _window_seconds: number };
         Returns: boolean;
       };
+      clock_in: {
+        Args: { _business_id: string; _note?: string };
+        Returns: string;
+      };
+      clock_out: { Args: { _business_id: string }; Returns: undefined };
       clear_login_failures: {
         Args: { _key: string };
         Returns: undefined;
@@ -1939,6 +1991,10 @@ export type Database = {
       };
       delete_recurring_invoice: {
         Args: { _business_id: string; _id: string };
+        Returns: undefined;
+      };
+      delete_time_entry: {
+        Args: { _business_id: string; _entry_id: string };
         Returns: undefined;
       };
       generate_due_recurring_invoices: { Args: never; Returns: number };
@@ -2092,6 +2148,17 @@ export type Database = {
         Returns: string;
       };
       is_business_member: { Args: { _business_id: string }; Returns: boolean };
+      list_time_entries: {
+        Args: { _business_id: string; _end_date: string; _start_date: string };
+        Returns: {
+          clock_in: string;
+          clock_out: string;
+          display_name: string;
+          id: string;
+          note: string;
+          user_id: string;
+        }[];
+      };
       my_role: {
         Args: { _business_id: string };
         Returns: Database["public"]["Enums"]["app_role"];

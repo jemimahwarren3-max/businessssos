@@ -513,6 +513,28 @@ export const setRolePermissionSchema = z.object({
   granted: z.boolean(),
 });
 
+export const clockInSchema = z.object({
+  businessId: z.string().uuid(),
+  note: z.string().trim().max(200).optional().or(z.literal("")),
+});
+
+export const timeEntriesReportSchema = z.object({
+  businessId: z.string().uuid(),
+  days: z.coerce.number().int().min(1).max(365).default(14),
+});
+
+export const adjustTimeEntrySchema = z.object({
+  businessId: z.string().uuid(),
+  entryId: z.string().uuid(),
+  clockIn: z.string().min(1),
+  clockOut: z.string().min(1),
+});
+
+export const timeEntryIdSchema = z.object({
+  businessId: z.string().uuid(),
+  entryId: z.string().uuid(),
+});
+
 export const commissionReportSchema = z.object({
   businessId: z.string().uuid(),
   days: z.coerce.number().int().min(1).max(365).default(30),

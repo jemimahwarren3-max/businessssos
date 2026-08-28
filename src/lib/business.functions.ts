@@ -46,6 +46,10 @@ import {
   setRolePermissionSchema,
   commissionReportSchema,
   setCommissionRateSchema,
+  clockInSchema,
+  timeEntriesReportSchema,
+  adjustTimeEntrySchema,
+  timeEntryIdSchema,
   verifyShopLoginSchema,
   stockAdjustSchema,
   subscriptionCheckoutSchema,
@@ -57,6 +61,15 @@ import {
 } from "./business.schemas";
 import { z } from "zod";
 import { listAuditLogs } from "./audit.server";
+import {
+  adjustTimeEntry,
+  clockIn,
+  clockOut,
+  deleteTimeEntry,
+  getMyActiveShift,
+  getMyRecentShifts,
+  listTimeEntries,
+} from "./time-tracking.server";
 import {
   listNotifications,
   markAllNotificationsRead,
@@ -720,6 +733,59 @@ export const setCommissionRateFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(setCommissionRateSchema, data))
   .handler(async ({ data, context }) =>
     setMemberCommissionRate(context.supabase as Db, data.businessId, data.memberUserId, data.rate),
+  );
+
+export const getMyActiveShiftFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    getMyActiveShift(context.supabase as Db, data.businessId, context.userId),
+  );
+
+export const clockInFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(clockInSchema, data))
+  .handler(async ({ data, context }) =>
+    clockIn(context.supabase as Db, data.businessId, data.note ?? ""),
+  );
+
+export const clockOutFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => clockOut(context.supabase as Db, data.businessId));
+
+export const getMyRecentShiftsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    getMyRecentShifts(context.supabase as Db, data.businessId, context.userId),
+  );
+
+export const getTimeEntriesFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(timeEntriesReportSchema, data))
+  .handler(async ({ data, context }) =>
+    listTimeEntries(context.supabase as Db, data.businessId, data.days),
+  );
+
+export const adjustTimeEntryFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(adjustTimeEntrySchema, data))
+  .handler(async ({ data, context }) =>
+    adjustTimeEntry(
+      context.supabase as Db,
+      data.businessId,
+      data.entryId,
+      data.clockIn,
+      data.clockOut,
+    ),
+  );
+
+export const deleteTimeEntryFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(timeEntryIdSchema, data))
+  .handler(async ({ data, context }) =>
+    deleteTimeEntry(context.supabase as Db, data.businessId, data.entryId),
   );
 
 export const getAuditLogsFn = createServerFn({ method: "POST" })
