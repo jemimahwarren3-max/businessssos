@@ -43,6 +43,47 @@ export const checkRateLimit = createServerOnlyFn(
   },
 );
 
+/** Per-account sign-in lockout, keyed by email rather than IP — catches a
+ * distributed credential-stuffing attempt against one account that stays
+ * under signInLimit's per-IP threshold from any single source. Three
+ * separate primitives (not checkRateLimit) because lockout only moves on an
+ * actual failed password check and resets on success — checkRateLimit
+ * counts every call unconditionally and never resets early. */
+export const recordLoginFailure = createServerOnlyFn(
+  async (key: string, windowSeconds: number): Promise<number> => {
+    const { data, error } = await createAnonClient().rpc("record_login_failure", {
+      _key: key,
+      _window_seconds: windowSeconds,
+    });
+    if (error) {
+      console.error("[rate-limit] record login failure failed", error);
+      return 0;
+    }
+    return data ?? 0;
+  },
+);
+
+export const peekLoginFailures = createServerOnlyFn(
+  async (key: string, windowSeconds: number): Promise<number> => {
+    const { data, error } = await createAnonClient().rpc("peek_login_failures", {
+      _key: key,
+      _window_seconds: windowSeconds,
+    });
+    if (error) {
+      // Same fail-open stance as checkRateLimit — an infrastructure hiccup
+      // here should never itself lock someone out.
+      console.error("[rate-limit] peek login failures failed", error);
+      return 0;
+    }
+    return data ?? 0;
+  },
+);
+
+export const clearLoginFailures = createServerOnlyFn(async (key: string): Promise<void> => {
+  const { error } = await createAnonClient().rpc("clear_login_failures", { _key: key });
+  if (error) console.error("[rate-limit] clear login failures failed", error);
+});
+
 /** For endpoints with no session yet — sign-in, sign-up, password reset. */
 export function ipRateLimit(options: RateLimitOptions) {
   const windowSeconds = options.windowSeconds ?? 60;

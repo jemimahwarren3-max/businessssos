@@ -5,7 +5,13 @@ import { getAppUrl } from "@/lib/app-url.server";
 import { deleteMyAccount } from "@/lib/account-deletion.server";
 import type { Db } from "@/lib/business.server";
 import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
-import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
+import {
+  authedRateLimit,
+  clearLoginFailures,
+  ipRateLimit,
+  peekLoginFailures,
+  recordLoginFailure,
+} from "@/lib/rate-limit.server";
 import { isPasswordBreached } from "./breach-check.server";
 import {
   challengeTotp,
@@ -57,6 +63,13 @@ const emailSchema = z.string().trim().toLowerCase().email();
 const passwordSchema = z.string().min(8, "Use at least 8 characters.");
 
 const signInSchema = z.object({ email: emailSchema, password: z.string().min(1) });
+// Independent of signInLimit's per-IP cap above — this one follows the
+// account across IPs, so spreading guesses across many source addresses
+// doesn't help an attacker against a single targeted email.
+const ACCOUNT_LOCKOUT_THRESHOLD = 5;
+const ACCOUNT_LOCKOUT_WINDOW_SECONDS = 15 * 60;
+const LOCKOUT_MESSAGE =
+  "Too many failed sign-in attempts for this account. Please wait 15 minutes and try again, or reset your password.";
 const signUpSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
@@ -85,6 +98,12 @@ export const signIn = createServerFn({ method: "POST" })
   .middleware(signInLimit)
   .inputValidator((data: unknown) => signInSchema.parse(data))
   .handler(async ({ data }) => {
+    const lockoutKey = `auth-lockout:email:${data.email}`;
+    const failures = await peekLoginFailures(lockoutKey, ACCOUNT_LOCKOUT_WINDOW_SECONDS);
+    if (failures >= ACCOUNT_LOCKOUT_THRESHOLD) {
+      throw new Error(LOCKOUT_MESSAGE);
+    }
+
     const { data: result, error } = await createAnonClient().auth.signInWithPassword({
       email: data.email,
       password: data.password,
@@ -93,8 +112,10 @@ export const signIn = createServerFn({ method: "POST" })
     // password is wrong — distinguishing the two tells an attacker which
     // emails have accounts.
     if (error || !result.session) {
+      await recordLoginFailure(lockoutKey, ACCOUNT_LOCKOUT_WINDOW_SECONDS);
       throw new Error("Incorrect email or password.");
     }
+    await clearLoginFailures(lockoutKey);
     await establishSession(result.session);
     return { userId: result.user.id };
   });

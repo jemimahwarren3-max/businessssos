@@ -1654,6 +1654,18 @@ export type Database = {
         Args: { _key: string; _limit: number; _window_seconds: number };
         Returns: boolean;
       };
+      clear_login_failures: {
+        Args: { _key: string };
+        Returns: undefined;
+      };
+      peek_login_failures: {
+        Args: { _key: string; _window_seconds: number };
+        Returns: number;
+      };
+      record_login_failure: {
+        Args: { _key: string; _window_seconds: number };
+        Returns: number;
+      };
       convert_quote_to_invoice: {
         Args: { _business_id: string; _due_date: string; _quote_id: string };
         Returns: string;
