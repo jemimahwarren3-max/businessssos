@@ -1,10 +1,11 @@
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
   BarChart3,
+  Bell,
   Boxes,
   ChevronDown,
   ClipboardList,
@@ -26,6 +27,11 @@ import {
   Wand2,
 } from "lucide-react";
 import { signOutFn } from "@/lib/auth/auth.functions";
+import {
+  getNotificationsFn,
+  markAllNotificationsReadFn,
+  markNotificationReadFn,
+} from "@/lib/business.functions";
 import { Logo } from "@/components/logo";
 import { QuickEntryDialog } from "@/components/quick-entry-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +44,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { friendlyDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -70,6 +78,109 @@ export const ROLE_LABEL: Record<string, string> = {
   accountant: "Accountant",
 };
 
+const SEVERITY_DOT: Record<string, string> = {
+  info: "bg-sky-500",
+  success: "bg-success",
+  warning: "bg-warning",
+  critical: "bg-destructive",
+};
+
+function NotificationsBell({ businessId }: { businessId: string | undefined }) {
+  const queryClient = useQueryClient();
+  const fetchNotifications = useServerFn(getNotificationsFn);
+  const markReadFn = useServerFn(markNotificationReadFn);
+  const markAllReadFn = useServerFn(markAllNotificationsReadFn);
+  const navigate = useNavigate();
+
+  const notifications = useQuery({
+    queryKey: ["notifications", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchNotifications({ data: { businessId: businessId! } }),
+    staleTime: 30_000,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (notificationId: string) => markReadFn({ data: { notificationId } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", businessId] }),
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => markAllReadFn({ data: { businessId: businessId! } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", businessId] }),
+  });
+
+  const unreadCount = notifications.data?.unreadCount ?? 0;
+  const entries = notifications.data?.entries ?? [];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="relative gap-0 px-2">
+          <Bell className="size-4.5" aria-hidden="true" />
+          <span className="sr-only">Notifications</span>
+          {unreadCount > 0 ? (
+            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-destructive" />
+          ) : null}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
+          {unreadCount > 0 ? (
+            <button
+              className="text-xs font-medium text-primary hover:underline"
+              onClick={(e) => {
+                e.preventDefault();
+                markAllReadMutation.mutate();
+              }}
+            >
+              Mark all read
+            </button>
+          ) : null}
+        </div>
+        <DropdownMenuSeparator />
+        {entries.length === 0 ? (
+          <p className="px-2 py-4 text-center text-sm text-muted-foreground">
+            {notifications.isLoading ? "Loading…" : "Nothing yet."}
+          </p>
+        ) : (
+          <div className="max-h-96 overflow-y-auto">
+            {entries.map((n) => (
+              <DropdownMenuItem
+                key={n.id}
+                className="flex items-start gap-2 whitespace-normal py-2"
+                onSelect={() => {
+                  if (!n.is_read) markReadMutation.mutate(n.id);
+                  if (n.link) navigate({ to: n.link });
+                }}
+              >
+                <span
+                  className={cn(
+                    "mt-1.5 size-1.5 shrink-0 rounded-full",
+                    n.is_read ? "bg-transparent" : (SEVERITY_DOT[n.severity] ?? "bg-sky-500"),
+                  )}
+                  aria-hidden="true"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-sm", n.is_read ? "text-muted-foreground" : "font-medium")}>
+                    {n.title}
+                  </p>
+                  {n.message ? (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{n.message}</p>
+                  ) : null}
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {friendlyDate(n.created_at)}
+                  </p>
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function AppShell({
   children,
   businessName,
@@ -96,6 +207,9 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const signOutServerFn = useServerFn(signOutFn);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  // Reuses the ["workspace"] query every page already populates — no extra
+  // network request in practice, just reading businessId back out of it.
+  const workspace = useWorkspace();
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -205,6 +319,7 @@ export function AppShell({
                 <Wand2 className="size-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Quick add</span>
               </Button>
+              <NotificationsBell businessId={workspace.data?.business.id} />
               {billingEnabled ? (
                 <Link to="/settings/billing" className="hidden sm:inline-flex">
                   <Badge variant="outline" className="capitalize">

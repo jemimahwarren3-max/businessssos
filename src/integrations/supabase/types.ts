@@ -1917,6 +1917,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_purchase_order_status: {
+        Args: {
+          _business_id: string;
+          _po_id: string;
+          _status: Database["public"]["Enums"]["purchase_order_status"];
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       app_role: "owner" | "admin" | "manager" | "cashier" | "accountant";

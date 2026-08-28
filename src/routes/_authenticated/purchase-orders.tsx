@@ -1,14 +1,15 @@
 import { useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ClipboardList, Download } from "lucide-react";
+import { toast } from "sonner";
+import { ClipboardList, Download, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useWorkspace } from "@/hooks/use-workspace";
-import { getPurchaseOrders } from "@/lib/business.functions";
-import { formatMoney, friendlyDate } from "@/lib/format";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { getPurchaseOrders, updatePurchaseOrderStatus } from "@/lib/business.functions";
+import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import { downloadXlsx } from "@/lib/xlsx-export";
 
 export const Route = createFileRoute("/_authenticated/purchase-orders")({
@@ -26,9 +27,6 @@ export const Route = createFileRoute("/_authenticated/purchase-orders")({
   component: PurchaseOrders,
 });
 
-// Read-only for now — created only via the "Order" button on Suppliers.
-// No status-change UI yet (the "received"/"cancelled" states exist in the
-// database for later use, but nothing sets them today).
 function statusMeta(status: string) {
   switch (status) {
     case "sent":
@@ -55,11 +53,14 @@ function StatusBadge({ status }: { status: string }) {
 
 function PurchaseOrders() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const workspace = useWorkspace();
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
+  const canManage = hasPermission(workspace.data, "purchase_orders.create");
 
   const fetchPurchaseOrders = useServerFn(getPurchaseOrders);
+  const updateStatusFn = useServerFn(updatePurchaseOrderStatus);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -72,6 +73,34 @@ function PurchaseOrders() {
     enabled: Boolean(businessId),
     queryFn: () => fetchPurchaseOrders({ data: { businessId: businessId! } }),
   });
+
+  const statusMutation = useMutation({
+    mutationFn: (input: { purchaseOrderId: string; status: "received" | "cancelled" }) =>
+      updateStatusFn({ data: { businessId: businessId!, ...input } }),
+    onSuccess: async (_, { status }) => {
+      toast.success(
+        status === "received" ? "Marked as received — stock updated." : "Purchase order cancelled.",
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["purchase-orders", businessId] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+      ]);
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Couldn't update that purchase order.")),
+  });
+
+  function markReceived(po: { id: string; po_number: string }) {
+    if (confirm(`Mark ${po.po_number} as received? This adds its items to stock.`)) {
+      statusMutation.mutate({ purchaseOrderId: po.id, status: "received" });
+    }
+  }
+
+  function cancelOrder(po: { id: string; po_number: string }) {
+    if (confirm(`Cancel ${po.po_number}? This can't be undone.`)) {
+      statusMutation.mutate({ purchaseOrderId: po.id, status: "cancelled" });
+    }
+  }
 
   if (!workspace.data) {
     return (
@@ -135,20 +164,47 @@ function PurchaseOrders() {
         ) : (
           <>
             <ul className="divide-y divide-border lg:hidden">
-              {rows.map((po) => (
-                <li
-                  key={po.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-4"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{po.po_number}</p>
-                    <p className="truncate text-[13px] text-muted-foreground">
-                      {po.supplier_name ?? "No supplier"} · {formatMoney(po.total, currency)}
-                    </p>
-                  </div>
-                  <StatusBadge status={po.status} />
-                </li>
-              ))}
+              {rows.map((po) => {
+                const isBusy =
+                  statusMutation.isPending && statusMutation.variables?.purchaseOrderId === po.id;
+                return (
+                  <li key={po.id} className="px-5 py-4">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{po.po_number}</p>
+                        <p className="truncate text-[13px] text-muted-foreground">
+                          {po.supplier_name ?? "No supplier"} · {formatMoney(po.total, currency)}
+                        </p>
+                      </div>
+                      <StatusBadge status={po.status} />
+                    </div>
+                    {canManage && po.status === "sent" ? (
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          disabled={isBusy}
+                          onClick={() => markReceived(po)}
+                        >
+                          {isBusy ? (
+                            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                          ) : null}
+                          Mark received
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isBusy}
+                          onClick={() => cancelOrder(po)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
 
             <table className="hidden w-full text-sm lg:table">
@@ -159,26 +215,59 @@ function PurchaseOrders() {
                   <th className="px-5 py-3 font-medium">Date</th>
                   <th className="px-5 py-3 font-medium">Total</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  {canManage ? <th className="px-5 py-3 font-medium">Actions</th> : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {rows.map((po) => (
-                  <tr key={po.id}>
-                    <td className="px-5 py-3 font-medium">{po.po_number}</td>
-                    <td className="px-5 py-3 text-muted-foreground">
-                      {po.supplier_name ?? "No supplier"}
-                    </td>
-                    <td className="px-5 py-3 text-muted-foreground">
-                      {friendlyDate(po.order_date)}
-                    </td>
-                    <td className="px-5 py-3 font-medium tabular-nums">
-                      {formatMoney(po.total, currency)}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={po.status} />
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((po) => {
+                  const isBusy =
+                    statusMutation.isPending && statusMutation.variables?.purchaseOrderId === po.id;
+                  return (
+                    <tr key={po.id}>
+                      <td className="px-5 py-3 font-medium">{po.po_number}</td>
+                      <td className="px-5 py-3 text-muted-foreground">
+                        {po.supplier_name ?? "No supplier"}
+                      </td>
+                      <td className="px-5 py-3 text-muted-foreground">
+                        {friendlyDate(po.order_date)}
+                      </td>
+                      <td className="px-5 py-3 font-medium tabular-nums">
+                        {formatMoney(po.total, currency)}
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusBadge status={po.status} />
+                      </td>
+                      {canManage ? (
+                        <td className="px-5 py-3">
+                          {po.status === "sent" ? (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                disabled={isBusy}
+                                onClick={() => markReceived(po)}
+                              >
+                                {isBusy ? (
+                                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                                ) : null}
+                                Mark received
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isBusy}
+                                onClick={() => cancelOrder(po)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : null}
+                        </td>
+                      ) : null}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </>

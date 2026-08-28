@@ -17,12 +17,16 @@ import {
   importSalesHistorySchema,
   inviteTokenSchema,
   listAuditLogsSchema,
+  listNotificationsSchema,
+  markAllNotificationsReadSchema,
+  markNotificationReadSchema,
   invoiceIdSchema,
   invoiceSchema,
   invoiceStatusSchema,
   paymentSchema,
   productSchema,
   purchaseOrderSchema,
+  purchaseOrderStatusSchema,
   quickEntrySchema,
   quoteIdSchema,
   quoteSchema,
@@ -45,6 +49,11 @@ import {
 } from "./business.schemas";
 import { z } from "zod";
 import { listAuditLogs } from "./audit.server";
+import {
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "./notifications.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
 import { getAnomalies, getInventoryForecast, getWeeklyReport } from "./insights.server";
@@ -79,6 +88,7 @@ import {
   createInvoice,
   createProduct,
   createPurchaseOrder,
+  setPurchaseOrderStatus,
   createQuote,
   createSale,
   createSupplier,
@@ -352,6 +362,11 @@ export const addPurchaseOrder = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(purchaseOrderSchema, data))
   .handler(async ({ data, context }) => createPurchaseOrder(context.supabase as Db, data));
+
+export const updatePurchaseOrderStatus = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(purchaseOrderStatusSchema, data))
+  .handler(async ({ data, context }) => setPurchaseOrderStatus(context.supabase as Db, data));
 
 /* -------------------------------- expenses -------------------------------- */
 
@@ -631,4 +646,23 @@ export const getAuditLogsFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(listAuditLogsSchema, data))
   .handler(async ({ data, context }) =>
     listAuditLogs(context.supabase as Db, data.businessId, data.offset),
+  );
+
+export const getNotificationsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(listNotificationsSchema, data))
+  .handler(async ({ data, context }) => listNotifications(context.supabase as Db, data.businessId));
+
+export const markNotificationReadFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(markNotificationReadSchema, data))
+  .handler(async ({ data, context }) =>
+    markNotificationRead(context.supabase as Db, data.notificationId),
+  );
+
+export const markAllNotificationsReadFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(markAllNotificationsReadSchema, data))
+  .handler(async ({ data, context }) =>
+    markAllNotificationsRead(context.supabase as Db, data.businessId),
   );

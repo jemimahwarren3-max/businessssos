@@ -215,6 +215,13 @@ export const purchaseOrderSchema = z.object({
 });
 export type PurchaseOrderInput = z.infer<typeof purchaseOrderSchema>;
 
+export const purchaseOrderStatusSchema = z.object({
+  businessId: z.string().uuid(),
+  purchaseOrderId: z.string().uuid(),
+  status: z.enum(["received", "cancelled"]),
+});
+export type PurchaseOrderStatusInput = z.infer<typeof purchaseOrderStatusSchema>;
+
 export const quoteIdSchema = z.object({
   businessId: z.string().uuid(),
   quoteId: z.string().uuid(),
@@ -460,6 +467,18 @@ export const setRolePermissionSchema = z.object({
 export const listAuditLogsSchema = z.object({
   businessId: z.string().uuid(),
   offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const listNotificationsSchema = z.object({
+  businessId: z.string().uuid(),
+});
+
+export const markNotificationReadSchema = z.object({
+  notificationId: z.string().uuid(),
+});
+
+export const markAllNotificationsReadSchema = z.object({
+  businessId: z.string().uuid(),
 });
 
 /* ------------------------------- insights -------------------------------- */

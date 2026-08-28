@@ -16,6 +16,7 @@ import type {
   ProductImportRow,
   ProductInput,
   PurchaseOrderInput,
+  PurchaseOrderStatusInput,
   QuoteInput,
   QuoteStatusInput,
   SaleHistoryImportRow,
@@ -881,6 +882,21 @@ export async function createPurchaseOrder(supabase: Db, input: PurchaseOrderInpu
   });
   if (error) dbFail("create purchase order", error);
   return { id: data as string };
+}
+
+/** Receiving isn't just a label flip — set_purchase_order_status also adds a
+ * stock_in movement per line item with a linked product, same as a manual
+ * restock. Audit logging happens inside that function too (it needs the PO's
+ * previous status either way, already has it from its own row lock). */
+export async function setPurchaseOrderStatus(supabase: Db, input: PurchaseOrderStatusInput) {
+  await assertPermission(supabase, input.businessId, "purchase_orders.create");
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("set_purchase_order_status", {
+    _business_id: input.businessId,
+    _po_id: input.purchaseOrderId,
+    _status: input.status,
+  });
+  if (error) dbFail("update purchase order status", error);
 }
 
 export async function setQuoteStatus(supabase: Db, userId: string, input: QuoteStatusInput) {
