@@ -35,6 +35,9 @@ import {
   resetStaffPasswordSchema,
   revokeInviteSchema,
   saleSchema,
+  listSalesSchema,
+  saleIdSchema,
+  refundSaleSchema,
   setStaffPasswordSchema,
   staffLoginSchema,
   setRolePermissionSchema,
@@ -91,6 +94,9 @@ import {
   setPurchaseOrderStatus,
   createQuote,
   createSale,
+  getSaleDetail,
+  listSales,
+  refundSale,
   createSupplier,
   deleteExpense,
   deleteSupplier,
@@ -402,6 +408,25 @@ export const addSale = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(saleSchema, data))
   .handler(async ({ data, context }) => createSale(context.supabase as Db, data));
+
+export const getSales = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(listSalesSchema, data))
+  .handler(async ({ data, context }) =>
+    listSales(context.supabase as Db, data.businessId, data.search),
+  );
+
+export const getSale = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(saleIdSchema, data))
+  .handler(async ({ data, context }) =>
+    getSaleDetail(context.supabase as Db, data.businessId, data.saleId),
+  );
+
+export const refundSaleFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(refundSaleSchema, data))
+  .handler(async ({ data, context }) => refundSale(context.supabase as Db, data));
 
 /* -------------------------------- imports -------------------------------- */
 

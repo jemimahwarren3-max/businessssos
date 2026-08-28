@@ -150,6 +150,31 @@ export const saleSchema = z.object({
 });
 export type SaleInput = z.infer<typeof saleSchema>;
 
+export const listSalesSchema = z.object({
+  businessId: z.string().uuid(),
+  search: z.string().max(80).default(""),
+});
+
+export const saleIdSchema = z.object({
+  businessId: z.string().uuid(),
+  saleId: z.string().uuid(),
+});
+
+export const refundSaleSchema = z.object({
+  businessId: z.string().uuid(),
+  saleId: z.string().uuid(),
+  reason: z.string().trim().max(300).optional().or(z.literal("")),
+  items: z
+    .array(
+      z.object({
+        saleItemId: z.string().uuid(),
+        quantity: z.coerce.number().positive("Quantity must be greater than zero").max(99999999),
+      }),
+    )
+    .min(1, "Select at least one item to refund"),
+});
+export type RefundSaleInput = z.infer<typeof refundSaleSchema>;
+
 export const lineItemSchema = z.object({
   productId: z.string().uuid().optional().or(z.literal("")),
   name: z.string().trim().min(1, "Item name is required").max(160),

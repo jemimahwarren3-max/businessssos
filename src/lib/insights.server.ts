@@ -237,7 +237,7 @@ export async function getAnomalies(supabase: Db, businessId: string): Promise<An
       .from("sales")
       .select("total, created_at")
       .eq("business_id", businessId)
-      .eq("status", "completed")
+      .in("status", ["completed", "partially_refunded"])
       .gte("created_at", windowStart.toISOString()),
     supabase
       .from("expenses")

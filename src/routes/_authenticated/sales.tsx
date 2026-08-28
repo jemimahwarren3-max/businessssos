@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  History,
   Loader2,
   Minus,
   Plus,
@@ -414,6 +415,15 @@ function Sales() {
       billingEnabled={workspace.data.billingEnabled}
       title="Sales counter"
       subtitle="Search or scan a product, adjust the cart, then take payment."
+      actions={
+        <Button
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => navigate({ to: "/sale-history" })}
+        >
+          <History className="size-4" aria-hidden="true" /> History
+        </Button>
+      }
     >
       {!isOnline ? (
         <div className="surface mb-4 flex items-center gap-2.5 border-warning/40 bg-warning-soft p-3.5 text-[13px] text-warning-foreground">

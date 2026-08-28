@@ -19,6 +19,7 @@ import type {
   PurchaseOrderStatusInput,
   QuoteInput,
   QuoteStatusInput,
+  RefundSaleInput,
   SaleHistoryImportRow,
   SaleInput,
   SaleLineImportRow,
@@ -587,6 +588,115 @@ export async function createSale(supabase: Db, input: SaleInput) {
   });
   if (error) dbFail("create sale", error);
   return { id: data as string };
+}
+
+export type SaleRow = {
+  id: string;
+  sale_number: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  payment_method: string;
+  status: string;
+  total: number;
+  created_at: string;
+};
+
+export async function listSales(
+  supabase: Db,
+  businessId: string,
+  search: string,
+): Promise<SaleRow[]> {
+  await assertMember(supabase, businessId);
+  let query = supabase
+    .from("sales")
+    .select(
+      "id, sale_number, customer_id, payment_method, status, total, created_at, customers(name)",
+    )
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const term = search.trim();
+  if (term) query = query.ilike("sale_number", `%${term}%`);
+  const { data, error } = await query;
+  if (error) dbFail("list sales", error);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    sale_number: row.sale_number,
+    customer_id: row.customer_id,
+    customer_name: (row.customers as unknown as { name: string } | null)?.name ?? null,
+    payment_method: row.payment_method,
+    status: row.status,
+    total: Number(row.total),
+    created_at: row.created_at,
+  }));
+}
+
+export async function getSaleDetail(supabase: Db, businessId: string, saleId: string) {
+  await assertMember(supabase, businessId);
+  const [saleRes, itemsRes, refundsRes] = await Promise.all([
+    supabase
+      .from("sales")
+      .select("*, customers(name, phone, email)")
+      .eq("id", saleId)
+      .eq("business_id", businessId)
+      .maybeSingle(),
+    supabase
+      .from("sale_items")
+      .select("id, name, sku, quantity, unit_price, tax, line_total")
+      .eq("sale_id", saleId)
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: true }),
+    // sale_refund_items has no sale_id of its own (only its parent
+    // sale_refund does) — going through sale_refunds here is the only way
+    // to scope this to one sale rather than pulling every refund in the
+    // business.
+    supabase
+      .from("sale_refunds")
+      .select("id, reason, total, created_at, sale_refund_items(sale_item_id, quantity)")
+      .eq("sale_id", saleId)
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (saleRes.error) dbFail("load sale", saleRes.error);
+  if (!saleRes.data) fail("That sale could not be found.");
+  if (itemsRes.error) dbFail("load sale items", itemsRes.error);
+  if (refundsRes.error) dbFail("load sale refunds", refundsRes.error);
+
+  const refundedByItem = new Map<string, number>();
+  for (const refund of refundsRes.data ?? []) {
+    for (const line of refund.sale_refund_items as unknown as {
+      sale_item_id: string;
+      quantity: number;
+    }[]) {
+      refundedByItem.set(
+        line.sale_item_id,
+        (refundedByItem.get(line.sale_item_id) ?? 0) + Number(line.quantity),
+      );
+    }
+  }
+
+  return {
+    sale: saleRes.data,
+    items: (itemsRes.data ?? []).map((item) => ({
+      ...item,
+      refunded_quantity: refundedByItem.get(item.id) ?? 0,
+    })),
+    refunds: refundsRes.data ?? [],
+  };
+}
+
+export async function refundSale(supabase: Db, input: RefundSaleInput) {
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("refund_sale", {
+    _business_id: input.businessId,
+    _sale_id: input.saleId,
+    _items: input.items.map((item) => ({
+      saleItemId: item.saleItemId,
+      quantity: item.quantity,
+    })) as never,
+    _reason: (input.reason || null) as never,
+  });
+  if (error) dbFail("refund sale", error);
 }
 
 /* ------------------------------- invoices ------------------------------- */
@@ -1249,7 +1359,9 @@ export async function loadDashboard(
       .from("sales")
       .select("total, cost_total, discount, created_at")
       .eq("business_id", businessId)
-      .eq("status", "completed")
+      // partially_refunded sales still contribute their (already-reduced)
+      // remaining total — only fully refunded/cancelled sales are excluded.
+      .in("status", ["completed", "partially_refunded"])
       .gte("created_at", windowStart.toISOString()),
     // No date filter is possible here by design — an unpaid invoice from
     // last year is still "outstanding" today — so .limit() is the only
@@ -1472,7 +1584,7 @@ export async function loadReports(
         .from("sales")
         .select("customer_id, total, cost_total, tax, discount, created_at")
         .eq("business_id", businessId)
-        .eq("status", "completed")
+        .in("status", ["completed", "partially_refunded"])
         .gte("created_at", windowStart.toISOString()),
       // Safety net only (see the invoices query in loadDashboard for the
       // same tradeoff) — the highest-cardinality table in the schema, one

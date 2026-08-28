@@ -28,6 +28,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPurchaseOrdersRouteImport } from './routes/_authenticated/purchase-orders'
 import { Route as AuthenticatedQuotesRouteImport } from './routes/_authenticated/quotes'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedSaleHistoryRouteImport } from './routes/_authenticated/sale-history'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedSuppliersRouteImport } from './routes/_authenticated/suppliers'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -139,6 +140,12 @@ const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSaleHistoryRoute =
+  AuthenticatedSaleHistoryRouteImport.update({
+    id: '/sale-history',
+    path: '/sale-history',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -239,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -274,6 +282,7 @@ export interface FileRoutesByTo {
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -311,6 +320,7 @@ export interface FileRoutesById {
   '/_authenticated/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/_authenticated/quotes': typeof AuthenticatedQuotesRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/suppliers': typeof AuthenticatedSuppliersRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/purchase-orders'
     | '/quotes'
     | '/reports'
+    | '/sale-history'
     | '/sales'
     | '/suppliers'
     | '/auth/callback'
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/purchase-orders'
     | '/quotes'
     | '/reports'
+    | '/sale-history'
     | '/sales'
     | '/suppliers'
     | '/auth/callback'
@@ -419,6 +431,7 @@ export interface FileRouteTypes {
     | '/_authenticated/purchase-orders'
     | '/_authenticated/quotes'
     | '/_authenticated/reports'
+    | '/_authenticated/sale-history'
     | '/_authenticated/sales'
     | '/_authenticated/suppliers'
     | '/auth/callback'
@@ -588,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sale-history': {
+      id: '/_authenticated/sale-history'
+      path: '/sale-history'
+      fullPath: '/sale-history'
+      preLoaderRoute: typeof AuthenticatedSaleHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sales': {
       id: '/_authenticated/sales'
       path: '/sales'
@@ -709,6 +729,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPurchaseOrdersRoute: typeof AuthenticatedPurchaseOrdersRoute
   AuthenticatedQuotesRoute: typeof AuthenticatedQuotesRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedSaleHistoryRoute: typeof AuthenticatedSaleHistoryRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedSuppliersRoute: typeof AuthenticatedSuppliersRoute
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
@@ -731,6 +752,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPurchaseOrdersRoute: AuthenticatedPurchaseOrdersRoute,
   AuthenticatedQuotesRoute: AuthenticatedQuotesRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedSaleHistoryRoute: AuthenticatedSaleHistoryRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedSuppliersRoute: AuthenticatedSuppliersRoute,
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,

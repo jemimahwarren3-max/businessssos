@@ -1320,6 +1320,112 @@ export type Database = {
           },
         ];
       };
+      sale_refund_items: {
+        Row: {
+          business_id: string;
+          id: string;
+          line_total: number;
+          quantity: number;
+          sale_item_id: string;
+          sale_refund_id: string;
+          tax: number;
+          unit_price: number;
+        };
+        Insert: {
+          business_id: string;
+          id?: string;
+          line_total: number;
+          quantity: number;
+          sale_item_id: string;
+          sale_refund_id: string;
+          tax?: number;
+          unit_price: number;
+        };
+        Update: {
+          business_id?: string;
+          id?: string;
+          line_total?: number;
+          quantity?: number;
+          sale_item_id?: string;
+          sale_refund_id?: string;
+          tax?: number;
+          unit_price?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sale_refund_items_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sale_refund_items_sale_item_id_fkey";
+            columns: ["sale_item_id"];
+            isOneToOne: false;
+            referencedRelation: "sale_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sale_refund_items_sale_refund_id_fkey";
+            columns: ["sale_refund_id"];
+            isOneToOne: false;
+            referencedRelation: "sale_refunds";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sale_refunds: {
+        Row: {
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          reason: string | null;
+          sale_id: string;
+          subtotal: number;
+          tax: number;
+          total: number;
+        };
+        Insert: {
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          reason?: string | null;
+          sale_id: string;
+          subtotal?: number;
+          tax?: number;
+          total?: number;
+        };
+        Update: {
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          reason?: string | null;
+          sale_id?: string;
+          subtotal?: number;
+          tax?: number;
+          total?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sale_refunds_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sale_refunds_sale_id_fkey";
+            columns: ["sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sales: {
         Row: {
           amount_paid: number;
@@ -1906,6 +2012,15 @@ export type Database = {
           _plan: Database["public"]["Enums"]["plan_tier"];
           _poll_url: string;
           _reference: string;
+        };
+        Returns: string;
+      };
+      refund_sale: {
+        Args: {
+          _business_id: string;
+          _items: Json;
+          _reason: string;
+          _sale_id: string;
         };
         Returns: string;
       };
