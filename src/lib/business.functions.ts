@@ -23,6 +23,9 @@ import {
   invoiceIdSchema,
   invoiceSchema,
   invoiceStatusSchema,
+  recurringInvoiceSchema,
+  recurringInvoiceIdSchema,
+  setRecurringInvoiceActiveSchema,
   paymentSchema,
   productSchema,
   purchaseOrderSchema,
@@ -89,6 +92,10 @@ import {
   createCustomer,
   createExpense,
   createInvoice,
+  createRecurringInvoice,
+  deleteRecurringInvoice,
+  listRecurringInvoices,
+  setRecurringInvoiceActive,
   createProduct,
   createPurchaseOrder,
   setPurchaseOrderStatus,
@@ -309,6 +316,37 @@ export const addInvoice = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(invoiceSchema, data))
   .handler(async ({ data, context }) => createInvoice(context.supabase as Db, data));
+
+export const getRecurringInvoices = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    listRecurringInvoices(context.supabase as Db, data.businessId),
+  );
+
+export const addRecurringInvoice = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(recurringInvoiceSchema, data))
+  .handler(async ({ data, context }) => createRecurringInvoice(context.supabase as Db, data));
+
+export const updateRecurringInvoiceActive = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(setRecurringInvoiceActiveSchema, data))
+  .handler(async ({ data, context }) =>
+    setRecurringInvoiceActive(
+      context.supabase as Db,
+      data.businessId,
+      data.recurringInvoiceId,
+      data.active,
+    ),
+  );
+
+export const removeRecurringInvoice = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(recurringInvoiceIdSchema, data))
+  .handler(async ({ data, context }) =>
+    deleteRecurringInvoice(context.supabase as Db, data.businessId, data.recurringInvoiceId),
+  );
 
 export const updateInvoiceStatus = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)

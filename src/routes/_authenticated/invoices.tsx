@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Download, FileText, Loader2, Plus, Printer, Search } from "lucide-react";
+import { Download, FileText, Loader2, Plus, Printer, Repeat, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
@@ -284,6 +284,13 @@ function Invoices() {
       subtitle="Bill customers and keep track of who's paid."
       actions={
         <>
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => navigate({ to: "/recurring-invoices" })}
+          >
+            <Repeat className="size-4" aria-hidden="true" /> Recurring
+          </Button>
           {rows.length > 0 ? (
             <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
               <Download className="size-4" aria-hidden="true" /> Export to Excel

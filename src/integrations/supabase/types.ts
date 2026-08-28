@@ -1250,6 +1250,82 @@ export type Database = {
         };
         Relationships: [];
       };
+      recurring_invoices: {
+        Row: {
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          customer_id: string | null;
+          discount: number;
+          due_days: number;
+          id: string;
+          interval: Database["public"]["Enums"]["recurrence_interval"];
+          is_active: boolean;
+          items: Json;
+          last_invoice_id: string | null;
+          next_issue_date: string;
+          notes: string | null;
+          terms: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id?: string | null;
+          discount?: number;
+          due_days?: number;
+          id?: string;
+          interval: Database["public"]["Enums"]["recurrence_interval"];
+          is_active?: boolean;
+          items: Json;
+          last_invoice_id?: string | null;
+          next_issue_date: string;
+          notes?: string | null;
+          terms?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id?: string | null;
+          discount?: number;
+          due_days?: number;
+          id?: string;
+          interval?: Database["public"]["Enums"]["recurrence_interval"];
+          is_active?: boolean;
+          items?: Json;
+          last_invoice_id?: string | null;
+          next_issue_date?: string;
+          notes?: string | null;
+          terms?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "recurring_invoices_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recurring_invoices_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "recurring_invoices_last_invoice_id_fkey";
+            columns: ["last_invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "invoices";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sale_items: {
         Row: {
           business_id: string;
@@ -1844,6 +1920,29 @@ export type Database = {
         };
         Returns: string;
       };
+      create_recurring_invoice: {
+        Args: {
+          _business_id: string;
+          _customer_id: string;
+          _discount: number;
+          _due_days: number;
+          _interval: Database["public"]["Enums"]["recurrence_interval"];
+          _items: Json;
+          _notes: string;
+          _start_date: string;
+          _terms: string;
+        };
+        Returns: string;
+      };
+      delete_recurring_invoice: {
+        Args: { _business_id: string; _id: string };
+        Returns: undefined;
+      };
+      generate_due_recurring_invoices: { Args: never; Returns: number };
+      set_recurring_invoice_active: {
+        Args: { _active: boolean; _business_id: string; _id: string };
+        Returns: undefined;
+      };
       create_sale: {
         Args: {
           _business_id: string;
@@ -2061,6 +2160,7 @@ export type Database = {
       plan_tier: "free" | "starter" | "business" | "pro";
       purchase_order_status: "sent" | "received" | "cancelled";
       quote_status: "draft" | "sent" | "accepted" | "declined" | "expired" | "converted";
+      recurrence_interval: "weekly" | "monthly" | "quarterly" | "yearly";
       sale_status: "completed" | "refunded" | "partially_refunded" | "cancelled";
       subscription_status:
         "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid";
@@ -2205,6 +2305,7 @@ export const Constants = {
       plan_tier: ["free", "starter", "business", "pro"],
       purchase_order_status: ["sent", "received", "cancelled"],
       quote_status: ["draft", "sent", "accepted", "declined", "expired", "converted"],
+      recurrence_interval: ["weekly", "monthly", "quarterly", "yearly"],
       sale_status: ["completed", "refunded", "partially_refunded", "cancelled"],
       subscription_status: ["trialing", "active", "past_due", "canceled", "incomplete", "unpaid"],
     },

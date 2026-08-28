@@ -197,6 +197,30 @@ export const invoiceSchema = z.object({
 });
 export type InvoiceInput = z.infer<typeof invoiceSchema>;
 
+export const recurringInvoiceSchema = z.object({
+  businessId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  interval: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
+  startDate: z.string().min(1),
+  dueDays: z.coerce.number().int().min(0).max(365).default(14),
+  discount: z.coerce.number().min(0, "Discount cannot be negative").max(99999999).default(0),
+  notes: z.string().trim().max(600).optional().or(z.literal("")),
+  terms: z.string().trim().max(600).optional().or(z.literal("")),
+  items: z.array(lineItemSchema).min(1, "Add at least one item"),
+});
+export type RecurringInvoiceInput = z.infer<typeof recurringInvoiceSchema>;
+
+export const recurringInvoiceIdSchema = z.object({
+  businessId: z.string().uuid(),
+  recurringInvoiceId: z.string().uuid(),
+});
+
+export const setRecurringInvoiceActiveSchema = z.object({
+  businessId: z.string().uuid(),
+  recurringInvoiceId: z.string().uuid(),
+  active: z.boolean(),
+});
+
 export const invoiceIdSchema = z.object({
   businessId: z.string().uuid(),
   invoiceId: z.string().uuid(),

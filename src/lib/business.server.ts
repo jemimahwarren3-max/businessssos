@@ -19,6 +19,7 @@ import type {
   PurchaseOrderStatusInput,
   QuoteInput,
   QuoteStatusInput,
+  RecurringInvoiceInput,
   RefundSaleInput,
   SaleHistoryImportRow,
   SaleInput,
@@ -819,6 +820,89 @@ export async function createInvoice(supabase: Db, input: InvoiceInput) {
   });
   if (error) dbFail("create invoice", error);
   return { id: data as string };
+}
+
+export type RecurringInvoiceRow = {
+  id: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  interval: string;
+  next_issue_date: string;
+  due_days: number;
+  discount: number;
+  is_active: boolean;
+  items: { name: string; quantity: number; unitPrice: number }[];
+};
+
+export async function listRecurringInvoices(
+  supabase: Db,
+  businessId: string,
+): Promise<RecurringInvoiceRow[]> {
+  await assertMember(supabase, businessId);
+  const { data, error } = await supabase
+    .from("recurring_invoices")
+    .select(
+      "id, customer_id, interval, next_issue_date, due_days, discount, is_active, items, customers(name)",
+    )
+    .eq("business_id", businessId)
+    .order("next_issue_date", { ascending: true });
+  if (error) dbFail("list recurring invoices", error);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    customer_id: row.customer_id,
+    customer_name: (row.customers as unknown as { name: string } | null)?.name ?? null,
+    interval: row.interval,
+    next_issue_date: row.next_issue_date,
+    due_days: row.due_days,
+    discount: Number(row.discount),
+    is_active: row.is_active,
+    items: row.items as { name: string; quantity: number; unitPrice: number }[],
+  }));
+}
+
+export async function createRecurringInvoice(supabase: Db, input: RecurringInvoiceInput) {
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase.rpc("create_recurring_invoice", {
+    _business_id: input.businessId,
+    _customer_id: input.customerId,
+    _interval: input.interval,
+    _start_date: input.startDate,
+    _due_days: input.dueDays,
+    _discount: input.discount,
+    _notes: (input.notes || null) as never,
+    _terms: (input.terms || null) as never,
+    _items: toItemsPayload(input.items),
+  });
+  if (error) dbFail("create recurring invoice", error);
+  return { id: data as string };
+}
+
+export async function setRecurringInvoiceActive(
+  supabase: Db,
+  businessId: string,
+  recurringInvoiceId: string,
+  active: boolean,
+) {
+  await assertCanWrite(supabase, businessId);
+  const { error } = await supabase.rpc("set_recurring_invoice_active", {
+    _business_id: businessId,
+    _id: recurringInvoiceId,
+    _active: active,
+  });
+  if (error) dbFail("update recurring invoice", error);
+}
+
+export async function deleteRecurringInvoice(
+  supabase: Db,
+  businessId: string,
+  recurringInvoiceId: string,
+) {
+  await assertCanWrite(supabase, businessId);
+  const { error } = await supabase.rpc("delete_recurring_invoice", {
+    _business_id: businessId,
+    _id: recurringInvoiceId,
+  });
+  if (error) dbFail("delete recurring invoice", error);
 }
 
 export async function setInvoiceStatus(supabase: Db, input: InvoiceStatusInput) {
