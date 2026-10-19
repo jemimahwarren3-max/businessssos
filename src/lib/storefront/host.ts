@@ -197,7 +197,9 @@ export function publicStoreRedirect(url: URL, root: PlatformRoot): string | null
 function shopPathSuffix(pathname: string): string | null {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   if (path === "/") return "/";
-  if (path === "/cart" || path === "/checkout" || path === "/search") return path;
+  if (path === "/cart" || path === "/checkout" || path === "/search" || path === "/account") {
+    return path;
+  }
   if (path.startsWith("/products/") && path.length > "/products/".length) return path;
   if (path.startsWith("/order/") && path.length > "/order/".length) return path;
   return null;

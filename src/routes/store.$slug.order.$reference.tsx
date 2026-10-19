@@ -44,6 +44,15 @@ function OrderPage() {
   useEffect(() => {
     const saved = sessionStorage.getItem(orderTokenKey(store.slug, reference)) ?? "";
     if (saved) setToken(saved);
+    void load({ data: { slug: store.slug, reference, token: saved } })
+      .then((result) => {
+        setOrder(result);
+        setError(null);
+      })
+      .catch(() => {
+        /* Unsigned guests still use the access-code form. */
+      });
+    // load is a stable server-fn wrapper; listing it retriggers this lookup.
   }, [store.slug, reference]);
 
   async function lookup(event?: React.FormEvent) {
@@ -51,7 +60,7 @@ function OrderPage() {
     setError(null);
     try {
       const result = await load({ data: { slug: store.slug, reference, token } });
-      sessionStorage.setItem(orderTokenKey(store.slug, reference), token);
+      if (token) sessionStorage.setItem(orderTokenKey(store.slug, reference), token);
       setOrder(result);
     } catch (reason) {
       setOrder(null);
@@ -64,21 +73,23 @@ function OrderPage() {
       <h1 className="text-2xl font-semibold">Order {reference}</h1>
       <p className="mt-2 text-sm text-neutral-500">
         The access code was shown once after checkout. The order number alone does not open this
-        page.
+        page. Signed-in shoppers can open orders saved to their account without the code.
       </p>
-      <form className="mt-4 space-y-3" onSubmit={(event) => void lookup(event)}>
-        <label className="block text-sm">
-          Access code
-          <input
-            className="mt-1 w-full rounded border px-3 py-2"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-          />
-        </label>
-        <button className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white" type="submit">
-          View order
-        </button>
-      </form>
+      {order?.mine ? null : (
+        <form className="mt-4 space-y-3" onSubmit={(event) => void lookup(event)}>
+          <label className="block text-sm">
+            Access code
+            <input
+              className="mt-1 w-full rounded border px-3 py-2"
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+            />
+          </label>
+          <button className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white" type="submit">
+            View order
+          </button>
+        </form>
+      )}
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       {order ? (
         <div className="mt-6 space-y-3 text-sm">

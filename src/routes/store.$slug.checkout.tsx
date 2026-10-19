@@ -1,6 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { getCurrentUser } from "@/lib/auth/auth.functions";
 import { orderTokenKey, readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
 import { placeOrderFn, quoteCartFn } from "@/lib/storefront/storefront.functions";
 import type { CartQuote } from "@/lib/storefront/contract";
@@ -47,6 +48,9 @@ function CheckoutPage() {
   const payments = useMemo(() => allowedPayments(store, fulfilment), [store, fulfilment]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(payments[0] ?? "quote");
   const [collectAt, setCollectAt] = useState("");
+  const [shopper, setShopper] = useState<{ email: string | null } | null>(null);
+  const [messagesConsent, setMessagesConsent] = useState(false);
+  const fetchUser = useServerFn(getCurrentUser);
   const slots = useMemo(
     () => (fulfilment === "pickup" ? upcomingCollectionSlots(store.delivery) : []),
     [fulfilment, store.delivery],
@@ -59,6 +63,14 @@ function CheckoutPage() {
   useEffect(() => {
     setLines(readCart(store.slug));
   }, [store.slug]);
+
+  useEffect(() => {
+    void fetchUser().then((user) => {
+      if (!user) return;
+      setShopper({ email: user.email });
+      if (user.email) setEmail((current) => current || user.email || "");
+    });
+  }, [fetchUser, store.slug]);
 
   useEffect(() => {
     if (payments[0] && !payments.includes(paymentMethod)) {
@@ -103,7 +115,14 @@ function CheckoutPage() {
           idempotencyKey,
           fulfilment,
           paymentMethod,
-          customer: { name, phone, email, address, notes },
+          customer: {
+            name,
+            phone,
+            email,
+            address,
+            notes,
+            ...(shopper ? { messagesConsent } : {}),
+          },
           items: lines,
           collectAt: collectAt || undefined,
         },
@@ -144,6 +163,21 @@ function CheckoutPage() {
           <h1 className="text-2xl font-semibold">Checkout</h1>
           <p className="text-sm text-neutral-500">
             You do not need an account. Submitting an order is not the same as a completed payment.
+            {shopper ? (
+              <>
+                {" "}
+                Signed in as {shopper.email ?? "your account"}; this order will appear on your
+                account page.
+              </>
+            ) : (
+              <>
+                {" "}
+                <Link to="/store/$slug/account" params={{ slug: store.slug }} className="underline">
+                  Sign in
+                </Link>{" "}
+                to save orders to an account.
+              </>
+            )}
           </p>
           <p className="text-sm text-neutral-600">{orderDecisionCopy(store)}</p>
           <label className="block text-sm">
@@ -302,6 +336,19 @@ function CheckoutPage() {
           <p className="text-sm text-neutral-600">
             Card and EcoCash checkout through Paynow is not connected for this shop yet.
           </p>
+          {shopper ? (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={messagesConsent}
+                onChange={(event) => setMessagesConsent(event.target.checked)}
+              />
+              <span>
+                {store.storeName} may message me about this order and this shop. No shopper emails
+                are sent yet; this only stores consent.
+              </span>
+            </label>
+          ) : null}
           <label className="block text-sm">
             Notes
             <textarea
