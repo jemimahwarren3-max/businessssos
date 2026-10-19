@@ -31,7 +31,10 @@ There are no purchasable variants. Size, shade, and ingredient text are merchant
 ## Routes
 
 - Merchant: `/storefront`
-- Public shop: `/store/$slug`, `/store/$slug/products/$productSlug`, `/store/$slug/cart`, `/store/$slug/checkout`, `/store/$slug/order/$reference`, `/store/$slug/search`
-- Public directory: `/market`. Only published shops with marketplace visibility on. Checkout stays on the individual shop. Apply `20261019110000_marketplace_browse.sql` after the storefront migration.
-- Draft preview: `/store/$slug?preview=1` for a signed-in member of that business. Everyone else gets a not-found page.
-- `/sitemap.xml` lists published shops when `APP_URL` is set.
+- Public shop: `https://{slug}.{APP_URL host}/`, plus `/products/{product}`, `/cart`, `/checkout`, `/order/{reference}`, and `/search` on that same host. In dev that is `http://{slug}.localhost:8080/`.
+- Older `/store/{slug}` addresses on the platform host redirect there, except draft preview.
+- Public directory: `/market` on the platform host. Only published shops with marketplace visibility on. Checkout stays on the individual shop. Apply `20261019110000_marketplace_browse.sql` after the storefront migration.
+- Draft preview: `/store/$slug?preview=1` on the platform host, for a signed-in member of that business. Everyone else gets a not-found page. Preview is not moved to the shop subdomain, because the sign-in cookie is not sent there.
+- `/sitemap.xml` lists published shop subdomains when `APP_URL` is set.
+- Production needs a wildcard DNS record for `*.yourdomain` pointing at this service. The app cannot create that record.
+- Apply `20261019120000_storefront_host_slugs.sql` so labels such as `www`, `app`, `market`, and `mail` cannot be chosen as shop names.

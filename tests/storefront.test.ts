@@ -1,8 +1,85 @@
 import { describe, expect, it } from "vitest";
 import { marketplaceSchema } from "@/lib/storefront/contract";
+import {
+  parsePlatformRoot,
+  publicStoreRedirect,
+  rewriteStoreInputUrl,
+  rewriteStoreOutputUrl,
+  storePublicUrlOn,
+  storeSlugFromHostname,
+} from "@/lib/storefront/host";
 import { deliveryFee, orderTotal, roundMoney } from "@/lib/storefront/pricing";
 import { STORE_TEMPLATES, TEMPLATE_IDS, isTemplateId } from "@/lib/storefront/templates";
 import { fulfilmentActions } from "@/lib/storefront/transitions";
+
+const root = parsePlatformRoot("http://localhost:8080");
+
+describe("store subdomains", () => {
+  it("reads a shop label from the host and ignores the platform host", () => {
+    expect(storeSlugFromHostname("harare-cloth.localhost", "localhost")).toBe("harare-cloth");
+    expect(storeSlugFromHostname("localhost", "localhost")).toBeNull();
+    expect(storeSlugFromHostname("www.localhost", "localhost")).toBeNull();
+    expect(storeSlugFromHostname("market.localhost", "localhost")).toBeNull();
+    expect(storeSlugFromHostname("shop.example.com", "localhost")).toBeNull();
+  });
+
+  it("maps a shop host onto the internal store routes", () => {
+    const cart = rewriteStoreInputUrl(
+      new URL("http://harare-cloth.localhost:8080/cart"),
+      "localhost",
+    );
+    expect(cart?.pathname).toBe("/store/harare-cloth/cart");
+    const home = rewriteStoreInputUrl(new URL("http://harare-cloth.localhost:8080/"), "localhost");
+    expect(home?.pathname).toBe("/store/harare-cloth");
+    const asset = rewriteStoreInputUrl(
+      new URL("http://harare-cloth.localhost:8080/assets/app.js"),
+      "localhost",
+    );
+    expect(asset).toBeUndefined();
+  });
+
+  it("publishes shop links on the shop host and leaves draft preview on the platform host", () => {
+    const product = rewriteStoreOutputUrl(
+      new URL("http://localhost:8080/store/harare-cloth/products/dress"),
+      "localhost",
+    );
+    expect(product?.href).toBe("http://harare-cloth.localhost:8080/products/dress");
+    const preview = rewriteStoreOutputUrl(
+      new URL("http://localhost:8080/store/harare-cloth?preview=1"),
+      "localhost",
+    );
+    expect(preview).toBeUndefined();
+    const encodedPreview = rewriteStoreOutputUrl(
+      new URL("http://localhost:8080/store/harare-cloth?preview=%221%22"),
+      "localhost",
+    );
+    expect(encodedPreview).toBeUndefined();
+    expect(storePublicUrlOn(root, "harare-cloth", "/products/dress")).toBe(
+      "http://harare-cloth.localhost:8080/products/dress",
+    );
+  });
+
+  it("redirects the old shop path and keeps the merchant app on the platform host", () => {
+    expect(
+      publicStoreRedirect(new URL("http://localhost:8080/store/harare-cloth/cart?x=1"), root),
+    ).toBe("http://harare-cloth.localhost:8080/cart?x=1");
+    expect(
+      publicStoreRedirect(new URL("http://localhost:8080/store/harare-cloth?preview=1"), root),
+    ).toBeNull();
+    expect(publicStoreRedirect(new URL("http://127.0.0.1:8080/store/harare-cloth"), root)).toBe(
+      "http://harare-cloth.localhost:8080/",
+    );
+    expect(publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/market"), root)).toBe(
+      "http://localhost:8080/market",
+    );
+    expect(
+      publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/cart"), root),
+    ).toBeNull();
+    expect(
+      publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/@vite/client"), root),
+    ).toBeNull();
+  });
+});
 
 describe("marketplace directory", () => {
   it("requires the selling shop on every product and ignores fields that are not public", () => {

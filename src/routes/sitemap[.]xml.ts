@@ -13,6 +13,7 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const { listPublicPaths } = await import("@/lib/storefront/storefront.server");
+        const { storePublicUrl } = await import("@/lib/storefront/host");
         const { getAppUrl } = await import("@/lib/app-url.server");
         let origin = "";
         try {
@@ -24,8 +25,8 @@ export const Route = createFileRoute("/sitemap.xml")({
         const urls = [
           ...(origin ? [`${origin}/market`] : []),
           ...stores.flatMap((store) => [
-            `${origin}/store/${store.slug}`,
-            ...store.products.map((product) => `${origin}/store/${store.slug}/products/${product}`),
+            storePublicUrl(store.slug),
+            ...store.products.map((product) => storePublicUrl(store.slug, `/products/${product}`)),
           ]),
         ];
         const body = `<?xml version="1.0" encoding="UTF-8"?>

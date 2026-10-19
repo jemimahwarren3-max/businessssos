@@ -9,7 +9,7 @@ Inspected the current BusinessOS repository before adding a public directory. Th
 - Ten storefront templates share one renderer. Draft preview is members-only. Publish requires a real fulfilment and payment path.
 - Online orders reserve stock in `inventory_movements` and do not book revenue until a staff member records payment. That inserts one `sales` row with `channel = 'online'` and does not deduct stock again.
 - Guest checkout supports pay on pickup, pay on delivery, and quote requests. Paynow remains platform subscription billing only.
-- Public shop URLs are `/store/$slug`. Sitemap lists published shops when `APP_URL` is set.
+- Public shop URLs are `{slug}.{platform host}`. The pages are still implemented as `/store/$slug`. Sitemap lists published shop subdomains when `APP_URL` is set.
 
 ## What is partial
 
@@ -28,7 +28,7 @@ Inspected the current BusinessOS repository before adding a public directory. Th
 
 - Published `storefronts` and `product_listings`.
 - Server prices and stock labels from the same rules as the shop (`selling_price`, low-stock wording, no exact quantity above 10).
-- Existing `/store/$slug` product, cart, and checkout pages. The directory links there. It does not create a second order system.
+- Existing shop product, cart, and checkout pages. The directory links to each shop's subdomain. It does not create a second order system.
 
 ## What this stage adds
 

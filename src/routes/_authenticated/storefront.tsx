@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { readableError } from "@/lib/format";
+import { storePublicUrl } from "@/lib/storefront/host";
 import {
   getAdminOrderFn,
   getMarketplaceListingFn,
@@ -184,7 +185,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
     onError: (error: Error) => toast.error(readableError(error, "Could not change publication")),
   });
 
-  const path = store ? `/store/${store.slug}` : "";
+  const publicUrl = store ? storePublicUrl(store.slug) : "";
 
   return (
     <div className="space-y-10">
@@ -202,12 +203,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           pay on delivery, or quote requests. Recording payment creates a normal sale and is what
           counts as revenue.
         </p>
-        {path ? (
+        {publicUrl ? (
           <p className="text-sm">
-            Link:{" "}
-            <Link to="/store/$slug" params={{ slug: store!.slug }}>
-              {path}
-            </Link>
+            Link: <a href={publicUrl}>{publicUrl}</a>
             {" · "}
             <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: "1" }}>
               Preview with your published products
@@ -215,7 +213,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             <button
               className="ml-2 underline"
               type="button"
-              onClick={() => void navigator.clipboard.writeText(window.location.origin + path)}
+              onClick={() => void navigator.clipboard.writeText(publicUrl)}
             >
               Copy link
             </button>

@@ -10,11 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MarketRouteImport } from './routes/market'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as MarketRouteImport } from './routes/market'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StaffLoginRouteImport } from './routes/staff-login'
@@ -63,11 +63,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MarketRoute = MarketRouteImport.update({
-  id: '/market',
-  path: '/market',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -85,6 +80,11 @@ const AuthRoute = AuthRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketRoute = MarketRouteImport.update({
+  id: '/market',
+  path: '/market',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -309,10 +309,10 @@ const StoreSlugProductsProductSlugRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/market': typeof MarketRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/health': typeof HealthRoute
+  '/market': typeof MarketRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/staff-login': typeof StaffLoginRoute
@@ -358,10 +358,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/market': typeof MarketRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/health': typeof HealthRoute
+  '/market': typeof MarketRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/staff-login': typeof StaffLoginRoute
@@ -407,11 +407,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/market': typeof MarketRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/health': typeof HealthRoute
+  '/market': typeof MarketRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/staff-login': typeof StaffLoginRoute
@@ -459,10 +459,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/market'
     | '/admin'
     | '/auth'
     | '/health'
+    | '/market'
     | '/reset-password'
     | '/sitemap.xml'
     | '/staff-login'
@@ -508,10 +508,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/market'
     | '/admin'
     | '/auth'
     | '/health'
+    | '/market'
     | '/reset-password'
     | '/sitemap.xml'
     | '/staff-login'
@@ -556,11 +556,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/market'
     | '/_authenticated'
     | '/admin'
     | '/auth'
     | '/health'
+    | '/market'
     | '/reset-password'
     | '/sitemap.xml'
     | '/staff-login'
@@ -607,11 +607,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  MarketRoute: typeof MarketRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRouteWithChildren
   HealthRoute: typeof HealthRoute
+  MarketRoute: typeof MarketRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StaffLoginRoute: typeof StaffLoginRoute
@@ -632,13 +632,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/market': {
-      id: '/market'
-      path: '/market'
-      fullPath: '/market'
-      preLoaderRoute: typeof MarketRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -667,6 +660,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/market': {
+      id: '/market'
+      path: '/market'
+      fullPath: '/market'
+      preLoaderRoute: typeof MarketRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -1057,11 +1057,11 @@ const StoreSlugRouteWithChildren = StoreSlugRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  MarketRoute: MarketRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRouteWithChildren,
   HealthRoute: HealthRoute,
+  MarketRoute: MarketRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StaffLoginRoute: StaffLoginRoute,

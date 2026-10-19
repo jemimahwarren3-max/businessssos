@@ -7,6 +7,10 @@ import { Route as StoreRoute } from "./store.$slug";
 
 const searchSchema = z.object({
   q: z.string().max(80).optional().catch(""),
+  preview: z
+    .union([z.literal("1"), z.literal(1)])
+    .optional()
+    .catch(undefined),
 });
 
 export const Route = createFileRoute("/store/$slug/search")({
@@ -35,7 +39,7 @@ function SearchPage() {
         className="mx-auto flex max-w-6xl gap-2 px-4 pt-6"
         onSubmit={(event) => {
           event.preventDefault();
-          void navigate({ search: { q: value } });
+          void navigate({ search: (prev) => ({ ...prev, q: value }) });
         }}
       >
         <label className="sr-only" htmlFor="store-search">

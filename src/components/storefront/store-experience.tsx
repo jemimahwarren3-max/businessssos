@@ -1,11 +1,27 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
 import type { PublicProduct, PublicStore } from "@/lib/storefront/contract";
 import { getTemplate } from "@/lib/storefront/templates";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const StorePreviewContext = createContext(false);
+
+export function StorePreviewProvider({
+  preview,
+  children,
+}: {
+  preview: boolean;
+  children: React.ReactNode;
+}) {
+  return <StorePreviewContext.Provider value={preview}>{children}</StorePreviewContext.Provider>;
+}
+
+function useStorePreview() {
+  return useContext(StorePreviewContext);
+}
 
 function ratioClass(ratio: "square" | "portrait" | "landscape") {
   if (ratio === "portrait") return "aspect-[3/4]";
@@ -25,6 +41,7 @@ export function StoreChrome({
   const template = getTemplate(store.templateId);
   const accent = store.accentColor || template.defaultAccent;
   const count = useCartCount(store.slug);
+  const previewSearch = preview ? { preview: "1" as const } : {};
   const whatsapp = buildWhatsAppLink(
     store.whatsapp || store.phone,
     `Hello ${store.storeName}, I have a question about your shop.`,
@@ -45,7 +62,12 @@ export function StoreChrome({
       ) : null}
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <Link to="/store/$slug" params={{ slug: store.slug }} className="min-w-0 flex-1">
+          <Link
+            to="/store/$slug"
+            params={{ slug: store.slug }}
+            search={previewSearch}
+            className="min-w-0 flex-1"
+          >
             <span className="block truncate text-lg font-semibold" style={{ color: accent }}>
               {store.storeName}
             </span>
@@ -59,6 +81,7 @@ export function StoreChrome({
           <Link
             to="/store/$slug/search"
             params={{ slug: store.slug }}
+            search={preview ? { q: "", preview: "1" } : { q: "" }}
             className="text-sm font-medium"
           >
             Search
@@ -66,6 +89,7 @@ export function StoreChrome({
           <Link
             to="/store/$slug/cart"
             params={{ slug: store.slug }}
+            search={preview ? { preview: "1" } : {}}
             className="text-sm font-medium"
           >
             Cart{count > 0 ? ` (${count})` : ""}
@@ -137,10 +161,12 @@ export function StoreChrome({
 export function ProductCard({ store, product }: { store: PublicStore; product: PublicProduct }) {
   const template = getTemplate(store.templateId);
   const accent = store.accentColor || template.defaultAccent;
+  const preview = useStorePreview();
   return (
     <Link
       to="/store/$slug/products/$productSlug"
       params={{ slug: store.slug, productSlug: product.slug }}
+      search={preview ? { preview: "1" } : {}}
       className={cn(
         "group block overflow-hidden border border-neutral-200 bg-white",
         template.layout === "luxury" ? "border-0" : "rounded-lg",

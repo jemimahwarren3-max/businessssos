@@ -1,11 +1,14 @@
 import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { z } from "zod";
-import { StoreChrome } from "@/components/storefront/store-experience";
+import { StoreChrome, StorePreviewProvider } from "@/components/storefront/store-experience";
 import { getPublicStoreFn, getStorePreviewFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 
 const searchSchema = z.object({
-  preview: z.literal("1").optional().catch(undefined),
+  preview: z
+    .union([z.literal("1"), z.literal(1)])
+    .optional()
+    .catch(undefined),
 });
 
 export const Route = createFileRoute("/store/$slug")({
@@ -47,8 +50,10 @@ export const Route = createFileRoute("/store/$slug")({
 function StoreLayout() {
   const { store, preview } = Route.useLoaderData();
   return (
-    <StoreChrome store={store} preview={preview}>
-      <Outlet />
-    </StoreChrome>
+    <StorePreviewProvider preview={preview}>
+      <StoreChrome store={store} preview={preview}>
+        <Outlet />
+      </StoreChrome>
+    </StorePreviewProvider>
   );
 }
