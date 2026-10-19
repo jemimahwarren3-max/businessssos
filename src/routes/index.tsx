@@ -103,6 +103,13 @@ function Landing() {
         <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3.5 sm:flex sm:justify-between">
           <Logo to="/" />
           <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
+            <Link
+              className="transition-colors hover:text-foreground"
+              to="/market"
+              search={{ q: "", category: "" }}
+            >
+              Shops
+            </Link>
             <a className="transition-colors hover:text-foreground" href="#features">
               Features
             </a>
@@ -151,7 +158,9 @@ function Landing() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <a href="#features">See how it works</a>
+              <Link to="/market" search={{ q: "", category: "" }}>
+                Browse shops
+              </Link>
             </Button>
           </div>
           <p className="mt-4 text-[13px] text-muted-foreground">

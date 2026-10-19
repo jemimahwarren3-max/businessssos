@@ -31,6 +31,7 @@ There are no purchasable variants. Size, shade, and ingredient text are merchant
 ## Routes
 
 - Merchant: `/storefront`
-- Public: `/store/$slug`, `/store/$slug/products/$productSlug`, `/store/$slug/cart`, `/store/$slug/checkout`, `/store/$slug/order/$reference`, `/store/$slug/search`
+- Public shop: `/store/$slug`, `/store/$slug/products/$productSlug`, `/store/$slug/cart`, `/store/$slug/checkout`, `/store/$slug/order/$reference`, `/store/$slug/search`
+- Public directory: `/market`. Only published shops with marketplace visibility on. Checkout stays on the individual shop. Apply `20261019110000_marketplace_browse.sql` after the storefront migration.
 - Draft preview: `/store/$slug?preview=1` for a signed-in member of that business. Everyone else gets a not-found page.
 - `/sitemap.xml` lists published shops when `APP_URL` is set.

@@ -13,8 +13,10 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { readableError } from "@/lib/format";
 import {
   getAdminOrderFn,
+  getMarketplaceListingFn,
   getStorefrontAdminFn,
   publishStorefrontFn,
+  setMarketplaceVisibleFn,
   saveListingFn,
   saveStorefrontFn,
   transitionOrderFn,
@@ -87,6 +89,8 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const queryClient = useQueryClient();
   const save = useServerFn(saveStorefrontFn);
   const publish = useServerFn(publishStorefrontFn);
+  const loadListing = useServerFn(getMarketplaceListingFn);
+  const setListed = useServerFn(setMarketplaceVisibleFn);
   const saveListing = useServerFn(saveListingFn);
   const loadOrder = useServerFn(getAdminOrderFn);
   const transition = useServerFn(transitionOrderFn);
@@ -155,6 +159,22 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
     onError: (error: Error) => toast.error(readableError(error, "Could not save the shop")),
   });
 
+  const listing = useQuery({
+    queryKey: ["marketplace-listing", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => loadListing({ data: { businessId: businessId! } }),
+  });
+  const listingMutation = useMutation({
+    mutationFn: (listed: boolean) => setListed({ data: { businessId: businessId!, listed } }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["marketplace-listing", businessId], data);
+      toast.success(
+        data.listed ? "Shop listed in the marketplace" : "Shop hidden from the marketplace",
+      );
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Could not update the marketplace listing")),
+  });
   const publishMutation = useMutation({
     mutationFn: (published: boolean) => publish({ data: { businessId, published } }),
     onSuccess: (_data, published) => {
@@ -388,6 +408,17 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           >
             {store?.status === "published" ? "Unpublish" : "Publish"}
           </Button>
+          {listing.data?.hasStore ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={listing.data.listed}
+                disabled={listingMutation.isPending}
+                onChange={(event) => listingMutation.mutate(event.target.checked)}
+              />
+              Show this shop on the BusinessOS marketplace
+            </label>
+          ) : null}
         </div>
       </section>
 

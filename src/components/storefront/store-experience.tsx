@@ -53,6 +53,9 @@ export function StoreChrome({
               <span className="block truncate text-xs text-neutral-500">{store.tagline}</span>
             ) : null}
           </Link>
+          <Link to="/market" search={{ q: "", category: "" }} className="text-sm font-medium">
+            Shops
+          </Link>
           <Link
             to="/store/$slug/search"
             params={{ slug: store.slug }}
