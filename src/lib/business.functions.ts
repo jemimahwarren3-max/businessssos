@@ -20,6 +20,7 @@ import {
   listNotificationsSchema,
   markAllNotificationsReadSchema,
   markNotificationReadSchema,
+  notifyEmailSchema,
   invoiceIdSchema,
   invoiceSchema,
   invoiceStatusSchema,
@@ -71,9 +72,11 @@ import {
   listTimeEntries,
 } from "./time-tracking.server";
 import {
+  getNotifyEmail,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  setNotifyEmail,
 } from "./notifications.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
@@ -798,7 +801,9 @@ export const getAuditLogsFn = createServerFn({ method: "POST" })
 export const getNotificationsFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(listNotificationsSchema, data))
-  .handler(async ({ data, context }) => listNotifications(context.supabase as Db, data.businessId));
+  .handler(async ({ data, context }) =>
+    listNotifications(context.supabase as Db, data.businessId, data.offset ?? 0),
+  );
 
 export const markNotificationReadFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -812,4 +817,18 @@ export const markAllNotificationsReadFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(markAllNotificationsReadSchema, data))
   .handler(async ({ data, context }) =>
     markAllNotificationsRead(context.supabase as Db, data.businessId),
+  );
+
+export const getNotifyEmailFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) => getNotifyEmail(context.supabase as Db, data.businessId));
+
+export const setNotifyEmailFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(notifyEmailSchema, data))
+  .handler(async ({ data, context }) =>
+    setNotifyEmail(context.supabase as Db, data.businessId, data.enabled),
   );

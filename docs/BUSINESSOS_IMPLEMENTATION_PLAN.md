@@ -69,8 +69,8 @@ The migration adds `store_orders.terms` (default `{}`) and replaces functions. R
 
 See `docs/ROADMAP_REMAINING.md` for the remaining ~190 items in batches.
 
-1. Apply `20261019160000_store_reviews_and_reports.sql` on staging and smoke a review plus a listing report.
-2. Merchant notification reliability (in-app first, then email when credentials exist).
+1. Apply `20261019170000_notification_outbox.sql` on staging and confirm a new order appears in the bell.
+2. Set `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` only if you want email copies.
 3. Reconcile staging `locations` into git or revert it.
 4. Customer Paynow only after a per-merchant integration, never with platform keys.
 5. Branches and variants only after a single-stock model is explicitly replaced.

@@ -100,7 +100,8 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
     queryKey: ["notifications", businessId],
     enabled: Boolean(businessId),
     queryFn: () => fetchNotifications({ data: { businessId: businessId! } }),
-    staleTime: 30_000,
+    staleTime: 15_000,
+    refetchInterval: 20_000,
   });
 
   const markReadMutation = useMutation({
@@ -130,17 +131,22 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between px-2 py-1.5">
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
-          {unreadCount > 0 ? (
-            <button
-              className="text-xs font-medium text-primary hover:underline"
-              onClick={(e) => {
-                e.preventDefault();
-                markAllReadMutation.mutate();
-              }}
-            >
-              Mark all read
-            </button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 ? (
+              <button
+                className="text-xs font-medium text-primary hover:underline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  markAllReadMutation.mutate();
+                }}
+              >
+                Mark all read
+              </button>
+            ) : null}
+            <Link to="/notifications" className="text-xs font-medium text-primary hover:underline">
+              See all
+            </Link>
+          </div>
         </div>
         <DropdownMenuSeparator />
         {entries.length === 0 ? (
