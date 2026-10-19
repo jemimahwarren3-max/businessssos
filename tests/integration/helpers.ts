@@ -160,11 +160,7 @@ export async function createTestBusiness(ownerId: string, name: string): Promise
     insert into public.subscriptions (business_id, plan, status, trial_ends_at, current_period_start, current_period_end)
     values ('${id}', 'pro', 'trialing', now() + interval '3 days', now(), now() + interval '3 days');
     insert into public.locations (business_id, name, is_default, is_active)
-    select '${id}', 'Main', true, true
-    where exists (
-      select 1 from information_schema.tables
-      where table_schema = 'public' and table_name = 'locations'
-    );
+    values ('${id}', 'Main', true, true);
   `);
   return id;
 }

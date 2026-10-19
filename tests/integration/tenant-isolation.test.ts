@@ -38,6 +38,8 @@ const EXPORT_TABLES = [
   "store_complaints",
   "store_reviews",
   "store_listing_reports",
+  "locations",
+  "product_stock",
 ] as const;
 
 describe("cross-tenant isolation", () => {
@@ -152,6 +154,15 @@ describe("cross-tenant isolation", () => {
           `select public.adjust_stock('${bizA}', '${productA}', 'stock_in', 5, 'attack');`,
         ),
       ).rejects.toThrow(/does not allow this action|could not be found|permission denied/i);
+    });
+
+    it("cannot create a location in business A", async () => {
+      await expect(
+        asUser(
+          getAttacker(),
+          `select public.create_location('${bizA}', 'Attacker Branch', '', '');`,
+        ),
+      ).rejects.toThrow(/does not allow this action|permission denied/i);
     });
 
     it("cannot record a sale against business A", async () => {

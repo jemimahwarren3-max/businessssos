@@ -470,6 +470,7 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
+          location_id: string | null;
           movement_type: Database["public"]["Enums"]["movement_type"];
           product_id: string | null;
           quantity: number;
@@ -484,6 +485,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           movement_type: Database["public"]["Enums"]["movement_type"];
           product_id?: string | null;
           quantity: number;
@@ -498,6 +500,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           movement_type?: Database["public"]["Enums"]["movement_type"];
           product_id?: string | null;
           quantity?: number;
@@ -513,6 +516,13 @@ export type Database = {
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
           {
@@ -692,6 +702,50 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      locations: {
+        Row: {
+          address: string | null;
+          business_id: string;
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          is_default: boolean;
+          name: string;
+          phone: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          address?: string | null;
+          business_id: string;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          is_default?: boolean;
+          name: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string | null;
+          business_id?: string;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          is_default?: boolean;
+          name?: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "locations_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       notifications: {
         Row: {
@@ -941,6 +995,52 @@ export type Database = {
           },
         ];
       };
+      product_stock: {
+        Row: {
+          business_id: string;
+          id: string;
+          location_id: string;
+          product_id: string;
+          quantity: number;
+        };
+        Insert: {
+          business_id: string;
+          id?: string;
+          location_id: string;
+          product_id: string;
+          quantity?: number;
+        };
+        Update: {
+          business_id?: string;
+          id?: string;
+          location_id?: string;
+          product_id?: string;
+          quantity?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_stock_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_stock_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -1035,6 +1135,7 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
+          location_id: string | null;
           notes: string | null;
           order_date: string;
           po_number: string;
@@ -1050,6 +1151,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           notes?: string | null;
           order_date?: string;
           po_number: string;
@@ -1065,6 +1167,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           notes?: string | null;
           order_date?: string;
           po_number?: string;
@@ -1081,6 +1184,13 @@ export type Database = {
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_orders_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
           {
@@ -1520,6 +1630,7 @@ export type Database = {
           discount: number;
           id: string;
           idempotency_key: string | null;
+          location_id: string | null;
           notes: string | null;
           payment_method: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
@@ -1540,6 +1651,7 @@ export type Database = {
           discount?: number;
           id?: string;
           idempotency_key?: string | null;
+          location_id?: string | null;
           notes?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
@@ -1560,6 +1672,7 @@ export type Database = {
           discount?: number;
           id?: string;
           idempotency_key?: string | null;
+          location_id?: string | null;
           notes?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number?: string;
@@ -1582,6 +1695,13 @@ export type Database = {
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
         ];
@@ -1832,10 +1952,20 @@ export type Database = {
       adjust_stock: {
         Args: {
           _business_id: string;
+          _location_id?: string | null;
           _movement_type: Database["public"]["Enums"]["movement_type"];
           _product_id: string;
           _quantity: number;
           _reason: string;
+        };
+        Returns: number;
+      };
+      apply_stock_delta: {
+        Args: {
+          _business_id: string;
+          _delta: number;
+          _location_id: string;
+          _product_id: string;
         };
         Returns: number;
       };
@@ -1937,12 +2067,22 @@ export type Database = {
         };
         Returns: string;
       };
+      create_location: {
+        Args: {
+          _address: string;
+          _business_id: string;
+          _name: string;
+          _phone: string;
+        };
+        Returns: string;
+      };
       create_product: {
         Args: {
           _barcode: string;
           _business_id: string;
           _cost_price: number;
           _description: string;
+          _location_id?: string | null;
           _min_stock: number;
           _name: string;
           _selling_price: number;
@@ -2015,10 +2155,15 @@ export type Database = {
           _discount: number;
           _idempotency_key?: string;
           _items: Json;
+          _location_id?: string | null;
           _notes: string;
           _payment_method: Database["public"]["Enums"]["payment_method"];
         };
         Returns: string;
+      };
+      get_location_stock: {
+        Args: { _location_id: string; _product_id: string };
+        Returns: number;
       };
       get_public_store: {
         Args: {
@@ -2272,6 +2417,10 @@ export type Database = {
           _poll_url: string;
           _reference: string;
         };
+        Returns: string;
+      };
+      resolve_location_id: {
+        Args: { _business_id: string; _location_id: string | null };
         Returns: string;
       };
       refund_sale: {
