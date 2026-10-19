@@ -1,0 +1,16 @@
+.git
+.github
+.cursor
+.agents
+.output
+node_modules
+.env
+.env.*
+!.env.example
+*.md
+docs
+legal
+tests
+coverage
+.vscode
+tmp

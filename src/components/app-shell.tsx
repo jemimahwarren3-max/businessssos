@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { friendlyDate } from "@/lib/format";
+import { clearOfflineCacheOnLogout } from "@/lib/offline/db";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -217,6 +218,7 @@ export function AppShell({
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
+    await clearOfflineCacheOnLogout(workspace.data?.business.id ?? null);
     await signOutServerFn();
     navigate({ to: "/staff-login", replace: true });
   }

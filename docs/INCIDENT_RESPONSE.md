@@ -2,7 +2,8 @@
 
 A runbook for what to actually do if something goes wrong — written against
 this app's real architecture (two Supabase projects: staging
-`slajanbsfqjnuuiohbmg`, production `maidxfntfpnkcqnuhozo`; Paynow; Groq)
+`slajanbsfqjnuuiohbmg`, production `maidxfntfpnkcqnuhozo`; Paynow; Groq;
+official host Google Cloud Run, Render only as a short-term stand-in)
 rather than generic advice. No incident has occurred as of this writing —
 this is preparation, not a post-mortem.
 
