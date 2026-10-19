@@ -47,7 +47,10 @@ import {
   setRolePermissionSchema,
   commissionReportSchema,
   setCommissionRateSchema,
+  addCashMovementSchema,
+  closeCashSessionSchema,
   clockInSchema,
+  openCashSessionSchema,
   timeEntriesReportSchema,
   adjustTimeEntrySchema,
   timeEntryIdSchema,
@@ -71,6 +74,12 @@ import {
   getMyRecentShifts,
   listTimeEntries,
 } from "./time-tracking.server";
+import {
+  addCashMovement,
+  closeCashSession,
+  loadCashDrawer,
+  openCashSession,
+} from "./cash-drawer.server";
 import {
   getNotifyEmail,
   listNotifications,
@@ -742,6 +751,32 @@ export const setCommissionRateFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(setCommissionRateSchema, data))
   .handler(async ({ data, context }) =>
     setMemberCommissionRate(context.supabase as Db, data.businessId, data.memberUserId, data.rate),
+  );
+
+export const getCashDrawerFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => loadCashDrawer(context.supabase as Db, data.businessId));
+
+export const openCashSessionFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(openCashSessionSchema, data))
+  .handler(async ({ data, context }) =>
+    openCashSession(context.supabase as Db, data.businessId, data.openingFloat, data.note ?? ""),
+  );
+
+export const closeCashSessionFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(closeCashSessionSchema, data))
+  .handler(async ({ data, context }) =>
+    closeCashSession(context.supabase as Db, data.businessId, data.countedCash, data.note ?? ""),
+  );
+
+export const addCashMovementFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(addCashMovementSchema, data))
+  .handler(async ({ data, context }) =>
+    addCashMovement(context.supabase as Db, data.businessId, data.kind, data.amount, data.note),
   );
 
 export const getMyActiveShiftFn = createServerFn({ method: "POST" })

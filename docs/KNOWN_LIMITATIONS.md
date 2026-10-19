@@ -9,6 +9,7 @@
 - Shop URLs are `{slug}.{APP_URL host}`. Wildcard DNS/TLS is an operator task. Cloud Run domain mapping alone is not enough.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).
+- Cash POS needs an open drawer. Card and credit do not. Invoice payments and online shop cash are not posted to the till. Offline queued cash sales fail on sync if the drawer is closed.
 - Offline stock is an estimate. Unsynced sales stay on the device after logout.
 - Privacy and Terms at `/privacy` and `/terms` are working drafts with placeholders for the operator's legal name. They are not a compliance certificate.
 - Fiscalisation, CDPA, and consumer-law compliance are not claimed.

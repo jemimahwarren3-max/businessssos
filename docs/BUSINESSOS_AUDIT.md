@@ -74,7 +74,7 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 | 24  | Receipts                   | INV    | Configurable-ish business info.                                                       |
 | 25  | Hold / resume / cancel     | P      | Cancel exists; hold/resume not a first-class parked-sale model.                       |
 | 26  | Returns / refunds          | INV    | Sale history refunds with audit.                                                      |
-| 27  | Shift open/close           | P      | Time clock exists; not a cash-float shift close.                                      |
+| 27  | Shift open/close           | P      | Time clock exists. Cash drawer is a separate till ledger.                             |
 | 28  | Cash drawer recon          | M      |                                                                                       |
 | 29  | Cashier discrepancy review | M      |                                                                                       |
 | 30  | Offline sales queue        | P      | IndexedDB queue + sync; stock is an estimate while offline. Tests cover sync helpers. |

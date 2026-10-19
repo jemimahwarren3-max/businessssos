@@ -30,13 +30,13 @@ In-app alerts for new orders, complaints, reviews, listing reports, and low-stoc
 
 `locations` and `product_stock` are in git. POS, imports, and shop stock changes use the default location when the app does not send `_location_id`. `products.stock` is the sum across locations. Branch transfers are still not built.
 
-## Batch 4 (this PR): fulfilment clocks
+## Batch 4: fulfilment clocks (shipped)
 
 Structured weekday hours, a HH:MM cut-off, and collection windows are stored on `storefronts.delivery` and enforced in `quote_store_cart` / `create_store_order`. Pickup slots are required only after windows are saved. Free-text hours stay a shop note. Quote requests skip the clocks.
 
-## Batch 5: POS cash control
+## Batch 5 (this PR): POS cash control
 
-Shift open/close with a cash float, drawer recon, cashier discrepancy. Needs a money ledger, not a UI toggle.
+One open cash session per business, a signed `cash_movements` ledger, cash POS sales and cash refunds that refuse without an open till, and a close that stores counted versus expected. Invoice cash and online shop cash are not in this till.
 
 ## Batch 6: variants and merchandising
 
@@ -88,4 +88,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Batch 5 next if cash-up matters. Batch 8 only with merchant Paynow credentials.
+Batch 6 is still blocked on variants. Batch 8 only with merchant Paynow credentials.
