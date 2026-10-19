@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { orderTokenKey } from "@/lib/storefront/cart";
 import { getCustomerOrderFn } from "@/lib/storefront/storefront.functions";
 import type { CustomerOrder } from "@/lib/storefront/contract";
+import { snapshotPolicyLines } from "@/lib/storefront/order-rules";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
@@ -107,6 +108,11 @@ function OrderPage() {
           <p className="text-base font-semibold">
             Total {formatMoney(order.total, order.currency)}
           </p>
+          {snapshotPolicyLines(order).map((line) => (
+            <p key={line} className="text-neutral-600">
+              {line}
+            </p>
+          ))}
           {order.customerAddress ? <p>Address: {order.customerAddress}</p> : null}
           <p className="text-neutral-500">
             Contact the shop if you need to change this order. Keep the access code private.

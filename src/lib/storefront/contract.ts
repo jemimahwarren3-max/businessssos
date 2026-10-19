@@ -9,6 +9,11 @@ const deliverySchema = z.object({
   minimumOrder: z.coerce.number(),
   areas: z.string(),
   estimate: z.string(),
+  quoteRequired: z.boolean().catch(false),
+  autoAccept: z.boolean().catch(false),
+  prepMinutes: z.coerce.number().catch(0),
+  cutoff: z.string().catch(""),
+  collectionWindows: z.string().catch(""),
 });
 
 const paymentsSchema = z.object({
@@ -16,6 +21,19 @@ const paymentsSchema = z.object({
   payOnDelivery: z.boolean(),
   quotes: z.boolean(),
   paynow: z.boolean(),
+  cashCurrencies: z.string().catch(""),
+  exactCash: z.boolean().catch(false),
+  changeProvided: z.boolean().catch(false),
+});
+
+const orderTermsSchema = z.object({
+  delivery: deliverySchema.optional(),
+  payments: paymentsSchema.optional(),
+  currency: z.string().optional(),
+  deliveryFee: z.coerce.number().optional(),
+  subtotal: z.coerce.number().optional(),
+  tax: z.coerce.number().optional(),
+  total: z.coerce.number().optional(),
 });
 
 export const publicProductSchema = z.object({
@@ -176,6 +194,7 @@ export const customerOrderSchema = z.object({
   createdAt: z.string(),
   paid: z.boolean(),
   revenueRecorded: z.boolean(),
+  terms: orderTermsSchema.optional(),
   items: z.array(
     z.object({
       name: z.string(),
@@ -298,6 +317,7 @@ export const adminOrderSchema = z.object({
   saleId: z.string().nullable(),
   stockReserved: z.boolean(),
   createdAt: z.string(),
+  terms: orderTermsSchema.optional(),
   items: customerOrderSchema.shape.items,
   events: z.array(
     z.object({
@@ -343,11 +363,19 @@ export const saveStoreSchema = z.object({
     minimumOrder: z.coerce.number().min(0).max(1000000),
     areas: z.string().max(300),
     estimate: z.string().max(120),
+    quoteRequired: z.boolean(),
+    autoAccept: z.boolean(),
+    prepMinutes: z.coerce.number().int().min(0).max(10080),
+    cutoff: z.string().max(120),
+    collectionWindows: z.string().max(200),
   }),
   payments: z.object({
     payOnPickup: z.boolean(),
     payOnDelivery: z.boolean(),
     quotes: z.boolean(),
+    cashCurrencies: z.string().max(40),
+    exactCash: z.boolean(),
+    changeProvided: z.boolean(),
   }),
 });
 

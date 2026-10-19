@@ -1,9 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { orderTokenKey, readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
 import { placeOrderFn, quoteCartFn } from "@/lib/storefront/storefront.functions";
 import type { CartQuote } from "@/lib/storefront/contract";
+import {
+  allowedFulfilments,
+  allowedPayments,
+  cashPolicyLines,
+  orderDecisionCopy,
+  type FulfilmentMethod,
+  type PaymentMethod,
+} from "@/lib/storefront/order-rules";
 import { formatMoney, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
@@ -26,20 +34,20 @@ function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [fulfilment, setFulfilment] = useState<"pickup" | "delivery" | "quote">(
-    store.delivery.pickupEnabled ? "pickup" : store.delivery.deliveryEnabled ? "delivery" : "quote",
-  );
-  const [paymentMethod, setPaymentMethod] = useState<"pay_on_pickup" | "pay_on_delivery" | "quote">(
-    store.payments.payOnPickup
-      ? "pay_on_pickup"
-      : store.payments.payOnDelivery
-        ? "pay_on_delivery"
-        : "quote",
-  );
+  const fulfilments = useMemo(() => allowedFulfilments(store), [store]);
+  const [fulfilment, setFulfilment] = useState<FulfilmentMethod>(fulfilments[0] ?? "quote");
+  const payments = useMemo(() => allowedPayments(store, fulfilment), [store, fulfilment]);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(payments[0] ?? "quote");
 
   useEffect(() => {
     setLines(readCart(store.slug));
   }, [store.slug]);
+
+  useEffect(() => {
+    if (payments[0] && !payments.includes(paymentMethod)) {
+      setPaymentMethod(payments[0]);
+    }
+  }, [payments, paymentMethod]);
 
   useEffect(() => {
     if (lines.length === 0) return;
@@ -99,6 +107,14 @@ function CheckoutPage() {
     return <p className="px-4 py-10">Publish the shop before customers can check out.</p>;
   }
 
+  if (fulfilments.length === 0) {
+    return (
+      <p className="px-4 py-10">
+        This shop has not enabled a collection, delivery, or quote option.
+      </p>
+    );
+  }
+
   return (
     <form
       className="mx-auto grid max-w-4xl gap-8 px-4 py-8 md:grid-cols-2"
@@ -109,6 +125,7 @@ function CheckoutPage() {
         <p className="text-sm text-neutral-500">
           You do not need an account. Submitting an order is not the same as a completed payment.
         </p>
+        <p className="text-sm text-neutral-600">{orderDecisionCopy(store)}</p>
         <label className="block text-sm">
           Name
           <input
@@ -138,55 +155,49 @@ function CheckoutPage() {
         </label>
         <fieldset className="space-y-2 text-sm">
           <legend className="font-medium">How to receive it</legend>
-          {store.delivery.pickupEnabled ? (
+          {fulfilments.includes("pickup") ? (
             <label className="block">
               <input
                 type="radio"
                 name="fulfilment"
                 checked={fulfilment === "pickup"}
-                onChange={() => {
-                  setFulfilment("pickup");
-                  setPaymentMethod("pay_on_pickup");
-                }}
+                onChange={() => setFulfilment("pickup")}
               />{" "}
-              Pickup
+              Collect in store
+              {store.delivery.prepMinutes > 0
+                ? ` (about ${store.delivery.prepMinutes} minutes to prepare)`
+                : ""}
             </label>
           ) : null}
-          {store.delivery.deliveryEnabled ? (
+          {fulfilments.includes("delivery") ? (
             <label className="block">
               <input
                 type="radio"
                 name="fulfilment"
                 checked={fulfilment === "delivery"}
-                onChange={() => {
-                  setFulfilment("delivery");
-                  setPaymentMethod("pay_on_delivery");
-                }}
+                onChange={() => setFulfilment("delivery")}
               />{" "}
-              Delivery
+              Local delivery
             </label>
           ) : null}
-          {store.payments.quotes ? (
+          {fulfilments.includes("quote") ? (
             <label className="block">
               <input
                 type="radio"
                 name="fulfilment"
                 checked={fulfilment === "quote"}
-                onChange={() => {
-                  setFulfilment("quote");
-                  setPaymentMethod("quote");
-                }}
+                onChange={() => setFulfilment("quote")}
               />{" "}
-              Request a quote
+              Request a quote. The price is not final until the shop confirms it.
             </label>
           ) : null}
         </fieldset>
-        {fulfilment === "delivery" ? (
+        {fulfilment === "delivery" || fulfilment === "quote" ? (
           <label className="block text-sm">
             Delivery address
             <textarea
               className="mt-1 w-full rounded border px-3 py-2"
-              required
+              required={fulfilment === "delivery"}
               value={address}
               onChange={(event) => setAddress(event.target.value)}
             />
@@ -198,6 +209,58 @@ function CheckoutPage() {
         {store.delivery.estimate ? (
           <p className="text-sm text-neutral-500">Estimate: {store.delivery.estimate}</p>
         ) : null}
+        {store.delivery.cutoff ? (
+          <p className="text-sm text-neutral-500">Order cut-off: {store.delivery.cutoff}</p>
+        ) : null}
+        {store.delivery.collectionWindows ? (
+          <p className="text-sm text-neutral-500">
+            Collection windows: {store.delivery.collectionWindows}
+          </p>
+        ) : null}
+        <fieldset className="space-y-2 text-sm">
+          <legend className="font-medium">How to pay</legend>
+          {payments.includes("pay_on_pickup") ? (
+            <label className="block">
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentMethod === "pay_on_pickup"}
+                onChange={() => setPaymentMethod("pay_on_pickup")}
+              />{" "}
+              Pay cash on collection
+            </label>
+          ) : null}
+          {payments.includes("pay_on_delivery") ? (
+            <label className="block">
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentMethod === "pay_on_delivery"}
+                onChange={() => setPaymentMethod("pay_on_delivery")}
+              />{" "}
+              Pay cash on delivery. This is not paid when the order is dispatched.
+            </label>
+          ) : null}
+          {payments.includes("quote") ? (
+            <label className="block">
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentMethod === "quote"}
+                onChange={() => setPaymentMethod("quote")}
+              />{" "}
+              Ask the shop to quote first
+            </label>
+          ) : null}
+        </fieldset>
+        {cashPolicyLines(store).map((line) => (
+          <p key={line} className="text-sm text-neutral-600">
+            {line}
+          </p>
+        ))}
+        <p className="text-sm text-neutral-600">
+          Card and EcoCash checkout through Paynow is not connected for this shop yet.
+        </p>
         <label className="block text-sm">
           Notes
           <textarea
@@ -207,20 +270,32 @@ function CheckoutPage() {
             onChange={(event) => setNotes(event.target.value)}
           />
         </label>
-        <p className="text-sm text-neutral-600">
-          Payment:{" "}
-          {paymentMethod === "quote"
-            ? "Quote request. This does not reserve stock and is not a payment."
-            : paymentMethod === "pay_on_delivery"
-              ? "Pay on delivery. The shop records payment only when they receive it."
-              : "Pay on pickup. The shop records payment only when they receive it."}{" "}
-          Card and EcoCash checkout through Paynow is not connected for this shop yet.
-        </p>
       </div>
       <aside className="rounded-lg border p-4">
         <h2 className="font-semibold">{store.storeName}</h2>
         {priced ? (
-          <p className="mt-3 text-lg font-semibold">{formatMoney(priced.total, priced.currency)}</p>
+          <dl className="mt-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <dt>Items</dt>
+              <dd>{formatMoney(priced.subtotal, priced.currency)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Tax</dt>
+              <dd>{formatMoney(priced.tax, priced.currency)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Delivery</dt>
+              <dd>
+                {fulfilment === "quote"
+                  ? "Quote pending. Not a final fee."
+                  : formatMoney(priced.deliveryFee, priced.currency)}
+              </dd>
+            </div>
+            <div className="flex justify-between text-lg font-semibold">
+              <dt>Total due</dt>
+              <dd>{formatMoney(priced.total, priced.currency)}</dd>
+            </div>
+          </dl>
         ) : (
           <p className="mt-3 text-sm">Calculating the server total…</p>
         )}
@@ -234,7 +309,7 @@ function CheckoutPage() {
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
         <button
           className="mt-4 w-full rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-          disabled={pending || lines.length === 0 || !priced}
+          disabled={pending || lines.length === 0 || !priced || payments.length === 0}
           type="submit"
         >
           {pending ? "Placing order…" : paymentMethod === "quote" ? "Request quote" : "Place order"}

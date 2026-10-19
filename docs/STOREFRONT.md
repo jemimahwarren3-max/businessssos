@@ -8,6 +8,8 @@ Run `supabase/migrations/20261019090000_storefront.sql` on the Supabase project 
 
 The migration also stops signed-in members from reading `businesses.staff_password_hash`. Shop login still works through the existing security-definer functions.
 
+Apply `20261019140000_storefront_order_rules.sql` after the marketplace and host-slug migrations. That snapshot stores the agreed cash, delivery, and acceptance rules on each order.
+
 ## Order and stock rules
 
 - A normal order locks product rows, checks `selling_price` and stock on the server, and decrements stock. It writes `inventory_movements` with `reference_type = 'store_order'`.
@@ -15,6 +17,9 @@ The migration also stops signed-in members from reading `businesses.staff_passwo
 - Pay on pickup and pay on delivery stay `payment_status = unpaid` until a staff member with `payments.record` chooses Record payment. That inserts one sale with `channel = 'online'` and does not deduct stock again.
 - Cancelling before that sale restores stock. After the sale exists, use Sales history refunds. Cancelling here is refused so stock is not returned twice.
 - Quote requests do not reserve stock until Accept quote.
+- If the merchant requires a delivery quote, priced delivery checkout is refused. The customer can request a quote instead.
+- If the merchant turns on automatic acceptance, eligible non-quote orders start as `confirmed`. They stay `unpaid` until Record payment.
+- Changing delivery fees or cash rules later does not rewrite `store_orders.terms` or the stored totals.
 - Repeating checkout with the same idempotency key returns the original order and does not reserve stock again. The access code is only returned on the first response; the browser stores it for that tab.
 - Customer order pages need the access code. The order number is not enough.
 
