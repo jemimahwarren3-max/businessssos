@@ -56,6 +56,7 @@ import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsDataRouteImport } from './routes/_authenticated/settings.data'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
 import { Route as StoreSlugIndexRouteImport } from './routes/store.$slug.index'
+import { Route as StoreSlugAccountRouteImport } from './routes/store.$slug.account'
 import { Route as StoreSlugCartRouteImport } from './routes/store.$slug.cart'
 import { Route as StoreSlugCheckoutRouteImport } from './routes/store.$slug.checkout'
 import { Route as StoreSlugSearchRouteImport } from './routes/store.$slug.search'
@@ -304,6 +305,11 @@ const StoreSlugIndexRoute = StoreSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => StoreSlugRoute,
 } as any)
+const StoreSlugAccountRoute = StoreSlugAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => StoreSlugRoute,
+} as any)
 const StoreSlugCartRoute = StoreSlugCartRouteImport.update({
   id: '/cart',
   path: '/cart',
@@ -377,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
   '/store/$slug/checkout': typeof StoreSlugCheckoutRoute
   '/store/$slug/search': typeof StoreSlugSearchRoute
@@ -429,6 +436,7 @@ export interface FileRoutesByTo {
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
   '/store/$slug/checkout': typeof StoreSlugCheckoutRoute
   '/store/$slug/search': typeof StoreSlugSearchRoute
@@ -484,6 +492,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/_authenticated/settings/data': typeof AuthenticatedSettingsDataRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
   '/store/$slug/checkout': typeof StoreSlugCheckoutRoute
   '/store/$slug/search': typeof StoreSlugSearchRoute
@@ -539,6 +548,7 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/data'
     | '/settings/team'
+    | '/store/$slug/account'
     | '/store/$slug/cart'
     | '/store/$slug/checkout'
     | '/store/$slug/search'
@@ -591,6 +601,7 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/data'
     | '/settings/team'
+    | '/store/$slug/account'
     | '/store/$slug/cart'
     | '/store/$slug/checkout'
     | '/store/$slug/search'
@@ -645,6 +656,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/billing'
     | '/_authenticated/settings/data'
     | '/_authenticated/settings/team'
+    | '/store/$slug/account'
     | '/store/$slug/cart'
     | '/store/$slug/checkout'
     | '/store/$slug/search'
@@ -1006,6 +1018,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreSlugIndexRouteImport
       parentRoute: typeof StoreSlugRoute
     }
+    '/store/$slug/account': {
+      id: '/store/$slug/account'
+      path: '/account'
+      fullPath: '/store/$slug/account'
+      preLoaderRoute: typeof StoreSlugAccountRouteImport
+      parentRoute: typeof StoreSlugRoute
+    }
     '/store/$slug/cart': {
       id: '/store/$slug/cart'
       path: '/cart'
@@ -1116,6 +1135,7 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface StoreSlugRouteChildren {
+  StoreSlugAccountRoute: typeof StoreSlugAccountRoute
   StoreSlugCartRoute: typeof StoreSlugCartRoute
   StoreSlugCheckoutRoute: typeof StoreSlugCheckoutRoute
   StoreSlugSearchRoute: typeof StoreSlugSearchRoute
@@ -1125,6 +1145,7 @@ interface StoreSlugRouteChildren {
 }
 
 const StoreSlugRouteChildren: StoreSlugRouteChildren = {
+  StoreSlugAccountRoute: StoreSlugAccountRoute,
   StoreSlugCartRoute: StoreSlugCartRoute,
   StoreSlugCheckoutRoute: StoreSlugCheckoutRoute,
   StoreSlugSearchRoute: StoreSlugSearchRoute,

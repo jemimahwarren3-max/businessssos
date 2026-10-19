@@ -17,6 +17,9 @@ Counts are approximate. Many "features" in the original list are the same capabi
 | Verified-purchase reviews and listing reports                                     | Marketplace trust PR      |
 | In-app shop alerts plus optional Resend outbox                                    | Notifications PR          |
 | Default-location stock (`locations` / `product_stock`)                            | Locations PR              |
+| Shop hours, cut-off, collection windows                                           | Fulfilment clocks PR      |
+| POS cash drawer ledger                                                            | Cash control PR           |
+| Shopper login, order history, per-shop message consent                            | Shopper accounts PR       |
 
 ## Batch 1: marketplace trust (shipped)
 
@@ -34,7 +37,7 @@ In-app alerts for new orders, complaints, reviews, listing reports, and low-stoc
 
 Structured weekday hours, a HH:MM cut-off, and collection windows are stored on `storefronts.delivery` and enforced in `quote_store_cart` / `create_store_order`. Pickup slots are required only after windows are saved. Free-text hours stay a shop note. Quote requests skip the clocks.
 
-## Batch 5 (this PR): POS cash control
+## Batch 5: POS cash control
 
 One open cash session per business, a signed `cash_movements` ledger, cash POS sales and cash refunds that refuse without an open till, and a close that stores counted versus expected. Invoice cash and online shop cash are not in this till.
 
@@ -42,9 +45,9 @@ One open cash session per business, a signed `cash_movements` ledger, cash POS s
 
 Size/colour variants with real stock rows. Collections and scheduled publish. Blocked until stock is no longer a single `products.stock` number (or that model is explicitly kept and variants are refused).
 
-## Batch 7: customer accounts
+## Batch 7 (this PR): customer accounts
 
-Shopper login, order history, consent for messages. Guest checkout must keep working. Access codes remain valid for guests.
+Shopper login on `/store/$slug/account` (and `/account` on the shop host). Checkout still works as a guest. Orders attach only when `auth.uid()` is present at place-order time, or when a signed-in shopper claims a guest order with the access code. Matching email does not attach an order. Access codes stay valid after a claim. Message consent is stored per shop; no shopper email is sent.
 
 ## Batch 8: shopper payments
 
@@ -88,4 +91,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Batch 6 is still blocked on variants. Batch 8 only with merchant Paynow credentials.
+Batch 6 is still blocked on variants (stock is still sold from the default location). Batch 8 only with merchant Paynow credentials.

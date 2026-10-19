@@ -12,7 +12,7 @@ TanStack Start, Vite 8, React 19, Tailwind 4, Zod, Vitest, Supabase Auth + Postg
 
 Merchant app: products, stock movements, POS (online and queued offline), invoices, quotes, customers, suppliers, purchase orders, expenses, reports, roles, audit logs, data export, Pro subscription billing via platform Paynow, WhatsApp `wa.me` links.
 
-Customer app: published shop on `{slug}.{host}`, ten templates, cart, server-priced checkout (pickup / priced delivery / quote), access-code order tracking, `/market` directory of shops that opted in.
+Customer app: published shop on `{slug}.{host}`, ten templates, cart, server-priced checkout (pickup / priced delivery / quote), access-code order tracking, optional shopper accounts, `/market` directory of shops that opted in.
 
 Shared stock: POS `create_sale` and online `store_order` both update `products.stock`. Online orders do not book revenue until Record payment.
 
@@ -28,7 +28,7 @@ Shared stock: POS `create_sale` and online `store_order` both update `products.s
 | R6  | P1  | Order-rules migration `20261019140000_storefront_order_rules.sql` must be applied on staging before the new checkout rules take effect. | P      |
 | R7  | P2  | Cut-off, prep minutes, and collection windows are displayed, not calendar-enforced.                                                     | IV     |
 | R8  | P2  | Legal identity, CDPA, ZIMRA fiscalisation unanswered.                                                                                   | X      |
-| R9  | P2  | No customer accounts or verified-merchant checks. Reviews are verified-purchase only.                                                   | P      |
+| R9  | P2  | Verified-merchant checks are still missing. Shopper accounts exist; reviews stay verified-purchase.                                     | P      |
 
 No P0 unauthenticated payment-credit path was found. Platform Paynow confirmation RPCs were previously locked down.
 
@@ -75,8 +75,8 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 | 25  | Hold / resume / cancel     | P      | Cancel exists; hold/resume not a first-class parked-sale model.                       |
 | 26  | Returns / refunds          | INV    | Sale history refunds with audit.                                                      |
 | 27  | Shift open/close           | P      | Time clock exists. Cash drawer is a separate till ledger.                             |
-| 28  | Cash drawer recon          | M      |                                                                                       |
-| 29  | Cashier discrepancy review | M      |                                                                                       |
+| 28  | Cash drawer recon          | P      | Open/close till with float, pay-in/out, discrepancy. Online shop cash is not in it. |
+| 29  | Cashier discrepancy review | P      | Close records counted vs expected.                                                  |
 | 30  | Offline sales queue        | P      | IndexedDB queue + sync; stock is an estimate while offline. Tests cover sync helpers. |
 
 ### D. Storefronts and marketplace 31–40
@@ -129,8 +129,8 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 | #   | Feature                     | Status | Notes                                                          |
 | --- | --------------------------- | ------ | -------------------------------------------------------------- |
 | 61  | Guest checkout              | IV     |                                                                |
-| 62  | Customer accounts / history | M      | Merchant `customers` table is B2B/shop CRM, not shopper login. |
-| 63  | Consent-aware comms         | M      |                                                                |
+| 62  | Customer accounts / history | P      | Shopper login + per-shop history. Guest checkout remains. Merchant `customers` is still POS CRM. |
+| 63  | Consent-aware comms         | P      | Per-shop `messages` flag stored. No shopper email send.        |
 | 64  | Order tracking              | INV    | Access code + honest unpaid copy.                              |
 | 65  | Complaints                  | INV    | Order-token complaint form and merchant queue.                 |
 | 66  | Merchant responses          | P      | Status transitions, not a thread.                              |

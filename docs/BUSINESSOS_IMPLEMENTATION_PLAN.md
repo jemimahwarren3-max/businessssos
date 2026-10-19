@@ -2,75 +2,66 @@
 
 ## Goal of this increment
 
-Merchants configure cash, delivery, and acceptance rules once. Checkout only offers options the merchant enabled. Postgres enforces those rules and snapshots them on the order so later setting changes do not rewrite history. Customer Paynow stays off.
+Shoppers can create an account, see orders they placed while signed in, claim a guest order with the access code, and store per-shop message consent. Guest checkout and access-code tracking stay intact. Email matching does not steal orders.
 
-This is Phase 4 of the master prompt (online orders and fulfilment), sliced to what can be completed honestly on the current stack.
+This is the customer-accounts slice from `ROADMAP_REMAINING.md`.
 
 ## Why not the rest of the 200
 
-Variants, branches, reviews, loyalty, gift cards, and customer Paynow each need schema, permissions, and fraud controls. Building them as UI-only would violate the constitution. See `BUSINESSOS_AUDIT.md`.
+Variants still need stock rows that the POS actually uses. Customer Paynow needs merchant credentials. Shopper email send would be a lie until a mail path exists.
 
 ## Dependencies
 
-1. Storefront migration `20261019090000_storefront.sql` (already on staging).
-2. Marketplace `20261019110000_marketplace_browse.sql`.
-3. Host slugs `20261019120000_storefront_host_slugs.sql`.
-4. **This slice:** `20261019140000_storefront_order_rules.sql`. Applied on staging `slajanbsfqjnuuiohbmg` (column `store_orders.terms` and normalise functions confirmed). Not applied to production.
+1. Storefront, order rules, fulfilment clocks, and cash drawer migrations already on this stack.
+2. **This slice:** `20261019210000_shopper_accounts.sql`. Apply on staging `slajanbsfqjnuuiohbmg` only. Not applied to production.
 
 ## What this slice delivers
 
-| Behaviour                                                                                                                    | Where                                       |
-| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Normalise delivery/payments JSON (quoteRequired, autoAccept, cashCurrencies, exactCash, changeProvided, prep/cutoff/windows) | `storefront_normalize_*`, `save_storefront` |
-| Refuse priced delivery when quoteRequired                                                                                    | `quote_store_cart`, `create_store_order`    |
-| Auto-accept eligible non-quote orders as `confirmed` still `unpaid`                                                          | `create_store_order`                        |
-| Snapshot terms on `store_orders.terms`                                                                                       | insert + `get_store_order*`                 |
-| Merchant form for the rules                                                                                                  | `/storefront`                               |
-| Checkout shows only allowed fulfilment and payment methods, cash policy, total breakdown                                     | `store.$slug.checkout`                      |
-| Shared TS helpers for UI                                                                                                     | `src/lib/storefront/order-rules.ts`         |
+| Behaviour                                          | Where                                                     |
+| -------------------------------------------------- | --------------------------------------------------------- |
+| `store_orders.shopper_user_id`                     | set from `auth.uid()` at checkout                         |
+| Claim guest order with access code                 | `claim_store_order`                                       |
+| Order history for the signed-in user at one shop   | `get_shopper_account`                                     |
+| Per-shop message consent                           | `shopper_shop_consents`                                   |
+| Guest token still opens `get_store_order`          | `storefront_can_access_order`                             |
+| Shop account UI and host `/account` rewrite        | `store.$slug.account`, `host.ts`                          |
+| Checkout attaches the session and optional consent | `placeOrder` uses the authed client when a session exists |
 
 ## What it does not deliver
 
-- Customer Paynow, EcoCash, InnBucks.
-- Distance or zone pricing, geocoded eligibility.
-- Email/SMS/WhatsApp send.
-- Loyalty, coupons, reviews, customer accounts.
+- Automatic attach by email.
+- Shopper marketing or order-status email.
+- Customer Paynow.
+- A shared cart across shops.
 
 ## Risks
 
-| Risk                                                                            | Mitigation                                                                                                   |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Migration not applied: Zod defaults keep old shops loading; new keys stay false | Apply SQL on staging; shop owners re-save to persist keys even before backfill; backfill is in the migration |
-| Auto-accept confused with paid                                                  | Copy and events say payment is not recorded                                                                  |
-| Quote-required shops with old checkout clients                                  | Server rejects priced delivery                                                                               |
-| exactCash vs changeProvided both true                                           | SQL forces changeProvided false when exactCash                                                               |
+| Risk                                  | Mitigation                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------- |
+| Session on shop host vs merchant apex | Same cookie name, host-scoped. Shop subdomain does not share merchant SSO. |
+| Claiming someone else's order         | Token required; already-claimed orders refuse.                             |
+| Reviews without a token               | Signed-in owner of `shopper_user_id` is enough. Guests still use the code. |
 
 ## Acceptance criteria
 
-1. A shop with only pickup and pay-on-pickup cannot submit pay-on-delivery.
-2. A shop with `quoteRequired` cannot create a priced `delivery` order.
-3. `autoAccept` confirmed orders remain `payment_status = unpaid` and `sale_id` null.
-4. After changing flatFee, an existing order still shows the snapshotted fee in `terms` and stored `delivery_fee`.
-5. Unpublished products remain absent from public RPCs (unchanged).
-6. Unit tests cover allowed methods and exact-cash copy.
+1. Guest `create_store_order` leaves `shopper_user_id` null.
+2. `asUser` checkout sets `shopper_user_id`.
+3. History does not include another shopper's orders.
+4. Access code still loads a claimed order.
+5. Email on a guest order does not attach it to a later account unless claimed.
 
 ## Tests
 
-- `npx vitest run tests/storefront.test.ts`
+- `npx vitest run tests/shopper-accounts.test.ts tests/storefront.test.ts`
 - `npx tsc --noEmit`
-- After staging migrate: isolation suite with `SUPABASE_ACCESS_TOKEN`
+- After staging migrate: `tests/integration/shopper-accounts.test.ts` and isolation
 
 ## Rollback
 
-The migration adds `store_orders.terms` (default `{}`) and replaces functions. Rollback is restore the previous function bodies from `20261019090000_storefront.sql` and leave the column (safe). Do not drop `terms` if orders exist.
+Drop the new RPCs, leave `shopper_user_id` and `shopper_shop_consents` (nullable / unused). Restore previous `create_store_order` / `get_store_order` bodies from `20261019190000_storefront_fulfilment_clocks.sql`.
 
-## Next recommended slices (in order)
+## Next recommended slices
 
-See `docs/ROADMAP_REMAINING.md` for the remaining ~190 items in batches.
-
-1. Apply `20261019180000_locations_stock.sql` on staging if that version is not already recorded.
-2. Set `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` only if you want email copies of shop alerts.
-3. Variants wait until location stock is used in the UI. Customer Paynow only after a per-merchant integration.
-4. Variants and branch transfers wait until location stock is used in the UI, not only in SQL.
-
-Retention features (loyalty, coupons, gift cards) wait until orders, stock, and payments stay trustworthy.
+1. Apply this migration on staging.
+2. Variants wait until location stock is used in the app UI.
+3. Customer Paynow only with per-merchant credentials.

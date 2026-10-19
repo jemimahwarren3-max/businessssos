@@ -42,6 +42,7 @@ const EXPORT_TABLES = [
   "product_stock",
   "cash_sessions",
   "cash_movements",
+  "shopper_shop_consents",
 ] as const;
 
 describe("cross-tenant isolation", () => {

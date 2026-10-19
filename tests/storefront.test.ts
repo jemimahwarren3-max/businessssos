@@ -33,6 +33,11 @@ describe("store subdomains", () => {
       "localhost",
     );
     expect(cart?.pathname).toBe("/store/harare-cloth/cart");
+    const account = rewriteStoreInputUrl(
+      new URL("http://harare-cloth.localhost:8080/account"),
+      "localhost",
+    );
+    expect(account?.pathname).toBe("/store/harare-cloth/account");
     const home = rewriteStoreInputUrl(new URL("http://harare-cloth.localhost:8080/"), "localhost");
     expect(home?.pathname).toBe("/store/harare-cloth");
     const asset = rewriteStoreInputUrl(
