@@ -5,9 +5,10 @@ import { orderTokenKey } from "@/lib/storefront/cart";
 import { getCustomerOrderFn } from "@/lib/storefront/storefront.functions";
 import type { CustomerOrder } from "@/lib/storefront/contract";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
+import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { StoreReviewForm } from "@/components/storefront/review-form";
-import { snapshotPolicyLines } from "@/lib/storefront/order-rules";
-import { formatMoney, friendlyDate, friendlyDateTime, readableError } from "@/lib/format";
+import { startCustomerPaynowFn } from "@/lib/storefront/storefront.functions";
+import { readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/order/$reference")({
@@ -37,6 +38,10 @@ function OrderPage() {
   const { store } = StoreRoute.useLoaderData();
   const { reference } = Route.useParams();
   const load = useServerFn(getCustomerOrderFn);
+  const startPaynow = useServerFn(startCustomerPaynowFn);
+  const [paying, setPaying] = useState(false);
+  const [paynowChannel, setPaynowChannel] = useState<"web" | "ecocash">("web");
+  const [paynowHint, setPaynowHint] = useState<string | null>(null);
   const [token, setToken] = useState("");
   const [order, setOrder] = useState<CustomerOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -93,56 +98,80 @@ function OrderPage() {
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       {order ? (
         <div className="mt-6 space-y-3 text-sm">
-          <p className="font-medium">{order.storeName}</p>
           <p>{STATUS_COPY[order.fulfilmentStatus] ?? order.fulfilmentStatus}</p>
-          <p>
-            {order.paid
-              ? "Payment recorded."
-              : "Not paid yet. A pending order is not a completed sale."}
-          </p>
-          <p>
-            {order.paymentMethod === "quote"
-              ? "This is a quote request."
-              : order.paymentMethod === "pay_on_delivery"
-                ? "Pay on delivery."
-                : "Pay on pickup."}
-          </p>
-          <p>Placed {friendlyDate(order.createdAt)}</p>
-          {order.collectAt ? <p>Collect at {friendlyDateTime(order.collectAt)}</p> : null}
-          <ul className="divide-y border-y">
-            {order.items.map((item) => (
-              <li key={`${item.productId ?? item.name}-${item.name}`} className="space-y-2 py-2">
-                <div className="flex justify-between">
-                  <span>
-                    {item.quantity} × {item.name}
-                  </span>
-                  <span>{formatMoney(item.lineTotal, order.currency)}</span>
-                </div>
-                {item.reviewed ? (
-                  <p className="text-neutral-500">You already left a verified purchase review.</p>
-                ) : null}
-                {item.canReview && item.productId ? (
-                  <StoreReviewForm
-                    slug={store.slug}
-                    reference={order.reference}
-                    token={token}
-                    productId={item.productId}
-                    productName={item.name}
-                    onSaved={() => void lookup()}
-                  />
-                ) : null}
-              </li>
-            ))}
-          </ul>
-          <p className="text-base font-semibold">
-            Total {formatMoney(order.total, order.currency)}
-          </p>
-          {snapshotPolicyLines(order).map((line) => (
-            <p key={line} className="text-neutral-600">
-              {line}
-            </p>
-          ))}
-          {order.customerAddress ? <p>Address: {order.customerAddress}</p> : null}
+          <OrderReceipt order={order} audience="customer" />
+          {order.paymentMethod === "paynow" && !order.paid ? (
+            <div className="space-y-2 rounded-lg border p-3">
+              <p className="font-medium">Finish paying this shop with Paynow</p>
+              <label className="block">
+                <input
+                  type="radio"
+                  name="paynow-retry"
+                  checked={paynowChannel === "web"}
+                  onChange={() => setPaynowChannel("web")}
+                />{" "}
+                Card / Paynow web
+              </label>
+              <label className="block">
+                <input
+                  type="radio"
+                  name="paynow-retry"
+                  checked={paynowChannel === "ecocash"}
+                  onChange={() => setPaynowChannel("ecocash")}
+                />{" "}
+                EcoCash ({order.customerPhone})
+              </label>
+              {paynowHint ? <p className="text-neutral-600">{paynowHint}</p> : null}
+              <button
+                className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                type="button"
+                disabled={paying}
+                onClick={() => {
+                  setPaying(true);
+                  setPaynowHint(null);
+                  void startPaynow({
+                    data: {
+                      slug: store.slug,
+                      reference: order.reference,
+                      token,
+                      channel: paynowChannel,
+                      phone: order.customerPhone,
+                    },
+                  })
+                    .then((paynow) => {
+                      if (paynow.redirectUrl) window.location.assign(paynow.redirectUrl);
+                      else
+                        setPaynowHint(
+                          paynow.instructions ?? "Open the EcoCash prompt on your phone.",
+                        );
+                    })
+                    .catch((reason: Error) =>
+                      setError(readableError(reason, "Paynow could not be started.")),
+                    )
+                    .finally(() => setPaying(false));
+                }}
+              >
+                {paying ? "Opening Paynow…" : "Pay now"}
+              </button>
+            </div>
+          ) : null}
+          {order.items.map((item) =>
+            item.canReview && item.productId ? (
+              <StoreReviewForm
+                key={item.productId}
+                slug={store.slug}
+                reference={order.reference}
+                token={token}
+                productId={item.productId}
+                productName={item.name}
+                onSaved={() => void lookup()}
+              />
+            ) : item.reviewed ? (
+              <p key={`${item.productId}-reviewed`} className="text-neutral-500">
+                You already left a verified purchase review for {item.name}.
+              </p>
+            ) : null,
+          )}
           {order.items.every((item) => !item.canReview) &&
           order.items.every((item) => !item.reviewed) &&
           order.paymentMethod !== "quote" &&

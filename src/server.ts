@@ -75,7 +75,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
 // Even once authenticated, we still never trust the status field on the
 // wire: always re-poll Paynow ourselves via our own stored poll_url before
 // crediting anything. See src/lib/payments/paynow.server.ts for why.
-async function verifyPaynowWebhookBody(raw: string): Promise<string | null> {
+async function verifyPlatformPaynowWebhookBody(raw: string): Promise<string | null> {
   const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
   const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
   if (!integrationId || !integrationKey) return null;
@@ -86,7 +86,7 @@ async function verifyPaynowWebhookBody(raw: string): Promise<string | null> {
     const status = paynow.parseStatusUpdate(raw);
     return status.reference ?? null;
   } catch (error) {
-    console.error("[paynow webhook] hash verification failed", error);
+    console.error("[paynow webhook] platform hash verification failed", error);
     return null;
   }
 }
@@ -103,14 +103,39 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
     if (allowed === false) return new Response("Too Many Requests", { status: 429 });
 
     const raw = await request.text();
-    const reference = await verifyPaynowWebhookBody(raw);
+    const { paynowReferenceFromBody, pollAndConfirmShopPayment } =
+      await import("./lib/payments/shop-paynow.server");
+    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const reference = paynowReferenceFromBody(raw);
     if (!reference) return new Response("Unauthorized", { status: 401 });
 
-    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const shopPayment = await supabaseAdmin
+      .from("shop_order_payments")
+      .select("reference, poll_url, status, business_id")
+      .eq("reference", reference)
+      .maybeSingle();
+    if (shopPayment.error) {
+      console.error("[paynow webhook] shop lookup failed", shopPayment.error);
+      return new Response("Error", { status: 500 });
+    }
+    if (shopPayment.data) {
+      if (shopPayment.data.status === "created") {
+        await pollAndConfirmShopPayment(
+          shopPayment.data.reference,
+          shopPayment.data.poll_url,
+          shopPayment.data.business_id,
+        );
+      }
+      return new Response("OK", { status: 200 });
+    }
+
+    const platformReference = await verifyPlatformPaynowWebhookBody(raw);
+    if (!platformReference) return new Response("Unauthorized", { status: 401 });
+
     const { data: row, error } = await supabaseAdmin
       .from("subscription_payments")
       .select("reference, poll_url, status")
-      .eq("reference", reference)
+      .eq("reference", platformReference)
       .maybeSingle();
     if (error) {
       console.error("[paynow webhook] lookup failed", error);

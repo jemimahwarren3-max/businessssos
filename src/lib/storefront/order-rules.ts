@@ -2,7 +2,7 @@ import { friendlyDateTime } from "@/lib/format";
 import type { CustomerOrder, PublicStore } from "./contract";
 
 export type FulfilmentMethod = "pickup" | "delivery" | "quote";
-export type PaymentMethod = "pay_on_pickup" | "pay_on_delivery" | "quote";
+export type PaymentMethod = "pay_on_pickup" | "pay_on_delivery" | "quote" | "paynow";
 
 export function allowedFulfilments(
   store: Pick<PublicStore, "delivery" | "payments">,
@@ -24,6 +24,7 @@ export function allowedPayments(
   if (fulfilment === "delivery" && store.payments.payOnDelivery && !store.delivery.quoteRequired) {
     methods.push("pay_on_delivery");
   }
+  if (store.payments.paynow) methods.push("paynow");
   if (store.payments.quotes) methods.push("quote");
   return methods;
 }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/storefront/storefront.functions";
 import type { ShopperAccount } from "@/lib/storefront/contract";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
+import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/account")({
@@ -316,8 +317,13 @@ function ShopperAccountPage() {
                 <span>
                   {order.reference}
                   <span className="mt-1 block text-neutral-500">
-                    {friendlyDateTime(order.createdAt)} · {order.fulfilmentStatus} ·{" "}
-                    {order.paymentStatus}
+                    {friendlyDateTime(order.createdAt)}
+                    {order.itemSummary ? ` · ${order.itemSummary}` : ""}
+                  </span>
+                  <span className="mt-1 block text-neutral-500">
+                    {fulfilmentHowLabel(order.fulfilmentMethod)} ·{" "}
+                    {paymentHowLabel(order.paymentMethod ?? "", order.paymentStatus === "paid")} ·
+                    View receipt
                   </span>
                 </span>
                 <span>{formatMoney(order.total, order.currency)}</span>

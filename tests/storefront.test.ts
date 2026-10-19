@@ -240,6 +240,7 @@ function sampleStore(
       payOnDelivery: false,
       quotes: false,
       paynow: false,
+      acceptPaynow: false,
       cashCurrencies: "",
       exactCash: false,
       changeProvided: false,
@@ -259,14 +260,22 @@ describe("order rules", () => {
     expect(allowedPayments(store, "quote")).toEqual(["quote"]);
   });
 
-  it("does not offer cash on delivery for pickup, or Paynow", () => {
+  it("does not offer cash on delivery for pickup", () => {
     const store = sampleStore(
       { pickupEnabled: true, deliveryEnabled: true },
-      { payOnPickup: true, payOnDelivery: true, quotes: true, paynow: true },
+      { payOnPickup: true, payOnDelivery: true, quotes: true, paynow: false },
     );
     expect(allowedFulfilments(store)).toEqual(["pickup", "delivery", "quote"]);
     expect(allowedPayments(store, "pickup")).toEqual(["pay_on_pickup", "quote"]);
     expect(allowedPayments(store, "delivery")).toEqual(["pay_on_delivery", "quote"]);
+  });
+
+  it("offers this shop's Paynow when the shop has linked it", () => {
+    const store = sampleStore(
+      { pickupEnabled: true, deliveryEnabled: true },
+      { payOnPickup: true, payOnDelivery: true, quotes: false, paynow: true },
+    );
+    expect(allowedPayments(store, "pickup")).toEqual(["pay_on_pickup", "paynow"]);
   });
 
   it("states exact cash before the customer commits", () => {

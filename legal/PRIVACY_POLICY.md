@@ -61,9 +61,9 @@ Product reviews are accepted only when the shopper proves the order with that ac
 
 **Merchant subscription billing.** When a merchant pays for a BusinessOS plan, Paynow may receive email, amount, description and, for EcoCash or OneMoney, a phone number. Card numbers are handled by Paynow according to that integration. Platform Paynow keys are not used to collect money for a shopper's purchase from a merchant.
 
-**Shopper checkout as implemented.** Online shops currently offer pay on collection, pay on delivery, or a quote request. Shoppers do not pay BusinessOS or Paynow at checkout. A merchant records payment in the app only after they have actually received the money. Cash currency and change rules are those the merchant configured and snapshotted on the order.
+**Shop checkout Paynow.** If a merchant pastes their own Paynow integration ID and key, shopper checkout may send that shopper's email, phone (for EcoCash), order reference and amount to Paynow using those merchant credentials. BusinessOS does not use platform billing keys for that charge.
 
-If a per-merchant online payment provider is added later, we will update this Policy before claiming that flow exists.
+**Shopper checkout as implemented.** Online shops offer pay on collection, pay on delivery, a quote request, and Paynow when the merchant has linked their own Paynow keys. Paynow charges that shopper against the merchant's Paynow account. Shoppers do not pay BusinessOS. Cash is recorded in the app only after the merchant has the money. Cash currency and change rules are those the merchant configured and snapshotted on the order. InnBucks and other processors are not connected.
 
 ### 3.5 Technical and usage information
 

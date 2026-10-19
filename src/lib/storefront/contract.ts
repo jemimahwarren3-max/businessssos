@@ -41,6 +41,7 @@ const paymentsSchema = z.object({
   payOnDelivery: z.boolean(),
   quotes: z.boolean(),
   paynow: z.boolean(),
+  acceptPaynow: z.boolean().catch(false),
   cashCurrencies: z.string().catch(""),
   exactCash: z.boolean().catch(false),
   changeProvided: z.boolean().catch(false),
@@ -283,6 +284,7 @@ export const checkoutResultSchema = z.object({
   reference: z.string(),
   replayed: z.boolean(),
   accessToken: z.string().nullable(),
+  orderId: z.string().uuid().optional(),
   fulfilmentStatus: z.string(),
   paymentStatus: z.string(),
   paymentMethod: z.string(),
@@ -293,6 +295,14 @@ export const checkoutResultSchema = z.object({
   tax: z.coerce.number().optional(),
   deliveryFee: z.coerce.number().optional(),
   collectAt: z.string().nullable().optional(),
+  paynow: z
+    .object({
+      redirectUrl: z.string().optional(),
+      instructions: z.string().optional(),
+      paynowReference: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const customerOrderSchema = z.object({
@@ -341,7 +351,9 @@ export const shopperOrderSummarySchema = z.object({
   currency: z.string(),
   fulfilmentStatus: z.string(),
   paymentStatus: z.string(),
+  paymentMethod: z.string().optional(),
   fulfilmentMethod: z.string(),
+  itemSummary: z.string().nullable().optional(),
   collectAt: z.string().nullable().optional(),
 });
 
@@ -429,6 +441,7 @@ export const adminStoreSchema = z.object({
       fulfilmentMethod: z.string(),
       saleId: z.string().nullable(),
       itemCount: z.coerce.number(),
+      itemSummary: z.string().nullable().optional(),
     }),
   ),
   metrics: z.object({
@@ -541,6 +554,7 @@ export const saveStoreSchema = z.object({
     payOnPickup: z.boolean(),
     payOnDelivery: z.boolean(),
     quotes: z.boolean(),
+    acceptPaynow: z.boolean(),
     cashCurrencies: z.string().max(40),
     exactCash: z.boolean(),
     changeProvided: z.boolean(),
@@ -568,7 +582,8 @@ export const checkoutSchema = z.object({
   slug: z.string().min(3).max(40),
   idempotencyKey: z.string().min(8).max(80),
   fulfilment: z.enum(["pickup", "delivery", "quote"]),
-  paymentMethod: z.enum(["pay_on_pickup", "pay_on_delivery", "quote"]),
+  paymentMethod: z.enum(["pay_on_pickup", "pay_on_delivery", "quote", "paynow"]),
+  paynowChannel: z.enum(["web", "ecocash"]).optional(),
   customer: z.object({
     name: z.string().trim().min(2).max(80),
     phone: z.string().trim().min(7).max(20),

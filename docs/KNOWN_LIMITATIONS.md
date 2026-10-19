@@ -1,7 +1,7 @@
 # Known limitations
 
 - Not production-ready. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
-- Customer checkout: pay on pickup, pay on delivery, quote. No EcoCash, InnBucks, or merchant Paynow.
+- Customer checkout: pay on pickup, pay on delivery, quote, and Paynow when the shop has linked its own keys. InnBucks is not wired. Platform Paynow keys are still billing-only.
 - Merchant shop alerts are in-app. Email copies and shopper receipts need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
 - Platform Paynow is subscription billing only ($3/month Pro).
 - One shop per cart. No marketplace commission.

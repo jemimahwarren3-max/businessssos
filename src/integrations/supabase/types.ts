@@ -2013,6 +2013,69 @@ export type Database = {
           },
         ];
       };
+      shop_order_payments: {
+        Row: {
+          amount: number;
+          business_id: string;
+          channel: string;
+          created_at: string;
+          currency: string;
+          id: string;
+          order_id: string;
+          paid_at: string | null;
+          poll_url: string;
+          provider_reference: string | null;
+          reference: string;
+          status: string;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          channel: string;
+          created_at?: string;
+          currency: string;
+          id?: string;
+          order_id: string;
+          paid_at?: string | null;
+          poll_url: string;
+          provider_reference?: string | null;
+          reference: string;
+          status?: string;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          channel?: string;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          order_id?: string;
+          paid_at?: string | null;
+          poll_url?: string;
+          provider_reference?: string | null;
+          reference?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      store_paynow_credentials: {
+        Row: {
+          business_id: string;
+          ciphertext: string;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          ciphertext: string;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          ciphertext?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       time_entries: {
         Row: {
           business_id: string;
@@ -2514,6 +2577,19 @@ export type Database = {
         Args: { _business_id: string };
         Returns: Database["public"]["Enums"]["app_role"];
       };
+      confirm_shop_paynow_payment: {
+        Args: {
+          _paid: boolean;
+          _provider_reference: string;
+          _raw_status: string;
+          _reference: string;
+        };
+        Returns: undefined;
+      };
+      storefront_paynow_context: { Args: { _slug: string }; Returns: Json };
+      storefront_order_id: { Args: { _slug: string; _reference: string }; Returns: string };
+      shop_offers_paynow: { Args: { _slug: string }; Returns: boolean };
+      shop_offers_paynow_business: { Args: { _business_id: string }; Returns: boolean };
       paynow_confirm_payment: {
         Args: {
           _paid: boolean;

@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { friendlyDateTime, readableError } from "@/lib/format";
+import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
+import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
 import { shopHostsEnabled, storePublicUrl } from "@/lib/storefront/host";
 import {
   getAdminOrderFn,
@@ -22,6 +23,7 @@ import {
   listListingReportsFn,
   listReviewsAdminFn,
   publishStorefrontFn,
+  saveShopPaynowFn,
   respondComplaintFn,
   respondListingReportFn,
   setMarketplaceVisibleFn,
@@ -30,6 +32,7 @@ import {
   transitionOrderFn,
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
+import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
 import {
   HoursEditor,
@@ -90,7 +93,7 @@ function StorefrontPage() {
       isReadOnly={workspaceData.isReadOnly}
       billingEnabled={workspaceData.billingEnabled}
       title="Storefront"
-      subtitle="Publish products you already sell. Online orders stay unpaid until you record the payment."
+      subtitle="Publish products you already sell. Customers get a receipt; you see the same one here. Link this shop's own Paynow to take EcoCash and card."
     >
       {admin.isLoading ? <Skeleton className="h-64" /> : null}
       {admin.isError ? (
@@ -170,7 +173,11 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const [cashCurrencies, setCashCurrencies] = useState(store?.payments.cashCurrencies ?? "");
   const [exactCash, setExactCash] = useState(store?.payments.exactCash ?? false);
   const [changeProvided, setChangeProvided] = useState(store?.payments.changeProvided ?? false);
+  const [acceptPaynow, setAcceptPaynow] = useState(store?.payments.acceptPaynow ?? false);
+  const [paynowId, setPaynowId] = useState("");
+  const [paynowKey, setPaynowKey] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const savePaynow = useServerFn(saveShopPaynowFn);
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -212,6 +219,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             payOnPickup: payPickup,
             payOnDelivery: payDelivery,
             quotes,
+            acceptPaynow,
             cashCurrencies,
             exactCash,
             changeProvided: changeProvided && !exactCash,
@@ -264,9 +272,8 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           ))}
         </ol>
         <p className="text-sm text-muted-foreground">
-          Paynow, EcoCash, and InnBucks are not connected for customer checkout. Use pay on pickup,
-          pay on delivery, or quote requests. Recording payment creates a normal sale and is what
-          counts as revenue.
+          Cash on pickup/delivery still works without Paynow. Recording a cash payment creates a
+          sale. Paynow uses this shop's keys, never the BusinessOS billing keys.
         </p>
         {publicUrl ? (
           <p className="text-sm">
@@ -488,10 +495,60 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           />{" "}
           Quote requests
         </label>
-        <p className="text-sm text-muted-foreground md:col-span-2">
-          Online Paynow for customer orders is not connected. Do not tell customers they can pay by
-          EcoCash or card through this shop yet.
-        </p>
+        <div className="space-y-2 text-sm md:col-span-2">
+          <p className="font-medium">This shop's Paynow</p>
+          <p className="text-muted-foreground">
+            Paste the integration ID and key from your Paynow merchant dashboard. Money goes to that
+            account, not BusinessOS. InnBucks, Stripe, and other processors are not wired — only
+            Paynow keys you paste here are used at checkout.
+          </p>
+          <p>
+            {store?.payments.paynow
+              ? "Keys are saved. Customers can pay with Paynow when the box below is on."
+              : "No Paynow keys saved yet."}
+          </p>
+          <label className="block">
+            <Label>Paynow integration ID</Label>
+            <Input value={paynowId} onChange={(event) => setPaynowId(event.target.value)} />
+          </label>
+          <label className="block">
+            <Label>Paynow integration key</Label>
+            <Input
+              type="password"
+              autoComplete="off"
+              value={paynowKey}
+              onChange={(event) => setPaynowKey(event.target.value)}
+            />
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!paynowId || !paynowKey}
+            onClick={() =>
+              void savePaynow({
+                data: { businessId, integrationId: paynowId, integrationKey: paynowKey },
+              })
+                .then(() => {
+                  toast.success("Paynow linked for this shop");
+                  setPaynowKey("");
+                  void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+                })
+                .catch((error: Error) =>
+                  toast.error(readableError(error, "Paynow could not be saved.")),
+                )
+            }
+          >
+            Save Paynow keys
+          </Button>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={acceptPaynow}
+              onChange={(event) => setAcceptPaynow(event.target.checked)}
+            />{" "}
+            Let customers pay with this shop's Paynow at checkout
+          </label>
+        </div>
         <label className="text-sm">
           <Label>Cash currencies accepted</Label>
           <Input
@@ -591,8 +648,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Online orders</h2>
         <p className="text-sm text-muted-foreground">
-          Unpaid orders are not in sales reports. Record payment only when you have actually
-          received it. After that, refunds go through Sales history.
+          Purchase history for this shop. Open an order to see the same receipt the customer gets.
+          Unpaid orders are not in sales reports. Record cash only when you have it. Paynow marks
+          paid after Paynow confirms.
         </p>
         <ul className="divide-y rounded-lg border">
           {initial.orders.length === 0 ? (
@@ -610,35 +668,29 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                   void loadOrder({ data: { businessId, orderId: order.id } }).then(setSelectedOrder)
                 }
               >
-                <span className="font-medium">{order.reference}</span> · {order.customerName} ·{" "}
-                {order.paymentStatus} · {order.fulfilmentStatus}
+                <span className="font-medium">{order.reference}</span> · {order.customerName}
+                <span className="mt-1 block text-muted-foreground">
+                  {friendlyDateTime(order.createdAt)} · {formatMoney(order.total, order.currency)}
+                </span>
+                <span className="mt-1 block text-muted-foreground">
+                  {order.itemSummary ?? `${order.itemCount} item(s)`} ·{" "}
+                  {fulfilmentHowLabel(order.fulfilmentMethod)} ·{" "}
+                  {paymentHowLabel(order.paymentMethod, order.paymentStatus === "paid")}
+                </span>
               </button>
             </li>
           ))}
         </ul>
         {selectedOrder ? (
           <div className="rounded-lg border p-4 text-sm">
-            <p className="font-medium">{selectedOrder.reference}</p>
-            <p>
-              {selectedOrder.customerName} · {selectedOrder.customerPhone}
-            </p>
-            {selectedOrder.customerAddress ? <p>{selectedOrder.customerAddress}</p> : null}
-            {selectedOrder.collectAt ? (
-              <p>Collect at {friendlyDateTime(selectedOrder.collectAt)}</p>
-            ) : null}
-            {selectedOrder.terms?.total != null ? (
-              <p className="mt-2 text-muted-foreground">
-                Agreed total {selectedOrder.currency} {selectedOrder.terms.total}. Later shop
-                setting changes do not rewrite this order.
-              </p>
-            ) : null}
-            <ul className="mt-2">
-              {selectedOrder.items.map((item) => (
-                <li key={item.name}>
-                  {item.quantity} × {item.name}
-                </li>
-              ))}
-            </ul>
+            <OrderReceipt
+              audience="merchant"
+              order={{
+                ...selectedOrder,
+                storeName: store?.storeName ?? "Shop",
+                paid: selectedOrder.paymentStatus === "paid" || Boolean(selectedOrder.saleId),
+              }}
+            />
             <div className="mt-3 flex flex-wrap gap-2">
               {fulfilmentActions({
                 fulfilmentStatus: selectedOrder.fulfilmentStatus,

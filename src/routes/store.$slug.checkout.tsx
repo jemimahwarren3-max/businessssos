@@ -47,6 +47,7 @@ function CheckoutPage() {
   const [fulfilment, setFulfilment] = useState<FulfilmentMethod>(fulfilments[0] ?? "quote");
   const payments = useMemo(() => allowedPayments(store, fulfilment), [store, fulfilment]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(payments[0] ?? "quote");
+  const [paynowChannel, setPaynowChannel] = useState<"web" | "ecocash">("web");
   const [collectAt, setCollectAt] = useState("");
   const [shopper, setShopper] = useState<{ email: string | null } | null>(null);
   const [messagesConsent, setMessagesConsent] = useState(false);
@@ -118,13 +119,14 @@ function CheckoutPage() {
           customer: {
             name,
             phone,
-            email,
+            email: email.trim() || undefined,
             address,
             notes,
             ...(shopper ? { messagesConsent } : {}),
           },
           items: lines,
           collectAt: collectAt || undefined,
+          paynowChannel: paymentMethod === "paynow" ? paynowChannel : undefined,
         },
       });
       if (result.accessToken) {
@@ -133,6 +135,10 @@ function CheckoutPage() {
       if (!result.replayed) {
         writeCart(store.slug, []);
         sessionStorage.removeItem(keyName);
+      }
+      if (result.paynow?.redirectUrl) {
+        window.location.assign(result.paynow.redirectUrl);
+        return;
       }
       await navigate({
         to: "/store/$slug/order/$reference",
@@ -199,10 +205,11 @@ function CheckoutPage() {
             />
           </label>
           <label className="block text-sm">
-            Email (optional)
+            Email {paymentMethod === "paynow" ? "(required for Paynow)" : "(optional)"}
             <input
               className="mt-1 w-full rounded border px-3 py-2"
               type="email"
+              required={paymentMethod === "paynow"}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -316,6 +323,17 @@ function CheckoutPage() {
                 Pay cash on delivery. This is not paid when the order is dispatched.
               </label>
             ) : null}
+            {payments.includes("paynow") ? (
+              <label className="block">
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === "paynow"}
+                  onChange={() => setPaymentMethod("paynow")}
+                />{" "}
+                Pay now with this shop's Paynow (EcoCash or card)
+              </label>
+            ) : null}
             {payments.includes("quote") ? (
               <label className="block">
                 <input
@@ -328,14 +346,43 @@ function CheckoutPage() {
               </label>
             ) : null}
           </fieldset>
+          {paymentMethod === "paynow" ? (
+            <fieldset className="space-y-2 text-sm">
+              <legend className="font-medium">Paynow method</legend>
+              <label className="block">
+                <input
+                  type="radio"
+                  name="paynow-channel"
+                  checked={paynowChannel === "web"}
+                  onChange={() => setPaynowChannel("web")}
+                />{" "}
+                Card / Paynow web
+              </label>
+              <label className="block">
+                <input
+                  type="radio"
+                  name="paynow-channel"
+                  checked={paynowChannel === "ecocash"}
+                  onChange={() => setPaynowChannel("ecocash")}
+                />{" "}
+                EcoCash (uses the phone number above)
+              </label>
+            </fieldset>
+          ) : null}
           {cashPolicyLines(store).map((line) => (
             <p key={line} className="text-sm text-neutral-600">
               {line}
             </p>
           ))}
-          <p className="text-sm text-neutral-600">
-            Card and EcoCash checkout through Paynow is not connected for this shop yet.
-          </p>
+          {store.payments.paynow ? (
+            <p className="text-sm text-neutral-600">
+              Paynow money goes to this shop's own Paynow account, not BusinessOS.
+            </p>
+          ) : (
+            <p className="text-sm text-neutral-600">
+              This shop has not linked Paynow yet. Use cash on pickup or delivery if those are on.
+            </p>
+          )}
           {shopper ? (
             <label className="flex items-start gap-2 text-sm">
               <input
@@ -438,10 +485,14 @@ function CheckoutPage() {
             type="submit"
           >
             {pending
-              ? "Placing order…"
+              ? paymentMethod === "paynow"
+                ? "Starting Paynow…"
+                : "Placing order…"
               : paymentMethod === "quote"
                 ? "Request quote"
-                : "Place order"}
+                : paymentMethod === "paynow"
+                  ? "Place order and pay with Paynow"
+                  : "Place order"}
           </button>
         </aside>
       </form>

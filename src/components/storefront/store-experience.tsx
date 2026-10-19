@@ -95,7 +95,7 @@ export function StoreChrome({
             search={preview ? { preview: "1" } : {}}
             className="text-sm font-medium"
           >
-            Account
+            Your orders
           </Link>
           <Link
             to="/store/$slug/cart"

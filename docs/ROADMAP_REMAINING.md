@@ -50,9 +50,9 @@ Size/colour variants with real stock rows. Collections and scheduled publish. Bl
 
 Shopper login on `/store/$slug/account` (and `/account` on the shop host). Checkout still works as a guest. Orders attach only when `auth.uid()` is present at place-order time, or when a signed-in shopper claims a guest order with the access code. Matching email does not attach an order. Access codes stay valid after a claim. Message consent is stored per shop. Transactional receipts/status emails are separate from that checkbox. Marketing mail is not sent.
 
-## Batch 8: shopper payments
+## Batch 8: shopper payments (this PR: Paynow + receipts)
 
-Per-merchant Paynow/EcoCash. Never platform subscription keys. Server-side confirmation. Refunds and settlement files after the charge path exists.
+Per-merchant Paynow/EcoCash using **that shop's** integration ID/key, never platform subscription keys. Shared customer/merchant receipt. Unpaid Paynow can be retried from the receipt. InnBucks and other processors are not wired. Refunds of Paynow charges still go through Paynow's own tools plus Sales history after a sale is recorded.
 
 ## Batch 9: purchasing depth
 
@@ -96,4 +96,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Operator: GitHub/GCP secrets (including Resend + `MAIL_FLUSH_SECRET`) and a staging Cloud Run revision. Apply `20261019220000_shopper_order_emails.sql` on staging. Production database cutover still needs an explicit human.
+Operator: GitHub/GCP secrets (including Resend + `MAIL_FLUSH_SECRET`) and a staging Cloud Run revision. Apply `20261019220000_shopper_order_emails.sql` and `20261019230000_receipts_merchant_paynow.sql` on staging. Production database cutover still needs an explicit human.

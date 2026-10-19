@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
-import type { Db } from "@/lib/business.server";
+import { assertCanWrite, assertPermission, type Db } from "@/lib/business.server";
+import { saveShopPaynowCredentials } from "@/lib/payments/shop-paynow.server";
 import { parseAndSanitize } from "@/lib/security";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
 import {
@@ -39,6 +40,7 @@ import {
   saveStorefront,
   setMarketplaceVisible,
   setShopperConsent,
+  startCustomerPaynow,
   transitionOrder,
 } from "./storefront.server";
 
@@ -126,6 +128,54 @@ export const placeOrderFn = createServerFn({ method: "POST" })
   .middleware(checkoutLimit)
   .inputValidator((data: unknown) => parseAndSanitize(checkoutSchema, data))
   .handler(async ({ data }) => placeOrder(data));
+
+export const startCustomerPaynowFn = createServerFn({ method: "POST" })
+  .middleware(checkoutLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        slug: z.string().min(3).max(40),
+        reference: z.string().min(3).max(40),
+        token: z.string().max(80).optional().default(""),
+        channel: z.enum(["web", "ecocash"]),
+        phone: z.string().max(20).optional(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data }) =>
+    startCustomerPaynow({
+      slug: data.slug,
+      reference: data.reference,
+      token: data.token,
+      channel: data.channel,
+      ...(data.phone ? { phone: data.phone } : {}),
+    }),
+  );
+
+export const saveShopPaynowFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        integrationId: z.string().trim().min(4).max(80),
+        integrationKey: z.string().trim().min(8).max(200),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as Db;
+    await assertCanWrite(supabase, data.businessId);
+    await assertPermission(supabase, data.businessId, "business.settings");
+    return saveShopPaynowCredentials(
+      supabase,
+      data.businessId,
+      data.integrationId,
+      data.integrationKey,
+    );
+  });
 
 export const getCustomerOrderFn = createServerFn({ method: "POST" })
   .middleware(publicLimit)

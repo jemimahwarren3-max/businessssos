@@ -2,6 +2,12 @@ import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
 import { createAnonClient, tryGetAuthedContext } from "@/lib/auth/session.server";
 import { flushNotificationOutboxAdmin } from "@/lib/notifications.mail.server";
+import {
+  initiateShopPaynow,
+  refreshShopPaynowForOrder,
+  shopOrderId,
+  shopPaynowConnected,
+} from "@/lib/payments/shop-paynow.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
 import {
   adminOrderSchema,
@@ -95,14 +101,20 @@ export async function loadPublicStore(input: {
   });
   if (error) rpcFail("load public store", error);
   if (data == null) return null;
-  return parseRpc("load public store", { data, error: null }, publicStoreSchema);
+  const store = await parseRpc("load public store", { data, error: null }, publicStoreSchema);
+  const offered = await supabase.rpc("shop_offers_paynow", { _slug: input.slug });
+  store.payments.paynow = offered.data === true;
+  return store;
 }
 
 export async function loadStorePreview(supabase: Db, slug: string): Promise<PublicStore | null> {
   const { data, error } = await supabase.rpc("get_store_preview", { _slug: slug });
   if (error) rpcFail("preview store", error);
   if (data == null) return null;
-  return parseRpc("preview store", { data, error: null }, publicStoreSchema);
+  const store = await parseRpc("preview store", { data, error: null }, publicStoreSchema);
+  const offered = await supabase.rpc("shop_offers_paynow", { _slug: slug });
+  store.payments.paynow = offered.data === true;
+  return store;
 }
 
 export async function quoteCart(
@@ -133,6 +145,7 @@ export async function placeOrder(input: {
   fulfilment: string;
   paymentMethod: string;
   collectAt?: string | undefined;
+  paynowChannel?: "web" | "ecocash" | undefined;
 }) {
   const supabase = await storefrontClient();
   const result = await supabase.rpc("create_store_order", {
@@ -146,7 +159,58 @@ export async function placeOrder(input: {
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
   await flushNotificationOutboxAdmin();
+  if (parsed.paymentMethod === "paynow" && parsed.orderId && input.customer.email) {
+    try {
+      const paynow = await initiateShopPaynow({
+        slug: input.slug,
+        orderId: parsed.orderId,
+        reference: parsed.reference,
+        email: input.customer.email,
+        phone: input.customer.phone,
+        channel: input.paynowChannel ?? "web",
+        amount: parsed.total,
+        currency: parsed.currency,
+      });
+      return { ...parsed, paynow };
+    } catch (error) {
+      console.error("[businessos] shop Paynow after order", error);
+      return { ...parsed, paynow: null };
+    }
+  }
   return parsed;
+}
+
+export async function startCustomerPaynow(input: {
+  slug: string;
+  reference: string;
+  token: string;
+  channel: "web" | "ecocash";
+  phone?: string;
+}) {
+  const order = await loadCustomerOrder(input.slug, input.reference, input.token);
+  if (order.paymentMethod !== "paynow") {
+    throw new AppError("This order is not a Paynow checkout.");
+  }
+  if (order.paid) {
+    throw new AppError("This order is already paid.");
+  }
+  if (!order.customerEmail) {
+    throw new AppError("This order has no email for Paynow.");
+  }
+  const orderId = await shopOrderId(input.slug, input.reference);
+  if (!orderId) {
+    throw new AppError("That order could not be found.");
+  }
+  return initiateShopPaynow({
+    slug: input.slug,
+    orderId,
+    reference: order.reference,
+    email: order.customerEmail,
+    phone: input.phone ?? order.customerPhone,
+    channel: input.channel,
+    amount: order.total,
+    currency: order.currency,
+  });
 }
 
 export async function loadCustomerOrder(
@@ -160,12 +224,41 @@ export async function loadCustomerOrder(
     _reference: reference,
     _token: token,
   });
-  return parseRpc("load store order", result, customerOrderSchema);
+  const order = await parseRpc("load store order", result, customerOrderSchema);
+  if (order.paymentMethod === "paynow" && !order.paid) {
+    const orderId = await shopOrderId(slug, reference);
+    if (orderId) {
+      try {
+        await refreshShopPaynowForOrder(orderId);
+      } catch (error) {
+        console.error("[businessos] refresh shop Paynow", error);
+      }
+      const again = await supabase.rpc("get_store_order", {
+        _slug: slug,
+        _reference: reference,
+        _token: token,
+      });
+      return parseRpc("reload store order", again, customerOrderSchema);
+    }
+  }
+  return order;
+}
+
+async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promise<AdminStore> {
+  if (admin.store) {
+    const connected = await shopPaynowConnected(businessId);
+    admin.store.payments.paynow = connected;
+    admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
+  }
+  return admin;
 }
 
 export async function loadAdminStore(supabase: Db, businessId: string): Promise<AdminStore> {
   const result = await supabase.rpc("get_storefront_admin", { _business_id: businessId });
-  return parseRpc("load storefront", result, adminStoreSchema);
+  return withShopPaynowFlag(
+    await parseRpc("load storefront", result, adminStoreSchema),
+    businessId,
+  );
 }
 
 export async function saveStorefront(supabase: Db, businessId: string, patch: Json) {
@@ -175,7 +268,10 @@ export async function saveStorefront(supabase: Db, businessId: string, patch: Js
     _business_id: businessId,
     _patch: patch,
   });
-  return parseRpc("save storefront", result, adminStoreSchema);
+  return withShopPaynowFlag(
+    await parseRpc("save storefront", result, adminStoreSchema),
+    businessId,
+  );
 }
 
 export async function publishStorefront(supabase: Db, businessId: string, published: boolean) {
@@ -185,7 +281,10 @@ export async function publishStorefront(supabase: Db, businessId: string, publis
     _business_id: businessId,
     _published: published,
   });
-  return parseRpc("publish storefront", result, adminStoreSchema);
+  return withShopPaynowFlag(
+    await parseRpc("publish storefront", result, adminStoreSchema),
+    businessId,
+  );
 }
 
 export async function saveListing(
@@ -221,6 +320,11 @@ export async function loadAdminOrder(
   businessId: string,
   orderId: string,
 ): Promise<AdminOrder> {
+  try {
+    await refreshShopPaynowForOrder(orderId);
+  } catch (error) {
+    console.error("[businessos] merchant refresh shop Paynow", error);
+  }
   const result = await supabase.rpc("get_store_order_admin", {
     _business_id: businessId,
     _order_id: orderId,
