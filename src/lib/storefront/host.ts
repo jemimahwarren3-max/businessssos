@@ -67,6 +67,7 @@ const APP_PATH_PREFIXES = [
   "/assistant",
   "/auth",
   "/billing",
+  "/cash-drawer",
   "/commission",
   "/customers",
   "/dashboard",

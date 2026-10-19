@@ -326,6 +326,110 @@ export type Database = {
         };
         Relationships: [];
       };
+      cash_movements: {
+        Row: {
+          amount: number;
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          kind: string;
+          note: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          session_id: string;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          kind: string;
+          note?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          session_id: string;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          session_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cash_movements_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "cash_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      cash_sessions: {
+        Row: {
+          business_id: string;
+          closed_at: string | null;
+          closed_by: string | null;
+          counted_cash: number | null;
+          discrepancy: number | null;
+          expected_cash: number | null;
+          id: string;
+          note: string | null;
+          opened_at: string;
+          opened_by: string;
+          opening_float: number;
+        };
+        Insert: {
+          business_id: string;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          counted_cash?: number | null;
+          discrepancy?: number | null;
+          expected_cash?: number | null;
+          id?: string;
+          note?: string | null;
+          opened_at?: string;
+          opened_by: string;
+          opening_float?: number;
+        };
+        Update: {
+          business_id?: string;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          counted_cash?: number | null;
+          discrepancy?: number | null;
+          expected_cash?: number | null;
+          id?: string;
+          note?: string | null;
+          opened_at?: string;
+          opened_by?: string;
+          opening_float?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cash_sessions_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       categories: {
         Row: {
           business_id: string;
@@ -1632,6 +1736,7 @@ export type Database = {
           idempotency_key: string | null;
           location_id: string | null;
           notes: string | null;
+          cash_session_id: string | null;
           payment_method: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
           status: Database["public"]["Enums"]["sale_status"];
@@ -1653,6 +1758,7 @@ export type Database = {
           idempotency_key?: string | null;
           location_id?: string | null;
           notes?: string | null;
+          cash_session_id?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
           status?: Database["public"]["Enums"]["sale_status"];
@@ -1674,6 +1780,7 @@ export type Database = {
           idempotency_key?: string | null;
           location_id?: string | null;
           notes?: string | null;
+          cash_session_id?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number?: string;
           status?: Database["public"]["Enums"]["sale_status"];
@@ -2148,6 +2255,14 @@ export type Database = {
         Args: { _active: boolean; _business_id: string; _id: string };
         Returns: undefined;
       };
+      add_cash_movement: {
+        Args: { _amount: number; _business_id: string; _kind: string; _note: string };
+        Returns: string;
+      };
+      close_cash_session: {
+        Args: { _business_id: string; _counted_cash: number; _note?: string };
+        Returns: Json;
+      };
       create_sale: {
         Args: {
           _business_id: string;
@@ -2159,6 +2274,11 @@ export type Database = {
           _notes: string;
           _payment_method: Database["public"]["Enums"]["payment_method"];
         };
+        Returns: string;
+      };
+      get_cash_drawer: { Args: { _business_id: string }; Returns: Json };
+      open_cash_session: {
+        Args: { _business_id: string; _note?: string; _opening_float: number };
         Returns: string;
       };
       get_location_stock: {

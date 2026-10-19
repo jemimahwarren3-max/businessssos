@@ -105,6 +105,25 @@ export const supplierIdSchema = z.object({
 
 export const businessIdSchema = z.object({ businessId: z.string().uuid() });
 
+export const openCashSessionSchema = z.object({
+  businessId: z.string().uuid(),
+  openingFloat: z.coerce.number().min(0, "Opening float cannot be negative").max(99999999),
+  note: z.string().trim().max(240).optional().or(z.literal("")),
+});
+
+export const closeCashSessionSchema = z.object({
+  businessId: z.string().uuid(),
+  countedCash: z.coerce.number().min(0, "Counted cash cannot be negative").max(99999999),
+  note: z.string().trim().max(240).optional().or(z.literal("")),
+});
+
+export const addCashMovementSchema = z.object({
+  businessId: z.string().uuid(),
+  kind: z.enum(["pay_in", "pay_out"]),
+  amount: z.coerce.number().positive("Amount must be greater than zero").max(99999999),
+  note: z.string().trim().min(2, "Enter a reason").max(240),
+});
+
 export const stockAdjustSchema = z.object({
   businessId: z.string().uuid(),
   productId: z.string().uuid(),
