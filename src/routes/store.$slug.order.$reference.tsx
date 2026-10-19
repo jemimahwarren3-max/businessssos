@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { orderTokenKey } from "@/lib/storefront/cart";
 import { getCustomerOrderFn } from "@/lib/storefront/storefront.functions";
 import type { CustomerOrder } from "@/lib/storefront/contract";
+import { StoreComplaintForm } from "@/components/storefront/complaint-form";
 import { snapshotPolicyLines } from "@/lib/storefront/order-rules";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
@@ -117,6 +118,14 @@ function OrderPage() {
           <p className="text-neutral-500">
             Contact the shop if you need to change this order. Keep the access code private.
           </p>
+          <StoreComplaintForm
+            slug={store.slug}
+            reference={order.reference}
+            token={token}
+            defaultName={order.customerName}
+            defaultPhone={order.customerPhone}
+            defaultEmail={order.customerEmail ?? ""}
+          />
         </div>
       ) : null}
     </div>

@@ -4,8 +4,10 @@ import type { Json } from "@/integrations/supabase/types";
 import type { Db } from "@/lib/business.server";
 import { parseAndSanitize } from "@/lib/security";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
-import { checkoutSchema, listingSchema, saveStoreSchema } from "./contract";
+import { checkoutSchema, createComplaintSchema, listingSchema, saveStoreSchema } from "./contract";
 import {
+  createStoreComplaint,
+  listStoreComplaints,
   loadAdminOrder,
   loadAdminStore,
   loadCustomerOrder,
@@ -16,6 +18,7 @@ import {
   placeOrder,
   publishStorefront,
   quoteCart,
+  respondStoreComplaint,
   saveListing,
   saveStorefront,
   setMarketplaceVisible,
@@ -190,4 +193,41 @@ export const transitionOrderFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) =>
     transitionOrder(context.supabase as Db, data.businessId, data.orderId, data.action),
+  );
+
+export const createComplaintFn = createServerFn({ method: "POST" })
+  .middleware(checkoutLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(createComplaintSchema, data))
+  .handler(async ({ data }) => createStoreComplaint(data));
+
+export const listComplaintsFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    listStoreComplaints(context.supabase as Db, data.businessId),
+  );
+
+export const respondComplaintFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        complaintId: z.string().uuid(),
+        status: z.enum(["open", "reviewing", "resolved"]),
+        note: z.string().max(2000).optional(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    respondStoreComplaint(
+      context.supabase as Db,
+      data.businessId,
+      data.complaintId,
+      data.status,
+      data.note ?? "",
+    ),
   );

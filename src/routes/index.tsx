@@ -373,8 +373,8 @@ function Landing() {
           <AccordionItem value="q1">
             <AccordionTrigger>Do I need to be good with computers?</AccordionTrigger>
             <AccordionContent>
-              No. If you can use a phone, you can use BusinessOS. We avoid accounting jargon.
-              You'll see "customers who owe you" instead of "accounts receivable".
+              No. If you can use a phone, you can use BusinessOS. We avoid accounting jargon. You'll
+              see "customers who owe you" instead of "accounts receivable".
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="q2">
@@ -420,6 +420,20 @@ function Landing() {
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <Logo />
+          <nav className="flex flex-wrap gap-4">
+            <a href="/privacy" className="hover:text-foreground">
+              Privacy
+            </a>
+            <a href="/terms" className="hover:text-foreground">
+              Terms
+            </a>
+            <Link to="/legal/refunds" className="hover:text-foreground">
+              Refunds
+            </Link>
+            <Link to="/legal/cookies" className="hover:text-foreground">
+              Cookies
+            </Link>
+          </nav>
           <p>© {new Date().getFullYear()} BusinessOS AI. Built for small businesses.</p>
         </div>
       </footer>

@@ -17,7 +17,9 @@ import {
   getAdminOrderFn,
   getMarketplaceListingFn,
   getStorefrontAdminFn,
+  listComplaintsFn,
   publishStorefrontFn,
+  respondComplaintFn,
   setMarketplaceVisibleFn,
   saveListingFn,
   saveStorefrontFn,
@@ -25,7 +27,7 @@ import {
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
 import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
-import type { AdminOrder, AdminStore } from "@/lib/storefront/contract";
+import type { AdminOrder, AdminStore, ComplaintItem } from "@/lib/storefront/contract";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
@@ -96,6 +98,12 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const saveListing = useServerFn(saveListingFn);
   const loadOrder = useServerFn(getAdminOrderFn);
   const transition = useServerFn(transitionOrderFn);
+  const loadComplaints = useServerFn(listComplaintsFn);
+  const respondComplaint = useServerFn(respondComplaintFn);
+  const complaints = useQuery({
+    queryKey: ["store-complaints", businessId],
+    queryFn: () => loadComplaints({ data: { businessId } }),
+  });
   const store = initial.store;
   const [storeName, setStoreName] = useState(store?.storeName ?? "");
   const [phone, setPhone] = useState(store?.phone ?? "");
@@ -624,6 +632,66 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             </ul>
           </div>
         ) : null}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold">Customer reports</h2>
+        <p className="text-sm text-muted-foreground">
+          Shoppers can report a problem from checkout or the order page. Resolving a report here
+          does not automatically refund money.
+        </p>
+        {complaints.isError ? (
+          <p className="text-sm text-muted-foreground">
+            {readableError(
+              complaints.error as Error,
+              "Customer reports could not be loaded. Apply the latest database update if this shop is new.",
+            )}
+          </p>
+        ) : null}
+        <ul className="divide-y rounded-lg border">
+          {(complaints.data ?? []).length === 0 ? (
+            <li className="p-3 text-sm text-muted-foreground">No customer reports yet.</li>
+          ) : null}
+          {(complaints.data ?? []).map((item: ComplaintItem) => (
+            <li key={item.id} className="space-y-2 p-3 text-sm">
+              <p className="font-medium">
+                {item.customerName} · {item.status}
+                {item.orderReference ? ` · ${item.orderReference}` : ""}
+              </p>
+              <p>{item.message}</p>
+              {item.merchantNote ? (
+                <p className="text-muted-foreground">{item.merchantNote}</p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                {(["reviewing", "resolved"] as const).map((status) => (
+                  <Button
+                    key={status}
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      void respondComplaint({
+                        data: {
+                          businessId,
+                          complaintId: item.id,
+                          status,
+                          note: item.merchantNote ?? "",
+                        },
+                      })
+                        .then((rows) => {
+                          queryClient.setQueryData(["store-complaints", businessId], rows);
+                        })
+                        .catch((error: Error) =>
+                          toast.error(readableError(error, "Could not update the report")),
+                        )
+                    }
+                  >
+                    Mark {status}
+                  </Button>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
