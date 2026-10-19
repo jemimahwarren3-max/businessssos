@@ -12,7 +12,7 @@ these, and `legal/PRIVACY_POLICY.md` for the customer-facing version.
 | **Groq** (groq.com) | AI Assistant inference. | Aggregated 30-day business summary (sales/profit/expense totals, top product/customer names, low-stock names) plus the user's typed questions. Never raw customer contact details or payment data. | `LEGAL REVIEW REQUIRED`: not confirmed. | `LEGAL REVIEW REQUIRED`: Groq's API data-retention/training policy has not been independently verified. | `LEGAL REVIEW REQUIRED`. | `LEGAL REVIEW REQUIRED`. |
 | **Upstash** (upstash.com) | Optional edge cache for the per-user workspace lookup (business/role/plan). Entirely optional — the app functions identically without it, falling through to Postgres. | A cached copy of business/role/plan, short TTL. No customer or transaction data. | `LEGAL REVIEW REQUIRED` if/when enabled. | Not evaluated — treat as `LEGAL REVIEW REQUIRED` before enabling in production if not already. | Short TTL (cache expiry), not long-term storage. | `LEGAL REVIEW REQUIRED` if enabled. |
 | **Google Fonts** (fonts.googleapis.com / fonts.gstatic.com) | Loads the app's typeface. | The requesting browser's IP address, per Google's standard request handling — not something BusinessOS AI controls or receives. | Google's infrastructure. | [Google's font-serving privacy notes](https://developers.google.com/fonts/faq/privacy) — not independently re-verified. | Governed by Google, not BusinessOS AI. | N/A — no contract, just a public static asset load. |
-| **Resend** (resend.com) | Optional merchant shop-alert email. Disabled until `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. | Shop alert title/body and the staff email address. | `LEGAL REVIEW REQUIRED` if enabled. | Operator must review Resend's terms before enabling. | Provider default. | `LEGAL REVIEW REQUIRED` if enabled. |
+| **Resend** (resend.com) | Optional transactional email: merchant shop alerts and shopper receipts/status. Queued until `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. | Staff alert copy; shopper name, order reference, totals, and (once) the access code. | `LEGAL REVIEW REQUIRED` if enabled. | Operator must review Resend's terms before enabling. | Provider default. | `LEGAL REVIEW REQUIRED` if enabled. |
 
 ## Services deliberately not integrated
 
@@ -20,9 +20,9 @@ Documented so it's clear these were considered, not overlooked:
 
 - **No analytics/tracking tool** (Google Analytics, Meta Pixel, PostHog,
   Segment, etc.) — confirmed absent by grepping the codebase.
-- **No email-sending service for shop alerts unless Resend is configured**
-  (`RESEND_API_KEY`, `NOTIFY_FROM_EMAIL`). Sign-up confirmation and password
-  reset still use Supabase Auth email. WhatsApp Cloud is not integrated.
+- **No email-sending until Resend is configured** (`RESEND_API_KEY`,
+  `NOTIFY_FROM_EMAIL`). Outbox rows stay pending. Sign-up confirmation and
+  password reset still use Supabase Auth SMTP. WhatsApp Cloud is not integrated.
 - **No file/object storage service** — the app doesn't currently support
   file uploads (product images, receipts, etc. are represented as URL
   fields in the schema but there's no upload flow wired to any storage

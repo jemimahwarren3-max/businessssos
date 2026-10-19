@@ -79,6 +79,7 @@ Depending on configuration we may process information connected with:
 
 - Supabase Auth emails (sign-up confirmation, password reset).
 - In-app notifications for merchants.
+- Transactional shopper emails (order receipt and later status updates) when an email was given at checkout and Resend is configured. The access code is included only on the first receipt.
 - WhatsApp click-to-chat links a merchant publishes. BusinessOS does not send WhatsApp Cloud API messages in the current build. Chat content stays on WhatsApp once the customer leaves our site.
 - Groq, if a merchant uses the optional AI assistant: an aggregated business summary plus the typed question. Groq does not receive raw customer emails or phone numbers from the customer list in the current implementation.
 - Hosting and database providers (see section 9).
@@ -221,7 +222,7 @@ Merchant users can export some business data from account settings where that fe
 
 We send necessary service messages (security, sign-in, billing, important account changes).
 
-Merchant shop alerts (new online orders, complaints, verified-purchase reviews, listing reports, and low-stock crossings) appear in the BusinessOS app. If the operator has configured Resend, a copy may be emailed to owners, admins and managers who have shop-alert email turned on. Those messages are operational, not marketing. WhatsApp is not used to send them.
+Merchant shop alerts (new online orders, complaints, verified-purchase reviews, listing reports, and low-stock crossings) appear in the BusinessOS app. If the operator has configured Resend, a copy may be emailed to owners, admins and managers who have shop-alert email turned on. Shoppers who provided an email at checkout may receive a receipt and later status updates through the same provider. Those messages are operational, not marketing. WhatsApp is not used to send them.
 
 We do not currently operate a promotional email or SMS campaign product. If we add one, we will obtain consent where required and offer an opt-out. Unsubscribing from marketing does not stop essential service messages. Turning off shop-alert email does not stop in-app alerts.
 

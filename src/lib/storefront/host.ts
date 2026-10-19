@@ -66,6 +66,7 @@ export const RESERVED_HOST_LABELS = new Set([
 
 const APP_PATH_PREFIXES = [
   "/admin",
+  "/api",
   "/assistant",
   "/auth",
   "/billing",

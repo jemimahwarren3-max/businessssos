@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as ApiInternalFlushMailRouteImport } from './routes/api.internal.flush-mail'
 import { Route as MarketRouteImport } from './routes/market'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -85,6 +86,11 @@ const AuthRoute = AuthRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalFlushMailRoute = ApiInternalFlushMailRouteImport.update({
+  id: '/api/internal/flush-mail',
+  path: '/api/internal/flush-mail',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketRoute = MarketRouteImport.update({
@@ -342,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/health': typeof HealthRoute
+  '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -396,6 +403,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/health': typeof HealthRoute
+  '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -451,6 +459,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/health': typeof HealthRoute
+  '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -507,6 +516,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/health'
+    | '/api/internal/flush-mail'
     | '/market'
     | '/privacy'
     | '/reset-password'
@@ -561,6 +571,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/health'
+    | '/api/internal/flush-mail'
     | '/market'
     | '/privacy'
     | '/reset-password'
@@ -615,6 +626,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/health'
+    | '/api/internal/flush-mail'
     | '/market'
     | '/privacy'
     | '/reset-password'
@@ -671,6 +683,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRouteWithChildren
   HealthRoute: typeof HealthRoute
+  ApiInternalFlushMailRoute: typeof ApiInternalFlushMailRoute
   MarketRoute: typeof MarketRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -722,6 +735,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/flush-mail': {
+      id: '/api/internal/flush-mail'
+      path: '/api/internal/flush-mail'
+      fullPath: '/api/internal/flush-mail'
+      preLoaderRoute: typeof ApiInternalFlushMailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/market': {
@@ -1164,6 +1184,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRouteWithChildren,
   HealthRoute: HealthRoute,
+  ApiInternalFlushMailRoute: ApiInternalFlushMailRoute,
   MarketRoute: MarketRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,

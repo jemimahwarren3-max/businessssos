@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildResendEmail, readNotificationMailConfig } from "@/lib/notifications.mail";
+import {
+  authorizeMailFlush,
+  buildResendEmail,
+  readNotificationMailConfig,
+} from "@/lib/notifications.mail";
 
 describe("merchant alert email config", () => {
   it("stays off when no provider is configured", () => {
@@ -35,5 +39,29 @@ describe("merchant alert email config", () => {
     expect(payload.to).toEqual(["owner@shop.test"]);
     expect(payload.text).toContain("Ada");
     expect(payload).not.toHaveProperty("html");
+  });
+
+  it("does not treat missing Resend as a discard", () => {
+    const config = readNotificationMailConfig({});
+    expect(config.configured).toBe(false);
+    if (!config.configured) {
+      expect(config.reason).toMatch(/not discarded|queued/i);
+    }
+  });
+});
+
+describe("mail flush bearer", () => {
+  const secret = "mail-flush-secret-ok";
+
+  it("rejects missing or short secrets", () => {
+    expect(authorizeMailFlush("Bearer anything-long-enough", "")).toBe(false);
+    expect(authorizeMailFlush("Bearer short", "short")).toBe(false);
+    expect(authorizeMailFlush(null, secret)).toBe(false);
+  });
+
+  it("accepts only the matching Bearer token", () => {
+    expect(authorizeMailFlush(`Bearer ${secret}`, secret)).toBe(true);
+    expect(authorizeMailFlush(`Bearer ${secret}x`, secret)).toBe(false);
+    expect(authorizeMailFlush(secret, secret)).toBe(false);
   });
 });

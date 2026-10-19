@@ -2,10 +2,10 @@
 
 - Not production-ready. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
 - Customer checkout: pay on pickup, pay on delivery, quote. No EcoCash, InnBucks, or merchant Paynow.
-- Merchant shop alerts are in-app. Email copies need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. WhatsApp Cloud is not connected.
+- Merchant shop alerts are in-app. Email copies and shopper receipts need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
 - Platform Paynow is subscription billing only ($3/month Pro).
 - One shop per cart. No marketplace commission.
-- No product variants, no file uploads. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Consent is stored; shopper marketing email is not sent.
+- No product variants, no file uploads. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
 - Shop URLs default to `{APP_URL}/store/{slug}` so Cloud Run works without wildcard DNS. `{slug}.{host}` only when `SHOP_HOSTS=true` and a wildcard certificate exists.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).

@@ -16,7 +16,7 @@ Server (Node / Nitro, TanStack Start server functions)
   ├──▶ Supabase Auth — identity, session issuance
   ├──▶ Paynow — payment initiation/polling (subscription billing only)
   ├──▶ Groq — AI Assistant inference (aggregated business summary + question)
-  ├──▶ Resend — optional merchant shop-alert emails (skipped if unset)
+  ├──▶ Resend — merchant shop alerts and shopper receipts (queued if unset)
   └──▶ Upstash Redis — optional cache-aside for workspace lookups (no
        customer/transaction data; fails open if unconfigured)
 

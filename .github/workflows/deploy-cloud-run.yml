@@ -64,8 +64,25 @@ jobs:
           PROJECT: ${{ secrets.GCP_PROJECT_ID }}
           REGION: ${{ inputs.region }}
           SERVICE: ${{ inputs.service }}
+          APP_URL: ${{ secrets.STAGING_APP_URL }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL }}
         run: |
           set -euo pipefail
+          ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,SHOP_HOSTS=false,APP_URL=${APP_URL},SUPABASE_URL=${STAGING_SUPABASE_URL},SUPABASE_PUBLISHABLE_KEY=${STAGING_SUPABASE_PUBLISHABLE_KEY},SUPABASE_PROJECT_ID=${STAGING_SUPABASE_PROJECT_ID},BILLING_ENABLED=true"
+          if [ -n "${NOTIFY_FROM_EMAIL:-}" ]; then
+            ENV_VARS="${ENV_VARS},NOTIFY_FROM_EMAIL=${NOTIFY_FROM_EMAIL}"
+          fi
+          SECRETS="SESSION_SECRET=SESSION_SECRET:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest"
+          for name in RESEND_API_KEY MAIL_FLUSH_SECRET; do
+            if gcloud secrets describe "${name}" --project "${PROJECT}" >/dev/null 2>&1; then
+              SECRETS="${SECRETS},${name}=${name}:latest"
+            else
+              echo "Secret ${name} is not in Secret Manager yet; mail stays queued."
+            fi
+          done
           gcloud run deploy "${SERVICE}" \
             --project "${PROJECT}" \
             --region "${REGION}" \
@@ -77,5 +94,5 @@ jobs:
             --min-instances 0 \
             --max-instances 3 \
             --timeout 60 \
-            --set-env-vars "NODE_ENV=production,HOST=0.0.0.0,SHOP_HOSTS=false,APP_URL=${{ secrets.STAGING_APP_URL }},SUPABASE_URL=${{ secrets.STAGING_SUPABASE_URL }},SUPABASE_PUBLISHABLE_KEY=${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }},SUPABASE_PROJECT_ID=${{ secrets.STAGING_SUPABASE_PROJECT_ID }},BILLING_ENABLED=true" \
-            --set-secrets "SESSION_SECRET=SESSION_SECRET:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest"
+            --set-env-vars "${ENV_VARS}" \
+            --set-secrets "${SECRETS}"
