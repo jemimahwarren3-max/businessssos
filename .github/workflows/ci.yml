@@ -2,9 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
 
 jobs:
   check:
@@ -24,6 +23,10 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
 
       - name: Test
         run: npm run test

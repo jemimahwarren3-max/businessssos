@@ -1,0 +1,35 @@
+# Legal compliance register
+
+Not legal advice. Status vocabulary matches the production-readiness prompt. Operator identity is not invented.
+
+| Requirement | Jurisdiction | Responsible | Evidence | Status | Next action |
+|---|---|---|---|---|---|
+| Contracting entity named in Terms | Operator | Operator + lawyer | `legal/TERMS_OF_SERVICE.md` still placeholder | Required and not implemented | Confirm company/sole trader details |
+| Governing law | Operator | Lawyer | Terms §12 open | Requires professional review | Decide Zimbabwe vs other |
+| Cyber and Data Protection Act [Ch 12:07] | Zimbabwe | Lawyer | Privacy draft describes flows only | Not assessed against the statute | Counsel |
+| POTRAZ registration / DPO | Zimbabwe | Lawyer | None | Not assessed | Counsel + POTRAZ |
+| Consumer Protection Act [Ch 14:44] electronic disclosures | Zimbabwe | Lawyer + product | Shop pages show name, price, stock label, policies if merchant filled them. Platform identity at checkout for subscriptions is the billing page. | Implemented but not verified | Counsel; merchant fields for TIN/address |
+| Marketplace operator vs software provider | All | Operator + lawyer | Directory + hosted checkout on merchant shops. Platform does not take customer funds. | Requires professional review | Decide role per transaction type |
+| Paynow / payment intermediary rules | Zimbabwe | Operator + Paynow | Platform keys used only for BusinessOS subscriptions | Not assessed | Paynow merchant agreement |
+| Income tax, VAT, ZIMRA fiscalisation | Zimbabwe | Tax practitioner | Invoices exist; not labelled as fiscal tax invoices | Required and not implemented (fiscal device/API) | Do not market as ZIMRA-certified |
+| GDPR / UK GDPR | If EU/UK users | Lawyer | Not targeted; processors may still store data abroad | Not assessed | Do not claim GDPR |
+| Cookie consent | Depends | Lawyer | One session cookie; `legal/COOKIE_POLICY.md` | Requires professional review | Counsel |
+| DPA with Supabase, Paynow, Groq | Depends | Operator | `docs/THIRD_PARTY_SERVICES.md` | Requires professional review | Sign or record N/A |
+| Terms of Service | — | Lawyer | Draft | Implemented but not verified | Review |
+| Privacy Policy | — | Lawyer | Draft | Implemented but not verified | Review |
+| Cookie notice | — | Lawyer | Draft | Implemented but not verified | Review |
+| Merchant Agreement | — | Lawyer | Missing | Required and not implemented | Draft after entity exists |
+| Marketplace Terms | — | Lawyer | Missing | Required and not implemented | Draft |
+| Selling/fulfilment responsibilities | — | Lawyer | Partial in storefront copy | Implemented but not verified | Formalise |
+| Shipping / collection | Merchant | Merchant + lawyer | Merchant policies field | Implemented but not verified | Per shop |
+| Returns / refunds | Operator + merchant | Lawyer | `legal/REFUND_POLICY.md` for platform billing; shop policies free text | Requires professional review | Business decision |
+| Acceptable Use | — | Lawyer | Missing as standalone | Required and not implemented | Draft |
+| IP / takedown | — | Lawyer | Missing | Required and not implemented | Draft |
+| Prohibited products | — | Lawyer + ops | Missing | Required and not implemented | Draft + moderation process |
+| Subscription billing terms | — | Lawyer | In Terms + billing UI, $3 Pro | Implemented but not verified | Review |
+| Support / complaints | — | Operator | No public support email | Required and not implemented | Publish contact |
+| Retention / deletion | — | Lawyer | Account deletion RPC exists; accounting hold not coded | Implemented but not verified | Retention schedule |
+| Incident response | — | Operator | `docs/INCIDENT_RESPONSE.md` | Implemented but not verified | Assign on-call |
+| Security contact | — | Operator | Missing | Required and not implemented | Email |
+
+Unresolved questions that block an honest public launch: who is the operator, how to contact them, who is the seller in a marketplace order (the merchant), and whether fiscalisation applies to merchants using the POS.
