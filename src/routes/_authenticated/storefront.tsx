@@ -118,9 +118,19 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const [minimum, setMinimum] = useState(String(store?.delivery.minimumOrder ?? 0));
   const [areas, setAreas] = useState(store?.delivery.areas ?? "");
   const [estimate, setEstimate] = useState(store?.delivery.estimate ?? "");
+  const [quoteRequired, setQuoteRequired] = useState(store?.delivery.quoteRequired ?? false);
+  const [autoAccept, setAutoAccept] = useState(store?.delivery.autoAccept ?? false);
+  const [prepMinutes, setPrepMinutes] = useState(String(store?.delivery.prepMinutes ?? 0));
+  const [cutoff, setCutoff] = useState(store?.delivery.cutoff ?? "");
+  const [collectionWindows, setCollectionWindows] = useState(
+    store?.delivery.collectionWindows ?? "",
+  );
   const [payPickup, setPayPickup] = useState(store?.payments.payOnPickup ?? true);
   const [payDelivery, setPayDelivery] = useState(store?.payments.payOnDelivery ?? false);
   const [quotes, setQuotes] = useState(store?.payments.quotes ?? false);
+  const [cashCurrencies, setCashCurrencies] = useState(store?.payments.cashCurrencies ?? "");
+  const [exactCash, setExactCash] = useState(store?.payments.exactCash ?? false);
+  const [changeProvided, setChangeProvided] = useState(store?.payments.changeProvided ?? false);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
 
   const saveMutation = useMutation({
@@ -149,8 +159,20 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             minimumOrder: Number(minimum) || 0,
             areas,
             estimate,
+            quoteRequired,
+            autoAccept,
+            prepMinutes: Number(prepMinutes) || 0,
+            cutoff,
+            collectionWindows,
           },
-          payments: { payOnPickup: payPickup, payOnDelivery: payDelivery, quotes },
+          payments: {
+            payOnPickup: payPickup,
+            payOnDelivery: payDelivery,
+            quotes,
+            cashCurrencies,
+            exactCash,
+            changeProvided: changeProvided && !exactCash,
+          },
         },
       }),
     onSuccess: () => {
@@ -356,21 +378,58 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           <Label>Delivery estimate</Label>
           <Input value={estimate} onChange={(event) => setEstimate(event.target.value)} />
         </label>
+        <label className="flex items-center gap-2 text-sm md:col-span-2">
+          <input
+            type="checkbox"
+            checked={quoteRequired}
+            onChange={(event) => setQuoteRequired(event.target.checked)}
+          />{" "}
+          Quote delivery instead of charging a fixed fee
+        </label>
+        <label className="flex items-center gap-2 text-sm md:col-span-2">
+          <input
+            type="checkbox"
+            checked={autoAccept}
+            onChange={(event) => setAutoAccept(event.target.checked)}
+          />{" "}
+          Accept eligible orders automatically. Payment is still unpaid until you record it.
+        </label>
+        <label className="text-sm">
+          <Label>Preparation time (minutes)</Label>
+          <Input value={prepMinutes} onChange={(event) => setPrepMinutes(event.target.value)} />
+        </label>
+        <label className="text-sm">
+          <Label>Order cut-off</Label>
+          <Input
+            value={cutoff}
+            onChange={(event) => setCutoff(event.target.value)}
+            placeholder="For example 16:00 weekdays"
+          />
+        </label>
+        <label className="text-sm md:col-span-2">
+          <Label>Collection windows</Label>
+          <Input
+            value={collectionWindows}
+            onChange={(event) => setCollectionWindows(event.target.value)}
+            placeholder="For example 10:00-12:00 and 15:00-17:00"
+          />
+        </label>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={payPickup}
             onChange={(event) => setPayPickup(event.target.checked)}
           />{" "}
-          Pay on pickup
+          Pay cash on collection
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={payDelivery}
+            disabled={quoteRequired}
             onChange={(event) => setPayDelivery(event.target.checked)}
           />{" "}
-          Pay on delivery
+          Pay cash on delivery
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -379,6 +438,38 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             onChange={(event) => setQuotes(event.target.checked)}
           />{" "}
           Quote requests
+        </label>
+        <p className="text-sm text-muted-foreground md:col-span-2">
+          Online Paynow for customer orders is not connected. Do not tell customers they can pay by
+          EcoCash or card through this shop yet.
+        </p>
+        <label className="text-sm">
+          <Label>Cash currencies accepted</Label>
+          <Input
+            value={cashCurrencies}
+            onChange={(event) => setCashCurrencies(event.target.value)}
+            placeholder="USD, ZiG"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={exactCash}
+            onChange={(event) => {
+              setExactCash(event.target.checked);
+              if (event.target.checked) setChangeProvided(false);
+            }}
+          />{" "}
+          Exact cash required
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={changeProvided && !exactCash}
+            disabled={exactCash}
+            onChange={(event) => setChangeProvided(event.target.checked)}
+          />{" "}
+          Shop can give change
         </label>
         <div className="flex flex-wrap gap-2 md:col-span-2">
           <Button
@@ -514,6 +605,12 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
               {selectedOrder.customerName} · {selectedOrder.customerPhone}
             </p>
             {selectedOrder.customerAddress ? <p>{selectedOrder.customerAddress}</p> : null}
+            {selectedOrder.terms?.total != null ? (
+              <p className="mt-2 text-muted-foreground">
+                Agreed total {selectedOrder.currency} {selectedOrder.terms.total}. Later shop
+                setting changes do not rewrite this order.
+              </p>
+            ) : null}
             <ul className="mt-2">
               {selectedOrder.items.map((item) => (
                 <li key={item.name}>

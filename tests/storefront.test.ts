@@ -10,7 +10,9 @@ import {
 } from "@/lib/storefront/host";
 import { deliveryFee, orderTotal, roundMoney } from "@/lib/storefront/pricing";
 import { STORE_TEMPLATES, TEMPLATE_IDS, isTemplateId } from "@/lib/storefront/templates";
+import { allowedFulfilments, allowedPayments, cashPolicyLines } from "@/lib/storefront/order-rules";
 import { fulfilmentActions } from "@/lib/storefront/transitions";
+import type { PublicStore } from "@/lib/storefront/contract";
 
 const root = parsePlatformRoot("http://localhost:8080");
 
@@ -177,5 +179,69 @@ describe("online order transitions", () => {
     expect(actions).not.toContain("cancel");
     expect(actions).not.toContain("mark_paid");
     expect(actions).toContain("preparing");
+  });
+});
+
+function sampleStore(
+  delivery: Partial<PublicStore["delivery"]>,
+  payments: Partial<PublicStore["payments"]>,
+): Pick<PublicStore, "delivery" | "payments" | "currency"> {
+  return {
+    currency: "USD",
+    delivery: {
+      pickupEnabled: true,
+      deliveryEnabled: false,
+      flatFee: 0,
+      freeOver: null,
+      minimumOrder: 0,
+      areas: "",
+      estimate: "",
+      quoteRequired: false,
+      autoAccept: false,
+      prepMinutes: 0,
+      cutoff: "",
+      collectionWindows: "",
+      ...delivery,
+    },
+    payments: {
+      payOnPickup: true,
+      payOnDelivery: false,
+      quotes: false,
+      paynow: false,
+      cashCurrencies: "",
+      exactCash: false,
+      changeProvided: false,
+      ...payments,
+    },
+  };
+}
+
+describe("order rules", () => {
+  it("hides priced delivery when the shop requires a quote", () => {
+    const store = sampleStore(
+      { pickupEnabled: false, deliveryEnabled: true, quoteRequired: true },
+      { payOnPickup: false, payOnDelivery: true, quotes: true },
+    );
+    expect(allowedFulfilments(store)).toEqual(["quote"]);
+    expect(allowedPayments(store, "delivery")).toEqual(["quote"]);
+    expect(allowedPayments(store, "quote")).toEqual(["quote"]);
+  });
+
+  it("does not offer cash on delivery for pickup, or Paynow", () => {
+    const store = sampleStore(
+      { pickupEnabled: true, deliveryEnabled: true },
+      { payOnPickup: true, payOnDelivery: true, quotes: true, paynow: true },
+    );
+    expect(allowedFulfilments(store)).toEqual(["pickup", "delivery", "quote"]);
+    expect(allowedPayments(store, "pickup")).toEqual(["pay_on_pickup", "quote"]);
+    expect(allowedPayments(store, "delivery")).toEqual(["pay_on_delivery", "quote"]);
+  });
+
+  it("states exact cash before the customer commits", () => {
+    const store = sampleStore({}, { cashCurrencies: "USD", exactCash: true, changeProvided: true });
+    expect(cashPolicyLines(store)).toEqual([
+      "Cash accepted in USD.",
+      "Bring the exact amount. This shop has not agreed to give change.",
+    ]);
   });
 });

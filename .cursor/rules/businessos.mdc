@@ -1,0 +1,22 @@
+---
+description: BusinessOS engineering constitution
+alwaysApply: true
+---
+
+Work incrementally in this repository. Do not rebuild BusinessOS. Do not delete working POS, inventory, sales, auth, or reporting.
+
+Never trust the browser for prices, stock, discounts, payment confirmation, or permissions. Validate on the server and in Postgres.
+
+Use migrations for schema changes. Do not drop tables, disable RLS, or reset production data.
+
+Online orders stay off the sales ledger until a merchant records payment. Do not call `create_sale` from public checkout.
+
+Platform Paynow is subscription billing only. Do not use those keys for customer shop funds.
+
+Do not invent verification badges, reviews, stock, legal compliance, or sent notifications.
+
+Do not put secrets in client code. Keep tenant data isolated.
+
+UI copy: no em dashes. Prefer complete vertical slices over unfinished decorative screens.
+
+Staging is the only default migration target. Production requires explicit human approval.
