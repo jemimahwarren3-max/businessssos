@@ -18,3 +18,4 @@
 - Order rules: cash currencies, exact-cash, quote-required delivery, and automatic acceptance are enforced in SQL. Preparation minutes, cut-off text, and collection windows are shown to customers but are not calendar-enforced.
 - Distance-based delivery fees, address geocoding, and multi-merchant carts are not implemented.
 - The 200-feature product roadmap is not built. See `BUSINESSOS_AUDIT.md`.
+- Open-source tooling: keep the Supabase commerce backend. See `OPEN_SOURCE_TOOLING_AUDIT.md`. Medusa, Meilisearch, and Umami are not installed.

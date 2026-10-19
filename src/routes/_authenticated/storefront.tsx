@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { DataTable, type ColumnDef } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -516,58 +517,27 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <p className="text-sm text-muted-foreground">
           These are the same products as Inventory. Publishing one here does not copy it.
         </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="py-2">Product</th>
-                <th>Stock</th>
-                <th>Online</th>
-              </tr>
-            </thead>
-            <tbody>
-              {initial.products.map((product) => (
-                <tr key={product.id} className="border-b">
-                  <td className="py-2">
-                    {product.name}
-                    <span className="block text-xs text-muted-foreground">
-                      {product.categoryName}
-                    </span>
-                  </td>
-                  <td>{product.stock}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant={product.published ? "secondary" : "outline"}
-                      onClick={() =>
-                        void saveListing({
-                          data: {
-                            businessId,
-                            productId: product.id,
-                            published: !product.published,
-                            details: product.details,
-                            sizeGuide: product.sizeGuide,
-                            minQty: product.minQty,
-                            maxQty: product.maxQty,
-                            featured: product.featured,
-                          },
-                        })
-                          .then(() =>
-                            queryClient.invalidateQueries({ queryKey: ["storefront", businessId] }),
-                          )
-                          .catch((error: Error) =>
-                            toast.error(readableError(error, "Could not update the product")),
-                          )
-                      }
-                    >
-                      {product.published ? "Unpublish" : "Publish"}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <StorefrontProductTable
+          products={initial.products}
+          onToggle={(product) =>
+            void saveListing({
+              data: {
+                businessId,
+                productId: product.id,
+                published: !product.published,
+                details: product.details,
+                sizeGuide: product.sizeGuide,
+                minQty: product.minQty,
+                maxQty: product.maxQty,
+                featured: product.featured,
+              },
+            })
+              .then(() => queryClient.invalidateQueries({ queryKey: ["storefront", businessId] }))
+              .catch((error: Error) =>
+                toast.error(readableError(error, "Could not update the product")),
+              )
+          }
+        />
       </section>
 
       <section className="space-y-3">
@@ -657,4 +627,46 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
       </section>
     </div>
   );
+}
+
+type StorefrontProduct = AdminStore["products"][number];
+
+function StorefrontProductTable({
+  products,
+  onToggle,
+}: {
+  products: StorefrontProduct[];
+  onToggle: (product: StorefrontProduct) => void;
+}) {
+  const columns: ColumnDef<StorefrontProduct, unknown>[] = [
+    {
+      accessorKey: "name",
+      header: "Product",
+      cell: ({ row }) => (
+        <div>
+          {row.original.name}
+          <span className="block text-xs text-muted-foreground">{row.original.categoryName}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "stock",
+      header: "Stock",
+    },
+    {
+      id: "online",
+      header: "Online",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <Button
+          size="sm"
+          variant={row.original.published ? "secondary" : "outline"}
+          onClick={() => onToggle(row.original)}
+        >
+          {row.original.published ? "Unpublish" : "Publish"}
+        </Button>
+      ),
+    },
+  ];
+  return <DataTable columns={columns} data={products} caption="Storefront products" />;
 }
