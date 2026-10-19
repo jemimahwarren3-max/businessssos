@@ -103,6 +103,7 @@ export type Database = {
           po_seq: number;
           quote_seq: number;
           sale_seq: number;
+          store_order_seq: number;
         };
         Insert: {
           business_id: string;
@@ -110,6 +111,7 @@ export type Database = {
           po_seq?: number;
           quote_seq?: number;
           sale_seq?: number;
+          store_order_seq?: number;
         };
         Update: {
           business_id?: string;
@@ -117,6 +119,7 @@ export type Database = {
           po_seq?: number;
           quote_seq?: number;
           sale_seq?: number;
+          store_order_seq?: number;
         };
         Relationships: [
           {
@@ -1509,6 +1512,7 @@ export type Database = {
         Row: {
           amount_paid: number;
           business_id: string;
+          channel: string;
           cost_total: number;
           created_at: string;
           created_by: string | null;
@@ -1528,6 +1532,7 @@ export type Database = {
         Insert: {
           amount_paid?: number;
           business_id: string;
+          channel?: string;
           cost_total?: number;
           created_at?: string;
           created_by?: string | null;
@@ -1547,6 +1552,7 @@ export type Database = {
         Update: {
           amount_paid?: number;
           business_id?: string;
+          channel?: string;
           cost_total?: number;
           created_at?: string;
           created_by?: string | null;
@@ -2014,6 +2020,65 @@ export type Database = {
         };
         Returns: string;
       };
+      get_public_store: {
+        Args: {
+          _slug: string;
+          _query?: string;
+          _category?: string;
+          _sort?: string;
+          _limit?: number;
+          _offset?: number;
+        };
+        Returns: Json;
+      };
+      get_store_preview: { Args: { _slug: string }; Returns: Json };
+      quote_store_cart: {
+        Args: { _slug: string; _items: Json; _fulfilment: string };
+        Returns: Json;
+      };
+      create_store_order: {
+        Args: {
+          _slug: string;
+          _idempotency_key: string;
+          _customer: Json;
+          _items: Json;
+          _fulfilment: string;
+          _payment_method: string;
+        };
+        Returns: Json;
+      };
+      get_store_order: {
+        Args: { _slug: string; _reference: string; _token: string };
+        Returns: Json;
+      };
+      save_storefront: { Args: { _business_id: string; _patch: Json }; Returns: Json };
+      set_product_listing: {
+        Args: {
+          _business_id: string;
+          _product_id: string;
+          _published: boolean;
+          _details: string;
+          _size_guide: string;
+          _min_qty: number;
+          _max_qty: number | null;
+          _featured: boolean;
+        };
+        Returns: undefined;
+      };
+      set_storefront_published: {
+        Args: { _business_id: string; _published: boolean };
+        Returns: Json;
+      };
+      get_storefront_admin: { Args: { _business_id: string }; Returns: Json };
+      get_store_order_admin: {
+        Args: { _business_id: string; _order_id: string };
+        Returns: Json;
+      };
+      transition_store_order: {
+        Args: { _business_id: string; _order_id: string; _action: string };
+        Returns: Json;
+      };
+      list_public_store_paths: { Args: never; Returns: Json };
       accept_business_invite: { Args: { _token: string }; Returns: string };
       create_business_invite: {
         Args: {

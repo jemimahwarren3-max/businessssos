@@ -21,6 +21,7 @@ import {
   Receipt,
   Settings,
   ShoppingCart,
+  Store,
   Sparkles,
   Truck,
   UserX,
@@ -52,6 +53,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/sales", label: "Sales", icon: ShoppingCart },
+  { to: "/storefront", label: "Storefront", icon: Store },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/suppliers", label: "Suppliers", icon: Truck },
   { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
