@@ -75,6 +75,50 @@ export const publicStoreSchema = z.object({
 export type PublicStore = z.infer<typeof publicStoreSchema>;
 export type PublicProduct = z.infer<typeof publicProductSchema>;
 
+export const marketplaceProductSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  price: z.coerce.number(),
+  currency: z.string(),
+  imageUrl: z.string().nullable(),
+  categoryName: z.string().nullable(),
+  stockLabel: z.string(),
+  available: z.boolean(),
+  featured: z.boolean(),
+  storeSlug: z.string(),
+  storeName: z.string(),
+});
+
+export const marketplaceSchema = z.object({
+  query: z.string(),
+  category: z.string(),
+  shops: z.array(
+    z.object({
+      slug: z.string(),
+      storeName: z.string(),
+      tagline: z.string(),
+      businessType: z.string(),
+      logoUrl: z.string().nullable(),
+      address: z.string(),
+      currency: z.string(),
+    }),
+  ),
+  products: z.array(marketplaceProductSchema),
+  categories: z.array(z.object({ name: z.string(), count: z.coerce.number() })),
+  featured: z.array(marketplaceProductSchema),
+  recent: z.array(marketplaceProductSchema),
+});
+
+export const marketplaceListingSchema = z.object({
+  listed: z.boolean(),
+  hasStore: z.boolean(),
+});
+
+export type Marketplace = z.infer<typeof marketplaceSchema>;
+export type MarketplaceProduct = z.infer<typeof marketplaceProductSchema>;
+export type MarketplaceListing = z.infer<typeof marketplaceListingSchema>;
+
 export const quoteSchema = z.object({
   currency: z.string(),
   subtotal: z.coerce.number(),

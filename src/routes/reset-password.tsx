@@ -14,9 +14,9 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Choose a new password — BusinessOS AI" },
+      { title: "Choose a new password | BusinessOS AI" },
       { name: "description", content: "Set a new password for your BusinessOS AI account." },
-      { property: "og:title", content: "Choose a new password — BusinessOS AI" },
+      { property: "og:title", content: "Choose a new password | BusinessOS AI" },
       { property: "og:description", content: "Secure your BusinessOS AI account." },
       { name: "robots", content: "noindex" },
     ],

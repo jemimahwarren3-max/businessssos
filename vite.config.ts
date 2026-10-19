@@ -6,8 +6,17 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const appUrl = (
+  process.env["APP_URL"] ||
+  process.env["VITE_APP_URL"] ||
+  "http://localhost:8080"
+).replace(/\/+$/, "");
+
 export default defineConfig(({ command }) => {
   return {
+    define: {
+      "import.meta.env.VITE_APP_URL": JSON.stringify(appUrl),
+    },
     css: { transformer: "lightningcss" },
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
@@ -33,6 +42,8 @@ export default defineConfig(({ command }) => {
     server: {
       host: "::",
       port: 8080,
+      // Shop addresses in dev are http://{slug}.localhost:8080.
+      allowedHosts: true,
       watch: { awaitWriteFinish: { stabilityThreshold: 1000, pollInterval: 100 } },
     },
     plugins: [

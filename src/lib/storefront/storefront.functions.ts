@@ -9,6 +9,8 @@ import {
   loadAdminOrder,
   loadAdminStore,
   loadCustomerOrder,
+  loadMarketplace,
+  loadMarketplaceListing,
   loadPublicStore,
   loadStorePreview,
   placeOrder,
@@ -16,6 +18,7 @@ import {
   quoteCart,
   saveListing,
   saveStorefront,
+  setMarketplaceVisible,
   transitionOrder,
 } from "./storefront.server";
 
@@ -28,6 +31,37 @@ const checkoutLimit = [
 const authed = [
   authedRateLimit({ keyPrefix: "store-admin", maxRequests: 60, windowSeconds: 60 }),
 ] as const;
+
+export const getMarketplaceFn = createServerFn({ method: "POST" })
+  .middleware(publicLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        query: z.string().max(80).optional(),
+        category: z.string().max(80).optional(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data }) => loadMarketplace(data));
+
+export const getMarketplaceListingFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    loadMarketplaceListing(context.supabase as Db, data.businessId),
+  );
+
+export const setMarketplaceVisibleFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid(), listed: z.boolean() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    setMarketplaceVisible(context.supabase as Db, data.businessId, data.listed),
+  );
 
 export const getPublicStoreFn = createServerFn({ method: "POST" })
   .middleware(publicLimit)

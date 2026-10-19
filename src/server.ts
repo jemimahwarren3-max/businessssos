@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { configuredPlatformRoot, publicStoreRedirect } from "./lib/storefront/host";
 import { initSentry } from "./lib/monitoring/sentry";
 
 void initSentry();
@@ -122,6 +123,12 @@ export default {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/webhooks/paynow") {
       return handlePaynowWebhook(request);
+    }
+
+    const platform = configuredPlatformRoot();
+    if (platform && (request.method === "GET" || request.method === "HEAD")) {
+      const target = publicStoreRedirect(url, platform);
+      if (target) return Response.redirect(target, 308);
     }
 
     try {

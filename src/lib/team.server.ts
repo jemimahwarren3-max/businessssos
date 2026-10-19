@@ -238,7 +238,7 @@ export async function resetStaffPassword(
   if (lookupError) dbFail("look up staff member", lookupError);
   if (!member?.staff_name) {
     throw new AppError(
-      'That team member signs in with email — they can use "Forgot password" instead.',
+      'That team member signs in with email, they can use "Forgot password" instead.',
     );
   }
   if (await isPasswordBreached(newPassword)) {

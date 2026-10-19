@@ -4,7 +4,7 @@ import content from "../../legal/REFUND_POLICY.md?raw";
 
 export const Route = createFileRoute("/legal/refunds")({
   head: () => ({
-    meta: [{ title: "Refund Policy — BusinessOS AI" }],
+    meta: [{ title: "Refund Policy | BusinessOS AI" }],
   }),
   component: () => <LegalDocument content={content} />,
 });

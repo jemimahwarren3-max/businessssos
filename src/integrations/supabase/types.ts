@@ -2079,6 +2079,20 @@ export type Database = {
         Returns: Json;
       };
       list_public_store_paths: { Args: never; Returns: Json };
+      browse_marketplace: {
+        Args: {
+          _query?: string;
+          _category?: string;
+          _limit?: number;
+          _offset?: number;
+        };
+        Returns: Json;
+      };
+      get_marketplace_listing: { Args: { _business_id: string }; Returns: Json };
+      set_marketplace_visible: {
+        Args: { _business_id: string; _visible: boolean };
+        Returns: Json;
+      };
       accept_business_invite: { Args: { _token: string }; Returns: string };
       create_business_invite: {
         Args: {

@@ -205,13 +205,13 @@ function AdminDashboard() {
               {(overview.data?.subscriptions ?? []).map((s) => (
                 <TableRow key={s.business_id}>
                   <TableCell className="font-medium">{s.business_name}</TableCell>
-                  <TableCell className="capitalize">{s.plan ?? "—"}</TableCell>
+                  <TableCell className="capitalize">{s.plan ?? "-"}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{s.status ?? "—"}</Badge>
+                    <Badge variant="outline">{s.status ?? "-"}</Badge>
                   </TableCell>
-                  <TableCell>{s.trial_ends_at ? friendlyDate(s.trial_ends_at) : "—"}</TableCell>
+                  <TableCell>{s.trial_ends_at ? friendlyDate(s.trial_ends_at) : "-"}</TableCell>
                   <TableCell>
-                    {s.current_period_end ? friendlyDate(s.current_period_end) : "—"}
+                    {s.current_period_end ? friendlyDate(s.current_period_end) : "-"}
                   </TableCell>
                   <TableCell>
                     <Button

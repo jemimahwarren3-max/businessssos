@@ -7,12 +7,16 @@ import {
   adminStoreSchema,
   checkoutResultSchema,
   customerOrderSchema,
+  marketplaceListingSchema,
+  marketplaceSchema,
   publicStoreSchema,
   quoteSchema,
   type AdminOrder,
   type AdminStore,
   type CartQuote,
   type CustomerOrder,
+  type Marketplace,
+  type MarketplaceListing,
   type PublicStore,
 } from "./contract";
 
@@ -200,6 +204,42 @@ export async function transitionOrder(
     _action: action,
   });
   return parseRpc("update online order", result, adminOrderSchema);
+}
+
+export async function loadMarketplace(input: {
+  query?: string | undefined;
+  category?: string | undefined;
+}): Promise<Marketplace> {
+  const supabase = createAnonClient();
+  const result = await supabase.rpc("browse_marketplace", {
+    _query: input.query ?? "",
+    _category: input.category ?? "",
+    _limit: 24,
+    _offset: 0,
+  });
+  return parseRpc("browse marketplace", result, marketplaceSchema);
+}
+
+export async function loadMarketplaceListing(
+  supabase: Db,
+  businessId: string,
+): Promise<MarketplaceListing> {
+  const result = await supabase.rpc("get_marketplace_listing", { _business_id: businessId });
+  return parseRpc("marketplace listing", result, marketplaceListingSchema);
+}
+
+export async function setMarketplaceVisible(
+  supabase: Db,
+  businessId: string,
+  listed: boolean,
+): Promise<MarketplaceListing> {
+  await assertCanWrite(supabase, businessId);
+  await assertPermission(supabase, businessId, "business.settings");
+  const result = await supabase.rpc("set_marketplace_visible", {
+    _business_id: businessId,
+    _visible: listed,
+  });
+  return parseRpc("set marketplace listing", result, marketplaceListingSchema);
 }
 
 export async function listPublicPaths(): Promise<

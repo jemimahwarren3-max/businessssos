@@ -26,7 +26,7 @@ import { readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/account")({
   head: () => ({
-    meta: [{ title: "Account — BusinessOS AI" }],
+    meta: [{ title: "Account | BusinessOS AI" }],
   }),
   component: AccountSettings,
 });
@@ -282,8 +282,8 @@ function AccountSettings() {
           </h2>
           {isOwner ? (
             <p className="mt-1 text-sm text-muted-foreground">
-              This permanently deletes <strong>{workspace.data.business.name}</strong> — every
-              product, sale, invoice, quote, customer, and expense — along with your login. This
+              This permanently deletes <strong>{workspace.data.business.name}</strong>, every
+              product, sale, invoice, quote, customer, and expense, along with your login. This
               cannot be undone. If you want to keep a copy first, use{" "}
               <span className="font-medium text-foreground">Export data</span> before continuing.
             </p>

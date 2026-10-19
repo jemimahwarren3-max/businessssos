@@ -84,12 +84,12 @@ const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
 export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — BusinessOS AI" },
+      { title: "Inventory | BusinessOS AI" },
       {
         name: "description",
         content: "Track products, stock levels, cost and selling prices, and restock alerts.",
       },
-      { property: "og:title", content: "Inventory — BusinessOS AI" },
+      { property: "og:title", content: "Inventory | BusinessOS AI" },
       { property: "og:description", content: "Know exactly what you have in stock." },
     ],
   }),
@@ -543,7 +543,7 @@ function Inventory() {
             <DialogTitle>{stockTarget?.mode === "in" ? "Add stock" : "Remove stock"}</DialogTitle>
             <DialogDescription>
               {stockTarget
-                ? `${stockTarget.product.name} — currently ${formatNumber(
+                ? `${stockTarget.product.name}, currently ${formatNumber(
                     Number(stockTarget.product.stock),
                   )} ${stockTarget.product.unit}`
                 : ""}
@@ -594,7 +594,7 @@ function Inventory() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import products"
-        description="Bring in a product list from a spreadsheet — opening stock is recorded as a stock-in movement."
+        description="Bring in a product list from a spreadsheet, opening stock is recorded as a stock-in movement."
         columns={PRODUCT_IMPORT_COLUMNS}
         templateFilename="products-template"
         parseRow={(record, rowNumber) => {
@@ -620,7 +620,7 @@ function Inventory() {
             rowNumber,
             ok: true,
             value: result.data,
-            summary: `${result.data.name} — ${formatNumber(result.data.stock)} ${result.data.unit} @ ${formatMoney(result.data.sellingPrice, currency)}`,
+            summary: `${result.data.name}, ${formatNumber(result.data.stock)} ${result.data.unit} @ ${formatMoney(result.data.sellingPrice, currency)}`,
           };
         }}
         onImport={async (rows) => {

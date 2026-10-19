@@ -41,7 +41,7 @@ import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/recurring-invoices")({
   head: () => ({
     meta: [
-      { title: "Recurring invoices — BusinessOS AI" },
+      { title: "Recurring invoices | BusinessOS AI" },
       { name: "description", content: "Invoices that generate themselves on a schedule." },
     ],
   }),
@@ -209,7 +209,7 @@ function RecurringInvoices() {
             <Repeat className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
             <h2 className="mt-3 text-lg font-semibold">No recurring invoices yet</h2>
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-              Set one up for a customer you bill on a regular schedule — rent, a subscription, a
+              Set one up for a customer you bill on a regular schedule, rent, a subscription, a
               retainer.
             </p>
           </div>
@@ -285,7 +285,7 @@ function RecurringInvoices() {
           <DialogHeader>
             <DialogTitle>New recurring invoice</DialogTitle>
             <DialogDescription>
-              A real draft invoice gets created automatically each time this comes due — you still
+              A real draft invoice gets created automatically each time this comes due, you still
               review and send it yourself.
             </DialogDescription>
           </DialogHeader>

@@ -11,10 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { readableError } from "@/lib/format";
+import { storePublicUrl } from "@/lib/storefront/host";
 import {
   getAdminOrderFn,
+  getMarketplaceListingFn,
   getStorefrontAdminFn,
   publishStorefrontFn,
+  setMarketplaceVisibleFn,
   saveListingFn,
   saveStorefrontFn,
   transitionOrderFn,
@@ -25,7 +28,7 @@ import type { AdminOrder, AdminStore } from "@/lib/storefront/contract";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
-    meta: [{ title: "Storefront — BusinessOS AI" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Storefront | BusinessOS AI" }, { name: "robots", content: "noindex" }],
   }),
   component: StorefrontPage,
 });
@@ -87,6 +90,8 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const queryClient = useQueryClient();
   const save = useServerFn(saveStorefrontFn);
   const publish = useServerFn(publishStorefrontFn);
+  const loadListing = useServerFn(getMarketplaceListingFn);
+  const setListed = useServerFn(setMarketplaceVisibleFn);
   const saveListing = useServerFn(saveListingFn);
   const loadOrder = useServerFn(getAdminOrderFn);
   const transition = useServerFn(transitionOrderFn);
@@ -155,6 +160,22 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
     onError: (error: Error) => toast.error(readableError(error, "Could not save the shop")),
   });
 
+  const listing = useQuery({
+    queryKey: ["marketplace-listing", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => loadListing({ data: { businessId: businessId! } }),
+  });
+  const listingMutation = useMutation({
+    mutationFn: (listed: boolean) => setListed({ data: { businessId: businessId!, listed } }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["marketplace-listing", businessId], data);
+      toast.success(
+        data.listed ? "Shop listed in the marketplace" : "Shop hidden from the marketplace",
+      );
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Could not update the marketplace listing")),
+  });
   const publishMutation = useMutation({
     mutationFn: (published: boolean) => publish({ data: { businessId, published } }),
     onSuccess: (_data, published) => {
@@ -164,7 +185,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
     onError: (error: Error) => toast.error(readableError(error, "Could not change publication")),
   });
 
-  const path = store ? `/store/${store.slug}` : "";
+  const publicUrl = store ? storePublicUrl(store.slug) : "";
 
   return (
     <div className="space-y-10">
@@ -173,7 +194,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <ol className="space-y-1 text-sm">
           {STEPS.map(([key, label]) => (
             <li key={key}>
-              {initial.checklist[key] ? "Done" : "To do"} — {label}
+              {initial.checklist[key] ? "Done" : "To do"}, {label}
             </li>
           ))}
         </ol>
@@ -182,12 +203,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           pay on delivery, or quote requests. Recording payment creates a normal sale and is what
           counts as revenue.
         </p>
-        {path ? (
+        {publicUrl ? (
           <p className="text-sm">
-            Link:{" "}
-            <Link to="/store/$slug" params={{ slug: store!.slug }}>
-              {path}
-            </Link>
+            Link: <a href={publicUrl}>{publicUrl}</a>
             {" · "}
             <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: "1" }}>
               Preview with your published products
@@ -195,7 +213,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             <button
               className="ml-2 underline"
               type="button"
-              onClick={() => void navigator.clipboard.writeText(window.location.origin + path)}
+              onClick={() => void navigator.clipboard.writeText(publicUrl)}
             >
               Copy link
             </button>
@@ -388,6 +406,17 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           >
             {store?.status === "published" ? "Unpublish" : "Publish"}
           </Button>
+          {listing.data?.hasStore ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={listing.data.listed}
+                disabled={listingMutation.isPending}
+                onChange={(event) => listingMutation.mutate(event.target.checked)}
+              />
+              Show this shop on the BusinessOS marketplace
+            </label>
+          ) : null}
         </div>
       </section>
 

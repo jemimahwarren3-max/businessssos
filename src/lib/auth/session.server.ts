@@ -22,7 +22,7 @@ function sessionConfig(): SessionConfig {
   const password = process.env["SESSION_SECRET"];
   if (!password) {
     throw new Error(
-      "Missing SESSION_SECRET environment variable — generate 32+ random characters and set it in .env.",
+      "Missing SESSION_SECRET environment variable, generate 32+ random characters and set it in .env.",
     );
   }
   return {
