@@ -30,9 +30,11 @@ gcloud run deploy businessos \
 
 `--allow-unauthenticated` is required for a public shop. IAM still does not replace app auth.
 
+See `CLOUD_RUN_LAUNCH.md` for the first-revision checklist and GitHub Action.
+
 ## Custom domains and shops
 
-The app expects `https://{slug}.{APP_URL host}`. Cloud Run domain mapping binds one hostname. Wildcard shops need a load balancer (or Cloudflare) with a wildcard certificate forwarding to the Cloud Run service. Until that exists, keep using path URLs only in DNS-less environments; the 308 redirect to the subdomain will fail to resolve.
+`SHOP_HOSTS=false` (Cloud Run default) keeps shops at `https://{APP_URL host}/store/{slug}` and does not 308 to a subdomain. Set `SHOP_HOSTS=true` and rebuild only when a wildcard certificate exists. Cloud Run domain mapping binds one hostname; `{slug}.run.app` is not available.
 
 Paynow `resulturl` must be `https://yourdomain.com/api/webhooks/paynow` on the apex, not a shop host.
 

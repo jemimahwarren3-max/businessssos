@@ -11,11 +11,13 @@ const appUrl = (
   process.env["VITE_APP_URL"] ||
   "http://localhost:8080"
 ).replace(/\/+$/, "");
+const shopHostsFlag = (process.env["SHOP_HOSTS"] || process.env["VITE_SHOP_HOSTS"] || "").trim();
 
 export default defineConfig(({ command }) => {
   return {
     define: {
       "import.meta.env.VITE_APP_URL": JSON.stringify(appUrl),
+      "import.meta.env.VITE_SHOP_HOSTS": JSON.stringify(shopHostsFlag),
     },
     css: { transformer: "lightningcss" },
     resolve: {

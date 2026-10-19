@@ -53,7 +53,7 @@ Every box is evidence-based. Unverified stays unchecked.
 ## Quality
 
 - [x] Targeted unit tests added/updated this stage (run locally).
-- [ ] Production Docker/Cloud Run image built in this environment.
+- [ ] Production Docker/Cloud Run image built in this environment. Dockerfile and a manual GitHub deploy workflow exist; this agent has not built in GCP.
 - [ ] Mobile layouts re-tested this session.
 - [ ] Accessibility issues independently reviewed.
 - [ ] Core journeys tested against staging in a browser this session.

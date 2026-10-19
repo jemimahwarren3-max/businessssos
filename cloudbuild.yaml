@@ -1,0 +1,37 @@
+# Operator alternative to the GitHub Action: `gcloud builds submit --config cloudbuild.yaml`.
+# Substitutions must be passed on the command line. Do not put secrets in this file.
+
+substitutions:
+  _SERVICE: businessos
+  _REGION: us-central1
+  _SHOP_HOSTS: "false"
+  _APP_URL: ""
+  _VITE_SUPABASE_URL: ""
+  _VITE_SUPABASE_PUBLISHABLE_KEY: ""
+  _VITE_SUPABASE_PROJECT_ID: ""
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}
+      - --build-arg
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${_VITE_SUPABASE_PUBLISHABLE_KEY}
+      - --build-arg
+      - VITE_SUPABASE_PROJECT_ID=${_VITE_SUPABASE_PROJECT_ID}
+      - --build-arg
+      - APP_URL=${_APP_URL}
+      - --build-arg
+      - SHOP_HOSTS=${_SHOP_HOSTS}
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/businessos/${_SERVICE}:${SHORT_SHA}
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/businessos/${_SERVICE}:${SHORT_SHA}
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/businessos/${_SERVICE}:${SHORT_SHA}
