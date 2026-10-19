@@ -100,7 +100,7 @@ export async function assertPermission(supabase: Db, businessId: string, permiss
 }
 
 const READ_ONLY_MESSAGE =
-  "Your trial has ended. Upgrade to Pro to keep creating and editing — your existing data is still safe and visible.";
+  "Your trial has ended. Upgrade to Pro to keep creating and editing, your existing data is still safe and visible.";
 
 /** True if a subscription in this state is allowed to write — active, or
  * still inside an unexpired trial. Shared by assertCanWrite (server-side
@@ -257,7 +257,7 @@ export async function createBusinessRecord(
     title: "Welcome to BusinessOS AI",
     message: isBillingEnabled()
       ? "Your 3-day Pro trial has started. Add your first products to begin."
-      : "You're in! BusinessOS is free during our beta — add your first products to begin.",
+      : "You're in! BusinessOS is free during our beta, add your first products to begin.",
     severity: "info",
   });
   await recordAudit(supabase, {
@@ -379,7 +379,7 @@ export async function importProducts(
         (error as { code?: string } | null)?.code === "23505"
           ? "duplicate SKU"
           : "couldn't be saved";
-      errors.push(`Row ${index + 2}: ${row.name || "unnamed product"} — ${reason}`);
+      errors.push(`Row ${index + 2}: ${row.name || "unnamed product"}, ${reason}`);
       continue;
     }
     if (row.stock > 0) {
@@ -1240,7 +1240,7 @@ export async function importExpenses(
       created_by: userId,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.expenseDate} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.expenseDate}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1285,7 +1285,7 @@ export async function importSalesHistory(
       _description: (row.description || null) as never,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.saleDate} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.saleDate}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1323,7 +1323,7 @@ export async function importCustomers(
       notes: row.notes || null,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.name || "unnamed customer"} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.name || "unnamed customer"}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1386,7 +1386,7 @@ export async function importSalesDetailed(
       _notes: null as never,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.product} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.product}, couldn't be saved`);
       continue;
     }
     imported++;

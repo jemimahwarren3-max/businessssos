@@ -26,10 +26,10 @@ import {
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
     meta: [
-      { title: "Set up your business — BusinessOS AI" },
+      { title: "Set up your business | BusinessOS AI" },
       { name: "description", content: "Create your business workspace in BusinessOS AI." },
-      { property: "og:title", content: "Set up your business — BusinessOS AI" },
-      { property: "og:description", content: "Name, type and currency — then you're ready." },
+      { property: "og:title", content: "Set up your business | BusinessOS AI" },
+      { property: "og:description", content: "Name, type and currency, then you're ready." },
     ],
   }),
   component: Onboarding,
@@ -103,7 +103,7 @@ function Onboarding() {
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
               You and your team sign in with your business name (
               <span className="font-medium text-foreground">{form.name}</span>) and a shop password
-              — set that below.
+             , set that below.
             </p>
 
             {shopPasswordDone ? (
@@ -301,7 +301,7 @@ function Onboarding() {
                 </div>
               </dl>
               <p className="text-muted-foreground">
-                Next you'll add your first products — that's when inventory tracking starts.
+                Next you'll add your first products, that's when inventory tracking starts.
               </p>
             </div>
           ) : null}

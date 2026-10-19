@@ -15,12 +15,12 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 export const Route = createFileRoute("/_authenticated/purchase-orders")({
   head: () => ({
     meta: [
-      { title: "Purchase Orders — BusinessOS AI" },
+      { title: "Purchase Orders | BusinessOS AI" },
       {
         name: "description",
         content: "Every order you've sent to a supplier, in one place.",
       },
-      { property: "og:title", content: "Purchase Orders — BusinessOS AI" },
+      { property: "og:title", content: "Purchase Orders | BusinessOS AI" },
       { property: "og:description", content: "What you've ordered, and from whom." },
     ],
   }),
@@ -79,7 +79,7 @@ function PurchaseOrders() {
       updateStatusFn({ data: { businessId: businessId!, ...input } }),
     onSuccess: async (_, { status }) => {
       toast.success(
-        status === "received" ? "Marked as received — stock updated." : "Purchase order cancelled.",
+        status === "received" ? "Marked as received, stock updated." : "Purchase order cancelled.",
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["purchase-orders", businessId] }),

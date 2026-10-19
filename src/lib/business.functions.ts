@@ -534,7 +534,7 @@ export const startSubscriptionCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(subscriptionCheckoutSchema, data))
   .handler(async ({ data, context }) => {
     const email = (context.claims as { email?: string }).email;
-    if (!email) throw new Error("Your account has no email on file — please contact support.");
+    if (!email) throw new Error("Your account has no email on file, please contact support.");
     return initiateSubscriptionCheckout(context.supabase as Db, data, email);
   });
 

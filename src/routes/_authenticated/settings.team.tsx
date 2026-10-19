@@ -48,7 +48,7 @@ import { buildInviteWhatsAppMessage } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/settings/team")({
   head: () => ({
-    meta: [{ title: "Team — BusinessOS AI" }],
+    meta: [{ title: "Team | BusinessOS AI" }],
   }),
   component: Team,
 });

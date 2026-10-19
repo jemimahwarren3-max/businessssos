@@ -59,12 +59,12 @@ import { useOnlineStatus } from "@/lib/offline/use-online-status";
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
     meta: [
-      { title: "Sales — BusinessOS AI" },
+      { title: "Sales | BusinessOS AI" },
       {
         name: "description",
         content: "Ring up a sale, take payment, and update stock automatically.",
       },
-      { property: "og:title", content: "Sales — BusinessOS AI" },
+      { property: "og:title", content: "Sales | BusinessOS AI" },
       { property: "og:description", content: "The fastest way to sell." },
     ],
   }),
@@ -218,7 +218,7 @@ function Sales() {
     }
     if (result.failed > 0) {
       toast.error(
-        `${result.failed} offline sale${result.failed === 1 ? "" : "s"} couldn't sync — review below.`,
+        `${result.failed} offline sale${result.failed === 1 ? "" : "s"} couldn't sync, review below.`,
       );
     }
     await queryClient.invalidateQueries({ queryKey: ["pending-sales"] });
@@ -384,7 +384,7 @@ function Sales() {
     },
     onSuccess: async (result) => {
       if (result.offline) {
-        toast.success("Sale saved offline — it'll sync automatically once you're back online.");
+        toast.success("Sale saved offline, it'll sync automatically once you're back online.");
         setReceipt({ number: "Pending sync", total: totals.total, offline: true });
       } else {
         toast.success("Sale completed.");
@@ -648,7 +648,7 @@ function Sales() {
 
             {paymentMethod === "credit" && !customerId ? (
               <p className="text-[13px] text-warning-foreground">
-                Select a customer for credit sales — it's added to what they owe.
+                Select a customer for credit sales, it's added to what they owe.
               </p>
             ) : null}
 

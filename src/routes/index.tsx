@@ -27,7 +27,7 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BusinessOS AI — Run your business, not your spreadsheets" },
+      { title: "BusinessOS AI: Run your business, not your spreadsheets" },
       {
         name: "description",
         content:
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "BusinessOS AI — Run your business, not your spreadsheets",
+        content: "BusinessOS AI: Run your business, not your spreadsheets",
       },
       {
         property: "og:description",
@@ -84,7 +84,7 @@ const plans = [
   {
     name: "Founding Beta",
     price: "$0",
-    note: `Free while we build with our founding users — $${PLAN_MONTHLY_USD.pro}/mo after the beta, with clear notice before anything changes`,
+    note: `Free while we build with our founding users, $${PLAN_MONTHLY_USD.pro}/mo after the beta, with clear notice before anything changes`,
     items: [
       "Unlimited products, sales & invoices",
       "Unlimited users",
@@ -148,7 +148,7 @@ function Landing() {
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Inventory, sales, invoices, expenses and intelligent business insights in one simple
-            platform. Everything is connected — a sale updates your stock, your customer balance and
+            platform. Everything is connected, a sale updates your stock, your customer balance and
             your profit, automatically.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -288,7 +288,7 @@ function Landing() {
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Free during our beta</h2>
         <p className="mt-2 max-w-lg text-sm text-muted-foreground">
           BusinessOS is currently free while we build with our founding users. Pricing may be
-          introduced later — we'll give you clear notice before anything changes.
+          introduced later, we'll give you clear notice before anything changes.
         </p>
         <div className="mt-8 grid gap-4 sm:max-w-xl">
           {plans.map((plan) => (
@@ -326,7 +326,7 @@ function Landing() {
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Security is part of the architecture, not a feature we added later. We don't claim to be
-            "100% secure" — no one can. Here's exactly what we do.
+            "100% secure", no one can. Here's exactly what we do.
           </p>
           <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
@@ -373,8 +373,8 @@ function Landing() {
           <AccordionItem value="q1">
             <AccordionTrigger>Do I need to be good with computers?</AccordionTrigger>
             <AccordionContent>
-              No. If you can use a phone, you can use BusinessOS. We avoid accounting jargon —
-              you'll see "customers who owe you" instead of "accounts receivable".
+              No. If you can use a phone, you can use BusinessOS. We avoid accounting jargon.
+              You'll see "customers who owe you" instead of "accounts receivable".
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="q2">

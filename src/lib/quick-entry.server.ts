@@ -23,11 +23,11 @@ Unclear: {"type":"unknown"}
 
 Rules:
 - A sale is recording something already sold to a customer. A purchase is stock/goods the
-  business bought in, to resell or restock — e.g. "Bought 20 cases of Mazoe from ABC Suppliers
+  business bought in, to resell or restock, e.g. "Bought 20 cases of Mazoe from ABC Suppliers
   at $8 each". An expense is money paid out that isn't buying stock (rent, transport, etc).
 - Never invent a name, amount, or quantity that isn't stated or clearly implied.
 - If the message doesn't clearly match one of these, output {"type":"unknown"}.
-- Quantity defaults to 1 if not stated. Output valid JSON only — no markdown, no commentary.`;
+- Quantity defaults to 1 if not stated. Output valid JSON only, no markdown, no commentary.`;
 
 export type QuickEntryItem = {
   name: string;

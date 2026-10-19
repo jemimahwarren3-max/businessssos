@@ -27,7 +27,7 @@ import type { AdminOrder, AdminStore } from "@/lib/storefront/contract";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
-    meta: [{ title: "Storefront — BusinessOS AI" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Storefront | BusinessOS AI" }, { name: "robots", content: "noindex" }],
   }),
   component: StorefrontPage,
 });
@@ -193,7 +193,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <ol className="space-y-1 text-sm">
           {STEPS.map(([key, label]) => (
             <li key={key}>
-              {initial.checklist[key] ? "Done" : "To do"} — {label}
+              {initial.checklist[key] ? "Done" : "To do"}, {label}
             </li>
           ))}
         </ol>

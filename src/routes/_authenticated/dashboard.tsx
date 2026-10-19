@@ -34,13 +34,13 @@ import { formatMoney, formatNumber, formatPercent, greeting } from "@/lib/format
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — BusinessOS AI" },
+      { title: "Dashboard | BusinessOS AI" },
       {
         name: "description",
         content:
           "Today's sales, profit, outstanding payments, low stock and your business health score.",
       },
-      { property: "og:title", content: "Dashboard — BusinessOS AI" },
+      { property: "og:title", content: "Dashboard | BusinessOS AI" },
       { property: "og:description", content: "See how your business is doing today." },
     ],
   }),
@@ -237,7 +237,7 @@ function Dashboard() {
         <section className="surface p-5">
           <h2 className="text-lg font-semibold">Business Health</h2>
           <p className="text-[13px] text-muted-foreground">
-            Calculated from your own data — no guesswork.
+            Calculated from your own data, no guesswork.
           </p>
           {data ? (
             <>

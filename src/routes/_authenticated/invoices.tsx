@@ -45,12 +45,12 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 export const Route = createFileRoute("/_authenticated/invoices")({
   head: () => ({
     meta: [
-      { title: "Invoices — BusinessOS AI" },
+      { title: "Invoices | BusinessOS AI" },
       {
         name: "description",
         content: "Bill customers, track what's owed, and record payments as they come in.",
       },
-      { property: "og:title", content: "Invoices — BusinessOS AI" },
+      { property: "og:title", content: "Invoices | BusinessOS AI" },
       { property: "og:description", content: "Get paid, faster." },
     ],
   }),
@@ -401,7 +401,7 @@ function Invoices() {
                       {invoice.customer_name ?? "No customer"}
                     </td>
                     <td className="px-5 py-3 text-muted-foreground">
-                      {invoice.due_date ? friendlyDate(invoice.due_date) : "—"}
+                      {invoice.due_date ? friendlyDate(invoice.due_date) : "-"}
                     </td>
                     <td className="px-5 py-3 font-medium tabular-nums">
                       {formatMoney(invoice.total, currency)}

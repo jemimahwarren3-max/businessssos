@@ -25,7 +25,7 @@ import { readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/time-clock")({
   head: () => ({
     meta: [
-      { title: "Time clock — BusinessOS AI" },
+      { title: "Time clock | BusinessOS AI" },
       { name: "description", content: "Clock in and out, and see the team's hours." },
     ],
   }),

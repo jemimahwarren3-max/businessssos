@@ -158,7 +158,7 @@ export function MfaChallenge({
       </div>
       {!challengeId && startMutation.isError ? (
         // The initial challenge-start call failed (network blip, a brief
-        // session-cookie race right after sign-in, etc) — without this,
+        // session-cookie race right after sign-in, etc), without this,
         // challengeId never gets set and the code field stays permanently
         // disabled with no way out short of a full page reload.
         <Button

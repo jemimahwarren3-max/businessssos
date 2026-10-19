@@ -21,7 +21,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 export const Route = createFileRoute("/_authenticated/help")({
   head: () => ({
     meta: [
-      { title: "Help — BusinessOS AI" },
+      { title: "Help | BusinessOS AI" },
       { name: "description", content: "How to use every part of BusinessOS AI." },
     ],
   }),
@@ -47,12 +47,12 @@ const SECTIONS = [
 
 const ROLE_ROWS = [
   { area: "Sales (POS)", roles: "Owner, Admin, Manager, Cashier" },
-  { area: "Invoices & Quotes — create", roles: "Owner, Admin, Manager, Accountant" },
+  { area: "Invoices & Quotes, create", roles: "Owner, Admin, Manager, Accountant" },
   { area: "Record an invoice payment", roles: "Owner, Admin, Manager, Cashier, Accountant" },
   { area: "Add a customer", roles: "Owner, Admin, Manager, Cashier, Accountant" },
   { area: "Order for a customer/supplier (WhatsApp)", roles: "Owner, Admin, Manager, Accountant" },
   { area: "Suppliers & Purchase Orders", roles: "Owner, Admin, Manager" },
-  { area: "Expenses — record or import", roles: "Owner, Admin, Manager, Accountant" },
+  { area: "Expenses, record or import", roles: "Owner, Admin, Manager, Accountant" },
   {
     area: "Reports, Insights, AI Assistant, Quick Add",
     roles: "Owner, Admin, Manager, Accountant",
@@ -138,12 +138,12 @@ function Help() {
           <p>Use this to ring up an actual sale, item by item, in real time.</p>
           <ol>
             <li>Tap products to add them to the cart, or search by name/SKU/barcode.</li>
-            <li>Adjust quantity, pick a customer (optional — leave blank for a walk-in).</li>
+            <li>Adjust quantity, pick a customer (optional, leave blank for a walk-in).</li>
             <li>
               Choose a payment method. Credit sales require a customer, since it adds to what they
               owe.
             </li>
-            <li>Complete the sale — stock updates immediately and a receipt is generated.</li>
+            <li>Complete the sale, stock updates immediately and a receipt is generated.</li>
           </ol>
           <p>
             Works offline: sales made without a connection are queued and sync automatically once
@@ -154,12 +154,12 @@ function Help() {
         <Section id="quick-add" icon={Wand2} title="Quick Add">
           <p>
             The <strong>Quick add</strong> button in the top header (on every page) lets you type
-            what happened in plain language instead of filling in a form — for example "Sold 3
+            what happened in plain language instead of filling in a form, for example "Sold 3
             shirts to Mary for $90" or "Paid $45 for transport."
           </p>
           <ol>
             <li>Click Quick add and describe the sale, expense, or new customer.</li>
-            <li>Review the draft it builds — every field is editable before anything is saved.</li>
+            <li>Review the draft it builds, every field is editable before anything is saved.</li>
             <li>
               Confirm. It creates a real sale/expense/customer the same way the regular forms do.
             </li>
@@ -193,12 +193,12 @@ function Help() {
           <ul>
             <li>
               Add a supplier's contact details, then use the <strong>Order</strong> button to build
-              a purchase order — it pre-fills known prices and opens WhatsApp with the order ready
+              a purchase order, it pre-fills known prices and opens WhatsApp with the order ready
               to send.
             </li>
             <li>
-              <strong>Purchase Orders</strong> lists everything you've ordered, for reference —
-              nothing here changes stock automatically (stock updates when you actually
+              <strong>Purchase Orders</strong> lists everything you've ordered, for reference.
+              Nothing here changes stock automatically (stock updates when you actually
               receive/import it).
             </li>
           </ul>
@@ -209,10 +209,10 @@ function Help() {
             For sales that aren't paid on the spot, or where a customer needs a formal quote first.
           </p>
           <ul>
-            <li>Build either the same way — line items, tax, discount, due/valid-until date.</li>
+            <li>Build either the same way, line items, tax, discount, due/valid-until date.</li>
             <li>A quote can be converted straight to an invoice once accepted, with one click.</li>
             <li>
-              Both have a <strong>Print</strong> button — it opens your browser's print dialog with
+              Both have a <strong>Print</strong> button, it opens your browser's print dialog with
               a clean, chrome-free document layout ready to save as a PDF.
             </li>
             <li>
@@ -238,7 +238,7 @@ function Help() {
 
         <Section id="expenses" icon={Receipt} title="Expenses">
           <p>
-            Everything the business spends — rent, utilities, salaries, supplies, and so on. Record
+            Everything the business spends, rent, utilities, salaries, supplies, and so on. Record
             one at a time or <strong>Import</strong> a batch from a spreadsheet. Categorized
             spending shows up in Reports so you can see where money actually goes.
           </p>
@@ -255,7 +255,7 @@ function Help() {
             </li>
             <li>
               <strong>Import history</strong> backfills past revenue/cost totals for the charts only
-              — it doesn't touch stock or link to specific products or customers.
+             , it doesn't touch stock or link to specific products or customers.
             </li>
             <li>
               <strong>Import detailed sales</strong> is the fuller version: real line-item
@@ -267,10 +267,10 @@ function Help() {
 
         <Section id="insights-assistant" icon={Sparkles} title="Insights & AI Assistant">
           <p>
-            <strong>Insights</strong> surfaces things worth your attention automatically — unusual
+            <strong>Insights</strong> surfaces things worth your attention automatically, unusual
             expense spikes, slow-moving stock, a weekly summary. <strong>AI Assistant</strong> lets
             you ask questions in plain English ("How did I do this month?", "Who owes me money?")
-            and get answers grounded only in your real numbers — it never invents figures, and it
+            and get answers grounded only in your real numbers, it never invents figures, and it
             can't take actions on its own; use Quick Add for that.
           </p>
         </Section>
@@ -287,16 +287,16 @@ function Help() {
               you want the exact column headers.
             </li>
             <li>
-              Choose your file — column headers are matched automatically even if they're worded a
+              Choose your file, column headers are matched automatically even if they're worded a
               little differently (e.g. "SOH" or "Retail Price" both work for products).
             </li>
             <li>
-              Review the preview of every row before confirming — rows with problems are flagged and
+              Review the preview of every row before confirming, rows with problems are flagged and
               skipped rather than silently failing.
             </li>
           </ol>
           <p>
-            Suppliers, Invoices, Quotes, and Purchase Orders don't have bulk import yet — add those
+            Suppliers, Invoices, Quotes, and Purchase Orders don't have bulk import yet, add those
             one at a time for now.
           </p>
         </Section>
@@ -304,8 +304,8 @@ function Help() {
         <Section id="exporting" icon={Download} title="Exporting your data">
           <p>
             <strong>Export data</strong> (in the sidebar) downloads everything BusinessOS AI stores
-            for your business — products, customers, sales, invoices, quotes, expenses, stock
-            history — as either a full-fidelity <strong>JSON</strong> backup or a browsable{" "}
+            for your business, products, customers, sales, invoices, quotes, expenses, stock
+            history, as either a full-fidelity <strong>JSON</strong> backup or a browsable{" "}
             <strong>Excel</strong> workbook with one sheet per table. Owners and admins only.
           </p>
         </Section>
@@ -313,7 +313,7 @@ function Help() {
         <Section id="roles" icon={ShieldCheck} title="Roles & permissions">
           <p>
             Every team member has one role per business. Each role's exact permissions are
-            customizable per business — the table below is the default starting point, not fixed:
+            customizable per business, the table below is the default starting point, not fixed:
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[420px] border-collapse text-left text-[13px]">
@@ -339,12 +339,12 @@ function Help() {
           </p>
           <p>
             An owner or admin can fine-tune any of this from the <strong>Permissions</strong> tab on
-            the Team page — a grid of every permission against the admin/manager/cashier/ accountant
+            the Team page, a grid of every permission against the admin/manager/cashier/ accountant
             roles, toggled per business. Owner always keeps full access and can't be restricted,
             including by itself.
           </p>
           <p>
-            An owner or admin adds people from the <strong>Team</strong> page in the sidebar — pick
+            An owner or admin adds people from the <strong>Team</strong> page in the sidebar, pick
             a role and generate a link, then send it however you like (WhatsApp, SMS, email).
             Whoever opens it signs in or creates an account and joins your business with that role.
             Roles can be changed or a member removed from the same page; a business always keeps at
@@ -352,26 +352,26 @@ function Help() {
           </p>
           <p>
             Day to day, everyone signs in at <strong>/staff-login</strong> with your business name
-            and shop password, then their own name and password — owners and admins included, not
+            and shop password, then their own name and password, owners and admins included, not
             just staff without an email. Signing in with an email and password is still there as a
             fallback from that same page.
           </p>
           <p>
-            For staff without an email — most cashiers, say — the same page can create a{" "}
+            For staff without an email, most cashiers, say, the same page can create a{" "}
             <strong>name + password</strong> account instead, no link needed. They sign in at{" "}
             <strong>/staff-login</strong> in two steps: first your business name and a shared{" "}
-            <strong>shop password</strong> (set from the same card on the Team page — required
+            <strong>shop password</strong> (set from the same card on the Team page, required
             before anyone can even see who's on the team), then pick a name and enter that person's
             own password. An owner/admin can reset a staff member's password from their row if they
-            forget it — these accounts have no real email, so "Forgot password" won't work for them.
+            forget it, these accounts have no real email, so "Forgot password" won't work for them.
           </p>
         </Section>
 
         <Section id="billing" icon={CreditCard} title="Billing">
           <p>
             Manage your plan and payment method from the <strong>Billing</strong> page in the
-            sidebar (owners and admins only). If your trial ends, the app switches to read-only —
-            you keep every record, but need to upgrade to keep creating or editing.
+            sidebar (owners and admins only). If your trial ends, the app switches to read-only.
+            You keep every record, but need to upgrade to keep creating or editing.
           </p>
         </Section>
       </div>

@@ -37,7 +37,7 @@ export function DataExportPrintView({
       <div className="border-b border-black/20 pb-4">
         <h1 className="text-lg font-bold">{businessName}</h1>
         <p className="text-sm text-black/60">
-          Data export — {new Date(exportedAt).toLocaleDateString()}
+          Data export, {new Date(exportedAt).toLocaleDateString()}
         </p>
       </div>
 

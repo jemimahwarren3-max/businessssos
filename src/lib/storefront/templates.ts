@@ -52,7 +52,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#1F2937",
     imageRatio: "square",
     density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "fashion-boutique",
@@ -66,7 +66,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#3F2E2A",
     imageRatio: "portrait",
     density: "spacious",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "beauty",
@@ -79,7 +79,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#9D4E6C",
     imageRatio: "square",
     density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "grocery",
@@ -93,7 +93,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#166534",
     imageRatio: "square",
     density: "compact",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "food",
@@ -107,7 +107,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#9A3412",
     imageRatio: "landscape",
     density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "luxury",
@@ -121,7 +121,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#1C1917",
     imageRatio: "portrait",
     density: "spacious",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "home",
@@ -134,7 +134,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#3F4F44",
     imageRatio: "landscape",
     density: "spacious",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "wholesale",
@@ -148,7 +148,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#1E3A5F",
     imageRatio: "square",
     density: "compact",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "social",
@@ -162,7 +162,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#BE185D",
     imageRatio: "portrait",
     density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
   {
     id: "digital",
@@ -176,7 +176,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
     defaultAccent: "#4338CA",
     imageRatio: "landscape",
     density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
+    sampleLabel: "Sample layout, not your products",
   },
 ];
 
