@@ -13,7 +13,27 @@ const deliverySchema = z.object({
   autoAccept: z.boolean().catch(false),
   prepMinutes: z.coerce.number().catch(0),
   cutoff: z.string().catch(""),
+  cutoffTime: z.string().nullable().catch(null),
   collectionWindows: z.string().catch(""),
+  timezone: z.string().catch("Africa/Harare"),
+  weeklyHours: z
+    .array(
+      z.object({
+        weekday: z.coerce.number().int().min(1).max(7),
+        open: z.string(),
+        close: z.string(),
+      }),
+    )
+    .catch([]),
+  windows: z
+    .array(
+      z.object({
+        weekday: z.coerce.number().int().min(1).max(7),
+        start: z.string(),
+        end: z.string(),
+      }),
+    )
+    .catch([]),
 });
 
 const paymentsSchema = z.object({
@@ -34,6 +54,7 @@ const orderTermsSchema = z.object({
   subtotal: z.coerce.number().optional(),
   tax: z.coerce.number().optional(),
   total: z.coerce.number().optional(),
+  collectAt: z.string().nullable().optional(),
 });
 
 export const publicProductSchema = z.object({
@@ -271,6 +292,7 @@ export const checkoutResultSchema = z.object({
   subtotal: z.coerce.number().optional(),
   tax: z.coerce.number().optional(),
   deliveryFee: z.coerce.number().optional(),
+  collectAt: z.string().nullable().optional(),
 });
 
 export const customerOrderSchema = z.object({
@@ -291,6 +313,7 @@ export const customerOrderSchema = z.object({
   total: z.coerce.number(),
   currency: z.string(),
   createdAt: z.string(),
+  collectAt: z.string().nullable().optional(),
   paid: z.boolean(),
   revenueRecorded: z.boolean(),
   terms: orderTermsSchema.optional(),
@@ -419,6 +442,7 @@ export const adminOrderSchema = z.object({
   saleId: z.string().nullable(),
   stockReserved: z.boolean(),
   createdAt: z.string(),
+  collectAt: z.string().nullable().optional(),
   terms: orderTermsSchema.optional(),
   items: customerOrderSchema.shape.items,
   events: z.array(
@@ -469,7 +493,29 @@ export const saveStoreSchema = z.object({
     autoAccept: z.boolean(),
     prepMinutes: z.coerce.number().int().min(0).max(10080),
     cutoff: z.string().max(120),
+    cutoffTime: z.string().max(5).nullable().optional(),
     collectionWindows: z.string().max(200),
+    timezone: z.string().max(40).optional(),
+    weeklyHours: z
+      .array(
+        z.object({
+          weekday: z.coerce.number().int().min(1).max(7),
+          open: z.string().max(5),
+          close: z.string().max(5),
+        }),
+      )
+      .max(7)
+      .optional(),
+    windows: z
+      .array(
+        z.object({
+          weekday: z.coerce.number().int().min(1).max(7),
+          start: z.string().max(5),
+          end: z.string().max(5),
+        }),
+      )
+      .max(21)
+      .optional(),
   }),
   payments: z.object({
     payOnPickup: z.boolean(),
@@ -511,4 +557,5 @@ export const checkoutSchema = z.object({
     notes: z.string().trim().max(500).optional(),
   }),
   items: z.array(cartItemSchema).min(1).max(50),
+  collectAt: z.string().max(40).optional(),
 });

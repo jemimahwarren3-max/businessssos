@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { readableError } from "@/lib/format";
+import { friendlyDateTime, readableError } from "@/lib/format";
 import { storePublicUrl } from "@/lib/storefront/host";
 import {
   getAdminOrderFn,
@@ -31,6 +31,12 @@ import {
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
 import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
+import {
+  HoursEditor,
+  hoursStateFrom,
+  weeklyHoursFromState,
+} from "@/components/storefront/hours-editor";
+import { parseHhmm, SHOP_TIMEZONE, type CollectionWindow } from "@/lib/storefront/clocks";
 import type {
   AdminOrder,
   AdminReviewItem,
@@ -152,10 +158,12 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const [quoteRequired, setQuoteRequired] = useState(store?.delivery.quoteRequired ?? false);
   const [autoAccept, setAutoAccept] = useState(store?.delivery.autoAccept ?? false);
   const [prepMinutes, setPrepMinutes] = useState(String(store?.delivery.prepMinutes ?? 0));
-  const [cutoff, setCutoff] = useState(store?.delivery.cutoff ?? "");
-  const [collectionWindows, setCollectionWindows] = useState(
-    store?.delivery.collectionWindows ?? "",
+  const [cutoffTime, setCutoffTime] = useState(
+    store?.delivery.cutoffTime ??
+      (parseHhmm(store?.delivery.cutoff) ? (store?.delivery.cutoff ?? "") : ""),
   );
+  const [hoursState, setHoursState] = useState(hoursStateFrom(store?.delivery.weeklyHours));
+  const [windows, setWindows] = useState<CollectionWindow[]>(store?.delivery.windows ?? []);
   const [payPickup, setPayPickup] = useState(store?.payments.payOnPickup ?? true);
   const [payDelivery, setPayDelivery] = useState(store?.payments.payOnDelivery ?? false);
   const [quotes, setQuotes] = useState(store?.payments.quotes ?? false);
@@ -193,8 +201,12 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             quoteRequired,
             autoAccept,
             prepMinutes: Number(prepMinutes) || 0,
-            cutoff,
-            collectionWindows,
+            cutoff: cutoffTime,
+            cutoffTime: cutoffTime || null,
+            collectionWindows: "",
+            timezone: SHOP_TIMEZONE,
+            weeklyHours: weeklyHoursFromState(hoursState),
+            windows,
           },
           payments: {
             payOnPickup: payPickup,
@@ -362,8 +374,11 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           <Input value={address} onChange={(event) => setAddress(event.target.value)} />
         </label>
         <label className="text-sm md:col-span-2">
-          <Label>Hours</Label>
+          <Label>Hours note on the shop</Label>
           <Textarea value={hours} onChange={(event) => setHours(event.target.value)} />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Shown to customers. The weekday table below is what checkout enforces.
+          </p>
         </label>
         <label className="text-sm md:col-span-2">
           <Label>Policies</Label>
@@ -429,22 +444,19 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           <Label>Preparation time (minutes)</Label>
           <Input value={prepMinutes} onChange={(event) => setPrepMinutes(event.target.value)} />
         </label>
-        <label className="text-sm">
-          <Label>Order cut-off</Label>
-          <Input
-            value={cutoff}
-            onChange={(event) => setCutoff(event.target.value)}
-            placeholder="For example 16:00 weekdays"
-          />
-        </label>
-        <label className="text-sm md:col-span-2">
-          <Label>Collection windows</Label>
-          <Input
-            value={collectionWindows}
-            onChange={(event) => setCollectionWindows(event.target.value)}
-            placeholder="For example 10:00-12:00 and 15:00-17:00"
-          />
-        </label>
+        <HoursEditor
+          hours={hoursState}
+          onHours={setHoursState}
+          windows={windows}
+          onWindows={setWindows}
+          cutoffTime={cutoffTime}
+          onCutoffTime={setCutoffTime}
+        />
+        {store?.delivery.cutoff && !parseHhmm(store.delivery.cutoff) ? (
+          <p className="text-sm text-muted-foreground md:col-span-2">
+            Previous cut-off note (not a clock): {store.delivery.cutoff}
+          </p>
+        ) : null}
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -605,6 +617,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
               {selectedOrder.customerName} · {selectedOrder.customerPhone}
             </p>
             {selectedOrder.customerAddress ? <p>{selectedOrder.customerAddress}</p> : null}
+            {selectedOrder.collectAt ? (
+              <p>Collect at {friendlyDateTime(selectedOrder.collectAt)}</p>
+            ) : null}
             {selectedOrder.terms?.total != null ? (
               <p className="mt-2 text-muted-foreground">
                 Agreed total {selectedOrder.currency} {selectedOrder.terms.total}. Later shop

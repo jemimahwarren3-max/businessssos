@@ -7,7 +7,7 @@ import type { CustomerOrder } from "@/lib/storefront/contract";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
 import { StoreReviewForm } from "@/components/storefront/review-form";
 import { snapshotPolicyLines } from "@/lib/storefront/order-rules";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, friendlyDateTime, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/order/$reference")({
@@ -97,6 +97,7 @@ function OrderPage() {
                 : "Pay on pickup."}
           </p>
           <p>Placed {friendlyDate(order.createdAt)}</p>
+          {order.collectAt ? <p>Collect at {friendlyDateTime(order.collectAt)}</p> : null}
           <ul className="divide-y border-y">
             {order.items.map((item) => (
               <li key={`${item.productId ?? item.name}-${item.name}`} className="space-y-2 py-2">

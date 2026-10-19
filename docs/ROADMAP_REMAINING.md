@@ -16,6 +16,7 @@ Counts are approximate. Many "features" in the original list are the same capabi
 | Privacy/Terms drafts, complaint form tied to order token                          | Legal PR                  |
 | Verified-purchase reviews and listing reports                                     | Marketplace trust PR      |
 | In-app shop alerts plus optional Resend outbox                                    | Notifications PR          |
+| Default-location stock (`locations` / `product_stock`)                            | Locations PR              |
 
 ## Batch 1: marketplace trust (shipped)
 
@@ -25,13 +26,13 @@ Verified-purchase reviews and listing reports. Reviews require the order access 
 
 In-app alerts for new orders, complaints, reviews, listing reports, and low-stock crossings. Email copies through Resend only when `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. Outbox is retry-safe. WhatsApp Cloud is not used.
 
-## Batch 3 (this PR): staging `locations` drift
+## Batch 3: staging `locations` drift (shipped)
 
 `locations` and `product_stock` are in git. POS, imports, and shop stock changes use the default location when the app does not send `_location_id`. `products.stock` is the sum across locations. Branch transfers are still not built.
 
-## Batch 4: fulfilment clocks
+## Batch 4 (this PR): fulfilment clocks
 
-Enforce cut-off, prep minutes, and collection windows in SQL. Bookable slots only after hours data is structured, not free text.
+Structured weekday hours, a HH:MM cut-off, and collection windows are stored on `storefronts.delivery` and enforced in `quote_store_cart` / `create_store_order`. Pickup slots are required only after windows are saved. Free-text hours stay a shop note. Quote requests skip the clocks.
 
 ## Batch 5: POS cash control
 
@@ -87,4 +88,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Batch 4 next if fulfilment clocks matter operationally. Batch 8 only with merchant Paynow credentials.
+Batch 5 next if cash-up matters. Batch 8 only with merchant Paynow credentials.

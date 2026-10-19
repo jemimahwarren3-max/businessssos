@@ -202,7 +202,11 @@ function sampleStore(
       autoAccept: false,
       prepMinutes: 0,
       cutoff: "",
+      cutoffTime: null,
       collectionWindows: "",
+      timezone: "Africa/Harare",
+      weeklyHours: [],
+      windows: [],
       ...delivery,
     },
     payments: {

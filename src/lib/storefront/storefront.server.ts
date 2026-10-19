@@ -125,6 +125,7 @@ export async function placeOrder(input: {
   items: { productId: string; quantity: number; note?: string | undefined }[];
   fulfilment: string;
   paymentMethod: string;
+  collectAt?: string | undefined;
 }) {
   const supabase = createAnonClient();
   const result = await supabase.rpc("create_store_order", {
@@ -134,6 +135,7 @@ export async function placeOrder(input: {
     _items: input.items as unknown as Json,
     _fulfilment: input.fulfilment,
     _payment_method: input.paymentMethod,
+    _collect_at: input.collectAt ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
   await flushNotificationOutboxAdmin();

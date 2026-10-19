@@ -1,3 +1,4 @@
+import { friendlyDateTime } from "@/lib/format";
 import type { CustomerOrder, PublicStore } from "./contract";
 
 export type FulfilmentMethod = "pickup" | "delivery" | "quote";
@@ -46,7 +47,9 @@ export function orderDecisionCopy(store: Pick<PublicStore, "delivery">): string 
   return "The shop reviews each order before it is accepted.";
 }
 
-export function snapshotPolicyLines(order: Pick<CustomerOrder, "terms" | "currency">): string[] {
+export function snapshotPolicyLines(
+  order: Pick<CustomerOrder, "terms" | "currency" | "collectAt">,
+): string[] {
   const terms = order.terms;
   if (!terms?.payments && !terms?.delivery) return [];
   const lines: string[] = [];
@@ -66,6 +69,10 @@ export function snapshotPolicyLines(order: Pick<CustomerOrder, "terms" | "curren
   }
   if (typeof terms.deliveryFee === "number") {
     lines.push(`Agreed delivery fee: ${terms.deliveryFee} ${terms.currency ?? order.currency}.`);
+  }
+  const collectAt = order.collectAt ?? terms.collectAt;
+  if (collectAt) {
+    lines.push(`Agreed collection time: ${friendlyDateTime(collectAt)}.`);
   }
   return lines;
 }

@@ -12,6 +12,12 @@ import {
   type FulfilmentMethod,
   type PaymentMethod,
 } from "@/lib/storefront/order-rules";
+import {
+  clocksCopy,
+  hasCollectionWindows,
+  placeOrderBlockedReason,
+  upcomingCollectionSlots,
+} from "@/lib/storefront/clocks";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
 import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { formatMoney, readableError } from "@/lib/format";
@@ -40,6 +46,15 @@ function CheckoutPage() {
   const [fulfilment, setFulfilment] = useState<FulfilmentMethod>(fulfilments[0] ?? "quote");
   const payments = useMemo(() => allowedPayments(store, fulfilment), [store, fulfilment]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(payments[0] ?? "quote");
+  const [collectAt, setCollectAt] = useState("");
+  const slots = useMemo(
+    () => (fulfilment === "pickup" ? upcomingCollectionSlots(store.delivery) : []),
+    [fulfilment, store.delivery],
+  );
+  const clockBlock = useMemo(
+    () => placeOrderBlockedReason(store.delivery, fulfilment),
+    [store.delivery, fulfilment],
+  );
 
   useEffect(() => {
     setLines(readCart(store.slug));
@@ -50,6 +65,10 @@ function CheckoutPage() {
       setPaymentMethod(payments[0]);
     }
   }, [payments, paymentMethod]);
+
+  useEffect(() => {
+    setCollectAt("");
+  }, [fulfilment]);
 
   useEffect(() => {
     if (lines.length === 0) return;
@@ -86,6 +105,7 @@ function CheckoutPage() {
           paymentMethod,
           customer: { name, phone, email, address, notes },
           items: lines,
+          collectAt: collectAt || undefined,
         },
       });
       if (result.accessToken) {
@@ -209,14 +229,35 @@ function CheckoutPage() {
           {store.delivery.estimate ? (
             <p className="text-sm text-neutral-500">Estimate: {store.delivery.estimate}</p>
           ) : null}
-          {store.delivery.cutoff ? (
-            <p className="text-sm text-neutral-500">Order cut-off: {store.delivery.cutoff}</p>
-          ) : null}
-          {store.delivery.collectionWindows ? (
-            <p className="text-sm text-neutral-500">
-              Collection windows: {store.delivery.collectionWindows}
+          {clocksCopy(store.delivery).map((line) => (
+            <p key={line} className="text-sm text-neutral-500">
+              {line}
             </p>
+          ))}
+          {fulfilment === "pickup" && hasCollectionWindows(store.delivery) ? (
+            <label className="block text-sm">
+              Collection time
+              <select
+                className="mt-1 w-full rounded border px-3 py-2"
+                required
+                value={collectAt}
+                onChange={(event) => setCollectAt(event.target.value)}
+              >
+                <option value="">Choose a window</option>
+                {slots.map((slot) => (
+                  <option key={slot.at} value={slot.at}>
+                    {slot.label}
+                  </option>
+                ))}
+              </select>
+              {slots.length === 0 ? (
+                <span className="mt-1 block text-neutral-500">
+                  No collection windows remain in the next 7 days.
+                </span>
+              ) : null}
+            </label>
           ) : null}
+          {clockBlock ? <p className="text-sm text-red-700">{clockBlock}</p> : null}
           <fieldset className="space-y-2 text-sm">
             <legend className="font-medium">How to pay</legend>
             {payments.includes("pay_on_pickup") ? (
@@ -336,7 +377,16 @@ function CheckoutPage() {
           </p>
           <button
             className="mt-4 w-full rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            disabled={pending || lines.length === 0 || !priced || payments.length === 0}
+            disabled={
+              pending ||
+              lines.length === 0 ||
+              !priced ||
+              payments.length === 0 ||
+              Boolean(clockBlock) ||
+              (fulfilment === "pickup" &&
+                hasCollectionWindows(store.delivery) &&
+                (slots.length === 0 || !collectAt))
+            }
             type="submit"
           >
             {pending
