@@ -137,6 +137,7 @@ import {
   listCustomers,
   listExpenses,
   listInvoices,
+  listLocations,
   listProducts,
   listPurchaseOrders,
   listQuotes,
@@ -240,6 +241,11 @@ export const getReports = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     loadReports(context.supabase as Db, data.businessId, data.days),
   );
+
+export const getLocations = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => listLocations(context.supabase as Db, data.businessId));
 
 export const getProducts = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)

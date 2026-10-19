@@ -14,18 +14,20 @@ Counts are approximate. Many "features" in the original list are the same capabi
 | Cash, quote-required delivery, auto-accept, terms snapshot                        | Order-rules migration     |
 | TanStack Table + RHF on real forms                                                | Open-source tooling PR    |
 | Privacy/Terms drafts, complaint form tied to order token                          | Legal PR                  |
+| Verified-purchase reviews and listing reports                                     | Marketplace trust PR      |
+| In-app shop alerts plus optional Resend outbox                                    | Notifications PR          |
 
-## Batch 1: marketplace trust
+## Batch 1: marketplace trust (shipped)
 
 Verified-purchase reviews and listing reports. Reviews require the order access code and a line that was actually ordered. No star averages with zero reviews. No identity badges.
 
-## Batch 2 (this PR): merchant notifications
+## Batch 2: merchant notifications (shipped)
 
 In-app alerts for new orders, complaints, reviews, listing reports, and low-stock crossings. Email copies through Resend only when `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. Outbox is retry-safe. WhatsApp Cloud is not used.
 
-## Batch 3: staging `locations` drift
+## Batch 3 (this PR): staging `locations` drift
 
-Either put `locations` and the location-aware RPCs into git, or revert staging to the git single-stock model. Until this lands, do not build branch transfers.
+`locations` and `product_stock` are in git. POS, imports, and shop stock changes use the default location when the app does not send `_location_id`. `products.stock` is the sum across locations. Branch transfers are still not built.
 
 ## Batch 4: fulfilment clocks
 
@@ -85,4 +87,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Batch 3 if POS on staging is failing (`locations` drift). Batch 8 only with merchant Paynow credentials.
+Batch 4 next if fulfilment clocks matter operationally. Batch 8 only with merchant Paynow credentials.

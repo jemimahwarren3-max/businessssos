@@ -324,6 +324,18 @@ export async function listProducts(
   return data ?? [];
 }
 
+export async function listLocations(supabase: Db, businessId: string) {
+  await assertMember(supabase, businessId);
+  const { data, error } = await supabase
+    .from("locations")
+    .select("id, name, address, phone, is_active, is_default")
+    .eq("business_id", businessId)
+    .eq("is_active", true)
+    .order("name");
+  if (error) dbFail("list locations", error);
+  return data ?? [];
+}
+
 export async function createProduct(supabase: Db, input: ProductInput) {
   await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase

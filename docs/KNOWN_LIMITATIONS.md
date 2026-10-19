@@ -15,7 +15,7 @@
 - CI default branch mismatch is fixed; historical merges to `master` may have skipped CI.
 - Accessibility: code-level work exists; no screen-reader evidence this session.
 - README is not the setup guide; `ENVIRONMENT_SETUP.md` is.
-- Staging has a `locations` table and location-aware `create_product` / `create_sale` that are not in `supabase/migrations/` in this repo. Do not treat staging and git as identical until that drift is merged or reverted.
+- Stock is a total on `products.stock` plus per-location rows on `product_stock`. The app still sells and adjusts the default location. There is no branch-transfer UI.
 - Order rules: cash currencies, exact-cash, quote-required delivery, and automatic acceptance are enforced in SQL. Preparation minutes, cut-off text, and collection windows are shown to customers but are not calendar-enforced.
 - Distance-based delivery fees, address geocoding, and multi-merchant carts are not implemented.
 - The 200-feature product roadmap is not built. See `BUSINESSOS_AUDIT.md`.

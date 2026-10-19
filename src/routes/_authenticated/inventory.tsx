@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
   addProduct,
+  getLocations,
   getProducts,
   getSuppliers,
   importProductsFn,
@@ -120,6 +121,7 @@ function Inventory() {
   const [stockReason, setStockReason] = useState("");
 
   const fetchProducts = useServerFn(getProducts);
+  const fetchLocations = useServerFn(getLocations);
   const fetchSuppliers = useServerFn(getSuppliers);
   const createProduct = useServerFn(addProduct);
   const adjustStock = useServerFn(updateStock);
@@ -135,6 +137,12 @@ function Inventory() {
     queryKey: ["products", businessId, search],
     enabled: Boolean(businessId),
     queryFn: () => fetchProducts({ data: { businessId: businessId!, search } }),
+  });
+
+  const locations = useQuery({
+    queryKey: ["locations", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchLocations({ data: { businessId: businessId! } }),
   });
 
   const suppliers = useQuery({
@@ -290,7 +298,7 @@ function Inventory() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Inventory"
-      subtitle="Everything you sell, and how much of it you have left."
+      subtitle="Totals on this page. Sales and stock changes use the default location. Moving stock between locations is not available yet."
       actions={
         <>
           {rows.length > 0 ? (
@@ -324,6 +332,15 @@ function Inventory() {
           aria-label="Search products"
         />
       </div>
+      {locations.data && locations.data.length > 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Default location:{" "}
+          {locations.data.find((l) => l.is_default)?.name ?? locations.data[0]?.name}
+          {locations.data.length > 1
+            ? `. ${locations.data.length} active locations. Stock numbers here are the total.`
+            : ". Stock numbers here match this location."}
+        </p>
+      ) : null}
 
       <div className="surface mt-4 overflow-hidden">
         {products.isLoading ? (
