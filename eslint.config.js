@@ -58,6 +58,7 @@ export default tseslint.config(
       "src/lib/account-deletion.server.ts",
       "src/lib/legal-acceptance.server.ts",
       "src/lib/team.server.ts",
+      "src/lib/notifications.mail.server.ts",
       "src/integrations/supabase/client.server.ts",
     ],
     rules: {

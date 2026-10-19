@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
+import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
   ConvertQuoteInput,
   CreateBusinessInput,
@@ -588,6 +589,7 @@ export async function createSale(supabase: Db, input: SaleInput) {
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("create sale", error);
+  await flushNotificationOutboxForBusiness(supabase, input.businessId);
   return { id: data as string };
 }
 

@@ -1,4 +1,10 @@
+import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 import { dbFail, type Db } from "./business.server";
+import {
+  flushNotificationOutboxForBusiness,
+  isNotificationEmailConfigured,
+} from "./notifications.mail.server";
 
 export type NotificationEntry = {
   id: string;
@@ -11,7 +17,26 @@ export type NotificationEntry = {
   created_at: string;
 };
 
+export type NotificationList = {
+  entries: NotificationEntry[];
+  unreadCount: number;
+  emailConfigured: boolean;
+};
+
 const PAGE_SIZE = 20;
+
+async function untypedRpc(
+  client: { rpc: (...args: never[]) => unknown },
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<{ data: Json | null; error: { message?: string } | null }> {
+  return (await (
+    client.rpc as (
+      name: string,
+      params: Record<string, unknown>,
+    ) => Promise<{ data: Json | null; error: { message?: string } | null }>
+  )(fn, args)) as { data: Json | null; error: { message?: string } | null };
+}
 
 /** No assertPermission gate — unlike audit logs, notifications aren't
  * owner/admin-only, they're personal-or-business-wide alerts every member
@@ -22,14 +47,16 @@ const PAGE_SIZE = 20;
 export async function listNotifications(
   supabase: Db,
   businessId: string,
-): Promise<{ entries: NotificationEntry[]; unreadCount: number }> {
+  offset = 0,
+): Promise<NotificationList> {
+  await flushNotificationOutboxForBusiness(supabase, businessId);
   const [{ data, error }, { count, error: countError }] = await Promise.all([
     supabase
       .from("notifications")
       .select("id, type, title, message, severity, link, is_read, created_at")
       .eq("business_id", businessId)
       .order("created_at", { ascending: false })
-      .limit(PAGE_SIZE),
+      .range(offset, offset + PAGE_SIZE - 1),
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
@@ -38,7 +65,11 @@ export async function listNotifications(
   ]);
   if (error) dbFail("list notifications", error);
   if (countError) dbFail("count unread notifications", countError);
-  return { entries: data ?? [], unreadCount: count ?? 0 };
+  return {
+    entries: data ?? [],
+    unreadCount: count ?? 0,
+    emailConfigured: isNotificationEmailConfigured(),
+  };
 }
 
 export async function markNotificationRead(supabase: Db, notificationId: string): Promise<void> {
@@ -56,4 +87,25 @@ export async function markAllNotificationsRead(supabase: Db, businessId: string)
     .eq("business_id", businessId)
     .eq("is_read", false);
   if (error) dbFail("mark all notifications read", error);
+}
+
+export async function getNotifyEmail(supabase: Db, businessId: string): Promise<boolean> {
+  const result = await untypedRpc(supabase, "get_notify_email", { _business_id: businessId });
+  if (result.error) dbFail("load email alert preference", result.error);
+  const parsed = z.boolean().safeParse(result.data);
+  return parsed.success ? parsed.data : true;
+}
+
+export async function setNotifyEmail(
+  supabase: Db,
+  businessId: string,
+  enabled: boolean,
+): Promise<boolean> {
+  const result = await untypedRpc(supabase, "set_notify_email", {
+    _business_id: businessId,
+    _enabled: enabled,
+  });
+  if (result.error) dbFail("save email alert preference", result.error);
+  const parsed = z.boolean().safeParse(result.data);
+  return parsed.success ? parsed.data : enabled;
 }

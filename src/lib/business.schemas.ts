@@ -554,6 +554,7 @@ export const listAuditLogsSchema = z.object({
 
 export const listNotificationsSchema = z.object({
   businessId: z.string().uuid(),
+  offset: z.coerce.number().int().min(0).max(500).optional(),
 });
 
 export const markNotificationReadSchema = z.object({
@@ -562,6 +563,11 @@ export const markNotificationReadSchema = z.object({
 
 export const markAllNotificationsReadSchema = z.object({
   businessId: z.string().uuid(),
+});
+
+export const notifyEmailSchema = z.object({
+  businessId: z.string().uuid(),
+  enabled: z.boolean(),
 });
 
 /* ------------------------------- insights -------------------------------- */
