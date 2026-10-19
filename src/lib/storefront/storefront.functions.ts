@@ -4,20 +4,34 @@ import type { Json } from "@/integrations/supabase/types";
 import type { Db } from "@/lib/business.server";
 import { parseAndSanitize } from "@/lib/security";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
-import { checkoutSchema, createComplaintSchema, listingSchema, saveStoreSchema } from "./contract";
 import {
+  checkoutSchema,
+  createComplaintSchema,
+  createListingReportSchema,
+  createReviewSchema,
+  listingSchema,
+  saveStoreSchema,
+} from "./contract";
+import {
+  createListingReport,
   createStoreComplaint,
+  createStoreReview,
+  hideStoreReview,
+  listListingReports,
   listStoreComplaints,
+  listStoreReviewsAdmin,
   loadAdminOrder,
   loadAdminStore,
   loadCustomerOrder,
   loadMarketplace,
   loadMarketplaceListing,
+  loadProductReviews,
   loadPublicStore,
   loadStorePreview,
   placeOrder,
   publishStorefront,
   quoteCart,
+  respondListingReport,
   respondStoreComplaint,
   saveListing,
   saveStorefront,
@@ -227,6 +241,83 @@ export const respondComplaintFn = createServerFn({ method: "POST" })
       context.supabase as Db,
       data.businessId,
       data.complaintId,
+      data.status,
+      data.note ?? "",
+    ),
+  );
+
+export const getProductReviewsFn = createServerFn({ method: "POST" })
+  .middleware(publicLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({ slug: z.string().min(1).max(40), productId: z.string().uuid() }),
+      data,
+    ),
+  )
+  .handler(async ({ data }) => loadProductReviews(data.slug, data.productId));
+
+export const createReviewFn = createServerFn({ method: "POST" })
+  .middleware(checkoutLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(createReviewSchema, data))
+  .handler(async ({ data }) => createStoreReview(data));
+
+export const listReviewsAdminFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    listStoreReviewsAdmin(context.supabase as Db, data.businessId),
+  );
+
+export const hideReviewFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        reviewId: z.string().uuid(),
+        hidden: z.boolean(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    hideStoreReview(context.supabase as Db, data.businessId, data.reviewId, data.hidden),
+  );
+
+export const createListingReportFn = createServerFn({ method: "POST" })
+  .middleware(checkoutLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(createListingReportSchema, data))
+  .handler(async ({ data }) => createListingReport(data));
+
+export const listListingReportsFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    listListingReports(context.supabase as Db, data.businessId),
+  );
+
+export const respondListingReportFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        reportId: z.string().uuid(),
+        status: z.enum(["open", "reviewing", "resolved"]),
+        note: z.string().max(2000).optional(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    respondListingReport(
+      context.supabase as Db,
+      data.businessId,
+      data.reportId,
       data.status,
       data.note ?? "",
     ),

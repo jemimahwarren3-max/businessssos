@@ -17,9 +17,13 @@ import {
   getAdminOrderFn,
   getMarketplaceListingFn,
   getStorefrontAdminFn,
+  hideReviewFn,
   listComplaintsFn,
+  listListingReportsFn,
+  listReviewsAdminFn,
   publishStorefrontFn,
   respondComplaintFn,
+  respondListingReportFn,
   setMarketplaceVisibleFn,
   saveListingFn,
   saveStorefrontFn,
@@ -27,7 +31,13 @@ import {
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
 import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
-import type { AdminOrder, AdminStore, ComplaintItem } from "@/lib/storefront/contract";
+import type {
+  AdminOrder,
+  AdminReviewItem,
+  AdminStore,
+  ComplaintItem,
+  ListingReportItem,
+} from "@/lib/storefront/contract";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
@@ -100,9 +110,21 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const transition = useServerFn(transitionOrderFn);
   const loadComplaints = useServerFn(listComplaintsFn);
   const respondComplaint = useServerFn(respondComplaintFn);
+  const loadReviews = useServerFn(listReviewsAdminFn);
+  const hideReview = useServerFn(hideReviewFn);
+  const loadReports = useServerFn(listListingReportsFn);
+  const respondReport = useServerFn(respondListingReportFn);
   const complaints = useQuery({
     queryKey: ["store-complaints", businessId],
     queryFn: () => loadComplaints({ data: { businessId } }),
+  });
+  const reviews = useQuery({
+    queryKey: ["store-reviews", businessId],
+    queryFn: () => loadReviews({ data: { businessId } }),
+  });
+  const listingReports = useQuery({
+    queryKey: ["store-listing-reports", businessId],
+    queryFn: () => loadReports({ data: { businessId } }),
   });
   const store = initial.store;
   const [storeName, setStoreName] = useState(store?.storeName ?? "");
@@ -632,6 +654,118 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             </ul>
           </div>
         ) : null}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold">Verified purchase reviews</h2>
+        <p className="text-sm text-muted-foreground">
+          Shoppers can review a line only with the order access code, after the order is ready, out
+          for delivery, or completed. Hiding a review removes it from the public product page. It
+          does not delete the record.
+        </p>
+        {reviews.isError ? (
+          <p className="text-sm text-muted-foreground">
+            {readableError(
+              reviews.error as Error,
+              "Reviews could not be loaded. Apply the latest database update if this shop is new.",
+            )}
+          </p>
+        ) : null}
+        <ul className="divide-y rounded-lg border">
+          {(reviews.data ?? []).length === 0 ? (
+            <li className="p-3 text-sm text-muted-foreground">No verified purchase reviews yet.</li>
+          ) : null}
+          {(reviews.data ?? []).map((item: AdminReviewItem) => (
+            <li key={item.id} className="space-y-2 p-3 text-sm">
+              <p className="font-medium">
+                {item.displayName} · {item.rating}/5 · {item.status}
+                {item.productName ? ` · ${item.productName}` : ""}
+                {item.orderReference ? ` · ${item.orderReference}` : ""}
+              </p>
+              <p>{item.body}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  void hideReview({
+                    data: {
+                      businessId,
+                      reviewId: item.id,
+                      hidden: item.status !== "hidden",
+                    },
+                  })
+                    .then((rows) => {
+                      queryClient.setQueryData(["store-reviews", businessId], rows);
+                    })
+                    .catch((error: Error) =>
+                      toast.error(readableError(error, "Could not update the review")),
+                    )
+                }
+              >
+                {item.status === "hidden" ? "Show on product page" : "Hide from product page"}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold">Listing reports</h2>
+        <p className="text-sm text-muted-foreground">
+          Anyone can report a published shop or product. Reports are not a public ranking.
+        </p>
+        {listingReports.isError ? (
+          <p className="text-sm text-muted-foreground">
+            {readableError(
+              listingReports.error as Error,
+              "Listing reports could not be loaded. Apply the latest database update if this shop is new.",
+            )}
+          </p>
+        ) : null}
+        <ul className="divide-y rounded-lg border">
+          {(listingReports.data ?? []).length === 0 ? (
+            <li className="p-3 text-sm text-muted-foreground">No listing reports yet.</li>
+          ) : null}
+          {(listingReports.data ?? []).map((item: ListingReportItem) => (
+            <li key={item.id} className="space-y-2 p-3 text-sm">
+              <p className="font-medium">
+                {item.reason} · {item.status}
+                {item.productName ? ` · ${item.productName}` : " · shop"}
+              </p>
+              <p>{item.detail}</p>
+              {item.reporterContact ? (
+                <p className="text-muted-foreground">{item.reporterContact}</p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                {(["reviewing", "resolved"] as const).map((status) => (
+                  <Button
+                    key={status}
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      void respondReport({
+                        data: {
+                          businessId,
+                          reportId: item.id,
+                          status,
+                          note: item.merchantNote ?? "",
+                        },
+                      })
+                        .then((rows) => {
+                          queryClient.setQueryData(["store-listing-reports", businessId], rows);
+                        })
+                        .catch((error: Error) =>
+                          toast.error(readableError(error, "Could not update the report")),
+                        )
+                    }
+                  >
+                    Mark {status}
+                  </Button>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="space-y-3">

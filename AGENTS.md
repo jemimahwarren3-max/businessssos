@@ -17,7 +17,7 @@ TanStack Start (React 19, Vite 8, Nitro node-server), Tailwind 4, Zod, Vitest, S
 7. Platform Paynow keys bill BusinessOS subscriptions only. Do not collect customer shop funds with those keys.
 8. Payment success comes from a trusted provider verification path, never from a browser redirect.
 9. Retry-safe operations: checkout, webhooks, stock movements, and notifications must be idempotent.
-10. Do not invent legal compliance, verification badges, reviews, popularity, or delivery times.
+10. Do not invent legal compliance, verification badges, fake reviews, popularity, or delivery times. Verified-purchase reviews must prove the order with the access code.
 11. Do not put secrets, service-role keys, or payment credentials in the client bundle or logs.
 12. UI copy must not use em dashes. Page titles use ` | BusinessOS AI`.
 13. Staging project `slajanbsfqjnuuiohbmg` is the only database an agent may migrate unless a human explicitly approves production `maidxfntfpnkcqnuhozo`.

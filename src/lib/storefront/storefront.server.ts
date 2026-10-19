@@ -7,19 +7,25 @@ import {
   adminStoreSchema,
   checkoutResultSchema,
   customerOrderSchema,
+  adminReviewListSchema,
   complaintListSchema,
   complaintResultSchema,
+  listingReportListSchema,
   marketplaceListingSchema,
   marketplaceSchema,
+  productReviewsSchema,
   publicStoreSchema,
   quoteSchema,
   type AdminOrder,
+  type AdminReviewItem,
   type AdminStore,
   type CartQuote,
   type CustomerOrder,
+  type ListingReportItem,
   type Marketplace,
   type ComplaintItem,
   type MarketplaceListing,
+  type ProductReviews,
   type PublicStore,
 } from "./contract";
 
@@ -323,4 +329,101 @@ export async function respondStoreComplaint(
     _note: note,
   });
   return parseRpc("respond to complaint", result, complaintListSchema);
+}
+
+export async function loadProductReviews(slug: string, productId: string): Promise<ProductReviews> {
+  const supabase = createAnonClient();
+  const result = await untypedRpc(supabase, "list_store_reviews", {
+    _slug: slug,
+    _product_id: productId,
+  });
+  return parseRpc("list product reviews", result, productReviewsSchema);
+}
+
+export async function createStoreReview(input: {
+  slug: string;
+  reference: string;
+  token: string;
+  productId: string;
+  rating: number;
+  body: string;
+}) {
+  const supabase = createAnonClient();
+  const result = await untypedRpc(supabase, "create_store_review", {
+    _slug: input.slug,
+    _reference: input.reference,
+    _token: input.token,
+    _product_id: input.productId,
+    _rating: input.rating,
+    _body: input.body,
+  });
+  return parseRpc("create review", result, complaintResultSchema);
+}
+
+export async function listStoreReviewsAdmin(
+  supabase: Db,
+  businessId: string,
+): Promise<AdminReviewItem[]> {
+  const result = await untypedRpc(supabase, "list_store_reviews_admin", {
+    _business_id: businessId,
+  });
+  return parseRpc("list merchant reviews", result, adminReviewListSchema);
+}
+
+export async function hideStoreReview(
+  supabase: Db,
+  businessId: string,
+  reviewId: string,
+  hidden: boolean,
+): Promise<AdminReviewItem[]> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "hide_store_review", {
+    _business_id: businessId,
+    _review_id: reviewId,
+    _hidden: hidden,
+  });
+  return parseRpc("hide review", result, adminReviewListSchema);
+}
+
+export async function createListingReport(input: {
+  slug: string;
+  productId?: string | undefined;
+  reason: string;
+  detail: string;
+  contact?: string | undefined;
+}) {
+  const supabase = createAnonClient();
+  const result = await untypedRpc(supabase, "create_listing_report", {
+    _slug: input.slug,
+    _product_id: input.productId ?? null,
+    _reason: input.reason,
+    _detail: input.detail,
+    _contact: input.contact ?? "",
+  });
+  return parseRpc("create listing report", result, complaintResultSchema);
+}
+
+export async function listListingReports(
+  supabase: Db,
+  businessId: string,
+): Promise<ListingReportItem[]> {
+  const result = await untypedRpc(supabase, "list_listing_reports", { _business_id: businessId });
+  return parseRpc("list listing reports", result, listingReportListSchema);
+}
+
+export async function respondListingReport(
+  supabase: Db,
+  businessId: string,
+  reportId: string,
+  status: string,
+  note: string,
+): Promise<ListingReportItem[]> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "respond_listing_report", {
+    _business_id: businessId,
+    _report_id: reportId,
+    _status: status,
+    _note: note,
+  });
+  return parseRpc("respond to listing report", result, listingReportListSchema);
 }

@@ -35,6 +35,9 @@ const EXPORT_TABLES = [
   "store_orders",
   "store_order_items",
   "store_order_events",
+  "store_complaints",
+  "store_reviews",
+  "store_listing_reports",
 ] as const;
 
 describe("cross-tenant isolation", () => {
