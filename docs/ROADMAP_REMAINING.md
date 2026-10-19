@@ -20,6 +20,7 @@ Counts are approximate. Many "features" in the original list are the same capabi
 | Shop hours, cut-off, collection windows                                           | Fulfilment clocks PR      |
 | POS cash drawer ledger                                                            | Cash control PR           |
 | Shopper login, order history, per-shop message consent                            | Shopper accounts PR       |
+| Shopper receipts + merchant alert email outbox                                    | Transactional email PR    |
 
 ## Batch 1: marketplace trust (shipped)
 
@@ -27,7 +28,7 @@ Verified-purchase reviews and listing reports. Reviews require the order access 
 
 ## Batch 2: merchant notifications (shipped)
 
-In-app alerts for new orders, complaints, reviews, listing reports, and low-stock crossings. Email copies through Resend only when `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. Outbox is retry-safe. WhatsApp Cloud is not used.
+In-app alerts for new orders, complaints, reviews, listing reports, and low-stock crossings. Email copies and shopper receipts through Resend when `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. Outbox stays pending until then. WhatsApp Cloud is not used.
 
 ## Batch 3: staging `locations` drift (shipped)
 
@@ -45,9 +46,9 @@ One open cash session per business, a signed `cash_movements` ledger, cash POS s
 
 Size/colour variants with real stock rows. Collections and scheduled publish. Blocked until stock is no longer a single `products.stock` number (or that model is explicitly kept and variants are refused).
 
-## Batch 7 (this PR): customer accounts
+## Batch 7: customer accounts
 
-Shopper login on `/store/$slug/account` (and `/account` on the shop host). Checkout still works as a guest. Orders attach only when `auth.uid()` is present at place-order time, or when a signed-in shopper claims a guest order with the access code. Matching email does not attach an order. Access codes stay valid after a claim. Message consent is stored per shop; no shopper email is sent.
+Shopper login on `/store/$slug/account` (and `/account` on the shop host). Checkout still works as a guest. Orders attach only when `auth.uid()` is present at place-order time, or when a signed-in shopper claims a guest order with the access code. Matching email does not attach an order. Access codes stay valid after a claim. Message consent is stored per shop. Transactional receipts/status emails are separate from that checkbox. Marketing mail is not sent.
 
 ## Batch 8: shopper payments
 
@@ -81,7 +82,11 @@ Loyalty points, coupons, gift cards, store credit, wishlists, referral credit. N
 
 Sponsored listings, popularity ranks, verified-merchant badges, usage-based billing dashboards, n8n automations. Badges only after a real check. Sponsored slots only after a payment path.
 
-## Batch 16: production go-live
+## Batch 16: transactional email (this PR)
+
+Shopper receipts at place-order (access code once), status emails on later order events, flush endpoint plus GitHub cron, Cloud Run Resend secrets. Auth confirm/reset remain Supabase SMTP.
+
+## Batch 17: production go-live
 
 Path-based shops and a Cloud Run workflow are in git (`CLOUD_RUN_LAUNCH.md`). Operator still must create the GCP project, secrets, and (later) wildcard DNS. Backup restore, `npm audit` upgrades, legal entity name, and CDPA review stay human gates. Production Postgres is not applied from this agent. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
 
@@ -91,4 +96,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Operator: GitHub/GCP secrets and a staging Cloud Run revision. Do not wait on variants or shopper Paynow to do that. Production database cutover still needs an explicit human.
+Operator: GitHub/GCP secrets (including Resend + `MAIL_FLUSH_SECRET`) and a staging Cloud Run revision. Apply `20261019220000_shopper_order_emails.sql` on staging. Production database cutover still needs an explicit human.

@@ -130,7 +130,7 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 | --- | --------------------------- | ------ | -------------------------------------------------------------- |
 | 61  | Guest checkout              | IV     |                                                                |
 | 62  | Customer accounts / history | P      | Shopper login + per-shop history. Guest checkout remains. Merchant `customers` is still POS CRM. |
-| 63  | Consent-aware comms         | P      | Per-shop `messages` flag stored. No shopper email send.        |
+| 63  | Consent-aware comms         | P      | Per-shop `messages` flag stored. Transactional order email is queued; marketing is not sent. |
 | 64  | Order tracking              | INV    | Access code + honest unpaid copy.                              |
 | 65  | Complaints                  | INV    | Order-token complaint form and merchant queue.                 |
 | 66  | Merchant responses          | P      | Status transitions, not a thread.                              |

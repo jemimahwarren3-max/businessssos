@@ -236,8 +236,8 @@ function ShopperAccountPage() {
     <div className="mx-auto max-w-xl px-4 py-10">
       <h1 className="text-2xl font-semibold">Your orders at {store.storeName}</h1>
       <p className="mt-2 text-sm text-neutral-600">
-        Signed in as {user.email ?? "your account"}. Guest access codes still open orders. This shop
-        does not send marketing email yet; the checkbox only stores your preference.
+        Signed in as {user.email ?? "your account"}. Guest access codes still open orders. Receipts
+        and status emails go to the address on each order. Marketing email is not sent.
       </p>
       <div className="mt-4 flex flex-wrap gap-3 text-sm">
         <button
@@ -260,8 +260,8 @@ function ShopperAccountPage() {
           onChange={(event) => void onConsent(event.target.checked)}
         />
         <span>
-          {store.storeName} may message me about my orders and this shop. No messages are sent until
-          a shopper email path exists.
+          {store.storeName} may send extra shop messages. Receipts and status emails are separate
+          and still go to the email on the order.
         </span>
       </label>
       <form

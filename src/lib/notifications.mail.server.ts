@@ -10,8 +10,16 @@ const outboxItemSchema = z.object({
   subject: z.string(),
   body: z.string(),
   attempts: z.coerce.number(),
-  notificationId: z.string().uuid(),
+  notificationId: z.string().uuid().nullable().optional(),
 });
+
+export type FlushMailResult = {
+  sent: number;
+  skipped: number;
+  failed: number;
+  configured: boolean;
+  reason?: string;
+};
 
 type OutboxItem = z.infer<typeof outboxItemSchema>;
 
@@ -40,7 +48,10 @@ export function isNotificationEmailConfigured(): boolean {
 export function notificationEmailStatus(): { configured: boolean; reason: string } {
   const config = readNotificationMailConfig(process.env);
   if (config.configured) {
-    return { configured: true, reason: "Shop alerts can be emailed through Resend." };
+    return {
+      configured: true,
+      reason: "Shop alerts and shopper order emails can be sent through Resend.",
+    };
   }
   return { configured: false, reason: config.reason };
 }
@@ -86,14 +97,12 @@ async function dispatch(
 ): Promise<{ sent: number; skipped: number; failed: number }> {
   const config = readNotificationMailConfig(process.env);
   let sent = 0;
-  let skipped = 0;
+  const skipped = 0;
   let failed = 0;
+  if (!config.configured) {
+    return { sent: 0, skipped: 0, failed: 0 };
+  }
   for (const item of items) {
-    if (!config.configured) {
-      await complete(client, item.id, "skipped", config.reason);
-      skipped += 1;
-      continue;
-    }
     try {
       const apiKey = process.env["RESEND_API_KEY"]?.trim() ?? "";
       await sendResend(item, config.from, apiKey);
@@ -112,7 +121,11 @@ async function dispatch(
 export async function flushNotificationOutboxForBusiness(
   supabase: RpcClient,
   businessId: string,
-): Promise<void> {
+): Promise<FlushMailResult> {
+  const config = readNotificationMailConfig(process.env);
+  if (!config.configured) {
+    return { sent: 0, skipped: 0, failed: 0, configured: false, reason: config.reason };
+  }
   try {
     const result = await untypedRpc(supabase, "claim_notification_outbox", {
       _business_id: businessId,
@@ -123,18 +136,24 @@ export async function flushNotificationOutboxForBusiness(
         result.error.message?.includes("schema cache") ||
         result.error.message?.includes("Could not find")
       ) {
-        return;
+        return { sent: 0, skipped: 0, failed: 0, configured: true };
       }
       console.error("[businessos] claim notification outbox", result.error);
-      return;
+      return { sent: 0, skipped: 0, failed: 0, configured: true };
     }
-    await dispatch(supabase, parseItems(result.data));
+    const counts = await dispatch(supabase, parseItems(result.data));
+    return { ...counts, configured: true };
   } catch (error) {
     console.error("[businessos] notification flush", error);
+    return { sent: 0, skipped: 0, failed: 0, configured: true };
   }
 }
 
-export async function flushNotificationOutboxAdmin(): Promise<void> {
+export async function flushNotificationOutboxAdmin(): Promise<FlushMailResult> {
+  const config = readNotificationMailConfig(process.env);
+  if (!config.configured) {
+    return { sent: 0, skipped: 0, failed: 0, configured: false, reason: config.reason };
+  }
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const result = await untypedRpc(supabaseAdmin, "claim_notification_outbox_admin", {
@@ -145,13 +164,15 @@ export async function flushNotificationOutboxAdmin(): Promise<void> {
         result.error.message?.includes("schema cache") ||
         result.error.message?.includes("Could not find")
       ) {
-        return;
+        return { sent: 0, skipped: 0, failed: 0, configured: true };
       }
       console.error("[businessos] admin notification claim", result.error);
-      return;
+      return { sent: 0, skipped: 0, failed: 0, configured: true };
     }
-    await dispatch(supabaseAdmin, parseItems(result.data));
+    const counts = await dispatch(supabaseAdmin, parseItems(result.data));
+    return { ...counts, configured: true };
   } catch (error) {
     console.error("[businessos] admin notification flush skipped", error);
+    return { sent: 0, skipped: 0, failed: 0, configured: true };
   }
 }
