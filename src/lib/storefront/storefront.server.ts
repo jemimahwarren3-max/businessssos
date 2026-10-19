@@ -7,6 +7,8 @@ import {
   adminStoreSchema,
   checkoutResultSchema,
   customerOrderSchema,
+  complaintListSchema,
+  complaintResultSchema,
   marketplaceListingSchema,
   marketplaceSchema,
   publicStoreSchema,
@@ -16,9 +18,26 @@ import {
   type CartQuote,
   type CustomerOrder,
   type Marketplace,
+  type ComplaintItem,
   type MarketplaceListing,
   type PublicStore,
 } from "./contract";
+
+async function untypedRpc(
+  client: { rpc: (...args: never[]) => unknown },
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<{ data: Json | null; error: { message?: string } | null }> {
+  return (await (
+    client.rpc as (
+      name: string,
+      params: Record<string, unknown>,
+    ) => Promise<{
+      data: Json | null;
+      error: { message?: string } | null;
+    }>
+  )(fn, args)) as { data: Json | null; error: { message?: string } | null };
+}
 
 function rpcFail(context: string, error: unknown): never {
   const message = (error as { message?: string } | null)?.message ?? "";
@@ -261,4 +280,47 @@ export async function listPublicPaths(): Promise<
     )
     .safeParse(data);
   return parsed.success ? parsed.data : [];
+}
+
+export async function createStoreComplaint(input: {
+  slug: string;
+  message: string;
+  customer: { name: string; phone: string; email?: string | undefined };
+  reference?: string | undefined;
+  token?: string | undefined;
+}) {
+  const supabase = createAnonClient();
+  const result = await untypedRpc(supabase, "create_store_complaint", {
+    _slug: input.slug,
+    _customer: input.customer,
+    _message: input.message,
+    _reference: input.reference ?? "",
+    _token: input.token ?? "",
+  });
+  return parseRpc("create complaint", result, complaintResultSchema);
+}
+
+export async function listStoreComplaints(
+  supabase: Db,
+  businessId: string,
+): Promise<ComplaintItem[]> {
+  const result = await untypedRpc(supabase, "list_store_complaints", { _business_id: businessId });
+  return parseRpc("list complaints", result, complaintListSchema);
+}
+
+export async function respondStoreComplaint(
+  supabase: Db,
+  businessId: string,
+  complaintId: string,
+  status: string,
+  note: string,
+): Promise<ComplaintItem[]> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "respond_store_complaint", {
+    _business_id: businessId,
+    _complaint_id: complaintId,
+    _status: status,
+    _note: note,
+  });
+  return parseRpc("respond to complaint", result, complaintListSchema);
 }

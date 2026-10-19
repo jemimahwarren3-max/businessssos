@@ -137,6 +137,39 @@ export type Marketplace = z.infer<typeof marketplaceSchema>;
 export type MarketplaceProduct = z.infer<typeof marketplaceProductSchema>;
 export type MarketplaceListing = z.infer<typeof marketplaceListingSchema>;
 
+export const complaintResultSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+});
+
+export const complaintListSchema = z.array(
+  z.object({
+    id: z.string(),
+    createdAt: z.string(),
+    status: z.string(),
+    customerName: z.string(),
+    customerPhone: z.string(),
+    customerEmail: z.string().nullable().optional(),
+    message: z.string(),
+    merchantNote: z.string().nullable().optional(),
+    orderReference: z.string().nullable().optional(),
+  }),
+);
+
+export const createComplaintSchema = z.object({
+  slug: z.string().min(3).max(40),
+  message: z.string().trim().min(8).max(2000),
+  customer: z.object({
+    name: z.string().trim().min(2).max(80),
+    phone: z.string().trim().min(7).max(20),
+    email: z.string().trim().max(120).optional(),
+  }),
+  reference: z.string().max(40).optional(),
+  token: z.string().max(80).optional(),
+});
+
+export type ComplaintItem = z.infer<typeof complaintListSchema>[number];
+
 export const quoteSchema = z.object({
   currency: z.string(),
   subtotal: z.coerce.number(),

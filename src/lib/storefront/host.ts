@@ -39,6 +39,7 @@ export const RESERVED_HOST_LABELS = new Set([
   "market",
   "onboarding",
   "order",
+  "privacy",
   "products",
   "public",
   "quotes",
@@ -57,6 +58,7 @@ export const RESERVED_HOST_LABELS = new Set([
   "storefront",
   "stores",
   "suppliers",
+  "terms",
   "www",
 ]);
 
@@ -78,6 +80,7 @@ const APP_PATH_PREFIXES = [
   "/legal",
   "/market",
   "/onboarding",
+  "/privacy",
   "/purchase-orders",
   "/quotes",
   "/recurring-invoices",
@@ -91,6 +94,7 @@ const APP_PATH_PREFIXES = [
   "/staff-login",
   "/storefront",
   "/suppliers",
+  "/terms",
   "/time-clock",
 ];
 

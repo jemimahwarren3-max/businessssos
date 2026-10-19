@@ -9,7 +9,7 @@
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).
 - Offline stock is an estimate. Unsynced sales stay on the device after logout.
-- Legal pages are drafts without an operator name or contact.
+- Privacy and Terms at `/privacy` and `/terms` are working drafts with placeholders for the operator's legal name. They are not a compliance certificate.
 - Fiscalisation, CDPA, and consumer-law compliance are not claimed.
 - CI default branch mismatch is fixed; historical merges to `master` may have skipped CI.
 - Accessibility: code-level work exists; no screen-reader evidence this session.

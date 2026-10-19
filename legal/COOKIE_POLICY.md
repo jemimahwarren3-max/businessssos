@@ -6,7 +6,7 @@
 > unnecessary in every jurisdiction you serve is a question for a lawyer,
 > not this document.
 
-_Last updated: 2026-08-11 (still a draft — see the banner above)_
+_Last updated: 2026-10-19 (still a draft. See the banner above.)_
 
 ## The short version
 
