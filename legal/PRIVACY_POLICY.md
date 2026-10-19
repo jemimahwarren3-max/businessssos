@@ -51,11 +51,11 @@ Merchants must have a lawful basis for giving us personal information about thei
 
 ### 3.3 Shopper and order information
 
-When someone browses, checks out or tracks an order we may collect name, phone, optional email, delivery address, items, quantities, prices, fees, currency, collection or delivery choice, order status, payment method and status, notes, and complaint messages.
+When someone browses, checks out or tracks an order we may collect name, phone, optional email, delivery address, items, quantities, prices, fees, currency, collection or delivery choice, order status, payment method and status, notes, complaint messages, verified-purchase review text and ratings, and listing-report messages.
 
 Guest checkout is available. An account is not required to place an online order. We still need contact and order details to process that order. Access to the customer order page requires the one-time access code shown after checkout, not the order number alone.
 
-Product reviews are not implemented. We do not collect review text unless that feature is later built and this Policy is updated.
+Product reviews are accepted only when the shopper proves the order with that access code and the shop has marked the order ready, out for delivery, or completed. The public review shows a first name (or "Customer"), the rating, the text, and that it is a verified purchase. Phone numbers are not shown on the product page. Listing reports can include optional contact details for follow-up. We do not invent ratings or review counts.
 
 ### 3.4 Payment information
 

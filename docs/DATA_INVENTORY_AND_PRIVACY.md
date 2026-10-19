@@ -12,6 +12,9 @@ Technical inventory. Not a finding that Zimbabwean or other law is satisfied. Se
 | Sales, invoices, quotes, expenses | matching tables | Books | Permissioned members | Until business delete | Supabase | Cascade; not silent rewrite of history |
 | Inventory movements | `inventory_movements` | Stock audit | Permissioned members | Until business delete | Supabase | Cascade |
 | Online orders | `store_orders*` | Shop fulfilment | Members; shopper via access token RPC | Until business delete | Supabase | Cascade |
+| Complaints | `store_complaints` | Order problems | Members; create via public RPC with optional order token | Until business delete | Supabase | Cascade |
+| Reviews | `store_reviews` | Verified purchase feedback | Public published projection; members see hidden | Until business delete | Supabase | Cascade |
+| Listing reports | `store_listing_reports` | Marketplace trust | Members; create via public RPC | Until business delete | Supabase | Cascade |
 | Shop profile | `storefronts`, listings | Public catalogue | Public projection only | Until unpublish/delete | Supabase | Cascade |
 | Marketplace browse | RPC output | Discovery | Public, rate limited | Not stored as a second catalogue | Supabase | n/a |
 | Subscription payments | `subscription_payments` | Platform billing | Owner/admin; Paynow webhook via service role | Until business delete | Paynow, Supabase | Cascade |

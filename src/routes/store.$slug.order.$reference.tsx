@@ -5,6 +5,7 @@ import { orderTokenKey } from "@/lib/storefront/cart";
 import { getCustomerOrderFn } from "@/lib/storefront/storefront.functions";
 import type { CustomerOrder } from "@/lib/storefront/contract";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
+import { StoreReviewForm } from "@/components/storefront/review-form";
 import { snapshotPolicyLines } from "@/lib/storefront/order-rules";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
@@ -98,11 +99,26 @@ function OrderPage() {
           <p>Placed {friendlyDate(order.createdAt)}</p>
           <ul className="divide-y border-y">
             {order.items.map((item) => (
-              <li key={item.name} className="flex justify-between py-2">
-                <span>
-                  {item.quantity} × {item.name}
-                </span>
-                <span>{formatMoney(item.lineTotal, order.currency)}</span>
+              <li key={`${item.productId ?? item.name}-${item.name}`} className="space-y-2 py-2">
+                <div className="flex justify-between">
+                  <span>
+                    {item.quantity} × {item.name}
+                  </span>
+                  <span>{formatMoney(item.lineTotal, order.currency)}</span>
+                </div>
+                {item.reviewed ? (
+                  <p className="text-neutral-500">You already left a verified purchase review.</p>
+                ) : null}
+                {item.canReview && item.productId ? (
+                  <StoreReviewForm
+                    slug={store.slug}
+                    reference={order.reference}
+                    token={token}
+                    productId={item.productId}
+                    productName={item.name}
+                    onSaved={() => void lookup()}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>
@@ -115,6 +131,14 @@ function OrderPage() {
             </p>
           ))}
           {order.customerAddress ? <p>Address: {order.customerAddress}</p> : null}
+          {order.items.every((item) => !item.canReview) &&
+          order.items.every((item) => !item.reviewed) &&
+          order.paymentMethod !== "quote" &&
+          order.fulfilmentStatus !== "cancelled" ? (
+            <p className="text-neutral-500">
+              Reviews open after the shop marks this order ready, out for delivery, or completed.
+            </p>
+          ) : null}
           <p className="text-neutral-500">
             Contact the shop if you need to change this order. Keep the access code private.
           </p>
