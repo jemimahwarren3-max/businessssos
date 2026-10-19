@@ -38,6 +38,18 @@ export function friendlyDate(value: string | Date) {
   }).format(date);
 }
 
+export function friendlyDateTime(value: string | Date, timeZone = "Africa/Harare") {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+  }).format(date);
+}
+
 /** Server errors are already user-friendly (see business.server.ts AppError) —
  * anything else (network failures, framework errors) gets a generic fallback. */
 export function readableError(error: Error, fallback: string) {
