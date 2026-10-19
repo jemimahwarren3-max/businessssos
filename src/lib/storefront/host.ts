@@ -1,7 +1,9 @@
-// Public shops are served on {slug}.{platform host}, the same shape as
-// Shopify. The router still matches /store/$slug internally. Draft preview
-// stays on the platform host because the sign-in cookie is not shared with
-// shop subdomains.
+// Public shops can be served on {slug}.{platform host} (Shopify-style) or on
+// /store/{slug} on the platform host. Cloud Run's default *.run.app URL cannot
+// have extra DNS labels, so path URLs are the deploy default. Wildcard DNS
+// plus SHOP_HOSTS=true turns subdomains on. The router still matches
+// /store/$slug internally. Draft preview stays on the platform host because
+// the sign-in cookie is not shared with shop subdomains.
 
 export type PlatformRoot = {
   protocol: string;
@@ -119,6 +121,33 @@ export function configuredPlatformRoot(): PlatformRoot | null {
   return origin ? parsePlatformRoot(origin) : null;
 }
 
+/** Explicit SHOP_HOSTS=true/false wins. Otherwise only localhost uses shop
+ * subdomains, because browsers resolve `{slug}.localhost` without DNS. */
+export function shopHostsEnabledFromOrigin(
+  appUrl: string | undefined,
+  flag: string | undefined,
+): boolean {
+  const normalized = (flag ?? "").trim().toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "on") return true;
+  if (normalized === "false" || normalized === "0" || normalized === "off") return false;
+  if (!appUrl) return false;
+  try {
+    const host = new URL(appUrl).hostname.toLowerCase();
+    return host === "localhost" || host.endsWith(".localhost");
+  } catch {
+    return false;
+  }
+}
+
+export function shopHostsEnabled(): boolean {
+  const flag =
+    (typeof process !== "undefined" ? process.env["SHOP_HOSTS"] : undefined) ??
+    (typeof import.meta.env["VITE_SHOP_HOSTS"] === "string"
+      ? import.meta.env["VITE_SHOP_HOSTS"]
+      : undefined);
+  return shopHostsEnabledFromOrigin(configuredPlatformOrigin() ?? undefined, flag);
+}
+
 export function isStoreHostLabel(label: string): boolean {
   return SLUG.test(label) && !RESERVED_HOST_LABELS.has(label);
 }
@@ -136,12 +165,24 @@ export function storeSlugFromHostname(hostname: string, rootHostname: string): s
 
 export function storePublicUrl(slug: string, path = "/"): string {
   const root = configuredPlatformRoot() ?? parsePlatformRoot("http://localhost:8080");
-  return storePublicUrlOn(root, slug, path);
+  return storePublicUrlOn(root, slug, path, shopHostsEnabled());
 }
 
-export function storePublicUrlOn(root: PlatformRoot, slug: string, path = "/"): string {
-  const host = root.port ? `${slug}.${root.hostname}:${root.port}` : `${slug}.${root.hostname}`;
+export function storePublicUrlOn(
+  root: PlatformRoot,
+  slug: string,
+  path = "/",
+  shopHosts = true,
+): string {
   const pathname = path.startsWith("/") ? path : `/${path}`;
+  const suffix = pathname === "/" ? "" : pathname;
+  if (!shopHosts) {
+    const origin = root.port
+      ? `${root.protocol}//${root.hostname}:${root.port}`
+      : `${root.protocol}//${root.hostname}`;
+    return `${origin}/store/${slug}${suffix}`;
+  }
+  const host = root.port ? `${slug}.${root.hostname}:${root.port}` : `${slug}.${root.hostname}`;
   return `${root.protocol}//${host}${pathname === "/" ? "/" : pathname}`;
 }
 
@@ -158,7 +199,12 @@ export function rewriteStoreInputUrl(url: URL, rootHostname: string): URL | unde
   return next;
 }
 
-export function rewriteStoreOutputUrl(url: URL, rootHostname: string): URL | undefined {
+export function rewriteStoreOutputUrl(
+  url: URL,
+  rootHostname: string,
+  shopHosts = true,
+): URL | undefined {
+  if (!shopHosts) return undefined;
   if (isDraftPreview(url)) return undefined;
   const match = url.pathname.match(/^\/store\/([^/]+)(\/.*)?$/);
   if (!match) return undefined;
@@ -176,7 +222,7 @@ export function isDraftPreview(url: URL): boolean {
   return value === "1" || value === '"1"';
 }
 
-export function publicStoreRedirect(url: URL, root: PlatformRoot): string | null {
+export function publicStoreRedirect(url: URL, root: PlatformRoot, shopHosts = true): string | null {
   const slug = storeSlugFromHostname(url.hostname, root.hostname);
   if (slug) {
     if (shopPathSuffix(url.pathname) !== null) return null;
@@ -188,8 +234,9 @@ export function publicStoreRedirect(url: URL, root: PlatformRoot): string | null
     if (next.href === url.href) return null;
     return next.href;
   }
+  if (!shopHosts) return null;
   if (isDraftPreview(url)) return null;
-  const rewritten = rewriteStoreOutputUrl(url, root.hostname);
+  const rewritten = rewriteStoreOutputUrl(url, root.hostname, shopHosts);
   if (!rewritten || rewritten.href === url.href) return null;
   return rewritten.href;
 }

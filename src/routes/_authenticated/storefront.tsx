@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { friendlyDateTime, readableError } from "@/lib/format";
-import { storePublicUrl } from "@/lib/storefront/host";
+import { shopHostsEnabled, storePublicUrl } from "@/lib/storefront/host";
 import {
   getAdminOrderFn,
   getMarketplaceListingFn,
@@ -271,6 +271,12 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         {publicUrl ? (
           <p className="text-sm">
             Link: <a href={publicUrl}>{publicUrl}</a>
+            {shopHostsEnabled() ? null : (
+              <span className="mt-1 block text-muted-foreground">
+                This deploy serves shops on the app host at /store/your-slug. Wildcard DNS is not
+                on, so subdomain shop URLs are not used.
+              </span>
+            )}
             {" · "}
             <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: "1" }}>
               Preview with your published products

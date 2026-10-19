@@ -2,66 +2,41 @@
 
 ## Goal of this increment
 
-Shoppers can create an account, see orders they placed while signed in, claim a guest order with the access code, and store per-shop message consent. Guest checkout and access-code tracking stay intact. Email matching does not steal orders.
-
-This is the customer-accounts slice from `ROADMAP_REMAINING.md`.
+Make a first Cloud Run revision possible without wildcard DNS, extra product features, or touching production Postgres.
 
 ## Why not the rest of the 200
 
-Variants still need stock rows that the POS actually uses. Customer Paynow needs merchant credentials. Shopper email send would be a lie until a mail path exists.
-
-## Dependencies
-
-1. Storefront, order rules, fulfilment clocks, and cash drawer migrations already on this stack.
-2. **This slice:** `20261019210000_shopper_accounts.sql`. Apply on staging `slajanbsfqjnuuiohbmg` only. Not applied to production.
+Variants, shopper Paynow, GRN, and media are not deploy blockers. Legal entity, CDPA, restore drills, and `npm audit` force-upgrades cannot be completed honestly from this agent.
 
 ## What this slice delivers
 
-| Behaviour                                          | Where                                                     |
-| -------------------------------------------------- | --------------------------------------------------------- |
-| `store_orders.shopper_user_id`                     | set from `auth.uid()` at checkout                         |
-| Claim guest order with access code                 | `claim_store_order`                                       |
-| Order history for the signed-in user at one shop   | `get_shopper_account`                                     |
-| Per-shop message consent                           | `shopper_shop_consents`                                   |
-| Guest token still opens `get_store_order`          | `storefront_can_access_order`                             |
-| Shop account UI and host `/account` rewrite        | `store.$slug.account`, `host.ts`                          |
-| Checkout attaches the session and optional consent | `placeOrder` uses the authed client when a session exists |
+| Behaviour                                           | Where                                                   |
+| --------------------------------------------------- | ------------------------------------------------------- |
+| Path shop URLs unless `SHOP_HOSTS=true`             | `src/lib/storefront/host.ts`, server 308, merchant copy |
+| Container listens on Cloud Run `PORT`               | `Dockerfile`                                            |
+| Boot fails if required env is missing               | `src/lib/runtime-env.server.ts`                         |
+| Manual GitHub deploy to Cloud Run (staging secrets) | `.github/workflows/deploy-cloud-run.yml`                |
+| Operator runbook                                    | `docs/CLOUD_RUN_LAUNCH.md`                              |
 
 ## What it does not deliver
 
-- Automatic attach by email.
-- Shopper marketing or order-status email.
+- A live GCP project, secrets, or a green revision (operator).
+- Production SQL on `maidxfntfpnkcqnuhozo`.
+- Wildcard shop hostnames.
 - Customer Paynow.
-- A shared cart across shops.
-
-## Risks
-
-| Risk                                  | Mitigation                                                                 |
-| ------------------------------------- | -------------------------------------------------------------------------- |
-| Session on shop host vs merchant apex | Same cookie name, host-scoped. Shop subdomain does not share merchant SSO. |
-| Claiming someone else's order         | Token required; already-claimed orders refuse.                             |
-| Reviews without a token               | Signed-in owner of `shopper_user_id` is enough. Guests still use the code. |
 
 ## Acceptance criteria
 
-1. Guest `create_store_order` leaves `shopper_user_id` null.
-2. `asUser` checkout sets `shopper_user_id`.
-3. History does not include another shopper's orders.
-4. Access code still loads a claimed order.
-5. Email on a guest order does not attach it to a later account unless claimed.
+1. `shopHostsEnabledFromOrigin` is false for `*.run.app` unless flagged on.
+2. `publicStoreRedirect` does not 308 `/store/{slug}` when shop hosts are off.
+3. `assertProductionRuntimeEnv` throws only in production when keys are missing.
+4. Unit tests for the above pass.
 
 ## Tests
 
-- `npx vitest run tests/shopper-accounts.test.ts tests/storefront.test.ts`
+- `npx vitest run tests/storefront.test.ts tests/runtime-env.test.ts`
 - `npx tsc --noEmit`
-- After staging migrate: `tests/integration/shopper-accounts.test.ts` and isolation
 
 ## Rollback
 
-Drop the new RPCs, leave `shopper_user_id` and `shopper_shop_consents` (nullable / unused). Restore previous `create_store_order` / `get_store_order` bodies from `20261019190000_storefront_fulfilment_clocks.sql`.
-
-## Next recommended slices
-
-1. Apply this migration on staging.
-2. Variants wait until location stock is used in the app UI.
-3. Customer Paynow only with per-merchant credentials.
+Leave `SHOP_HOSTS=true` unset. Revert the workflow if a bad image was pushed; Cloud Run traffic stays on the previous revision.
