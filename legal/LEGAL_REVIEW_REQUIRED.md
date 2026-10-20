@@ -14,60 +14,60 @@ tracking aid so nothing gets missed.
 - [ ] Confirm the actual legal entity operating BusinessOS (sole
       trader, registered company, or other) and its registration
       details. The 19 October 2026 drafts use placeholders and warn
-      against describing a registered company if none exists. *Terms §1*
+      against describing a registered company if none exists. _Terms §1_
 - [ ] Decide and confirm the governing law / dispute-resolution jurisdiction
-      for the Terms of Service. — *Terms of Service §12*
+      for the Terms of Service. — _Terms of Service §12_
 - [ ] Confirm the minimum-age requirement against Zimbabwean contract law
-      and any other jurisdiction deliberately marketed to. — *Terms of
-      Service §2*
+      and any other jurisdiction deliberately marketed to. — _Terms of
+      Service §2_
 
 ## Liability & disclaimers
 
 - [ ] Draft a real limitation-of-liability clause with a lawyer — the
-      current text is a placeholder, not a tested clause. — *Terms of
-      Service §10*
+      current text is a placeholder, not a tested clause. — _Terms of
+      Service §10_
 - [ ] Confirm the general disclaimer language (no guaranteed revenue/
       accuracy/uptime) actually limits liability as intended under
-      applicable law. — *Terms of Service §9*
+      applicable law. — _Terms of Service §9_
 - [ ] Review the AI Assistant's liability-limiting language alongside the
-      Terms of Service. — *AI_DISCLAIMER.md*
+      Terms of Service. — _AI_DISCLAIMER.md_
 
 ## Privacy & data
 
 - [ ] Confirm Supabase's actual data-center region(s) for this project and
-      whether that creates a cross-border transfer question. — *Privacy
-      Policy, Third parties table*
+      whether that creates a cross-border transfer question. — _Privacy
+      Policy, Third parties table_
 - [ ] Confirm Groq's current data retention / model-training policy for API
-      traffic — not independently verified. — *Privacy Policy, Third
-      parties table*
+      traffic — not independently verified. — _Privacy Policy, Third
+      parties table_
 - [ ] Confirm Supabase's at-rest encryption guarantees for this project's
-      specific plan tier. — *Privacy Policy, Data storage and security*
+      specific plan tier. — _Privacy Policy, Data storage and security_
 - [ ] Define an actual backup-retention/purge policy — none exists today
-      beyond Supabase's defaults, which haven't been documented. — *Privacy
-      Policy, How long we keep your data*
+      beyond Supabase's defaults, which haven't been documented. — _Privacy
+      Policy, How long we keep your data_
 - [ ] Decide whether additional formal data-subject rights (objection,
       structured-format portability, defined response-time SLAs) are needed
-      depending on which jurisdictions' users are served. — *Privacy
-      Policy, Your rights*
+      depending on which jurisdictions' users are served. — _Privacy
+      Policy, Your rights_
 - [ ] Confirm the correct contact for Zimbabwe's Data Protection Authority
-      under the Cyber and Data Protection Act, if applicable. — *Privacy
-      Policy, Contact*
+      under the Cyber and Data Protection Act, if applicable. — _Privacy
+      Policy, Contact_
 
 ## Billing & refunds
 
 - [ ] Make an actual business decision on refund eligibility/process, then
       have it checked against Zimbabwean consumer protection law and
-      Paynow's merchant agreement terms. — *Refund Policy*
+      Paynow's merchant agreement terms. — _Refund Policy_
 - [ ] If BusinessOS AI ever serves users in jurisdictions with statutory
       cooling-off/refund rights (e.g. EU/UK), add jurisdiction-specific
-      carve-outs. — *Refund Policy, Zimbabwean consumer protection*
+      carve-outs. — _Refund Policy, Zimbabwean consumer protection_
 
 ## Contact information
 
 - [ ] Add a real support/legal contact email or address — currently a
-      placeholder in every document that needs one. — *Terms of Service
+      placeholder in every document that needs one. — _Terms of Service
       §14, Privacy Policy Contact, Refund Policy, AI_DISCLAIMER.md,
-      Accessibility Statement*
+      Accessibility Statement_
 
 ## Product gaps surfaced while drafting
 
@@ -75,10 +75,10 @@ These aren't legal questions, but came up while writing the documents above
 and are worth a deliberate decision rather than leaving implicit:
 
 - [ ] There's currently no in-app mechanism to report a bad/wrong AI answer.
-      — *AI_DISCLAIMER.md*
+      — _AI_DISCLAIMER.md_
 - [ ] There's currently no in-app mechanism to report an accessibility
       barrier specifically (only general support, once that exists). —
-      *Accessibility Statement*
+      _Accessibility Statement_
 
 ## Since drafted (was "not yet drafted")
 

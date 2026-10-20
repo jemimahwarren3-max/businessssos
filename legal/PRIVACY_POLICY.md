@@ -154,15 +154,15 @@ See the [Cookie Policy](/legal/cookies).
 
 We may share relevant information with providers that actually support the deployed app:
 
-| Provider | Role in the current product |
-|---|---|
-| Supabase | Database, authentication, and related infrastructure |
-| Paynow | BusinessOS subscription payments only |
-| Hosting (Cloud Run is the intended production host; Render may be used temporarily) | Running the application |
-| Groq | Optional AI assistant, if configured |
-| Sentry | Optional error monitoring, if configured |
-| Upstash | Optional short-lived workspace cache, if configured |
-| Google Fonts | Typeface files requested by the browser |
+| Provider                                                                            | Role in the current product                          |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Supabase                                                                            | Database, authentication, and related infrastructure |
+| Paynow                                                                              | BusinessOS subscription payments only                |
+| Hosting (Cloud Run is the intended production host; Render may be used temporarily) | Running the application                              |
+| Groq                                                                                | Optional AI assistant, if configured                 |
+| Sentry                                                                              | Optional error monitoring, if configured             |
+| Upstash                                                                             | Optional short-lived workspace cache, if configured  |
+| Google Fonts                                                                        | Typeface files requested by the browser              |
 
 Their locations, contracts and safeguards differ. Confirm them before launch.
 

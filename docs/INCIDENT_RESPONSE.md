@@ -17,8 +17,8 @@ Signals to watch for (none of these are currently wired to automated
 alerting — see `SECURITY.md`'s Known gaps):
 
 - Unexpected spike in `rate_limit_hits` for a given key (`select key,
-  count(*) from rate_limit_hits where window_start > now() - interval '1
-  hour' group by key order by count(*) desc limit 20;` via the Supabase
+count(*) from rate_limit_hits where window_start > now() - interval '1
+hour' group by key order by count(*) desc limit 20;` via the Supabase
   Management API or dashboard SQL editor).
 - Unusual `audit_logs` activity — e.g. a burst of `data.exported` actions,
   or actions from a business you don't recognize.
@@ -39,7 +39,7 @@ the bleeding:
   - Supabase keys: Supabase dashboard → the affected project → Settings →
     API → regenerate. Update the corresponding `.env.production` /
     hosting-environment variable and redeploy.
-  - `SESSION_SECRET`: rotating this invalidates *every* active session
+  - `SESSION_SECRET`: rotating this invalidates _every_ active session
     (everyone gets signed out) — necessary if the secret itself leaked, but
     understand the blast radius before doing it for a lesser reason.
   - `PAYNOW_INTEGRATION_KEY` / `GROQ_API_KEY`: rotate via each provider's
@@ -63,7 +63,7 @@ the bleeding:
   events at the infrastructure level.
 - For a suspected RLS issue specifically: reproduce it directly against
   **staging** (never production) using the `set_config('request.jwt.claims',
-  ...); set local role authenticated;` simulation pattern already used in
+...); set local role authenticated;` simulation pattern already used in
   this project's integration tests (`tests/integration/helpers.ts`) to
   confirm exactly which policy is misbehaving before touching production.
 
@@ -82,7 +82,7 @@ Before remediating, capture:
 Cross-reference the incident against the data inventory in
 `docs/PRIVACY_ARCHITECTURE.md` — which table(s), how many rows, whether any
 row includes personal data about people who aren't the account holder
-(e.g. a business's *customers*, not just the business owner — this is data
+(e.g. a business's _customers_, not just the business owner — this is data
 about people who never directly consented to anything and can't be
 notified via the app).
 

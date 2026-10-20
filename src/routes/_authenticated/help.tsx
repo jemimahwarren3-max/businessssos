@@ -154,8 +154,8 @@ function Help() {
         <Section id="quick-add" icon={Wand2} title="Quick Add">
           <p>
             The <strong>Quick add</strong> button in the top header (on every page) lets you type
-            what happened in plain language instead of filling in a form, for example "Sold 3
-            shirts to Mary for $90" or "Paid $45 for transport."
+            what happened in plain language instead of filling in a form, for example "Sold 3 shirts
+            to Mary for $90" or "Paid $45 for transport."
           </p>
           <ol>
             <li>Click Quick add and describe the sale, expense, or new customer.</li>
@@ -193,8 +193,8 @@ function Help() {
           <ul>
             <li>
               Add a supplier's contact details, then use the <strong>Order</strong> button to build
-              a purchase order, it pre-fills known prices and opens WhatsApp with the order ready
-              to send.
+              a purchase order, it pre-fills known prices and opens WhatsApp with the order ready to
+              send.
             </li>
             <li>
               <strong>Purchase Orders</strong> lists everything you've ordered, for reference.
@@ -212,8 +212,8 @@ function Help() {
             <li>Build either the same way, line items, tax, discount, due/valid-until date.</li>
             <li>A quote can be converted straight to an invoice once accepted, with one click.</li>
             <li>
-              Both have a <strong>Print</strong> button, it opens your browser's print dialog with
-              a clean, chrome-free document layout ready to save as a PDF.
+              Both have a <strong>Print</strong> button, it opens your browser's print dialog with a
+              clean, chrome-free document layout ready to save as a PDF.
             </li>
             <li>
               Record partial or full payments against an invoice as they come in; its status updates
@@ -255,7 +255,7 @@ function Help() {
             </li>
             <li>
               <strong>Import history</strong> backfills past revenue/cost totals for the charts only
-             , it doesn't touch stock or link to specific products or customers.
+              , it doesn't touch stock or link to specific products or customers.
             </li>
             <li>
               <strong>Import detailed sales</strong> is the fuller version: real line-item
@@ -344,11 +344,11 @@ function Help() {
             including by itself.
           </p>
           <p>
-            An owner or admin adds people from the <strong>Team</strong> page in the sidebar, pick
-            a role and generate a link, then send it however you like (WhatsApp, SMS, email).
-            Whoever opens it signs in or creates an account and joins your business with that role.
-            Roles can be changed or a member removed from the same page; a business always keeps at
-            least one owner.
+            An owner or admin adds people from the <strong>Team</strong> page in the sidebar, pick a
+            role and generate a link, then send it however you like (WhatsApp, SMS, email). Whoever
+            opens it signs in or creates an account and joins your business with that role. Roles
+            can be changed or a member removed from the same page; a business always keeps at least
+            one owner.
           </p>
           <p>
             Day to day, everyone signs in at <strong>/staff-login</strong> with your business name
@@ -360,9 +360,9 @@ function Help() {
             For staff without an email, most cashiers, say, the same page can create a{" "}
             <strong>name + password</strong> account instead, no link needed. They sign in at{" "}
             <strong>/staff-login</strong> in two steps: first your business name and a shared{" "}
-            <strong>shop password</strong> (set from the same card on the Team page, required
-            before anyone can even see who's on the team), then pick a name and enter that person's
-            own password. An owner/admin can reset a staff member's password from their row if they
+            <strong>shop password</strong> (set from the same card on the Team page, required before
+            anyone can even see who's on the team), then pick a name and enter that person's own
+            password. An owner/admin can reset a staff member's password from their row if they
             forget it, these accounts have no real email, so "Forgot password" won't work for them.
           </p>
         </Section>
@@ -370,8 +370,8 @@ function Help() {
         <Section id="billing" icon={CreditCard} title="Billing">
           <p>
             Manage your plan and payment method from the <strong>Billing</strong> page in the
-            sidebar (owners and admins only). If your trial ends, the app switches to read-only.
-            You keep every record, but need to upgrade to keep creating or editing.
+            sidebar (owners and admins only). If your trial ends, the app switches to read-only. You
+            keep every record, but need to upgrade to keep creating or editing.
           </p>
         </Section>
       </div>

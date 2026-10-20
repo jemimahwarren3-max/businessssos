@@ -161,8 +161,8 @@ function Billing() {
                 <Sparkles className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
                   BusinessOS is currently free while we build with our founding users. Every feature
-                  is unlocked, no card required. Pricing may be introduced later, and we'll give
-                  you clear notice before anything changes.
+                  is unlocked, no card required. Pricing may be introduced later, and we'll give you
+                  clear notice before anything changes.
                 </p>
               </div>
             ) : billing.isLoading ? (

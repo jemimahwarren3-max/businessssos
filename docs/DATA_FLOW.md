@@ -40,7 +40,8 @@ Browser (independently of the server)
 **Data at rest**: Postgres (Supabase), encryption-at-rest guarantees not
 independently verified — see `legal/LEGAL_REVIEW_REQUIRED.md`.
 **Data in transit**: HTTPS throughout; session cookie is httpOnly + secure
-+ sameSite=Lax.
+
+- sameSite=Lax.
 
 ## Flow 2: Subscription checkout (Paynow)
 
@@ -110,7 +111,7 @@ returns it as one JSON object, downloaded client-side as a file. Nothing is
 written to disk or a temp table server-side — it's assembled in memory per
 request and streamed back.
 
-## What's explicitly *not* collected or sent anywhere
+## What's explicitly _not_ collected or sent anywhere
 
 - No analytics or tracking tool is integrated (verified by grep — no
   Google Analytics, Meta Pixel, PostHog, Segment, or similar in the

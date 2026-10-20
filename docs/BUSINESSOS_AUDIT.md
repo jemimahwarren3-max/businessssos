@@ -75,8 +75,8 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 | 25  | Hold / resume / cancel     | P      | Cancel exists; hold/resume not a first-class parked-sale model.                       |
 | 26  | Returns / refunds          | INV    | Sale history refunds with audit.                                                      |
 | 27  | Shift open/close           | P      | Time clock exists. Cash drawer is a separate till ledger.                             |
-| 28  | Cash drawer recon          | P      | Open/close till with float, pay-in/out, discrepancy. Online shop cash is not in it. |
-| 29  | Cashier discrepancy review | P      | Close records counted vs expected.                                                  |
+| 28  | Cash drawer recon          | P      | Open/close till with float, pay-in/out, discrepancy. Online shop cash is not in it.   |
+| 29  | Cashier discrepancy review | P      | Close records counted vs expected.                                                    |
 | 30  | Offline sales queue        | P      | IndexedDB queue + sync; stock is an estimate while offline. Tests cover sync helpers. |
 
 ### D. Storefronts and marketplace 31–40
@@ -126,18 +126,18 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 
 ### G. Customers 61–70
 
-| #   | Feature                     | Status | Notes                                                          |
-| --- | --------------------------- | ------ | -------------------------------------------------------------- |
-| 61  | Guest checkout              | IV     |                                                                |
+| #   | Feature                     | Status | Notes                                                                                            |
+| --- | --------------------------- | ------ | ------------------------------------------------------------------------------------------------ |
+| 61  | Guest checkout              | IV     |                                                                                                  |
 | 62  | Customer accounts / history | P      | Shopper login + per-shop history. Guest checkout remains. Merchant `customers` is still POS CRM. |
-| 63  | Consent-aware comms         | P      | Per-shop `messages` flag stored. Transactional order email is queued; marketing is not sent. |
-| 64  | Order tracking              | INV    | Access code + honest unpaid copy.                              |
-| 65  | Complaints                  | INV    | Order-token complaint form and merchant queue.                 |
-| 66  | Merchant responses          | P      | Status transitions, not a thread.                              |
-| 67  | Public policies             | INV    | Policies, hours, areas on the shop.                            |
-| 68  | Verified reviews            | P      | Access-code reviews after ready/complete. No fake averages.    |
-| 69  | Data access/deletion        | P      | Merchant export/delete. No shopper GDPR/CDPA self-service.     |
-| 70  | Comms history ACL           | M      |                                                                |
+| 63  | Consent-aware comms         | P      | Per-shop `messages` flag stored. Transactional order email is queued; marketing is not sent.     |
+| 64  | Order tracking              | INV    | Access code + honest unpaid copy.                                                                |
+| 65  | Complaints                  | INV    | Order-token complaint form and merchant queue.                                                   |
+| 66  | Merchant responses          | P      | Status transitions, not a thread.                                                                |
+| 67  | Public policies             | INV    | Policies, hours, areas on the shop.                                                              |
+| 68  | Verified reviews            | P      | Access-code reviews after ready/complete. No fake averages.                                      |
+| 69  | Data access/deletion        | P      | Merchant export/delete. No shopper GDPR/CDPA self-service.                                       |
+| 70  | Comms history ACL           | M      |                                                                                                  |
 
 ### H. Suppliers and purchasing 71–80
 

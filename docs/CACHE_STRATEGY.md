@@ -1,16 +1,16 @@
 # Cache strategy
 
-| Layer | What | Public/private | Key | TTL | Invalidation | Stale risk | Failure |
-|---|---|---|---|---|---|---|---|
-| Browser HTTP | Merchant HTML | Private | URL | `no-store` on merchant paths | n/a | Shared-device HTML | None |
-| Browser HTTP | Public shop HTML | Public | URL + host | Default (no explicit max-age) | Publish is live from DB on next request | Price/stock can change between views | Rechecked at checkout |
-| Service worker | JS/CSS precache | Public assets | Workbox revision | Until new SW | New release | Old JS until update | Register only after sign-in |
-| Service worker | HTML documents | Not cached | — | — | — | Previous config did cache them | Fixed this stage |
-| TanStack Query | Dashboard data | Private, in-memory | queryKey includes business | Per query | Mutations invalidate | Tab leftover until logout `queryClient.clear()` | Logout clears |
-| IndexedDB products | Last POS catalogue | Device-local | product id + businessId | Until replaced | Snapshot + search upserts; logout drops products | Stock estimate | Shown as offline |
-| Upstash Redis | Workspace membership | Private | user/business | Short TTL in code | `invalidateWorkspaceCacheForBusiness` | Role change delay | Fail open to Postgres |
-| CDN | None configured | — | — | — | — | — | Cloud Run has no extra CDN unless operator adds one |
-| SQL public store | `get_public_store` | Public projection | slug | None | Live | None beyond DB | Rate limited |
+| Layer              | What                 | Public/private     | Key                        | TTL                           | Invalidation                                     | Stale risk                                      | Failure                                             |
+| ------------------ | -------------------- | ------------------ | -------------------------- | ----------------------------- | ------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------- |
+| Browser HTTP       | Merchant HTML        | Private            | URL                        | `no-store` on merchant paths  | n/a                                              | Shared-device HTML                              | None                                                |
+| Browser HTTP       | Public shop HTML     | Public             | URL + host                 | Default (no explicit max-age) | Publish is live from DB on next request          | Price/stock can change between views            | Rechecked at checkout                               |
+| Service worker     | JS/CSS precache      | Public assets      | Workbox revision           | Until new SW                  | New release                                      | Old JS until update                             | Register only after sign-in                         |
+| Service worker     | HTML documents       | Not cached         | —                          | —                             | —                                                | Previous config did cache them                  | Fixed this stage                                    |
+| TanStack Query     | Dashboard data       | Private, in-memory | queryKey includes business | Per query                     | Mutations invalidate                             | Tab leftover until logout `queryClient.clear()` | Logout clears                                       |
+| IndexedDB products | Last POS catalogue   | Device-local       | product id + businessId    | Until replaced                | Snapshot + search upserts; logout drops products | Stock estimate                                  | Shown as offline                                    |
+| Upstash Redis      | Workspace membership | Private            | user/business              | Short TTL in code             | `invalidateWorkspaceCacheForBusiness`            | Role change delay                               | Fail open to Postgres                               |
+| CDN                | None configured      | —                  | —                          | —                             | —                                                | —                                               | Cloud Run has no extra CDN unless operator adds one |
+| SQL public store   | `get_public_store`   | Public projection  | slug                       | None                          | Live                                             | None beyond DB                                  | Rate limited                                        |
 
 Checkout and `create_store_order` re-read `selling_price` and stock. Cached catalogue prices are not authoritative.
 

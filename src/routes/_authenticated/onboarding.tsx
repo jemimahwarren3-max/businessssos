@@ -103,7 +103,7 @@ function Onboarding() {
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
               You and your team sign in with your business name (
               <span className="font-medium text-foreground">{form.name}</span>) and a shop password
-             , set that below.
+              , set that below.
             </p>
 
             {shopPasswordDone ? (

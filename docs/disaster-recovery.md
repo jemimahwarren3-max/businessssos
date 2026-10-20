@@ -55,7 +55,7 @@ locally, or run these same steps in a throwaway GitHub Actions job.
      `.env.production` (and Cloud Run, or the temporary Render service) to
      point at the new project's URL/keys. Official hosting is Cloud Run.
 4. Sanity-check the restore before trusting it: confirm `select count(*)
-   from businesses;` and a spot-checked row match what you expect, and try
+from businesses;` and a spot-checked row match what you expect, and try
    signing in as a real account.
 
 ## Testing this actually works

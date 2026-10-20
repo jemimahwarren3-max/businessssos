@@ -153,9 +153,7 @@ function Suppliers() {
         toast.success("Purchase order created. Opening WhatsApp…");
         window.open(link, "_blank", "noopener,noreferrer");
       } else {
-        toast.success(
-          "Purchase order created, but this supplier has no phone on file to message.",
-        );
+        toast.success("Purchase order created, but this supplier has no phone on file to message.");
       }
     },
     onError: (error: Error) =>

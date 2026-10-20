@@ -2,15 +2,15 @@
 
 ## Capability matrix
 
-| Feature | Offline |
-|---|---|
-| POS product search (previously seen) | Read-only from IndexedDB, stock is an estimate |
-| Record cash/card-as-cash sale | Available with delayed sync (`pendingSales`) |
-| Stock adjustments, invoices, expenses | Requires internet |
-| Storefront checkout, Paynow, marketplace | Requires internet |
-| Auth, password reset, MFA | Requires internet |
-| Reports, AI assistant, data export | Requires internet |
-| Service worker app shell | Signed-in merchant JS/CSS only. Public shops need a network. |
+| Feature                                  | Offline                                                      |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| POS product search (previously seen)     | Read-only from IndexedDB, stock is an estimate               |
+| Record cash/card-as-cash sale            | Available with delayed sync (`pendingSales`)                 |
+| Stock adjustments, invoices, expenses    | Requires internet                                            |
+| Storefront checkout, Paynow, marketplace | Requires internet                                            |
+| Auth, password reset, MFA                | Requires internet                                            |
+| Reports, AI assistant, data export       | Requires internet                                            |
+| Service worker app shell                 | Signed-in merchant JS/CSS only. Public shops need a network. |
 
 ## Queue
 

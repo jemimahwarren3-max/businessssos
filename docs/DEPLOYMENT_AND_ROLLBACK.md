@@ -4,11 +4,11 @@ Official production host: **Google Cloud Run**. `render.yaml` stays for the temp
 
 ## Environments
 
-| Name | Git | Database | Compute |
-|---|---|---|---|
-| Local | any | staging URL in `.env` | `npm run dev` port 8080 |
-| Staging | feature branches | `slajanbsfqjnuuiohbmg` | optional Cloud Run staging service |
-| Production | `master` after review | `maidxfntfpnkcqnuhozo` | Cloud Run |
+| Name       | Git                   | Database               | Compute                            |
+| ---------- | --------------------- | ---------------------- | ---------------------------------- |
+| Local      | any                   | staging URL in `.env`  | `npm run dev` port 8080            |
+| Staging    | feature branches      | `slajanbsfqjnuuiohbmg` | optional Cloud Run staging service |
+| Production | `master` after review | `maidxfntfpnkcqnuhozo` | Cloud Run                          |
 
 Never apply storefront or marketplace SQL to production without explicit operator approval.
 
