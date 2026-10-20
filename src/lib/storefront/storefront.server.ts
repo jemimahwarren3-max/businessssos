@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
 import { createAnonClient, tryGetAuthedContext } from "@/lib/auth/session.server";
-import { flushNotificationOutboxAdmin } from "@/lib/notifications.mail.server";
+import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import {
   initiateShopPaynow,
   refreshShopPaynowForOrder,
@@ -158,7 +158,6 @@ export async function placeOrder(input: {
     _collect_at: input.collectAt ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
-  await flushNotificationOutboxAdmin();
   if (parsed.paymentMethod === "paynow" && parsed.orderId && input.customer.email) {
     try {
       const paynow = await initiateShopPaynow({
@@ -344,7 +343,9 @@ export async function transitionOrder(
     _order_id: orderId,
     _action: action,
   });
-  return parseRpc("update online order", result, adminOrderSchema);
+  const parsed = await parseRpc("update online order", result, adminOrderSchema);
+  await flushNotificationOutboxForBusiness(supabase, businessId);
+  return parsed;
 }
 
 export async function loadMarketplace(input: {
@@ -420,7 +421,6 @@ export async function createStoreComplaint(input: {
     _token: input.token ?? "",
   });
   const parsed = await parseRpc("create complaint", result, complaintResultSchema);
-  await flushNotificationOutboxAdmin();
   return parsed;
 }
 
@@ -476,7 +476,6 @@ export async function createStoreReview(input: {
     _body: input.body,
   });
   const parsed = await parseRpc("create review", result, complaintResultSchema);
-  await flushNotificationOutboxAdmin();
   return parsed;
 }
 
@@ -521,7 +520,6 @@ export async function createListingReport(input: {
     _contact: input.contact ?? "",
   });
   const parsed = await parseRpc("create listing report", result, complaintResultSchema);
-  await flushNotificationOutboxAdmin();
   return parsed;
 }
 

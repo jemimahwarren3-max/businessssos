@@ -1,4 +1,11 @@
-import { AppError, assertPermission, dbFail, recordAudit, type Db } from "./business.server";
+import {
+  AppError,
+  assertPermission,
+  assertRole,
+  dbFail,
+  recordAudit,
+  type Db,
+} from "./business.server";
 import { isPasswordBreached } from "./auth/breach-check.server";
 import { createAnonClient } from "./auth/session.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -60,6 +67,9 @@ export async function createInvite(
   role: string,
 ): Promise<{ token: string }> {
   await assertPermission(supabase, businessId, "users.invite");
+  if (role === "owner") {
+    throw new AppError("You cannot invite someone as owner.");
+  }
   const { data, error } = await supabase.rpc("create_business_invite", {
     _business_id: businessId,
     _role: role as never,
@@ -105,6 +115,9 @@ export async function updateTeamMemberRole(
   role: string,
 ): Promise<void> {
   await assertPermission(supabase, businessId, "roles.manage");
+  if (role === "owner") {
+    await assertRole(supabase, businessId, ["owner"]);
+  }
   const { error } = await supabase.rpc("update_team_member_role", {
     _business_id: businessId,
     _member_user_id: memberUserId,
@@ -177,6 +190,9 @@ export async function createStaffAccount(
   role: string,
 ): Promise<{ userId: string }> {
   await assertPermission(supabase, businessId, "users.invite");
+  if (role === "owner") {
+    throw new AppError("You cannot create a staff login as owner.");
+  }
   if (await isPasswordBreached(password)) {
     throw new AppError(BREACHED_PASSWORD_MESSAGE);
   }

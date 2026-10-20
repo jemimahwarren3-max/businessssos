@@ -21,7 +21,7 @@ export type SupabaseTokens = { accessToken: string; refreshToken: string };
 
 function sessionConfig(): SessionConfig {
   const password = process.env["SESSION_SECRET"];
-  if (!password) {
+  if (!password || password.length < 32) {
     throw new Error(
       "Missing SESSION_SECRET environment variable, generate 32+ random characters and set it in .env.",
     );

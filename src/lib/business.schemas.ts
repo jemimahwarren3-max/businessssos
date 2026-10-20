@@ -470,10 +470,11 @@ export const quickEntrySchema = z.object({
 /* --------------------------------- team ----------------------------------- */
 
 export const teamRoleSchema = z.enum(["owner", "admin", "manager", "cashier", "accountant"]);
+export const inviteRoleSchema = z.enum(["admin", "manager", "cashier", "accountant"]);
 
 export const createInviteSchema = z.object({
   businessId: z.string().uuid(),
-  role: teamRoleSchema,
+  role: inviteRoleSchema,
 });
 
 export const inviteTokenSchema = z.object({
@@ -502,7 +503,7 @@ export const createStaffAccountSchema = z.object({
   businessId: z.string().uuid(),
   displayName: z.string().trim().min(1, "Name is required").max(80),
   password: staffPasswordSchema,
-  role: teamRoleSchema,
+  role: inviteRoleSchema,
 });
 
 export const resetStaffPasswordSchema = z.object({

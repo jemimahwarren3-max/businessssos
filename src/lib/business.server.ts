@@ -587,6 +587,7 @@ export async function deleteSupplier(
 
 export async function createSale(supabase: Db, input: SaleInput) {
   await assertCanWrite(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
   const { data, error } = await supabase.rpc("create_sale", {
     _business_id: input.businessId,
     _customer_id: (input.customerId || null) as never,

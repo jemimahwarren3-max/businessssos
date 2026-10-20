@@ -21,5 +21,9 @@ export function assertProductionRuntimeEnv(
       `Missing required production environment variables: ${missing.join(", ")}. Set them on the Cloud Run service.`,
     );
   }
+  const sessionSecret = env["SESSION_SECRET"]?.trim() ?? "";
+  if (sessionSecret.length < 32) {
+    throw new Error("SESSION_SECRET must be at least 32 characters in production.");
+  }
   return missing;
 }

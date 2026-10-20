@@ -261,8 +261,8 @@ function ShopperAccountPage() {
           onChange={(event) => void onConsent(event.target.checked)}
         />
         <span>
-          {store.storeName} may send extra shop messages. Receipts and status emails are separate
-          and still go to the email on the order.
+          {store.storeName} may send extra shop messages (promos, restocks). Order receipts and
+          status emails are not this checkbox — those still go to the address on the order.
         </span>
       </label>
       <form
