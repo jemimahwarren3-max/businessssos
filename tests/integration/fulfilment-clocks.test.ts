@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { sql } from "./helpers";
+import { expect, it } from "vitest";
+import { describeStaging, sql } from "./helpers";
 
 const hours = `{
   "prepMinutes": 30,
@@ -9,7 +9,7 @@ const hours = `{
   "cutoffTime": "16:00"
 }`;
 
-describe("fulfilment clocks SQL", () => {
+describeStaging("fulfilment clocks SQL", () => {
   it("allows a Monday morning pickup slot and refuses a closed delivery", async () => {
     const [ok] = await sql<{ storefront_assert_fulfilment_clock: string }>(`
       select public.storefront_assert_fulfilment_clock(

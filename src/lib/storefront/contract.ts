@@ -210,7 +210,7 @@ export const productReviewsSchema = z.object({
 export const createReviewSchema = z.object({
   slug: z.string().min(3).max(40),
   reference: z.string().min(3).max(40),
-  token: z.string().max(80).optional().default(""),
+  token: z.string().min(8).max(80),
   productId: z.string().uuid(),
   rating: z.coerce.number().int().min(1).max(5),
   body: z.string().trim().min(8).max(1000),

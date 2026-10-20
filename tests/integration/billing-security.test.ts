@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   asServiceRole,
   asUser,
@@ -8,6 +8,7 @@ import {
   deleteTestUser,
   newId,
   sql,
+  describeStaging,
 } from "./helpers";
 
 // Regression tests for the grant-leak bug found and fixed this session:
@@ -15,7 +16,7 @@ import {
 // default privileges separately hand to anon/authenticated on every new
 // function — paynow_confirm_payment and the admin_* functions were
 // callable by any signed-in (or anonymous) user until this was fixed.
-describe("billing security", () => {
+describeStaging("billing security", () => {
   let ownerId: string;
   let businessId: string;
   const reference = `sec-test-${newId()}`;

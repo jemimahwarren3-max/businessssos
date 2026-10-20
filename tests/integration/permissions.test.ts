@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   asUser,
   createTestBusiness,
@@ -7,9 +7,10 @@ import {
   deleteTestUser,
   newId,
   sql,
+  describeStaging,
 } from "./helpers";
 
-describe("permissions", () => {
+describeStaging("permissions", () => {
   let ownerId: string;
   let cashierId: string;
   let outsiderId: string;

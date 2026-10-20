@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { asUser, createTestUser, deleteTestUser, newId, sql } from "./helpers";
+import { expect, it } from "vitest";
+import { asUser, createTestUser, deleteTestUser, describeStaging, newId, sql } from "./helpers";
 
 async function cleanupBusiness(name: string) {
   await sql(`
@@ -10,7 +10,7 @@ async function cleanupBusiness(name: string) {
   `);
 }
 
-describe("transactional business creation", () => {
+describeStaging("transactional business creation", () => {
   it("a normal call creates exactly one business + membership + settings + subscription row", async () => {
     const ownerId = await createTestUser(`atomic-${newId()}@example.com`);
     const name = `Atomic Test ${newId()}`;

@@ -7,6 +7,7 @@ import {
   deleteTestUser,
   newId,
   sql,
+  describeStaging,
 } from "./helpers";
 
 // Turns this session's manual "business A can't touch business B's data"
@@ -45,7 +46,7 @@ const EXPORT_TABLES = [
   "shopper_shop_consents",
 ] as const;
 
-describe("cross-tenant isolation", () => {
+describeStaging("cross-tenant isolation", () => {
   let ownerA: string;
   let ownerB: string;
   let outsider: string;

@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { newId, sql } from "./helpers";
+import { afterEach, expect, it } from "vitest";
+import { describeStaging, newId, sql } from "./helpers";
 
-describe("rate limiting", () => {
+describeStaging("rate limiting", () => {
   let usedKey: string | undefined;
 
   afterEach(async () => {

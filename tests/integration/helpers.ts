@@ -1,3 +1,10 @@
+import { describe } from "vitest";
+
+/** CI runs `vitest run` without a staging token. Skip those files instead of throwing. */
+export const describeStaging = process.env["SUPABASE_ACCESS_TOKEN"]?.trim()
+  ? describe
+  : describe.skip;
+
 // Hardcoded on purpose — these tests must never run against production
 // regardless of which project the local .env currently points at (see
 // scripts/switch-env.mjs). Every test creates its own throwaway rows and
