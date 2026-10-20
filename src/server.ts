@@ -9,6 +9,7 @@ import {
 } from "./lib/storefront/host";
 import { assertProductionRuntimeEnv } from "./lib/runtime-env.server";
 import { initSentry } from "./lib/monitoring/sentry";
+import { clientIpFromRequest } from "./lib/request-ip";
 
 void initSentry();
 
@@ -93,14 +94,17 @@ async function verifyPlatformPaynowWebhookBody(raw: string): Promise<string | nu
 
 async function handlePaynowWebhook(request: Request): Promise<Response> {
   try {
-    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const ip = clientIpFromRequest(request);
     const { supabaseAdmin } = await import("./integrations/supabase/client.server");
-    const { data: allowed } = await supabaseAdmin.rpc("check_rate_limit", {
+    const { data: allowed, error: rateError } = await supabaseAdmin.rpc("check_rate_limit", {
       _key: `paynow-webhook:ip:${ip}`,
       _limit: 30,
       _window_seconds: 60,
     });
-    if (allowed === false) return new Response("Too Many Requests", { status: 429 });
+    if (rateError || allowed !== true) {
+      if (rateError) console.error("[paynow webhook] rate limit check failed", rateError);
+      return new Response("Too Many Requests", { status: 429 });
+    }
 
     const raw = await request.text();
     const { paynowReferenceFromBody, pollAndConfirmShopPayment } =

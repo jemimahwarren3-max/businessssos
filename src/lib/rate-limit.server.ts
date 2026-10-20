@@ -33,11 +33,11 @@ export const checkRateLimit = createServerOnlyFn(
       _window_seconds: windowSeconds,
     });
     if (error) {
-      // Rate limiting is defense-in-depth, not the primary security boundary
-      // (RLS and auth are) — fail open on an infrastructure hiccup rather
-      // than locking everyone out, but log it since that's still a problem.
+      // Fail closed: a down rate-limit table must not become an open door
+      // for sign-in, webhooks, or AI spend. Authenticated pages already
+      // cannot work if Postgres is unreachable.
       console.error("[rate-limit] check failed", error);
-      return true;
+      return false;
     }
     return data === true;
   },

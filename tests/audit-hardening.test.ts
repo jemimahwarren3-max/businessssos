@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { canWriteForSubscription } from "@/lib/business.server";
 import {
   createInviteSchema,
   createStaffAccountSchema,
+  staffLoginSchema,
   updateTeamMemberRoleSchema,
 } from "@/lib/business.schemas";
+import { clientIpFromForwarded } from "@/lib/request-ip";
+import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { paymentHowLabel } from "@/lib/storefront/receipt";
 
 describe("audit hardening contracts", () => {
@@ -43,5 +47,42 @@ describe("audit hardening contracts", () => {
   it("does not call Paynow sales cash on the shared receipt", () => {
     expect(paymentHowLabel("paynow", true)).toMatch(/Paynow/);
     expect(paymentHowLabel("paynow", true)).not.toMatch(/cash on/i);
+  });
+
+  it("fails closed when billing is on and there is no subscription row", () => {
+    const previous = process.env["BILLING_ENABLED"];
+    try {
+      delete process.env["BILLING_ENABLED"];
+      expect(canWriteForSubscription(null)).toBe(false);
+      process.env["BILLING_ENABLED"] = "false";
+      expect(canWriteForSubscription(null)).toBe(true);
+    } finally {
+      if (previous === undefined) delete process.env["BILLING_ENABLED"];
+      else process.env["BILLING_ENABLED"] = previous;
+    }
+  });
+
+  it("prefers runtime APP_URL over a baked Vite origin", () => {
+    const previous = process.env["APP_URL"];
+    try {
+      process.env["APP_URL"] = "https://runtime.example/";
+      expect(configuredPlatformOrigin()).toBe("https://runtime.example");
+    } finally {
+      if (previous === undefined) delete process.env["APP_URL"];
+      else process.env["APP_URL"] = previous;
+    }
+  });
+
+  it("signs staff in with a password on the server, not an email round-trip", () => {
+    expect(staffLoginSchema.safeParse({ businessName: "Shop", name: "Ada" }).success).toBe(false);
+    expect(
+      staffLoginSchema.parse({ businessName: "Shop", name: "Ada", password: "secret" }).name,
+    ).toBe("Ada");
+  });
+
+  it("keys webhook rate limits on the first forwarded IP", () => {
+    expect(clientIpFromForwarded("203.0.113.9, 10.0.0.1", "10.0.0.2")).toBe("203.0.113.9");
+    expect(clientIpFromForwarded("not-an-ip", "198.51.100.4")).toBe("198.51.100.4");
+    expect(clientIpFromForwarded("evil", "also-bad")).toBe("unknown");
   });
 });

@@ -515,6 +515,7 @@ export const resetStaffPasswordSchema = z.object({
 export const staffLoginSchema = z.object({
   businessName: z.string().trim().min(1).max(120),
   name: z.string().trim().min(1).max(80),
+  password: z.string().min(1),
 });
 
 export const setStaffPasswordSchema = z.object({

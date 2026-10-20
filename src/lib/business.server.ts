@@ -110,11 +110,11 @@ const READ_ONLY_MESSAGE =
  * subscription/trial data keeps accumulating normally either way (see
  * create_business_with_owner), so re-enabling billing later doesn't need a
  * data migration, only flipping the flag back. */
-function canWriteForSubscription(
+export function canWriteForSubscription(
   subscription: { status: string; trial_ends_at: string | null } | null,
 ) {
   if (!isBillingEnabled()) return true;
-  if (!subscription) return true; // fail open — shouldn't happen post atomic business creation
+  if (!subscription) return false;
   if (subscription.status === "active") return true;
   return Boolean(
     subscription.status === "trialing" &&

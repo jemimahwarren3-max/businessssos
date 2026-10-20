@@ -20,7 +20,6 @@ import {
   upcomingCollectionSlots,
 } from "@/lib/storefront/clocks";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
-import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { formatMoney, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
@@ -457,15 +456,15 @@ function CheckoutPage() {
           <p className="mt-3 text-xs text-neutral-500">
             Placing an order is an agreement with this shop, not a purchase from BusinessOS.
             Platform{" "}
-            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/terms`}>
+            <a className="underline" href="/terms">
               terms
             </a>
             ,{" "}
-            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/privacy`}>
+            <a className="underline" href="/privacy">
               privacy
             </a>
             , and{" "}
-            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/legal/refunds`}>
+            <a className="underline" href="/legal/refunds">
               BusinessOS subscription refunds
             </a>
             .
