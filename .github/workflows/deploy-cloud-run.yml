@@ -170,6 +170,17 @@ jobs:
                   fh.write(f"{key}: {json.dumps(value)}\n")
           print("Wrote Cloud Run env file (values not printed).")
           PY
+          # A previous failed revision mounted SESSION_SECRET from Secret
+          # Manager. gcloud will not convert secret refs to env literals in
+          # the same deploy; clear them first.
+          if gcloud run services describe "${SERVICE}" \
+            --project "${PROJECT}" \
+            --region "${REGION}" >/dev/null 2>&1; then
+            gcloud run services update "${SERVICE}" \
+              --project "${PROJECT}" \
+              --region "${REGION}" \
+              --clear-secrets
+          fi
           gcloud run deploy "${SERVICE}" \
             --project "${PROJECT}" \
             --region "${REGION}" \
@@ -181,5 +192,5 @@ jobs:
             --min-instances 0 \
             --max-instances 3 \
             --timeout 60 \
-            --env-vars-file /tmp/kwetuu-run-env.yaml \
-            --clear-secrets
+            --remove-secrets=SESSION_SECRET,SUPABASE_SERVICE_ROLE_KEY \
+            --env-vars-file /tmp/kwetuu-run-env.yaml
