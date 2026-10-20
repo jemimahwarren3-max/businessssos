@@ -3,7 +3,7 @@
 # Runtime secrets (SESSION_SECRET, SUPABASE_SERVICE_ROLE_KEY, Paynow, Groq)
 # must be supplied as Cloud Run environment variables, never baked in.
 
-FROM node:22.11.0-bookworm-slim AS build
+FROM node:22.12.0-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -23,7 +23,7 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SHOP_HOSTS=$SHOP_HOSTS
 RUN npm run build
 
-FROM node:22.11.0-bookworm-slim
+FROM node:22.12.0-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
