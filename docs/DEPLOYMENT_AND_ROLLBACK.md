@@ -4,11 +4,11 @@ Official production host: **Google Cloud Run**. `render.yaml` stays for the temp
 
 ## Environments
 
-| Name       | Git                   | Database               | Compute                            |
-| ---------- | --------------------- | ---------------------- | ---------------------------------- |
-| Local      | any                   | staging URL in `.env`  | `npm run dev` port 8080            |
-| Staging    | feature branches      | `slajanbsfqjnuuiohbmg` | optional Cloud Run staging service |
-| Production | `master` after review | `maidxfntfpnkcqnuhozo` | Cloud Run                          |
+| Name       | Git                   | Database               | Compute                                                                                                 |
+| ---------- | --------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| Local      | any                   | staging URL in `.env`  | `npm run dev` port 8080                                                                                 |
+| Staging    | feature branches      | `slajanbsfqjnuuiohbmg` | optional Cloud Run staging service                                                                      |
+| Production | `master` after review | `maidxfntfpnkcqnuhozo` | Cloud Run `kwetuu` (first live URL: mykwetuu.com, still on staging DB until you approve production SQL) |
 
 Never apply storefront or marketplace SQL to production without explicit operator approval.
 
@@ -21,11 +21,18 @@ Cloud Run injects `PORT`. The container listens on `HOST=0.0.0.0`.
 Example (operator-run, project-specific):
 
 ```
-gcloud run deploy businessos \
-  --source . \
-  --region REGION \
-  --allow-unauthenticated \
-  --set-env-vars APP_URL=https://yourdomain.com,...
+Do not use the GCP Create service wizard. Merge to `master` (CI then
+deploy) or Actions → Deploy Cloud Run. See `CLOUD_RUN_LAUNCH.md`.
+
+```
+
+gcloud run deploy kwetuu \
+--region europe-west1 \
+--allow-unauthenticated \
+--set-env-vars APP_URL=https://mykwetuu.com,...
+
+```
+
 ```
 
 `--allow-unauthenticated` is required for a public shop. IAM still does not replace app auth.
@@ -36,7 +43,7 @@ See `CLOUD_RUN_LAUNCH.md` for the first-revision checklist and GitHub Action.
 
 `SHOP_HOSTS=false` (Cloud Run default) keeps shops at `https://{APP_URL host}/store/{slug}` and does not 308 to a subdomain. Set `SHOP_HOSTS=true` and rebuild only when a wildcard certificate exists. Cloud Run domain mapping binds one hostname; `{slug}.run.app` is not available.
 
-Paynow `resulturl` must be `https://yourdomain.com/api/webhooks/paynow` on the apex, not a shop host.
+Paynow `resulturl` must be `https://mykwetuu.com/api/webhooks/paynow` on the apex, not a shop host.
 
 ## CI
 

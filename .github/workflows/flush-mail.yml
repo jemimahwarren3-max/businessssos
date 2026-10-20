@@ -15,12 +15,12 @@ jobs:
     steps:
       - name: POST /api/internal/flush-mail
         env:
-          APP_URL: ${{ secrets.STAGING_APP_URL }}
+          APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
           MAIL_FLUSH_SECRET: ${{ secrets.MAIL_FLUSH_SECRET }}
         run: |
           set -euo pipefail
           if [ -z "${APP_URL:-}" ] || [ -z "${MAIL_FLUSH_SECRET:-}" ]; then
-            echo "Set GitHub secrets STAGING_APP_URL and MAIL_FLUSH_SECRET."
+            echo "Set GitHub secrets APP_URL (or STAGING_APP_URL) and MAIL_FLUSH_SECRET."
             exit 1
           fi
           curl -fsS -X POST "${APP_URL%/}/api/internal/flush-mail" \

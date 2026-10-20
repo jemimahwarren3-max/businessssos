@@ -1,42 +1,104 @@
-# Cloud Run launch (what is actually required)
+# Cloud Run launch (Kwetuu, mykwetuu.com)
 
-This is the deploy path. It is not the 200-feature roadmap. Variants, shopper Paynow, GRN, file uploads, and fiscalisation are not required to put the current POS and shops on a URL.
+Do **not** use the GCP “Create service” screen (Developer Connect / Cloud
+Build from the console). GitHub already deploys: a merged PR on `master`
+runs CI, then `gcloud run deploy kwetuu` in europe-west1.
+
+Database for this first revision: **staging** `slajanbsfqjnuuiohbmg`.
+Production Postgres `maidxfntfpnkcqnuhozo` stays untouched until you
+explicitly apply migrations there.
+
+Shops stay at `https://mykwetuu.com/store/{slug}`. Wildcard
+`{slug}.mykwetuu.com` is a later DNS + certificate job (`SHOP_HOSTS=true`).
+
+## What happens on a merged PR
+
+1. Open a PR. `CI` runs tests and a production build. Nothing is deployed.
+2. Merge to `master`. `CI` runs again on that commit.
+3. If that job is green, the `deploy` job builds the Docker image, pushes it
+   to Artifact Registry, and updates Cloud Run service `kwetuu`.
+4. First time only, you can also **Actions → Deploy Cloud Run → Run workflow**.
+
+Open PRs are not given their own URLs. Only `master` is live.
+
+## One-time GCP setup (CLI, not console)
+
+Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install),
+log in, then:
+
+```bash
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+export GCP_PROJECT_ID=YOUR_PROJECT_ID
+export GCP_REGION=europe-west1
+export SESSION_SECRET='at-least-32-characters-of-random'
+export SUPABASE_SERVICE_ROLE_KEY='staging-service-role'
+# optional mail:
+# export RESEND_API_KEY=re_...
+# export MAIL_FLUSH_SECRET='at-least-16-chars'
+chmod +x scripts/gcloud-bootstrap.sh
+./scripts/gcloud-bootstrap.sh
+```
+
+The script enables APIs, creates the `kwetuu` Artifact Registry repo, the
+GitHub deploy account, the Cloud Run runtime account, and Secret Manager
+entries. It prints the remaining GitHub secret names.
+
+Create the GitHub key once:
+
+```bash
+gcloud iam service-accounts keys create github-kwetuu.json \
+  --iam-account="kwetuu-github@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+```
+
+## GitHub Actions secrets
+
+| Secret                             | Value                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------- |
+| `GCP_PROJECT_ID`                   | The GCP project id                                                                     |
+| `GCP_SA_KEY`                       | Full JSON of `github-kwetuu.json`                                                      |
+| `APP_URL`                          | First: the `https://….run.app` URL Cloud Run prints. After DNS: `https://mykwetuu.com` |
+| `STAGING_SUPABASE_URL`             | Staging project URL                                                                    |
+| `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging anon/publishable key                                                           |
+| `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                 |
+| `NOTIFY_FROM_EMAIL`                | Optional. e.g. `Kwetuu <alerts@mykwetuu.com>` after Resend verifies the domain         |
+| `MAIL_FLUSH_SECRET`                | Optional. 16+ characters, same value as Secret Manager                                 |
+
+Delete `github-kwetuu.json` after it is stored in GitHub.
+
+## Domain `mykwetuu.com`
+
+1. Merge this PR (or run **Deploy Cloud Run** once) so service `kwetuu` exists.
+2. Map the hostname (Cloud Run prints the DNS records):
+
+```bash
+gcloud run domain-mappings create --service=kwetuu --domain=mykwetuu.com --region=europe-west1
+gcloud run domain-mappings create --service=kwetuu --domain=www.mykwetuu.com --region=europe-west1
+```
+
+3. At the registrar for `mykwetuu.com`, add those A/AAAA or CNAME records.
+4. Wait until `gcloud run domain-mappings describe --domain=mykwetuu.com --region=europe-west1` shows a Ready certificate.
+5. Set GitHub secret `APP_URL` to `https://mykwetuu.com` and run **Deploy Cloud Run** once more (or merge any follow-up) so cookies and Paynow callbacks use the apex.
+6. In the **staging** Supabase Auth URL settings, add `https://mykwetuu.com` and `https://www.mykwetuu.com` as site/redirect URLs.
+
+Keep `SHOP_HOSTS=false` until you have a wildcard certificate. Paynow
+`resulturl` is `https://mykwetuu.com/api/webhooks/paynow`.
+
+## After deploy
+
+- `GET https://mykwetuu.com/health` (or the `.run.app` URL before DNS)
+- Sign in, open `/market`, open `/store/{a-published-slug}`
+- Mail stays queued until `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` exist
+- Auth confirm/reset still use **Supabase Auth SMTP**
+- Apply pending git migrations on **staging** only, including audit/receipts SQL if they are not there yet
 
 ## Honest first launch
 
-| Included                                             | Not included                                |
-| ---------------------------------------------------- | ------------------------------------------- |
-| Merchant app, POS, stock, invoices                   | Product variants                            |
-| Public shops at `/store/{slug}`                      | `{slug}.domain` until you add wildcard DNS  |
-| Guest checkout, pay on pickup/delivery, quotes       | EcoCash / merchant Paynow                   |
-| Shopper accounts                                     | Marketing email / shopper Paynow            |
-| Platform Paynow for the $3 Pro plan, if keys are set | Collecting shopper money with platform keys |
+| Included                               | Not included                             |
+| -------------------------------------- | ---------------------------------------- |
+| Merchant app, POS, stock, invoices     | Product variants                         |
+| Public shops at `/store/{slug}`        | `{slug}.mykwetuu.com` until wildcard DNS |
+| Guest checkout, pay on pickup/delivery | InnBucks                                 |
+| Shopper accounts                       | Production Postgres until you approve it |
 
-Database for the first revision: **staging** `slajanbsfqjnuuiohbmg`. Production `maidxfntfpnkcqnuhozo` stays untouched until a human applies storefront migrations there.
-
-## Code already in this repo
-
-- Dockerfile listens on `PORT` (Cloud Run default 8080).
-- `SHOP_HOSTS=false` keeps shops on `/store/{slug}` so `*.run.app` works.
-- Production boot fails if `APP_URL`, `SESSION_SECRET`, and the three Supabase keys are missing.
-- `GET /health` returns `ok`.
-- `POST /api/internal/flush-mail` sends queued Resend mail when configured.
-- GitHub Action: **Actions → Deploy Cloud Run → Run workflow**.
-- GitHub Action: **Flush mail outbox** every 10 minutes against `STAGING_APP_URL`.
-
-## Operator checklist (cannot be done from this agent)
-
-1. GCP project, Cloud Run API, Artifact Registry API, and a Docker repo:
-
-   `gcloud artifacts repositories create businessos --repository-format=docker --location=us-central1`
-
-2. Service account that can push images and deploy Cloud Run. Put the JSON key in GitHub `GCP_SA_KEY`. Put the project id in `GCP_PROJECT_ID`.
-3. GitHub secrets: `STAGING_APP_URL` (the Cloud Run URL, `https://….run.app` with no trailing slash), `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_PUBLISHABLE_KEY`, `STAGING_SUPABASE_PROJECT_ID`. For mail: `NOTIFY_FROM_EMAIL`, `MAIL_FLUSH_SECRET` (16+ characters).
-4. Secret Manager in that GCP project: `SESSION_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`. For mail: `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`. Grant the Cloud Run runtime service account access. Deploy still succeeds if the mail secrets are absent; messages stay queued.
-5. Apply pending git migrations on **staging** (through `20261019220000_shopper_order_emails.sql`) if they are not already there.
-6. After deploy: `GET https://YOUR_URL/health`, sign in, open `/market`, open `/store/{a-published-slug}`. Place a test order with your email and confirm Resend (or the outbox remaining `pending` if keys are unset).
-7. Wildcard DNS (`*.yourdomain.com`) and `SHOP_HOSTS=true` (rebuild) only after a certificate exists. Do not set that flag on a raw `.run.app` URL.
-8. Production database, legal entity on `/privacy` and `/terms`, backup restore, and `npm audit` upgrades remain separate human gates.
-9. Auth sign-up and password reset still use **Supabase Auth SMTP** in the project dashboard, not this Resend outbox.
-
-Paynow, Groq, Redis, and Sentry are optional. Resend is optional for boot; queued shop alerts and shopper receipts send only after `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set.
+Paynow, Groq, Redis, Sentry, and Resend are optional for boot.

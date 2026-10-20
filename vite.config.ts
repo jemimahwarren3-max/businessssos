@@ -73,8 +73,8 @@ export default defineConfig(({ command }) => {
         // plugin precaches nothing and drops sw.js where nothing serves it.
         outDir: "./.output/public",
         manifest: {
-          name: "BusinessOS AI",
-          short_name: "BusinessOS",
+          name: "Kwetuu",
+          short_name: "Kwetuu",
           description: "Run your business, not your spreadsheets.",
           theme_color: "#4F46E5",
           background_color: "#F8FAFC",

@@ -1,23 +1,41 @@
 name: Deploy Cloud Run
 
-# Manual only. Production Postgres is never selected here. Point the service
-# at staging until a human explicitly applies production migrations.
+# Merged PRs: CI on master must pass, then this job runs (called from ci.yml).
+# First time, or a retry: Actions → Deploy Cloud Run → Run workflow.
+# This creates/updates the Cloud Run service. Do not use the GCP "Create
+# service" console. Production Postgres is never selected here.
 
 on:
+  workflow_call:
+    inputs:
+      region:
+        type: string
+        required: false
+        default: europe-west1
+      service:
+        type: string
+        required: false
+        default: kwetuu
   workflow_dispatch:
     inputs:
       region:
         description: Cloud Run region
         required: true
-        default: us-central1
+        default: europe-west1
       service:
         description: Cloud Run service name
         required: true
-        default: businessos
+        default: kwetuu
+
+concurrency:
+  group: cloud-run-kwetuu
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -28,24 +46,26 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker "${{ inputs.region }}-docker.pkg.dev" --quiet
+        env:
+          REGION: ${{ inputs.region }}
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
       - name: Build image
         env:
           PROJECT: ${{ secrets.GCP_PROJECT_ID }}
           REGION: ${{ inputs.region }}
           SERVICE: ${{ inputs.service }}
-          APP_URL: ${{ secrets.STAGING_APP_URL }}
+          APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
           VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
         run: |
           set -euo pipefail
           if [ -z "${PROJECT:-}" ] || [ -z "${APP_URL:-}" ] || [ -z "${VITE_SUPABASE_URL:-}" ]; then
-            echo "Missing GCP_PROJECT_ID or staging Supabase/APP_URL secrets."
+            echo "Missing GCP_PROJECT_ID, APP_URL (or STAGING_APP_URL), or staging Supabase secrets."
             exit 1
           fi
-          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/businessos/${SERVICE}:${GITHUB_SHA}"
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/kwetuu/${SERVICE}:${GITHUB_SHA}"
           docker build \
             --build-arg "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" \
             --build-arg "VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}" \
@@ -64,13 +84,14 @@ jobs:
           PROJECT: ${{ secrets.GCP_PROJECT_ID }}
           REGION: ${{ inputs.region }}
           SERVICE: ${{ inputs.service }}
-          APP_URL: ${{ secrets.STAGING_APP_URL }}
+          APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
           STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
           NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL }}
         run: |
           set -euo pipefail
+          RUN_SA="kwetuu-run@${PROJECT}.iam.gserviceaccount.com"
           ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,SHOP_HOSTS=false,APP_URL=${APP_URL},SUPABASE_URL=${STAGING_SUPABASE_URL},SUPABASE_PUBLISHABLE_KEY=${STAGING_SUPABASE_PUBLISHABLE_KEY},SUPABASE_PROJECT_ID=${STAGING_SUPABASE_PROJECT_ID},BILLING_ENABLED=true"
           if [ -n "${NOTIFY_FROM_EMAIL:-}" ]; then
             ENV_VARS="${ENV_VARS},NOTIFY_FROM_EMAIL=${NOTIFY_FROM_EMAIL}"
@@ -83,6 +104,10 @@ jobs:
               echo "Secret ${name} is not in Secret Manager yet; mail stays queued."
             fi
           done
+          SA_FLAGS=()
+          if gcloud iam service-accounts describe "${RUN_SA}" --project "${PROJECT}" >/dev/null 2>&1; then
+            SA_FLAGS+=(--service-account "${RUN_SA}")
+          fi
           gcloud run deploy "${SERVICE}" \
             --project "${PROJECT}" \
             --region "${REGION}" \
@@ -95,4 +120,5 @@ jobs:
             --max-instances 3 \
             --timeout 60 \
             --set-env-vars "${ENV_VARS}" \
-            --set-secrets "${SECRETS}"
+            --set-secrets "${SECRETS}" \
+            "${SA_FLAGS[@]}"

@@ -13,7 +13,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.11.0"
+          node-version: "22.12.0"
           cache: npm
 
       - run: npm ci
@@ -48,3 +48,12 @@ jobs:
           SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET }}
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    uses: ./.github/workflows/deploy-cloud-run.yml
+    secrets: inherit
+    with:
+      region: europe-west1
+      service: kwetuu

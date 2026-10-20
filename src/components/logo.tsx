@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 export function Logo({
@@ -23,16 +24,14 @@ export function Logo({
         </svg>
       </span>
       {showWord ? (
-        <span className="text-[17px] font-bold tracking-tight text-foreground">
-          BusinessOS <span className="text-primary">AI</span>
-        </span>
+        <span className="text-[17px] font-bold tracking-tight text-foreground">{BRAND.name}</span>
       ) : null}
     </span>
   );
 
   if (to) {
     return (
-      <Link to={to} className="inline-flex" aria-label="BusinessOS AI home">
+      <Link to={to} className="inline-flex" aria-label={`${BRAND.name} home`}>
         {mark}
       </Link>
     );
