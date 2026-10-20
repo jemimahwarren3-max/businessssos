@@ -5,7 +5,7 @@
 - Merchant shop alerts are in-app. Email copies and shopper receipts need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
 - Platform Paynow is subscription billing only (listed Pro is `PLAN_MONTHLY_USD.pro`, currently $7/month). Billing is off until `BILLING_ENABLED` is on. ZiG is a display equivalent from `platform_fx` when an operator stores a rate and source. Paynow still charges USD. There is no automatic RBZ feed and no stored-card recurring.
 - One shop per cart. No marketplace commission.
-- No product variants, no file uploads. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
+- No product variants. Product photos upload to the `product-media` bucket (JPEG/PNG/WebP, 2 MB). There is no virus scanner. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
 - Shop URLs are `{slug}.{APP_URL host}`. Cloud Run domain-mappings cannot attach `*.domain`; add wildcard DNS and TLS (Cloudflare on `*` or an HTTPS load balancer). The `.run.app` URL stays on `/store/{slug}` because it cannot take extra labels. Draft preview stays on the platform host.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).
