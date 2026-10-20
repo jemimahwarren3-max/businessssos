@@ -310,7 +310,7 @@ export async function listProducts(
   let query = supabase
     .from("products")
     .select(
-      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id",
+      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url",
     )
     .eq("business_id", businessId)
     .is("deleted_at", null)

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ type ProductCreateFormProps = {
   suppliers: SupplierOption[];
   pending: boolean;
   onCancel: () => void;
-  onSubmit: (values: ProductCreateFields) => void;
+  onSubmit: (values: ProductCreateFields, photo: File | null) => void;
 };
 
 export function ProductCreateForm({
@@ -43,6 +44,7 @@ export function ProductCreateForm({
   onCancel,
   onSubmit,
 }: ProductCreateFormProps) {
+  const [photo, setPhoto] = useState<File | null>(null);
   const form = useForm<ProductCreateFields>({
     resolver: zodResolver(productCreateFieldsSchema),
     defaultValues: {
@@ -62,7 +64,10 @@ export function ProductCreateForm({
 
   return (
     <Form {...form}>
-      <form className="grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit(onSubmit)}>
+      <form
+        className="grid gap-4 sm:grid-cols-2"
+        onSubmit={form.handleSubmit((values) => onSubmit(values, photo))}
+      >
         <FormField
           control={form.control}
           name="name"
@@ -236,6 +241,16 @@ export function ProductCreateForm({
             </FormItem>
           )}
         />
+        <div className="space-y-1.5 sm:col-span-2">
+          <FormLabel htmlFor="p-photo">Photo (optional)</FormLabel>
+          <Input
+            id="p-photo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+          />
+          <p className="text-[13px] text-muted-foreground">JPEG, PNG, or WebP, up to 2 MB.</p>
+        </div>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel

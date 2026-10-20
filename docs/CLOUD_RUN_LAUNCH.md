@@ -44,27 +44,23 @@ The script enables APIs, creates the `kwetuu` Artifact Registry repo, the
 GitHub deploy account, the Cloud Run runtime account, and Secret Manager
 entries. It prints the remaining GitHub secret names.
 
-Create the GitHub key once:
-
-```bash
-gcloud iam service-accounts keys create github-kwetuu.json \
-  --iam-account="kwetuu-github@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
-```
+Google orgs often block JSON keys (`iam.disableServiceAccountKeyCreation`).
+Use Workload Identity Federation instead — no file to download. See the
+console steps in the operator reply / GitHub secrets table below.
 
 ## GitHub Actions secrets
 
 | Secret                             | Value                                                                                  |
 | ---------------------------------- | -------------------------------------------------------------------------------------- |
 | `GCP_PROJECT_ID`                   | The GCP project id                                                                     |
-| `GCP_SA_KEY`                       | Full JSON of `github-kwetuu.json`                                                      |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER`   | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/kwetuu/providers/github` |
+| `GCP_SERVICE_ACCOUNT`              | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                     |
 | `APP_URL`                          | First: the `https://….run.app` URL Cloud Run prints. After DNS: `https://mykwetuu.com` |
 | `STAGING_SUPABASE_URL`             | Staging project URL                                                                    |
 | `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging anon/publishable key                                                           |
 | `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                 |
 | `NOTIFY_FROM_EMAIL`                | Optional. e.g. `Kwetuu <alerts@mykwetuu.com>` after Resend verifies the domain         |
 | `MAIL_FLUSH_SECRET`                | Optional. 16+ characters, same value as Secret Manager                                 |
-
-Delete `github-kwetuu.json` after it is stored in GitHub.
 
 ## Domain `mykwetuu.com`
 
