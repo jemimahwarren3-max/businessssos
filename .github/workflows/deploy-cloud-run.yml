@@ -199,3 +199,34 @@ jobs:
             --max-instances 3 \
             --timeout 60 \
             --env-vars-file /tmp/kwetuu-run-env.yaml
+          echo "Service URL printed by gcloud above. Keep GitHub APP_URL=https://mykwetuu.com."
+
+      - name: Map mykwetuu.com
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ inputs.region }}
+          SERVICE: ${{ inputs.service }}
+        run: |
+          set -euo pipefail
+          for domain in mykwetuu.com www.mykwetuu.com; do
+            if gcloud run domain-mappings describe --domain "${domain}" \
+              --project "${PROJECT}" --region "${REGION}" >/dev/null 2>&1; then
+              echo "Domain mapping already exists: ${domain}"
+            else
+              echo "Creating domain mapping ${domain} → ${SERVICE}"
+              gcloud run domain-mappings create \
+                --project "${PROJECT}" \
+                --region "${REGION}" \
+                --service "${SERVICE}" \
+                --domain "${domain}" \
+                --quiet
+            fi
+            echo "==== ${domain} ===="
+            echo "Add these DNS records (DNS-only, not Cloudflare orange-cloud proxy):"
+            gcloud run domain-mappings describe --domain "${domain}" \
+              --project "${PROJECT}" \
+              --region "${REGION}" \
+              --format="yaml(status.resourceRecords,status.conditions)"
+          done
+          echo "Leave GitHub secret APP_URL as https://mykwetuu.com. Do not switch it to .run.app."
+          echo "When certificate Ready is True, https://mykwetuu.com is the public URL."
