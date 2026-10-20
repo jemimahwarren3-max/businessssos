@@ -8,8 +8,8 @@ node_modules
 .env.*
 !.env.example
 *.md
+!legal/**/*.md
 docs
-legal
 tests
 coverage
 .vscode
