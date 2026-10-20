@@ -60,7 +60,7 @@ GRN against POs, supplier invoices, supplier returns, reorder suggestions from r
 
 ## Batch 10: files and media
 
-Storage bucket, product photos without raw URL-only, expense documents. RLS on objects. Virus/size limits.
+Product photos: `product-media` bucket, type sniffing, 2 MB cap, path `{businessId}/{productId}/…`. Expense documents and shop logos are still URL-only. No virus scanner.
 
 ## Batch 11: tax and fiscalisation
 

@@ -112,6 +112,7 @@ import {
   updateTeamMemberRole,
   verifyShopLogin,
 } from "./team.server";
+import { uploadProductImage } from "./product-media.server";
 import { parseAndSanitize } from "./security";
 import { authedRateLimit, ipRateLimit } from "./rate-limit.server";
 import {
@@ -275,6 +276,33 @@ export const addProduct = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(productSchema, data))
   .handler(async ({ data, context }) => createProduct(context.supabase as Db, data));
+
+function parseProductPhotoForm(data: unknown): {
+  businessId: string;
+  productId: string;
+  file: File;
+} {
+  if (!(data instanceof FormData)) {
+    throw new Error("Choose a photo.");
+  }
+  const businessId = String(data.get("businessId") ?? "");
+  const productId = String(data.get("productId") ?? "");
+  const file = data.get("file");
+  if (!/^[0-9a-f-]{36}$/i.test(businessId) || !/^[0-9a-f-]{36}$/i.test(productId)) {
+    throw new Error("That product could not be found.");
+  }
+  if (!(file instanceof File)) {
+    throw new Error("Choose a photo.");
+  }
+  return { businessId, productId, file };
+}
+
+export const uploadProductImageFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseProductPhotoForm(data))
+  .handler(async ({ data, context }) =>
+    uploadProductImage(context.supabase as Db, data.businessId, data.productId, data.file),
+  );
 
 export const updateStock = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)

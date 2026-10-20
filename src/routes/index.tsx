@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PLAN_MONTHLY_USD } from "@/lib/billing-plans";
@@ -27,7 +28,7 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BusinessOS AI: Run your business, not your spreadsheets" },
+      { title: `${BRAND.name}: Run your business, not your spreadsheets` },
       {
         name: "description",
         content:
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "BusinessOS AI: Run your business, not your spreadsheets",
+        content: `${BRAND.name}: Run your business, not your spreadsheets`,
       },
       {
         property: "og:description",
@@ -224,7 +225,7 @@ function Landing() {
             </ul>
           </div>
           <div className="surface p-6">
-            <h3 className="text-lg font-semibold">BusinessOS connects it all</h3>
+            <h3 className="text-lg font-semibold">{BRAND.name} connects it all</h3>
             <p className="mt-2 text-sm text-muted-foreground">One flow, one source of truth:</p>
             <div className="mt-4 flex flex-wrap gap-2 text-[13px] font-medium">
               {[
