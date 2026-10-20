@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     const user = await getCurrentUser();
-    if (!user) throw redirect({ to: "/staff-login" });
+    if (!user) throw redirect({ to: "/auth", search: { mode: "signin" } });
     return { user };
   },
   component: AuthenticatedGate,

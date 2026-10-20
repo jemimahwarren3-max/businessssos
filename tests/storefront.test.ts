@@ -10,7 +10,14 @@ import {
   storeSlugFromHostname,
 } from "@/lib/storefront/host";
 import { deliveryFee, orderTotal, roundMoney } from "@/lib/storefront/pricing";
-import { STORE_TEMPLATES, TEMPLATE_IDS, isTemplateId } from "@/lib/storefront/templates";
+import { defaultShopPatch } from "@/lib/storefront/onboarding-defaults";
+import {
+  STORE_TEMPLATES,
+  TEMPLATE_IDS,
+  isTemplateId,
+  templateForBusinessType,
+} from "@/lib/storefront/templates";
+import { RESERVED_HOST_LABELS } from "@/lib/storefront/host";
 import { allowedFulfilments, allowedPayments, cashPolicyLines } from "@/lib/storefront/order-rules";
 import { fulfilmentActions } from "@/lib/storefront/transitions";
 import type { PublicStore } from "@/lib/storefront/contract";
@@ -166,6 +173,17 @@ describe("storefront templates", () => {
       expect(template.sampleLabel.toLowerCase()).toContain("sample");
       expect(isTemplateId(template.id)).toBe(true);
     }
+    expect(templateForBusinessType("boutique")).toBe("fashion-boutique");
+    expect(templateForBusinessType("grocery")).toBe("grocery");
+    const patch = defaultShopPatch({
+      businessId: "00000000-0000-0000-0000-000000000001",
+      storeName: "Mbare Fresh",
+      templateId: "grocery",
+    });
+    expect(patch.delivery.pickupEnabled).toBe(true);
+    expect(patch.payments.acceptPaynow).toBe(false);
+    expect(RESERVED_HOST_LABELS.has("templates")).toBe(true);
+    expect(RESERVED_HOST_LABELS.has("features")).toBe(true);
   });
 });
 

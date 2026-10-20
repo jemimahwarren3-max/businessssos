@@ -187,3 +187,21 @@ export function isTemplateId(value: string): value is TemplateId {
 export function getTemplate(id: string): StoreTemplate {
   return STORE_TEMPLATES.find((template) => template.id === id) ?? STORE_TEMPLATES[0]!;
 }
+
+const TYPE_TO_TEMPLATE: Record<string, TemplateId> = {
+  grocery: "grocery",
+  boutique: "fashion-boutique",
+  hardware: "home",
+  electronics: "modern-minimal",
+  pharmacy: "beauty",
+  salon: "beauty",
+  restaurant: "food",
+  bakery: "food",
+  wholesale: "wholesale",
+  services: "digital",
+  other: "modern-minimal",
+};
+
+export function templateForBusinessType(businessType: string): TemplateId {
+  return TYPE_TO_TEMPLATE[businessType] ?? "modern-minimal";
+}
