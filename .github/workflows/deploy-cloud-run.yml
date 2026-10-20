@@ -125,6 +125,34 @@ jobs:
         run: |
           set -euo pipefail
           RUN_SA="kwetuu-run@${PROJECT}.iam.gserviceaccount.com"
+          PROJECT_NUMBER="$(gcloud projects describe "${PROJECT}" --format='value(projectNumber)')"
+          COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+          RUNTIME_SA="${COMPUTE_SA}"
+          SA_FLAGS=()
+          if gcloud iam service-accounts describe "${RUN_SA}" --project "${PROJECT}" >/dev/null 2>&1; then
+            RUNTIME_SA="${RUN_SA}"
+            SA_FLAGS+=(--service-account "${RUN_SA}")
+          fi
+          echo "Cloud Run runtime service account: ${RUNTIME_SA}"
+          grant_secret_access() {
+            local name="$1"
+            if gcloud secrets add-iam-policy-binding "${name}" \
+              --project "${PROJECT}" \
+              --member "serviceAccount:${RUNTIME_SA}" \
+              --role roles/secretmanager.secretAccessor \
+              --quiet >/dev/null; then
+              echo "Granted Secret Manager access on ${name} to ${RUNTIME_SA}."
+              return 0
+            fi
+            echo "Could not grant Secret Manager access on ${name}."
+            echo "In Google Cloud: IAM → Grant access"
+            echo "  Principal: ${RUNTIME_SA}"
+            echo "  Role: Secret Manager Secret Accessor"
+            echo "Or Secret Manager → ${name} → Permissions → same principal and role."
+            return 1
+          }
+          grant_secret_access SESSION_SECRET
+          grant_secret_access SUPABASE_SERVICE_ROLE_KEY
           ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,SHOP_HOSTS=false,APP_URL=${APP_URL},SUPABASE_URL=${STAGING_SUPABASE_URL},SUPABASE_PUBLISHABLE_KEY=${STAGING_SUPABASE_PUBLISHABLE_KEY},SUPABASE_PROJECT_ID=${STAGING_SUPABASE_PROJECT_ID},BILLING_ENABLED=true"
           if [ -n "${NOTIFY_FROM_EMAIL:-}" ]; then
             ENV_VARS="${ENV_VARS},NOTIFY_FROM_EMAIL=${NOTIFY_FROM_EMAIL}"
@@ -132,15 +160,12 @@ jobs:
           SECRETS="SESSION_SECRET=SESSION_SECRET:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest"
           for name in RESEND_API_KEY MAIL_FLUSH_SECRET; do
             if gcloud secrets describe "${name}" --project "${PROJECT}" >/dev/null 2>&1; then
+              grant_secret_access "${name}"
               SECRETS="${SECRETS},${name}=${name}:latest"
             else
               echo "Secret ${name} is not in Secret Manager yet; mail stays queued."
             fi
           done
-          SA_FLAGS=()
-          if gcloud iam service-accounts describe "${RUN_SA}" --project "${PROJECT}" >/dev/null 2>&1; then
-            SA_FLAGS+=(--service-account "${RUN_SA}")
-          fi
           gcloud run deploy "${SERVICE}" \
             --project "${PROJECT}" \
             --region "${REGION}" \
