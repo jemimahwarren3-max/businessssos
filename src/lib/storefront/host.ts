@@ -120,12 +120,12 @@ export function parsePlatformRoot(origin: string): PlatformRoot {
 }
 
 export function configuredPlatformOrigin(): string | null {
-  const fromVite = import.meta.env["VITE_APP_URL"];
-  if (typeof fromVite === "string" && fromVite.trim()) return stripSlash(fromVite);
   if (typeof process !== "undefined") {
     const fromProcess = process.env["APP_URL"] || process.env["VITE_APP_URL"];
     if (fromProcess?.trim()) return stripSlash(fromProcess);
   }
+  const fromVite = import.meta.env["VITE_APP_URL"];
+  if (typeof fromVite === "string" && fromVite.trim()) return stripSlash(fromVite);
   return null;
 }
 

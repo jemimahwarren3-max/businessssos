@@ -20,7 +20,6 @@ import {
   upcomingCollectionSlots,
 } from "@/lib/storefront/clocks";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
-import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { formatMoney, readableError } from "@/lib/format";
 import { BRAND } from "@/lib/brand";
 import { enabledManualMethods, MANUAL_PAYMENT_LABELS } from "@/lib/storefront/manual-payments";
@@ -509,11 +508,11 @@ function CheckoutPage() {
           <p className="mt-3 text-xs text-neutral-500">
             Placing an order is an agreement with this shop, not a purchase from {BRAND.name}.
             Platform{" "}
-            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/terms`}>
+            <a className="underline" href="/terms">
               terms
             </a>
             ,{" "}
-            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/privacy`}>
+            <a className="underline" href="/privacy">
               privacy
             </a>
             , and{" "}

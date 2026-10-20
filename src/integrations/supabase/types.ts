@@ -172,7 +172,7 @@ export type Database = {
           id: string;
           role: Database["public"]["Enums"]["app_role"];
           status: string;
-          token: string;
+          token_hash: string;
         };
         Insert: {
           accepted_at?: string | null;
@@ -184,7 +184,7 @@ export type Database = {
           id?: string;
           role: Database["public"]["Enums"]["app_role"];
           status?: string;
-          token: string;
+          token_hash: string;
         };
         Update: {
           accepted_at?: string | null;
@@ -196,7 +196,7 @@ export type Database = {
           id?: string;
           role?: Database["public"]["Enums"]["app_role"];
           status?: string;
-          token?: string;
+          token_hash?: string;
         };
         Relationships: [
           {

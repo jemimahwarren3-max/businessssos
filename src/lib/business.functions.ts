@@ -105,8 +105,8 @@ import {
   listTeamMembers,
   removeTeamMember,
   resetStaffPassword,
-  resolveStaffLogin,
   revokeInvite,
+  staffSignIn,
   setRolePermission,
   setStaffPassword,
   updateTeamMemberRole,
@@ -210,9 +210,8 @@ const invitePreviewLimit = [
   ipRateLimit({ keyPrefix: "invite-preview", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
 
-// Tighter than signInLimit (10/min) — businessCode+name is a lower-entropy
-// "username" than a full email, so the lookup step gets its own stricter cap
-// on top of signIn's own limit on the password-check step that follows it.
+// Tighter than signInLimit (10/min) — businessName+staff name is a
+// lower-entropy username than a full email, so sign-in gets its own cap.
 const staffLoginLimit = [
   ipRateLimit({ keyPrefix: "staff-login", maxRequests: 8, windowSeconds: 60 }),
 ] as const;
@@ -723,12 +722,10 @@ export const resetStaffPasswordFn = createServerFn({ method: "POST" })
     ),
   );
 
-export const resolveStaffLoginFn = createServerFn({ method: "POST" })
+export const staffSignInFn = createServerFn({ method: "POST" })
   .middleware(staffLoginLimit)
   .inputValidator((data: unknown) => parseAndSanitize(staffLoginSchema, data))
-  .handler(async ({ data }) => ({
-    email: await resolveStaffLogin(data.businessName, data.name),
-  }));
+  .handler(async ({ data }) => staffSignIn(data.businessName, data.name, data.password));
 
 export const setStaffPasswordFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
