@@ -5,8 +5,10 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
 import { getCurrentUser, requestPasswordReset, signIn, signUp } from "@/lib/auth/auth.functions";
+import { googleOAuthRedirectTo } from "@/lib/auth/google-oauth";
 import { readableError } from "@/lib/format";
 import { BRAND } from "@/lib/brand";
+import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,7 +56,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [busy, setBusy] = useState<null | "email">(null);
+  const [busy, setBusy] = useState<null | "email" | "google">(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const needsAcceptance = mode === "signup" && !acceptedTerms;
 
@@ -98,6 +100,31 @@ function AuthPage() {
     } catch (error) {
       toast.error(readableError(error as Error, "We couldn't complete that. Please try again."));
     } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleGoogle() {
+    if (mode === "signup" && !acceptedTerms) {
+      toast.error("Please accept the Terms of Service and Privacy Policy first.");
+      return;
+    }
+    setBusy("google");
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: googleOAuthRedirectTo(window.location.origin, {
+            next: mode === "signup" ? "/onboarding" : "/dashboard",
+            acceptedTerms: mode === "signup",
+          }),
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      toast.error(
+        readableError(error as Error, "Google sign-in did not start. Try email instead."),
+      );
       setBusy(null);
     }
   }
@@ -257,6 +284,31 @@ function AuthPage() {
                 </Button>
               </form>
 
+              {mode !== "reset" ? (
+                <>
+                  <div className="relative my-5">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <span className="w-full border-t border-border" />
+                    </div>
+                    <p className="relative flex justify-center text-[12px] uppercase tracking-wide text-muted-foreground">
+                      <span className="bg-background px-2">or</span>
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={busy !== null || needsAcceptance}
+                    onClick={() => void handleGoogle()}
+                  >
+                    {busy === "google" ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : null}
+                    Continue with Google
+                  </Button>
+                </>
+              ) : null}
+
               {mode === "reset" ? (
                 <Button asChild variant="ghost" className="mt-4 w-full">
                   <Link to="/auth" search={{ mode: "signin", redirect }}>
@@ -284,20 +336,19 @@ function AuthPage() {
       </div>
 
       <div className="hidden flex-col justify-between bg-primary-dark p-10 lg:flex">
-        <p className="text-sm font-medium text-primary-foreground/70">BusinessOS AI</p>
+        <p className="text-sm font-medium text-primary-foreground/70">{BRAND.name}</p>
         <div>
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-primary-foreground">
-            Don't just see your business data. Understand what it means.
+            Open a shop. Sell from the same catalogue you use at the till.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-primary-foreground/75">
-            Sales, stock, invoices and expenses in one place, with a health score that tells you
-            what needs attention today.
+            Google or email. Then name the business, pick a template, add a product, and publish.
           </p>
         </div>
         <ul className="space-y-2 text-sm text-primary-foreground/80">
-          <li>· Inventory that updates itself when you sell</li>
-          <li>· Invoices and quotes without retyping</li>
-          <li>· Roles for your team, enforced on the server</li>
+          <li>· Live storefront at /store/your-slug</li>
+          <li>· Cash now; your own Paynow keys when you add them</li>
+          <li>· Staff still sign in with the business name</li>
         </ul>
       </div>
     </div>
