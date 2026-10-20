@@ -16,6 +16,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as ApiInternalFlushMailRouteImport } from './routes/api.internal.flush-mail'
 import { Route as MarketRouteImport } from './routes/market'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -96,6 +101,31 @@ const ApiInternalFlushMailRoute = ApiInternalFlushMailRouteImport.update({
 const MarketRoute = MarketRouteImport.update({
   id: '/market',
   path: '/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -350,6 +380,11 @@ export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
+  '/templates': typeof TemplatesRoute
+  '/pricing': typeof PricingRoute
+  '/faq': typeof FaqRoute
+  '/features': typeof FeaturesRoute
+  '/about': typeof AboutRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -405,6 +440,11 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
+  '/about': typeof AboutRoute
+  '/features': typeof FeaturesRoute
+  '/faq': typeof FaqRoute
+  '/pricing': typeof PricingRoute
+  '/templates': typeof TemplatesRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -461,6 +501,11 @@ export interface FileRoutesById {
   '/health': typeof HealthRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
+  '/about': typeof AboutRoute
+  '/features': typeof FeaturesRoute
+  '/faq': typeof FaqRoute
+  '/pricing': typeof PricingRoute
+  '/templates': typeof TemplatesRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -518,6 +563,11 @@ export interface FileRouteTypes {
     | '/health'
     | '/api/internal/flush-mail'
     | '/market'
+| '/about'
+| '/features'
+| '/faq'
+| '/pricing'
+| '/templates'
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
@@ -573,6 +623,11 @@ export interface FileRouteTypes {
     | '/health'
     | '/api/internal/flush-mail'
     | '/market'
+| '/about'
+| '/features'
+| '/faq'
+| '/pricing'
+| '/templates'
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
@@ -628,6 +683,11 @@ export interface FileRouteTypes {
     | '/health'
     | '/api/internal/flush-mail'
     | '/market'
+| '/about'
+| '/features'
+| '/faq'
+| '/pricing'
+| '/templates'
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
@@ -685,6 +745,11 @@ export interface RootRouteChildren {
   HealthRoute: typeof HealthRoute
   ApiInternalFlushMailRoute: typeof ApiInternalFlushMailRoute
   MarketRoute: typeof MarketRoute
+  AboutRoute: typeof AboutRoute
+  FeaturesRoute: typeof FeaturesRoute
+  FaqRoute: typeof FaqRoute
+  PricingRoute: typeof PricingRoute
+  TemplatesRoute: typeof TemplatesRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -749,6 +814,41 @@ declare module '@tanstack/react-router' {
       path: '/market'
       fullPath: '/market'
       preLoaderRoute: typeof MarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -1186,6 +1286,11 @@ const rootRouteChildren: RootRouteChildren = {
   HealthRoute: HealthRoute,
   ApiInternalFlushMailRoute: ApiInternalFlushMailRoute,
   MarketRoute: MarketRoute,
+  AboutRoute: AboutRoute,
+  FeaturesRoute: FeaturesRoute,
+  FaqRoute: FaqRoute,
+  PricingRoute: PricingRoute,
+  TemplatesRoute: TemplatesRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

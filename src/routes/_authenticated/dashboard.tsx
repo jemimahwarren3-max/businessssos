@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -30,6 +30,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { getDashboard } from "@/lib/business.functions";
 import { formatMoney, formatNumber, formatPercent, greeting } from "@/lib/format";
+import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
+import { storePublicUrl } from "@/lib/storefront/host";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -89,6 +91,12 @@ function Dashboard() {
     enabled: Boolean(businessId),
     queryFn: () => fetchDashboard({ data: { businessId: businessId!, days: Number(range) } }),
   });
+  const loadStore = useServerFn(getStorefrontAdminFn);
+  const storefront = useQuery({
+    queryKey: ["storefront", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => loadStore({ data: { businessId: businessId! } }),
+  });
 
   if (!workspace.data) {
     return (
@@ -122,6 +130,52 @@ function Dashboard() {
         </Button>
       }
     >
+      {storefront.data && !storefront.data.checklist.published ? (
+        <section className="surface mb-4 p-5">
+          <h2 className="text-lg font-semibold">Finish your shop</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Unpublished shops are not visible to customers. Continue setup or preview a draft.
+          </p>
+          <ol className="mt-3 space-y-1 text-sm">
+            {(
+              [
+                ["name", "Shop name"],
+                ["template", "Template"],
+                ["products", "A published product"],
+                ["payments", "A payment method"],
+                ["fulfilment", "Pickup or delivery"],
+                ["published", "Publish"],
+              ] as const
+            ).map(([key, label]) => (
+              <li key={key}>
+                {storefront.data?.checklist[key] ? "Done" : "To do"} — {label}
+              </li>
+            ))}
+          </ol>
+          {storefront.data.store?.slug ? (
+            <p className="mt-2 text-sm">
+              Draft:{" "}
+              <Link
+                to="/store/$slug"
+                params={{ slug: storefront.data.store.slug }}
+                search={{ preview: "1" }}
+              >
+                Preview
+              </Link>
+              {" · "}
+              {storePublicUrl(storefront.data.store.slug)}
+            </p>
+          ) : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button asChild>
+              <Link to="/onboarding">Continue setup</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/storefront">Storefront settings</Link>
+            </Button>
+          </div>
+        </section>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Today's sales"
