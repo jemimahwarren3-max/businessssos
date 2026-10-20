@@ -63,6 +63,7 @@ export default tseslint.config(
       "src/lib/storefront/storefront.server.ts",
       "src/lib/storefront/payment-proof.server.ts",
       "src/lib/platform-fx.server.ts",
+      "src/lib/rate-limit.server.ts",
       "src/integrations/supabase/client.server.ts",
     ],
     rules: {

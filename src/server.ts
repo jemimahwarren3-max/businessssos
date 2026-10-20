@@ -94,8 +94,8 @@ async function verifyPlatformPaynowWebhookBody(raw: string): Promise<string | nu
 async function handlePaynowWebhook(request: Request): Promise<Response> {
   try {
     const ip = request.headers.get("x-forwarded-for") ?? "unknown";
-    const { createAnonClient } = await import("./lib/auth/session.server");
-    const { data: allowed } = await createAnonClient().rpc("check_rate_limit", {
+    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const { data: allowed } = await supabaseAdmin.rpc("check_rate_limit", {
       _key: `paynow-webhook:ip:${ip}`,
       _limit: 30,
       _window_seconds: 60,
@@ -105,7 +105,6 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
     const raw = await request.text();
     const { paynowReferenceFromBody, pollAndConfirmShopPayment } =
       await import("./lib/payments/shop-paynow.server");
-    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
     const reference = paynowReferenceFromBody(raw);
     if (!reference) return new Response("Unauthorized", { status: 401 });
 

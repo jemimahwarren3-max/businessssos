@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { allowAal1Session } from "@/integrations/supabase/auth-middleware";
 import { authedRateLimit } from "@/lib/rate-limit.server";
 import {
   getMfaStatus,
@@ -26,9 +27,15 @@ const adminRateLimit = [
   authedRateLimit({ keyPrefix: "admin-api", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
 
+const adminStatusLimit = [
+  allowAal1Session,
+  authedRateLimit({ keyPrefix: "admin-status", maxRequests: 30, windowSeconds: 60 }),
+] as const;
+
 // Tighter — these three accept a 6-digit TOTP code, exactly the kind of
 // code-guessing surface that normally gets a tight attempt throttle.
 const adminMfaRateLimit = [
+  allowAal1Session,
   authedRateLimit({ keyPrefix: "admin-mfa", maxRequests: 8, windowSeconds: 60 }),
 ] as const;
 
@@ -36,7 +43,7 @@ const adminMfaRateLimit = [
 // beforeLoad to decide whether to render a real 404 (not admin), an MFA
 // gate (admin but not yet aal2 this session), or the real dashboard.
 export const checkPlatformAdmin = createServerFn({ method: "GET" })
-  .middleware(adminRateLimit)
+  .middleware(adminStatusLimit)
   .handler(async ({ context }) => {
     const isAdmin = isPlatformAdmin(context.userId);
     if (!isAdmin) return { isAdmin: false as const };

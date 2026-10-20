@@ -5,7 +5,7 @@
 import { createMiddleware, createServerOnlyFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createAnonClient } from "@/lib/auth/session.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type RateLimitOptions = {
   windowSeconds?: number;
@@ -20,14 +20,14 @@ type RateLimitOptions = {
  * middleware runs) can call the same underlying primitive directly.
  *
  * Wrapped in createServerOnlyFn: this is the one place in the file that
- * actually touches createAnonClient/cookies. Without this marker, some
+ * actually touches supabaseAdmin/cookies. Without this marker, some
  * client-bundled call sites (confirmed for src/lib/admin/admin.functions.ts)
  * pull this function's module — and its @tanstack/react-start/server import
  * — into the browser bundle and fail to build, even though every real call
  * only ever happens inside a .server()/.handler() callback. */
 export const checkRateLimit = createServerOnlyFn(
   async (key: string, limit: number, windowSeconds: number): Promise<boolean> => {
-    const { data, error } = await createAnonClient().rpc("check_rate_limit", {
+    const { data, error } = await supabaseAdmin.rpc("check_rate_limit", {
       _key: key,
       _limit: limit,
       _window_seconds: windowSeconds,
@@ -51,7 +51,7 @@ export const checkRateLimit = createServerOnlyFn(
  * counts every call unconditionally and never resets early. */
 export const recordLoginFailure = createServerOnlyFn(
   async (key: string, windowSeconds: number): Promise<number> => {
-    const { data, error } = await createAnonClient().rpc("record_login_failure", {
+    const { data, error } = await supabaseAdmin.rpc("record_login_failure", {
       _key: key,
       _window_seconds: windowSeconds,
     });
@@ -65,7 +65,7 @@ export const recordLoginFailure = createServerOnlyFn(
 
 export const peekLoginFailures = createServerOnlyFn(
   async (key: string, windowSeconds: number): Promise<number> => {
-    const { data, error } = await createAnonClient().rpc("peek_login_failures", {
+    const { data, error } = await supabaseAdmin.rpc("peek_login_failures", {
       _key: key,
       _window_seconds: windowSeconds,
     });
@@ -80,7 +80,7 @@ export const peekLoginFailures = createServerOnlyFn(
 );
 
 export const clearLoginFailures = createServerOnlyFn(async (key: string): Promise<void> => {
-  const { error } = await createAnonClient().rpc("clear_login_failures", { _key: key });
+  const { error } = await supabaseAdmin.rpc("clear_login_failures", { _key: key });
   if (error) console.error("[rate-limit] clear login failures failed", error);
 });
 

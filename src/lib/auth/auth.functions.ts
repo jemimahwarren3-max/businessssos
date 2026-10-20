@@ -5,6 +5,7 @@ import { getAppUrl } from "@/lib/app-url.server";
 import { deleteMyAccount } from "@/lib/account-deletion.server";
 import type { Db } from "@/lib/business.server";
 import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
+import { allowAal1Session } from "@/integrations/supabase/auth-middleware";
 import {
   authedRateLimit,
   clearLoginFailures,
@@ -59,6 +60,7 @@ const updatePasswordLimit = [
 // Tighter than the general API limit: these accept a 6-digit TOTP code,
 // exactly the kind of surface that normally gets a tight attempt throttle.
 const mfaLimit = [
+  allowAal1Session,
   authedRateLimit({ keyPrefix: "mfa", maxRequests: 8, windowSeconds: 60 }),
 ] as const;
 const signOutOthersLimit = [

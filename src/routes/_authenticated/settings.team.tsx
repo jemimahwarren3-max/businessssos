@@ -54,6 +54,7 @@ export const Route = createFileRoute("/_authenticated/settings/team")({
 });
 
 const TEAM_ROLES = ["owner", "admin", "manager", "cashier", "accountant"] as const;
+const INVITE_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
 // Owner is deliberately excluded — always has every permission, not editable.
 const PERMISSION_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
 
@@ -69,7 +70,7 @@ function Team() {
   const [section, setSection] = useState<"team" | "permissions">("team");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteMode, setInviteMode] = useState<"link" | "staff">("link");
-  const [inviteRole, setInviteRole] = useState<(typeof TEAM_ROLES)[number]>("cashier");
+  const [inviteRole, setInviteRole] = useState<(typeof INVITE_ROLES)[number]>("cashier");
   const [inviteLink, setInviteLink] = useState<{ link: string; role: string } | null>(null);
   const [createdStaff, setCreatedStaff] = useState<{ name: string; role: string } | null>(null);
   const [staffName, setStaffName] = useState("");
@@ -367,11 +368,13 @@ function Team() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {TEAM_ROLES.map((r) => (
-                            <SelectItem key={r} value={r}>
-                              {ROLE_LABEL[r] ?? r}
-                            </SelectItem>
-                          ))}
+                          {(workspace.data?.role === "owner" ? TEAM_ROLES : INVITE_ROLES).map(
+                            (r) => (
+                              <SelectItem key={r} value={r}>
+                                {ROLE_LABEL[r] ?? r}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                       {m.staff_name ? (
@@ -596,13 +599,13 @@ function Team() {
                 <Label>Role</Label>
                 <Select
                   value={inviteRole}
-                  onValueChange={(v) => setInviteRole(v as (typeof TEAM_ROLES)[number])}
+                  onValueChange={(v) => setInviteRole(v as (typeof INVITE_ROLES)[number])}
                 >
                   <SelectTrigger aria-label="Role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TEAM_ROLES.map((r) => (
+                    {INVITE_ROLES.map((r) => (
                       <SelectItem key={r} value={r}>
                         {ROLE_LABEL[r] ?? r}
                       </SelectItem>

@@ -8,7 +8,7 @@
 - No product variants. Product photos upload to the `product-media` bucket (JPEG/PNG/WebP, 2 MB). There is no virus scanner. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
 - Shop URLs are `{slug}.{APP_URL host}`. Cloud Run domain-mappings cannot attach `*.domain`; add wildcard DNS and TLS (Cloudflare on `*` or an HTTPS load balancer). The `.run.app` URL stays on `/store/{slug}` because it cannot take extra labels. Draft preview stays on the platform host.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
-- POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).
+- POS `create_sale` uses catalogue `selling_price`. Staff-supplied unit prices are ignored. Sale-level discount cannot exceed the items total.
 - Cash POS needs an open drawer. Card and credit do not. Invoice payments and online shop cash are not posted to the till. Offline queued cash sales fail on sync if the drawer is closed.
 - Offline stock is an estimate. Unsynced sales stay on the device after logout.
 - Privacy and Terms at `/privacy` and `/terms` are working drafts with placeholders for the operator's legal name. They are not a compliance certificate.
