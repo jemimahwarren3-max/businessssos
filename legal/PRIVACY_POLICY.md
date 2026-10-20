@@ -22,7 +22,8 @@ Using the Services means you have had a chance to read this Policy. Where the la
 
 **Platform name:** Kwetuu  
 **Website:** https://mykwetuu.com  
-**Operator's full legal name:** [INSERT FULL LEGAL NAME — trading as Kwetuu]  
+**Operator's full legal name:** [INSERT FULL LEGAL NAME]  
+**Trading as:** Kwetuu  
 **Legal status:** [INSERT ACCURATE LEGAL STATUS. If you operate as an individual without a registered company, say so. Do not describe BusinessOS as a registered company unless that is true.]  
 **Business or service address:** [INSERT REQUIRED CONTACT ADDRESS]  
 **Privacy contact email:** [INSERT PRIVACY EMAIL]  

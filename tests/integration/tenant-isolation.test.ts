@@ -5,6 +5,7 @@ import {
   createTestUser,
   deleteTestBusiness,
   deleteTestUser,
+  describeStaging,
   newId,
   sql,
 } from "./helpers";
@@ -45,7 +46,7 @@ const EXPORT_TABLES = [
   "shopper_shop_consents",
 ] as const;
 
-describe("cross-tenant isolation", () => {
+describeStaging("cross-tenant isolation", () => {
   let ownerA: string;
   let ownerB: string;
   let outsider: string;

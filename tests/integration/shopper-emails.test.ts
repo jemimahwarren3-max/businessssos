@@ -1,17 +1,18 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   asUser,
   createTestBusiness,
   createTestUser,
   deleteTestBusiness,
   deleteTestUser,
+  describeStaging,
   newId,
   sql,
 } from "./helpers";
 
-describe("shopper order emails", () => {
+describeStaging("shopper order emails", () => {
   let owner: string;
   let biz: string;
   let product: string;

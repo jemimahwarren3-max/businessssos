@@ -1,15 +1,16 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   asUser,
   createTestBusiness,
   createTestUser,
   deleteTestBusiness,
   deleteTestUser,
+  describeStaging,
   newId,
   sql,
 } from "./helpers";
 
-describe("cash drawer ledger", () => {
+describeStaging("cash drawer ledger", () => {
   let owner: string;
   let biz: string;
   let product: string;
