@@ -8,6 +8,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# Legal markdown is imported as ?raw by the /legal/* routes.
+RUN test -f legal/REFUND_POLICY.md \
+    && test -f legal/TERMS_OF_SERVICE.md \
+    && test -f legal/PRIVACY_POLICY.md
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
 ARG VITE_SUPABASE_PROJECT_ID
