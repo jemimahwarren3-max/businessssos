@@ -15,7 +15,7 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 
 export const Route = createFileRoute("/_authenticated/settings/data")({
   head: () => ({
-    meta: [{ title: "Export data — BusinessOS AI" }],
+    meta: [{ title: "Export data | BusinessOS AI" }],
   }),
   component: DataExport,
 });
@@ -140,8 +140,8 @@ function DataExport() {
         <div>
           <h2 className="text-lg font-semibold">Your data, in one file</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Products, customers, sales, invoices, quotes, expenses, and stock history — everything
-            tied to your business — as a single file you can keep, back up, or move elsewhere. JSON
+            Products, customers, sales, invoices, quotes, expenses, and stock history, everything
+            tied to your business, as a single file you can keep, back up, or move elsewhere. JSON
             keeps every field for a full backup; Excel is easier to open and browse; PDF is best for
             printing or sharing a read-only copy.
           </p>

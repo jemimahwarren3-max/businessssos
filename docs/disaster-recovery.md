@@ -52,10 +52,10 @@ locally, or run these same steps in a throwaway GitHub Actions job.
      project first (this gives you a fresh, empty `auth`/`storage`/etc. that
      the dump will restore into), then run the same `pg_restore` command
      against the new project's connection string. Afterward, update
-     `.env.production` (and the Render service's env vars) to point at the
-     new project's URL/keys.
+     `.env.production` (and Cloud Run, or the temporary Render service) to
+     point at the new project's URL/keys. Official hosting is Cloud Run.
 4. Sanity-check the restore before trusting it: confirm `select count(*)
-   from businesses;` and a spot-checked row match what you expect, and try
+from businesses;` and a spot-checked row match what you expect, and try
    signing in as a real account.
 
 ## Testing this actually works

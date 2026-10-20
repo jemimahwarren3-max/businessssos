@@ -54,10 +54,12 @@ export default tseslint.config(
     files: [
       "src/server.ts",
       "src/lib/payments/paynow.server.ts",
+      "src/lib/payments/shop-paynow.server.ts",
       "src/lib/admin/admin.server.ts",
       "src/lib/account-deletion.server.ts",
       "src/lib/legal-acceptance.server.ts",
       "src/lib/team.server.ts",
+      "src/lib/notifications.mail.server.ts",
       "src/integrations/supabase/client.server.ts",
     ],
     rules: {

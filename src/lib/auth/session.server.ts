@@ -13,6 +13,7 @@ import {
   type SessionConfig,
 } from "@tanstack/react-start/server";
 import { SUPABASE_AUTH_STORAGE_KEY } from "@/integrations/supabase/auth-storage-key";
+import { isSessionCookieSecure } from "@/lib/auth/session-cookie";
 import { createSupabaseFetch } from "@/integrations/supabase/supabase-fetch";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -22,7 +23,7 @@ function sessionConfig(): SessionConfig {
   const password = process.env["SESSION_SECRET"];
   if (!password) {
     throw new Error(
-      "Missing SESSION_SECRET environment variable — generate 32+ random characters and set it in .env.",
+      "Missing SESSION_SECRET environment variable, generate 32+ random characters and set it in .env.",
     );
   }
   return {
@@ -38,7 +39,12 @@ function sessionConfig(): SessionConfig {
     // Set-Cookie header). Setting it ourselves rather than relying on
     // browsers' implicit Lax default, on top of the CSRF middleware in
     // start.ts (belt and suspenders, same reasoning as elsewhere this pass).
-    cookie: { httpOnly: true, secure: true, path: "/", sameSite: "lax" },
+    cookie: {
+      httpOnly: true,
+      secure: isSessionCookieSecure(process.env["APP_URL"]),
+      path: "/",
+      sameSite: "lax",
+    },
   };
 }
 

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
+import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
   ConvertQuoteInput,
   CreateBusinessInput,
@@ -100,7 +101,7 @@ export async function assertPermission(supabase: Db, businessId: string, permiss
 }
 
 const READ_ONLY_MESSAGE =
-  "Your trial has ended. Upgrade to Pro to keep creating and editing — your existing data is still safe and visible.";
+  "Your trial has ended. Upgrade to Pro to keep creating and editing, your existing data is still safe and visible.";
 
 /** True if a subscription in this state is allowed to write — active, or
  * still inside an unexpired trial. Shared by assertCanWrite (server-side
@@ -257,7 +258,7 @@ export async function createBusinessRecord(
     title: "Welcome to BusinessOS AI",
     message: isBillingEnabled()
       ? "Your 3-day Pro trial has started. Add your first products to begin."
-      : "You're in! BusinessOS is free during our beta — add your first products to begin.",
+      : "You're in! BusinessOS is free during our beta, add your first products to begin.",
     severity: "info",
   });
   await recordAudit(supabase, {
@@ -323,6 +324,18 @@ export async function listProducts(
   return data ?? [];
 }
 
+export async function listLocations(supabase: Db, businessId: string) {
+  await assertMember(supabase, businessId);
+  const { data, error } = await supabase
+    .from("locations")
+    .select("id, name, address, phone, is_active, is_default")
+    .eq("business_id", businessId)
+    .eq("is_active", true)
+    .order("name");
+  if (error) dbFail("list locations", error);
+  return data ?? [];
+}
+
 export async function createProduct(supabase: Db, input: ProductInput) {
   await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase
@@ -379,7 +392,7 @@ export async function importProducts(
         (error as { code?: string } | null)?.code === "23505"
           ? "duplicate SKU"
           : "couldn't be saved";
-      errors.push(`Row ${index + 2}: ${row.name || "unnamed product"} — ${reason}`);
+      errors.push(`Row ${index + 2}: ${row.name || "unnamed product"}, ${reason}`);
       continue;
     }
     if (row.stock > 0) {
@@ -588,6 +601,7 @@ export async function createSale(supabase: Db, input: SaleInput) {
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("create sale", error);
+  await flushNotificationOutboxForBusiness(supabase, input.businessId);
   return { id: data as string };
 }
 
@@ -1240,7 +1254,7 @@ export async function importExpenses(
       created_by: userId,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.expenseDate} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.expenseDate}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1285,7 +1299,7 @@ export async function importSalesHistory(
       _description: (row.description || null) as never,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.saleDate} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.saleDate}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1323,7 +1337,7 @@ export async function importCustomers(
       notes: row.notes || null,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.name || "unnamed customer"} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.name || "unnamed customer"}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1386,7 +1400,7 @@ export async function importSalesDetailed(
       _notes: null as never,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.product} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.product}, couldn't be saved`);
       continue;
     }
     imported++;

@@ -1,0 +1,222 @@
+import type { ReactNode } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/format";
+import type { MarketplaceProduct } from "@/lib/storefront/contract";
+import { getMarketplaceFn } from "@/lib/storefront/storefront.functions";
+
+const searchSchema = z.object({
+  q: z.string().max(80).optional().catch(""),
+  category: z.string().max(80).optional().catch(""),
+});
+
+export const Route = createFileRoute("/market")({
+  validateSearch: searchSchema,
+  loaderDeps: ({ search }) => ({ q: search.q ?? "", category: search.category ?? "" }),
+  loader: ({ deps }) => getMarketplaceFn({ data: { query: deps.q, category: deps.category } }),
+  head: ({ loaderData }) => {
+    const category = loaderData?.category ? `${loaderData.category} · ` : "";
+    const title = `${category}Shops on BusinessOS`;
+    return {
+      meta: [
+        { title },
+        {
+          name: "description",
+          content:
+            "Browse published shops and products from businesses using BusinessOS. Each product is sold by the shop named on the card.",
+        },
+        { property: "og:title", content: title },
+        { property: "og:type", content: "website" },
+      ],
+    };
+  },
+  component: MarketPage,
+  errorComponent: MarketError,
+});
+
+function MarketError({ error }: { error: Error }) {
+  return (
+    <MarketFrame>
+      <p className="text-sm text-destructive">{error.message}</p>
+    </MarketFrame>
+  );
+}
+
+function MarketPage() {
+  const market = Route.useLoaderData();
+  const search = Route.useSearch();
+  const filtering = Boolean(market.query || market.category);
+  return (
+    <MarketFrame>
+      <form className="mt-6 flex flex-col gap-2 sm:flex-row" method="get">
+        <label className="sr-only" htmlFor="market-q">
+          Search shops and products
+        </label>
+        <input
+          id="market-q"
+          name="q"
+          defaultValue={search.q ?? ""}
+          placeholder="Search shops or products"
+          className="h-11 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+        />
+        {market.category ? <input type="hidden" name="category" value={market.category} /> : null}
+        <Button type="submit">Search</Button>
+      </form>
+
+      {market.categories.length > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            to="/market"
+            search={{ q: search.q ?? "", category: "" }}
+            className={`rounded-full border px-3 py-1 text-sm ${market.category ? "text-muted-foreground" : "border-foreground"}`}
+          >
+            All
+          </Link>
+          {market.categories.map((category) => (
+            <Link
+              key={category.name}
+              to="/market"
+              search={{ q: search.q ?? "", category: category.name }}
+              className={`rounded-full border px-3 py-1 text-sm ${
+                market.category.toLowerCase() === category.name.toLowerCase()
+                  ? "border-foreground"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {category.name} ({category.count})
+            </Link>
+          ))}
+        </div>
+      ) : null}
+
+      {!filtering && market.shops.length === 0 ? (
+        <section className="mt-10 rounded-lg border border-dashed p-8">
+          <h2 className="text-lg font-semibold">No shops are listed yet</h2>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            When a business publishes its shop and leaves it visible here, its products show up with
+            the shop name, the current price, and the current stock label.
+          </p>
+          <Button asChild className="mt-4" variant="outline">
+            <Link to="/auth" search={{ mode: "signup" }}>
+              Open a shop
+            </Link>
+          </Button>
+        </section>
+      ) : null}
+
+      {market.shops.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold">Shops</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {market.shops.map((shop) => (
+              <Link
+                key={shop.slug}
+                to="/store/$slug"
+                params={{ slug: shop.slug }}
+                className="rounded-lg border p-4 transition-colors hover:bg-muted/40"
+              >
+                <p className="font-medium">{shop.storeName}</p>
+                <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
+                  {shop.businessType}
+                </p>
+                {shop.tagline ? (
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{shop.tagline}</p>
+                ) : null}
+                {shop.address ? (
+                  <p className="mt-2 text-sm text-muted-foreground">{shop.address}</p>
+                ) : null}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {!filtering && market.featured.length > 0 ? (
+        <ProductSection title="Featured by the shop" products={market.featured} />
+      ) : null}
+      {!filtering && market.recent.length > 0 ? (
+        <ProductSection title="Recently published" products={market.recent} />
+      ) : null}
+      {filtering ? (
+        <ProductSection
+          title={market.products.length === 0 ? "No matching products" : "Products"}
+          products={market.products}
+          empty="Nothing matched that search in the shops currently listed."
+        />
+      ) : market.products.length > 0 ? (
+        <ProductSection title="Products" products={market.products} />
+      ) : null}
+    </MarketFrame>
+  );
+}
+
+function ProductSection({
+  title,
+  products,
+  empty,
+}: {
+  title: string;
+  products: MarketplaceProduct[];
+  empty?: string;
+}) {
+  return (
+    <section className="mt-10">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      {products.length === 0 && empty ? (
+        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {products.map((product) => (
+            <Link
+              key={`${product.storeSlug}-${product.slug}`}
+              to="/store/$slug/products/$productSlug"
+              params={{ slug: product.storeSlug, productSlug: product.slug }}
+              className="overflow-hidden rounded-lg border"
+            >
+              {product.imageUrl ? (
+                <img src={product.imageUrl} alt="" className="aspect-square w-full object-cover" />
+              ) : (
+                <div className="aspect-square bg-muted" />
+              )}
+              <div className="space-y-1 p-3">
+                <p className="line-clamp-2 text-sm font-medium">{product.name}</p>
+                <p className="text-sm">{formatMoney(product.price, product.currency)}</p>
+                <p className="text-xs text-muted-foreground">{product.storeName}</p>
+                <p className="text-xs text-muted-foreground">{product.stockLabel}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MarketFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <Logo to="/" />
+          <nav className="flex items-center gap-4 text-sm">
+            <Link to="/market" search={{ q: "", category: "" }}>
+              Shops
+            </Link>
+            <Link to="/staff-login">Sign in</Link>
+          </nav>
+        </div>
+      </header>
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        <p className="text-sm text-muted-foreground">BusinessOS marketplace</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Find a local shop</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Every product belongs to one business. Checkout stays with that shop, and the stock you
+          see is the same stock the shop uses at the counter.
+        </p>
+        {children}
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,23 @@
+# Known limitations
+
+- Not production-ready. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
+- Customer checkout: pay on pickup, pay on delivery, quote, and Paynow when the shop has linked its own keys. InnBucks is not wired. Platform Paynow keys are still billing-only.
+- Merchant shop alerts are in-app. Email copies and shopper receipts need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
+- Platform Paynow is subscription billing only ($3/month Pro).
+- One shop per cart. No marketplace commission.
+- No product variants, no file uploads. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
+- Shop URLs default to `{APP_URL}/store/{slug}` so Cloud Run works without wildcard DNS. `{slug}.{host}` only when `SHOP_HOSTS=true` and a wildcard certificate exists.
+- Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
+- POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).
+- Cash POS needs an open drawer. Card and credit do not. Invoice payments and online shop cash are not posted to the till. Offline queued cash sales fail on sync if the drawer is closed.
+- Offline stock is an estimate. Unsynced sales stay on the device after logout.
+- Privacy and Terms at `/privacy` and `/terms` are working drafts with placeholders for the operator's legal name. They are not a compliance certificate.
+- Fiscalisation, CDPA, and consumer-law compliance are not claimed.
+- CI default branch mismatch is fixed; historical merges to `master` may have skipped CI.
+- Accessibility: code-level work exists; no screen-reader evidence this session.
+- README is not the setup guide; `ENVIRONMENT_SETUP.md` is.
+- Stock is a total on `products.stock` plus per-location rows on `product_stock`. The app still sells and adjusts the default location. There is no branch-transfer UI.
+- Order rules: cash currencies, exact-cash, quote-required delivery, automatic acceptance, structured hours, HH:MM cut-off, and collection windows are enforced in SQL. Free-text hours or cut-off notes are display-only. There is no waitlist or overnight window.
+- Distance-based delivery fees, address geocoding, and multi-merchant carts are not implemented.
+- The 200-feature product roadmap is not built. See `BUSINESSOS_AUDIT.md`.
+- Open-source tooling: keep the Supabase commerce backend. See `OPEN_SOURCE_TOOLING_AUDIT.md`. Medusa, Meilisearch, and Umami are not installed.

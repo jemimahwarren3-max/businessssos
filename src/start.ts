@@ -1,5 +1,6 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
+import { isPrivateHttpPath } from "./lib/auth/session-cookie";
 import { renderErrorPage } from "./lib/error-page";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
@@ -31,8 +32,8 @@ function buildCsp(): string {
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob:",
-    `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`,
+    "img-src 'self' data: blob: https:",
+    `connect-src 'self' ${supabaseOrigin} ${supabaseWs} https://*.ingest.sentry.io https://*.sentry.io`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -46,10 +47,13 @@ const CSP = buildCsp();
 // Applies to every response (pages and server-fn calls alike) — cheap
 // insurance against clickjacking, MIME-sniffing, and third-party embedding,
 // on top of (not instead of) the app-layer auth/RLS boundaries.
-const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => {
+const securityHeadersMiddleware = createMiddleware().server(async ({ next, pathname }) => {
   const result = await next();
   if (result && typeof result === "object" && "response" in result && result.response) {
     const headers = result.response.headers;
+    if (isPrivateHttpPath(pathname)) {
+      headers.set("Cache-Control", "private, no-store");
+    }
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("X-Frame-Options", "DENY");
     headers.set("Referrer-Policy", "strict-origin-when-cross-origin");

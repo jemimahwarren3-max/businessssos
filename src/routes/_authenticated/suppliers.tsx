@@ -59,12 +59,12 @@ const EMPTY_ITEM: LineItemInput = {
 export const Route = createFileRoute("/_authenticated/suppliers")({
   head: () => ({
     meta: [
-      { title: "Suppliers — BusinessOS AI" },
+      { title: "Suppliers | BusinessOS AI" },
       {
         name: "description",
-        content: "Your supplier directory — who you buy from and how to reach them.",
+        content: "Your supplier directory, who you buy from and how to reach them.",
       },
-      { property: "og:title", content: "Suppliers — BusinessOS AI" },
+      { property: "og:title", content: "Suppliers | BusinessOS AI" },
       { property: "og:description", content: "Know who you buy from." },
     ],
   }),
@@ -153,9 +153,7 @@ function Suppliers() {
         toast.success("Purchase order created. Opening WhatsApp…");
         window.open(link, "_blank", "noopener,noreferrer");
       } else {
-        toast.success(
-          "Purchase order created — but this supplier has no phone on file to message.",
-        );
+        toast.success("Purchase order created, but this supplier has no phone on file to message.");
       }
     },
     onError: (error: Error) =>
@@ -444,7 +442,7 @@ function Suppliers() {
           <DialogHeader>
             <DialogTitle>Order from {orderTarget?.name}</DialogTitle>
             <DialogDescription>
-              Add what you're buying — this creates a purchase order and opens WhatsApp with it
+              Add what you're buying, this creates a purchase order and opens WhatsApp with it
               pre-filled, using their phone number on file. Prices are estimates from your last
               recorded cost; ask the supplier to confirm.
             </DialogDescription>
@@ -464,7 +462,7 @@ function Suppliers() {
             />
             {orderTarget && !orderProducts.isLoading && (orderProducts.data ?? []).length === 0 ? (
               <p className="text-[13px] text-muted-foreground">
-                No products are tagged to this supplier yet — use "Custom item" below, or tag
+                No products are tagged to this supplier yet, use "Custom item" below, or tag
                 products to this supplier from Inventory.
               </p>
             ) : null}

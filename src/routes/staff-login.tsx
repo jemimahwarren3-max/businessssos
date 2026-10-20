@@ -13,7 +13,7 @@ import { resolveStaffLoginFn, verifyShopLoginFn } from "@/lib/business.functions
 export const Route = createFileRoute("/staff-login")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Sign in — BusinessOS AI" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Sign in | BusinessOS AI" }, { name: "robots", content: "noindex" }],
   }),
   component: StaffLogin,
 });
@@ -53,7 +53,7 @@ function StaffLogin() {
         return;
       }
       if (result.staffNames.length === 0) {
-        toast.error("No staff accounts have been set up yet — ask the owner.");
+        toast.error("No staff accounts have been set up yet, ask the owner.");
         return;
       }
       setBusinessName(result.businessName ?? "");

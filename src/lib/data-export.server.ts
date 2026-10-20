@@ -39,6 +39,10 @@ const EXPORT_TABLES = [
   "payments",
   "expenses",
   "inventory_movements",
+  "locations",
+  "product_stock",
+  "cash_sessions",
+  "cash_movements",
 ] as const;
 
 export type BusinessExport = {
@@ -55,7 +59,9 @@ export async function exportBusinessData(
 
   const { data: business, error: bizError } = await supabase
     .from("businesses")
-    .select("*")
+    .select(
+      "id, name, business_type, currency, address, phone, email, logo_url, default_tax_rate, invoice_prefix, quote_prefix, onboarding_completed, created_by, created_at, updated_at, staff_code",
+    )
     .eq("id", businessId)
     .maybeSingle();
   if (bizError) dbFail("export business", bizError);

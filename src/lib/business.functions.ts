@@ -20,6 +20,7 @@ import {
   listNotificationsSchema,
   markAllNotificationsReadSchema,
   markNotificationReadSchema,
+  notifyEmailSchema,
   invoiceIdSchema,
   invoiceSchema,
   invoiceStatusSchema,
@@ -46,7 +47,10 @@ import {
   setRolePermissionSchema,
   commissionReportSchema,
   setCommissionRateSchema,
+  addCashMovementSchema,
+  closeCashSessionSchema,
   clockInSchema,
+  openCashSessionSchema,
   timeEntriesReportSchema,
   adjustTimeEntrySchema,
   timeEntryIdSchema,
@@ -71,9 +75,17 @@ import {
   listTimeEntries,
 } from "./time-tracking.server";
 import {
+  addCashMovement,
+  closeCashSession,
+  loadCashDrawer,
+  openCashSession,
+} from "./cash-drawer.server";
+import {
+  getNotifyEmail,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  setNotifyEmail,
 } from "./notifications.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
@@ -134,6 +146,7 @@ import {
   listCustomers,
   listExpenses,
   listInvoices,
+  listLocations,
   listProducts,
   listPurchaseOrders,
   listQuotes,
@@ -237,6 +250,11 @@ export const getReports = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     loadReports(context.supabase as Db, data.businessId, data.days),
   );
+
+export const getLocations = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => listLocations(context.supabase as Db, data.businessId));
 
 export const getProducts = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -534,7 +552,7 @@ export const startSubscriptionCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(subscriptionCheckoutSchema, data))
   .handler(async ({ data, context }) => {
     const email = (context.claims as { email?: string }).email;
-    if (!email) throw new Error("Your account has no email on file — please contact support.");
+    if (!email) throw new Error("Your account has no email on file, please contact support.");
     return initiateSubscriptionCheckout(context.supabase as Db, data, email);
   });
 
@@ -735,6 +753,32 @@ export const setCommissionRateFn = createServerFn({ method: "POST" })
     setMemberCommissionRate(context.supabase as Db, data.businessId, data.memberUserId, data.rate),
   );
 
+export const getCashDrawerFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => loadCashDrawer(context.supabase as Db, data.businessId));
+
+export const openCashSessionFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(openCashSessionSchema, data))
+  .handler(async ({ data, context }) =>
+    openCashSession(context.supabase as Db, data.businessId, data.openingFloat, data.note ?? ""),
+  );
+
+export const closeCashSessionFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(closeCashSessionSchema, data))
+  .handler(async ({ data, context }) =>
+    closeCashSession(context.supabase as Db, data.businessId, data.countedCash, data.note ?? ""),
+  );
+
+export const addCashMovementFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(addCashMovementSchema, data))
+  .handler(async ({ data, context }) =>
+    addCashMovement(context.supabase as Db, data.businessId, data.kind, data.amount, data.note),
+  );
+
 export const getMyActiveShiftFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
@@ -798,7 +842,9 @@ export const getAuditLogsFn = createServerFn({ method: "POST" })
 export const getNotificationsFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(listNotificationsSchema, data))
-  .handler(async ({ data, context }) => listNotifications(context.supabase as Db, data.businessId));
+  .handler(async ({ data, context }) =>
+    listNotifications(context.supabase as Db, data.businessId, data.offset ?? 0),
+  );
 
 export const markNotificationReadFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -812,4 +858,18 @@ export const markAllNotificationsReadFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(markAllNotificationsReadSchema, data))
   .handler(async ({ data, context }) =>
     markAllNotificationsRead(context.supabase as Db, data.businessId),
+  );
+
+export const getNotifyEmailFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) => getNotifyEmail(context.supabase as Db, data.businessId));
+
+export const setNotifyEmailFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(notifyEmailSchema, data))
+  .handler(async ({ data, context }) =>
+    setNotifyEmail(context.supabase as Db, data.businessId, data.enabled),
   );

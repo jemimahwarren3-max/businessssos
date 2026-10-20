@@ -50,12 +50,12 @@ const EXPENSE_IMPORT_COLUMNS: ImportColumn[] = [
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({
     meta: [
-      { title: "Expenses — BusinessOS AI" },
+      { title: "Expenses | BusinessOS AI" },
       {
         name: "description",
         content: "Track rent, salaries, supplies and everything else your business spends.",
       },
-      { property: "og:title", content: "Expenses — BusinessOS AI" },
+      { property: "og:title", content: "Expenses | BusinessOS AI" },
       { property: "og:description", content: "Know exactly where your money goes." },
     ],
   }),
@@ -180,7 +180,7 @@ function Expenses() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Expenses"
-      subtitle="Rent, salaries, supplies — everything your business spends."
+      subtitle="Rent, salaries, supplies, everything your business spends."
       actions={
         <>
           {rows.length > 0 ? (

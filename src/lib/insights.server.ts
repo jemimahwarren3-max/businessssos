@@ -212,7 +212,7 @@ export function computeAnomalies(input: AnomalyInput): Anomaly[] {
         severity: "info",
         message: `Unusually large ${expense.category} expense: ${formatMoney(amount, currency)}${
           expense.vendor ? ` (${expense.vendor})` : ""
-        } — about ${Math.round(amount / average)}x the usual amount for that category.`,
+        }, about ${Math.round(amount / average)}x the usual amount for that category.`,
       });
     }
   }
@@ -263,11 +263,11 @@ export async function getAnomalies(supabase: Db, businessId: string): Promise<An
 /* ---------------------------- weekly AI report ---------------------------- */
 
 const WEEKLY_REPORT_SYSTEM_PROMPT = `You are the BusinessOS AI assistant, writing a short weekly business
-report for a small-business owner. Using ONLY the data given to you below — never invent numbers,
-customers, or products that aren't in it — write a 4-6 sentence narrative summary of how the last 7
+report for a small-business owner. Using ONLY the data given to you below, never invent numbers,
+customers, or products that aren't in it, write a 4-6 sentence narrative summary of how the last 7
 days went. Plain language a non-accountant would understand, no jargon like "COGS" or "accounts
 receivable". Mention anything in the "Things to watch" list if present. End on a brief, concrete
-suggestion if one is obvious from the numbers — otherwise skip it rather than inventing one.`;
+suggestion if one is obvious from the numbers, otherwise skip it rather than inventing one.`;
 
 export type WeeklyReport = { text: string; generatedAt: string; cached: boolean };
 

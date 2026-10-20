@@ -29,13 +29,13 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Sign in — BusinessOS AI" },
+      { title: "Sign in | BusinessOS AI" },
       {
         name: "description",
         content:
           "Sign in or create your BusinessOS AI account to manage inventory, sales and invoices.",
       },
-      { property: "og:title", content: "Sign in — BusinessOS AI" },
+      { property: "og:title", content: "Sign in | BusinessOS AI" },
       { property: "og:description", content: "Access your BusinessOS AI workspace." },
     ],
   }),
@@ -113,7 +113,7 @@ function AuthPage() {
               <h1 className="mt-3 text-xl font-bold tracking-tight">Check your email</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 We sent a link to <span className="font-medium text-foreground">{sentTo}</span>.
-                Open it to continue — you're not signed in until you do.
+                Open it to continue, you're not signed in until you do.
               </p>
               <Button variant="outline" className="mt-5 w-full" onClick={() => setSentTo(null)}>
                 Back
@@ -221,7 +221,7 @@ function AuthPage() {
                     >
                       I agree to the{" "}
                       <a
-                        href="/legal/terms"
+                        href="/terms"
                         target="_blank"
                         rel="noreferrer"
                         className="font-medium text-primary hover:underline"
@@ -230,7 +230,7 @@ function AuthPage() {
                       </a>{" "}
                       and{" "}
                       <a
-                        href="/legal/privacy"
+                        href="/privacy"
                         target="_blank"
                         rel="noreferrer"
                         className="font-medium text-primary hover:underline"
@@ -290,7 +290,7 @@ function AuthPage() {
             Don't just see your business data. Understand what it means.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-primary-foreground/75">
-            Sales, stock, invoices and expenses in one place — with a health score that tells you
+            Sales, stock, invoices and expenses in one place, with a health score that tells you
             what needs attention today.
           </p>
         </div>

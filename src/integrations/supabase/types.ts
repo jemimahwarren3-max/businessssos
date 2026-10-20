@@ -103,6 +103,7 @@ export type Database = {
           po_seq: number;
           quote_seq: number;
           sale_seq: number;
+          store_order_seq: number;
         };
         Insert: {
           business_id: string;
@@ -110,6 +111,7 @@ export type Database = {
           po_seq?: number;
           quote_seq?: number;
           sale_seq?: number;
+          store_order_seq?: number;
         };
         Update: {
           business_id?: string;
@@ -117,6 +119,7 @@ export type Database = {
           po_seq?: number;
           quote_seq?: number;
           sale_seq?: number;
+          store_order_seq?: number;
         };
         Relationships: [
           {
@@ -323,6 +326,110 @@ export type Database = {
         };
         Relationships: [];
       };
+      cash_movements: {
+        Row: {
+          amount: number;
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          kind: string;
+          note: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          session_id: string;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          kind: string;
+          note?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          session_id: string;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          session_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cash_movements_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "cash_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      cash_sessions: {
+        Row: {
+          business_id: string;
+          closed_at: string | null;
+          closed_by: string | null;
+          counted_cash: number | null;
+          discrepancy: number | null;
+          expected_cash: number | null;
+          id: string;
+          note: string | null;
+          opened_at: string;
+          opened_by: string;
+          opening_float: number;
+        };
+        Insert: {
+          business_id: string;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          counted_cash?: number | null;
+          discrepancy?: number | null;
+          expected_cash?: number | null;
+          id?: string;
+          note?: string | null;
+          opened_at?: string;
+          opened_by: string;
+          opening_float?: number;
+        };
+        Update: {
+          business_id?: string;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          counted_cash?: number | null;
+          discrepancy?: number | null;
+          expected_cash?: number | null;
+          id?: string;
+          note?: string | null;
+          opened_at?: string;
+          opened_by?: string;
+          opening_float?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cash_sessions_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       categories: {
         Row: {
           business_id: string;
@@ -467,6 +574,7 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
+          location_id: string | null;
           movement_type: Database["public"]["Enums"]["movement_type"];
           product_id: string | null;
           quantity: number;
@@ -481,6 +589,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           movement_type: Database["public"]["Enums"]["movement_type"];
           product_id?: string | null;
           quantity: number;
@@ -495,6 +604,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           movement_type?: Database["public"]["Enums"]["movement_type"];
           product_id?: string | null;
           quantity?: number;
@@ -510,6 +620,13 @@ export type Database = {
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
           {
@@ -689,6 +806,50 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      locations: {
+        Row: {
+          address: string | null;
+          business_id: string;
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          is_default: boolean;
+          name: string;
+          phone: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          address?: string | null;
+          business_id: string;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          is_default?: boolean;
+          name: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string | null;
+          business_id?: string;
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          is_default?: boolean;
+          name?: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "locations_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       notifications: {
         Row: {
@@ -938,6 +1099,52 @@ export type Database = {
           },
         ];
       };
+      product_stock: {
+        Row: {
+          business_id: string;
+          id: string;
+          location_id: string;
+          product_id: string;
+          quantity: number;
+        };
+        Insert: {
+          business_id: string;
+          id?: string;
+          location_id: string;
+          product_id: string;
+          quantity?: number;
+        };
+        Update: {
+          business_id?: string;
+          id?: string;
+          location_id?: string;
+          product_id?: string;
+          quantity?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_stock_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_stock_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -1032,6 +1239,7 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
+          location_id: string | null;
           notes: string | null;
           order_date: string;
           po_number: string;
@@ -1047,6 +1255,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           notes?: string | null;
           order_date?: string;
           po_number: string;
@@ -1062,6 +1271,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          location_id?: string | null;
           notes?: string | null;
           order_date?: string;
           po_number?: string;
@@ -1078,6 +1288,13 @@ export type Database = {
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_orders_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
           {
@@ -1509,6 +1726,7 @@ export type Database = {
         Row: {
           amount_paid: number;
           business_id: string;
+          channel: string;
           cost_total: number;
           created_at: string;
           created_by: string | null;
@@ -1516,7 +1734,9 @@ export type Database = {
           discount: number;
           id: string;
           idempotency_key: string | null;
+          location_id: string | null;
           notes: string | null;
+          cash_session_id: string | null;
           payment_method: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
           status: Database["public"]["Enums"]["sale_status"];
@@ -1528,6 +1748,7 @@ export type Database = {
         Insert: {
           amount_paid?: number;
           business_id: string;
+          channel?: string;
           cost_total?: number;
           created_at?: string;
           created_by?: string | null;
@@ -1535,7 +1756,9 @@ export type Database = {
           discount?: number;
           id?: string;
           idempotency_key?: string | null;
+          location_id?: string | null;
           notes?: string | null;
+          cash_session_id?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
           status?: Database["public"]["Enums"]["sale_status"];
@@ -1547,6 +1770,7 @@ export type Database = {
         Update: {
           amount_paid?: number;
           business_id?: string;
+          channel?: string;
           cost_total?: number;
           created_at?: string;
           created_by?: string | null;
@@ -1554,7 +1778,9 @@ export type Database = {
           discount?: number;
           id?: string;
           idempotency_key?: string | null;
+          location_id?: string | null;
           notes?: string | null;
+          cash_session_id?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number?: string;
           status?: Database["public"]["Enums"]["sale_status"];
@@ -1576,6 +1802,13 @@ export type Database = {
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sales_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
         ];
@@ -1780,6 +2013,69 @@ export type Database = {
           },
         ];
       };
+      shop_order_payments: {
+        Row: {
+          amount: number;
+          business_id: string;
+          channel: string;
+          created_at: string;
+          currency: string;
+          id: string;
+          order_id: string;
+          paid_at: string | null;
+          poll_url: string;
+          provider_reference: string | null;
+          reference: string;
+          status: string;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          channel: string;
+          created_at?: string;
+          currency: string;
+          id?: string;
+          order_id: string;
+          paid_at?: string | null;
+          poll_url: string;
+          provider_reference?: string | null;
+          reference: string;
+          status?: string;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          channel?: string;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          order_id?: string;
+          paid_at?: string | null;
+          poll_url?: string;
+          provider_reference?: string | null;
+          reference?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      store_paynow_credentials: {
+        Row: {
+          business_id: string;
+          ciphertext: string;
+          updated_at: string;
+        };
+        Insert: {
+          business_id: string;
+          ciphertext: string;
+          updated_at?: string;
+        };
+        Update: {
+          business_id?: string;
+          ciphertext?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       time_entries: {
         Row: {
           business_id: string;
@@ -1826,10 +2122,20 @@ export type Database = {
       adjust_stock: {
         Args: {
           _business_id: string;
+          _location_id?: string | null;
           _movement_type: Database["public"]["Enums"]["movement_type"];
           _product_id: string;
           _quantity: number;
           _reason: string;
+        };
+        Returns: number;
+      };
+      apply_stock_delta: {
+        Args: {
+          _business_id: string;
+          _delta: number;
+          _location_id: string;
+          _product_id: string;
         };
         Returns: number;
       };
@@ -1931,12 +2237,22 @@ export type Database = {
         };
         Returns: string;
       };
+      create_location: {
+        Args: {
+          _address: string;
+          _business_id: string;
+          _name: string;
+          _phone: string;
+        };
+        Returns: string;
+      };
       create_product: {
         Args: {
           _barcode: string;
           _business_id: string;
           _cost_price: number;
           _description: string;
+          _location_id?: string | null;
           _min_stock: number;
           _name: string;
           _selling_price: number;
@@ -2002,6 +2318,14 @@ export type Database = {
         Args: { _active: boolean; _business_id: string; _id: string };
         Returns: undefined;
       };
+      add_cash_movement: {
+        Args: { _amount: number; _business_id: string; _kind: string; _note: string };
+        Returns: string;
+      };
+      close_cash_session: {
+        Args: { _business_id: string; _counted_cash: number; _note?: string };
+        Returns: Json;
+      };
       create_sale: {
         Args: {
           _business_id: string;
@@ -2009,10 +2333,100 @@ export type Database = {
           _discount: number;
           _idempotency_key?: string;
           _items: Json;
+          _location_id?: string | null;
           _notes: string;
           _payment_method: Database["public"]["Enums"]["payment_method"];
         };
         Returns: string;
+      };
+      get_cash_drawer: { Args: { _business_id: string }; Returns: Json };
+      open_cash_session: {
+        Args: { _business_id: string; _note?: string; _opening_float: number };
+        Returns: string;
+      };
+      get_location_stock: {
+        Args: { _location_id: string; _product_id: string };
+        Returns: number;
+      };
+      get_public_store: {
+        Args: {
+          _slug: string;
+          _query?: string;
+          _category?: string;
+          _sort?: string;
+          _limit?: number;
+          _offset?: number;
+        };
+        Returns: Json;
+      };
+      get_store_preview: { Args: { _slug: string }; Returns: Json };
+      quote_store_cart: {
+        Args: { _slug: string; _items: Json; _fulfilment: string };
+        Returns: Json;
+      };
+      create_store_order: {
+        Args: {
+          _slug: string;
+          _idempotency_key: string;
+          _customer: Json;
+          _items: Json;
+          _fulfilment: string;
+          _payment_method: string;
+          _collect_at?: string | null;
+        };
+        Returns: Json;
+      };
+      get_store_order: {
+        Args: { _slug: string; _reference: string; _token: string };
+        Returns: Json;
+      };
+      get_shopper_account: { Args: { _slug: string }; Returns: Json };
+      claim_store_order: {
+        Args: { _slug: string; _reference: string; _token: string };
+        Returns: Json;
+      };
+      set_shopper_consent: { Args: { _messages: boolean; _slug: string }; Returns: Json };
+      save_storefront: { Args: { _business_id: string; _patch: Json }; Returns: Json };
+      set_product_listing: {
+        Args: {
+          _business_id: string;
+          _product_id: string;
+          _published: boolean;
+          _details: string;
+          _size_guide: string;
+          _min_qty: number;
+          _max_qty: number | null;
+          _featured: boolean;
+        };
+        Returns: undefined;
+      };
+      set_storefront_published: {
+        Args: { _business_id: string; _published: boolean };
+        Returns: Json;
+      };
+      get_storefront_admin: { Args: { _business_id: string }; Returns: Json };
+      get_store_order_admin: {
+        Args: { _business_id: string; _order_id: string };
+        Returns: Json;
+      };
+      transition_store_order: {
+        Args: { _business_id: string; _order_id: string; _action: string };
+        Returns: Json;
+      };
+      list_public_store_paths: { Args: never; Returns: Json };
+      browse_marketplace: {
+        Args: {
+          _query?: string;
+          _category?: string;
+          _limit?: number;
+          _offset?: number;
+        };
+        Returns: Json;
+      };
+      get_marketplace_listing: { Args: { _business_id: string }; Returns: Json };
+      set_marketplace_visible: {
+        Args: { _business_id: string; _visible: boolean };
+        Returns: Json;
       };
       accept_business_invite: { Args: { _token: string }; Returns: string };
       create_business_invite: {
@@ -2163,6 +2577,19 @@ export type Database = {
         Args: { _business_id: string };
         Returns: Database["public"]["Enums"]["app_role"];
       };
+      confirm_shop_paynow_payment: {
+        Args: {
+          _paid: boolean;
+          _provider_reference: string;
+          _raw_status: string;
+          _reference: string;
+        };
+        Returns: undefined;
+      };
+      storefront_paynow_context: { Args: { _slug: string }; Returns: Json };
+      storefront_order_id: { Args: { _slug: string; _reference: string }; Returns: string };
+      shop_offers_paynow: { Args: { _slug: string }; Returns: boolean };
+      shop_offers_paynow_business: { Args: { _business_id: string }; Returns: boolean };
       paynow_confirm_payment: {
         Args: {
           _paid: boolean;
@@ -2193,6 +2620,10 @@ export type Database = {
           _poll_url: string;
           _reference: string;
         };
+        Returns: string;
+      };
+      resolve_location_id: {
+        Args: { _business_id: string; _location_id: string | null };
         Returns: string;
       };
       refund_sale: {

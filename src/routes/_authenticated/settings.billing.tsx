@@ -22,7 +22,7 @@ import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
   head: () => ({
-    meta: [{ title: "Billing — BusinessOS AI" }],
+    meta: [{ title: "Billing | BusinessOS AI" }],
   }),
   component: Billing,
 });
@@ -100,7 +100,7 @@ function Billing() {
       if (result.instructions) {
         setPendingInstructions(result.instructions);
       }
-      toast.success("Payment started — complete it on your phone, then check status below.");
+      toast.success("Payment started, complete it on your phone, then check status below.");
       await queryClient.invalidateQueries({ queryKey: ["billing", businessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't start that payment.")),
@@ -111,7 +111,7 @@ function Billing() {
       checkPayment({ data: { businessId: businessId!, reference: pendingPayment!.reference } }),
     onSuccess: async (result) => {
       if (result.status === "paid") {
-        toast.success("Payment confirmed — your plan is active.");
+        toast.success("Payment confirmed, your plan is active.");
         setPendingInstructions(null);
       } else if (result.status === "failed") {
         toast.error("That payment didn't go through. You can try again.");
@@ -161,8 +161,8 @@ function Billing() {
                 <Sparkles className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
                   BusinessOS is currently free while we build with our founding users. Every feature
-                  is unlocked — no card required. Pricing may be introduced later, and we'll give
-                  you clear notice before anything changes.
+                  is unlocked, no card required. Pricing may be introduced later, and we'll give you
+                  clear notice before anything changes.
                 </p>
               </div>
             ) : billing.isLoading ? (
@@ -278,7 +278,7 @@ function Billing() {
                   ) : (
                     <RefreshCw className="size-4" aria-hidden="true" />
                   )}
-                  I've paid — check status
+                  I've paid, check status
                 </Button>
               ) : null}
             </div>

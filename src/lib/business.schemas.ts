@@ -72,6 +72,7 @@ export const productSchema = z.object({
   supplierId: z.string().uuid().optional().or(z.literal("")),
 });
 export type ProductInput = z.infer<typeof productSchema>;
+export const productCreateFieldsSchema = productSchema.omit({ businessId: true });
 
 export const customerSchema = z.object({
   businessId: z.string().uuid(),
@@ -103,6 +104,25 @@ export const supplierIdSchema = z.object({
 });
 
 export const businessIdSchema = z.object({ businessId: z.string().uuid() });
+
+export const openCashSessionSchema = z.object({
+  businessId: z.string().uuid(),
+  openingFloat: z.coerce.number().min(0, "Opening float cannot be negative").max(99999999),
+  note: z.string().trim().max(240).optional().or(z.literal("")),
+});
+
+export const closeCashSessionSchema = z.object({
+  businessId: z.string().uuid(),
+  countedCash: z.coerce.number().min(0, "Counted cash cannot be negative").max(99999999),
+  note: z.string().trim().max(240).optional().or(z.literal("")),
+});
+
+export const addCashMovementSchema = z.object({
+  businessId: z.string().uuid(),
+  kind: z.enum(["pay_in", "pay_out"]),
+  amount: z.coerce.number().positive("Amount must be greater than zero").max(99999999),
+  note: z.string().trim().min(2, "Enter a reason").max(240),
+});
 
 export const stockAdjustSchema = z.object({
   businessId: z.string().uuid(),
@@ -553,6 +573,7 @@ export const listAuditLogsSchema = z.object({
 
 export const listNotificationsSchema = z.object({
   businessId: z.string().uuid(),
+  offset: z.coerce.number().int().min(0).max(500).optional(),
 });
 
 export const markNotificationReadSchema = z.object({
@@ -561,6 +582,11 @@ export const markNotificationReadSchema = z.object({
 
 export const markAllNotificationsReadSchema = z.object({
   businessId: z.string().uuid(),
+});
+
+export const notifyEmailSchema = z.object({
+  businessId: z.string().uuid(),
+  enabled: z.boolean(),
 });
 
 /* ------------------------------- insights -------------------------------- */

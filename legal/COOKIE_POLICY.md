@@ -6,7 +6,7 @@
 > unnecessary in every jurisdiction you serve is a question for a lawyer,
 > not this document.
 
-_Last updated: 2026-08-11 (still a draft — see the banner above)_
+_Last updated: 2026-10-19 (still a draft. See the banner above.)_
 
 ## The short version
 
@@ -17,8 +17,8 @@ application itself.
 
 ## The one cookie, in detail
 
-| Name | Purpose | Type | Duration | Set by |
-|---|---|---|---|---|
+| Name                                                  | Purpose                                                                                                       | Type               | Duration                                                                | Set by                      |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------- | --------------------------- |
 | Session cookie (see `src/lib/auth/session.server.ts`) | Keeps you signed in. Contains your encrypted session, not readable or usable without the server's secret key. | Strictly necessary | Matches your session lifetime; cleared on sign-out or account deletion. | BusinessOS AI (first-party) |
 
 It's `httpOnly` (not readable by JavaScript, including any script that

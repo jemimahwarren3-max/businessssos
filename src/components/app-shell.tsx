@@ -21,6 +21,8 @@ import {
   Receipt,
   Settings,
   ShoppingCart,
+  Store,
+  Wallet,
   Sparkles,
   Truck,
   UserX,
@@ -47,11 +49,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { friendlyDate } from "@/lib/format";
+import { clearOfflineCacheOnLogout } from "@/lib/offline/db";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/sales", label: "Sales", icon: ShoppingCart },
+  { to: "/storefront", label: "Storefront", icon: Store },
   { to: "/inventory", label: "Inventory", icon: Boxes },
   { to: "/suppliers", label: "Suppliers", icon: Truck },
   { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
@@ -97,7 +101,8 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
     queryKey: ["notifications", businessId],
     enabled: Boolean(businessId),
     queryFn: () => fetchNotifications({ data: { businessId: businessId! } }),
-    staleTime: 30_000,
+    staleTime: 15_000,
+    refetchInterval: 20_000,
   });
 
   const markReadMutation = useMutation({
@@ -127,17 +132,22 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between px-2 py-1.5">
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
-          {unreadCount > 0 ? (
-            <button
-              className="text-xs font-medium text-primary hover:underline"
-              onClick={(e) => {
-                e.preventDefault();
-                markAllReadMutation.mutate();
-              }}
-            >
-              Mark all read
-            </button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 ? (
+              <button
+                className="text-xs font-medium text-primary hover:underline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  markAllReadMutation.mutate();
+                }}
+              >
+                Mark all read
+              </button>
+            ) : null}
+            <Link to="/notifications" className="text-xs font-medium text-primary hover:underline">
+              See all
+            </Link>
+          </div>
         </div>
         <DropdownMenuSeparator />
         {entries.length === 0 ? (
@@ -215,6 +225,7 @@ export function AppShell({
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
+    await clearOfflineCacheOnLogout(workspace.data?.business.id ?? null);
     await signOutServerFn();
     navigate({ to: "/staff-login", replace: true });
   }
@@ -257,6 +268,12 @@ export function AppShell({
             className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
           >
             <Users className="size-4.5" aria-hidden="true" /> Team
+          </Link>
+          <Link
+            to="/cash-drawer"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <Wallet className="size-4.5" aria-hidden="true" /> Cash drawer
           </Link>
           <Link
             to="/time-clock"
