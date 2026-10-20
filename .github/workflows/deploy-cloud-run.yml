@@ -112,6 +112,10 @@ jobs:
       - name: Push image
         run: docker push "${IMAGE}"
 
+      # Secret Manager mounts need secretAccessor on the Cloud Run runtime
+      # SA. The GitHub deploy SA cannot grant that (setIamPolicy 403). So
+      # SESSION_SECRET and SUPABASE_SERVICE_ROLE_KEY come from GitHub
+      # Actions repository secrets and are set as Cloud Run env vars.
       - name: Deploy Cloud Run
         env:
           PROJECT: ${{ secrets.GCP_PROJECT_ID }}
@@ -121,51 +125,51 @@ jobs:
           STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL }}
         run: |
           set -euo pipefail
-          RUN_SA="kwetuu-run@${PROJECT}.iam.gserviceaccount.com"
-          PROJECT_NUMBER="$(gcloud projects describe "${PROJECT}" --format='value(projectNumber)')"
-          COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-          RUNTIME_SA="${COMPUTE_SA}"
-          SA_FLAGS=()
-          if gcloud iam service-accounts describe "${RUN_SA}" --project "${PROJECT}" >/dev/null 2>&1; then
-            RUNTIME_SA="${RUN_SA}"
-            SA_FLAGS+=(--service-account "${RUN_SA}")
+          missing=0
+          if [ -z "${SESSION_SECRET:-}" ]; then
+            echo "GitHub secret SESSION_SECRET is empty."
+            echo "Repo Settings → Secrets and variables → Actions → New repository secret"
+            echo "Name: SESSION_SECRET"
+            echo "Value: at least 32 random characters (same value as Secret Manager if you already made one)."
+            missing=1
           fi
-          echo "Cloud Run runtime service account: ${RUNTIME_SA}"
-          grant_secret_access() {
-            local name="$1"
-            if gcloud secrets add-iam-policy-binding "${name}" \
-              --project "${PROJECT}" \
-              --member "serviceAccount:${RUNTIME_SA}" \
-              --role roles/secretmanager.secretAccessor \
-              --quiet >/dev/null; then
-              echo "Granted Secret Manager access on ${name} to ${RUNTIME_SA}."
-              return 0
-            fi
-            echo "Could not grant Secret Manager access on ${name}."
-            echo "In Google Cloud: IAM → Grant access"
-            echo "  Principal: ${RUNTIME_SA}"
-            echo "  Role: Secret Manager Secret Accessor"
-            echo "Or Secret Manager → ${name} → Permissions → same principal and role."
-            return 1
+          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "GitHub secret SUPABASE_SERVICE_ROLE_KEY is empty."
+            echo "Name: SUPABASE_SERVICE_ROLE_KEY"
+            echo "Value: staging service_role key from Supabase → Settings → API (not the publishable key)."
+            missing=1
+          fi
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os, pathlib
+          pairs = {
+              "NODE_ENV": "production",
+              "HOST": "0.0.0.0",
+              "SHOP_HOSTS": "false",
+              "BILLING_ENABLED": "true",
+              "APP_URL": os.environ["APP_URL"],
+              "SUPABASE_URL": os.environ["STAGING_SUPABASE_URL"],
+              "SUPABASE_PUBLISHABLE_KEY": os.environ["STAGING_SUPABASE_PUBLISHABLE_KEY"],
+              "SUPABASE_PROJECT_ID": os.environ["STAGING_SUPABASE_PROJECT_ID"],
+              "SESSION_SECRET": os.environ["SESSION_SECRET"],
+              "SUPABASE_SERVICE_ROLE_KEY": os.environ["SUPABASE_SERVICE_ROLE_KEY"],
           }
-          grant_secret_access SESSION_SECRET
-          grant_secret_access SUPABASE_SERVICE_ROLE_KEY
-          ENV_VARS="NODE_ENV=production,HOST=0.0.0.0,SHOP_HOSTS=false,APP_URL=${APP_URL},SUPABASE_URL=${STAGING_SUPABASE_URL},SUPABASE_PUBLISHABLE_KEY=${STAGING_SUPABASE_PUBLISHABLE_KEY},SUPABASE_PROJECT_ID=${STAGING_SUPABASE_PROJECT_ID},BILLING_ENABLED=true"
-          if [ -n "${NOTIFY_FROM_EMAIL:-}" ]; then
-            ENV_VARS="${ENV_VARS},NOTIFY_FROM_EMAIL=${NOTIFY_FROM_EMAIL}"
-          fi
-          SECRETS="SESSION_SECRET=SESSION_SECRET:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest"
-          for name in RESEND_API_KEY MAIL_FLUSH_SECRET; do
-            if gcloud secrets describe "${name}" --project "${PROJECT}" >/dev/null 2>&1; then
-              grant_secret_access "${name}"
-              SECRETS="${SECRETS},${name}=${name}:latest"
-            else
-              echo "Secret ${name} is not in Secret Manager yet; mail stays queued."
-            fi
-          done
+          notify = os.environ.get("NOTIFY_FROM_EMAIL") or ""
+          if notify:
+              pairs["NOTIFY_FROM_EMAIL"] = notify
+          path = pathlib.Path("/tmp/kwetuu-run-env.yaml")
+          with path.open("w", encoding="utf-8") as fh:
+              for key, value in pairs.items():
+                  fh.write(f"{key}: {json.dumps(value)}\n")
+          print("Wrote Cloud Run env file (values not printed).")
+          PY
           gcloud run deploy "${SERVICE}" \
             --project "${PROJECT}" \
             --region "${REGION}" \
@@ -177,6 +181,5 @@ jobs:
             --min-instances 0 \
             --max-instances 3 \
             --timeout 60 \
-            --set-env-vars "${ENV_VARS}" \
-            --set-secrets "${SECRETS}" \
-            "${SA_FLAGS[@]}"
+            --env-vars-file /tmp/kwetuu-run-env.yaml \
+            --clear-secrets
