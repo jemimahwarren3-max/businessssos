@@ -117,17 +117,17 @@ function Onboarding() {
   });
 
   const saveShopMutation = useMutation({
-    mutationFn: async (extra?: { pickupEnabled?: boolean; deliveryEnabled?: boolean }) => {
+    mutationFn: async (extra: { pickupEnabled?: boolean; deliveryEnabled?: boolean } = {}) => {
       if (!businessId) throw new Error("Create the business first.");
       return saveShop({
         data: defaultShopPatch({
           businessId,
           storeName: form.name || workspace.data?.business.name || "Shop",
           templateId,
-          phone: form.phone,
-          address: form.address,
-          pickupEnabled: extra?.pickupEnabled ?? pickup,
-          deliveryEnabled: extra?.deliveryEnabled ?? delivery,
+          phone: form.phone ?? "",
+          address: form.address ?? "",
+          pickupEnabled: extra.pickupEnabled ?? pickup,
+          deliveryEnabled: extra.deliveryEnabled ?? delivery,
         }),
       });
     },
@@ -182,7 +182,7 @@ function Onboarding() {
   const publishMutation = useMutation({
     mutationFn: async () => {
       if (!businessId) throw new Error("Create the business first.");
-      await saveShopMutation.mutateAsync();
+      await saveShopMutation.mutateAsync({});
       return publish({ data: { businessId, published: true } });
     },
     onSuccess: () => {
@@ -257,7 +257,7 @@ function Onboarding() {
                 className="w-full gap-1.5"
                 disabled={saveShopMutation.isPending}
                 onClick={() => {
-                  saveShopMutation.mutate(undefined, { onSuccess: () => setShopStep(1) });
+                  saveShopMutation.mutate({}, { onSuccess: () => setShopStep(1) });
                 }}
               >
                 {saveShopMutation.isPending ? (

@@ -8,8 +8,8 @@ export function defaultShopPatch(input: {
   businessId: string;
   storeName: string;
   templateId: TemplateId;
-  phone?: string;
-  address?: string;
+  phone?: string | undefined;
+  address?: string | undefined;
   pickupEnabled?: boolean;
   deliveryEnabled?: boolean;
   payOnPickup?: boolean;
