@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BRAND } from "@/lib/brand";
 import { PLAN_MONTHLY_USD } from "@/lib/billing-plans";
-import {
-  FEATURED_PUBLISHED_LIMIT,
-  featuredPublishedShops,
-} from "@/lib/storefront/published-shops";
+import { FEATURED_PUBLISHED_LIMIT, featuredPublishedShops } from "@/lib/storefront/published-shops";
 import { EMPTY_MARKETPLACE } from "@/lib/storefront/contract";
 import { STORE_TEMPLATES } from "@/lib/storefront/templates";
 
