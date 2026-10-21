@@ -110,6 +110,9 @@ function Landing() {
             >
               Shops
             </Link>
+            <Link className="transition-colors hover:text-foreground" to="/templates">
+              Shop designs
+            </Link>
             <a className="transition-colors hover:text-foreground" href="#features">
               Features
             </a>
@@ -161,6 +164,9 @@ function Landing() {
               <Link to="/market" search={{ q: "", category: "" }}>
                 Browse shops
               </Link>
+            </Button>
+            <Button asChild size="lg" variant="ghost">
+              <Link to="/templates">Explore shop designs</Link>
             </Button>
           </div>
           <p className="mt-4 text-[13px] text-muted-foreground">
