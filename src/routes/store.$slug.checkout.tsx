@@ -22,6 +22,7 @@ import {
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
 import { formatMoney, readableError } from "@/lib/format";
 import { BRAND } from "@/lib/brand";
+import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { enabledManualMethods, MANUAL_PAYMENT_LABELS } from "@/lib/storefront/manual-payments";
 import { Route as StoreRoute } from "./store.$slug";
 
