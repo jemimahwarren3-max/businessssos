@@ -77,6 +77,10 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - uses: google-github-actions/setup-gcloud@v2
+        with:
+          # GA `gcloud run domain-mappings` is Cloud Run for Anthos and
+          # rejects --region. Fully managed mappings are the beta command.
+          install_components: beta
 
       - name: Configure Docker for Artifact Registry
         env:
@@ -209,12 +213,12 @@ jobs:
         run: |
           set -euo pipefail
           for domain in mykwetuu.com www.mykwetuu.com; do
-            if gcloud run domain-mappings describe --domain "${domain}" \
+            if gcloud beta run domain-mappings describe --domain "${domain}" \
               --project "${PROJECT}" --region "${REGION}" >/dev/null 2>&1; then
               echo "Domain mapping already exists: ${domain}"
             else
               echo "Creating domain mapping ${domain} → ${SERVICE}"
-              gcloud run domain-mappings create \
+              gcloud beta run domain-mappings create \
                 --project "${PROJECT}" \
                 --region "${REGION}" \
                 --service "${SERVICE}" \
@@ -223,7 +227,7 @@ jobs:
             fi
             echo "==== ${domain} ===="
             echo "Add these DNS records (DNS-only, not Cloudflare orange-cloud proxy):"
-            gcloud run domain-mappings describe --domain "${domain}" \
+            gcloud beta run domain-mappings describe --domain "${domain}" \
               --project "${PROJECT}" \
               --region "${REGION}" \
               --format="yaml(status.resourceRecords,status.conditions)"
