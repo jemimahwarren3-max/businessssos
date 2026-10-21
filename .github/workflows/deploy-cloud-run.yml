@@ -226,12 +226,15 @@ jobs:
               echo "Domain mapping already exists: ${domain}"
             else
               echo "Creating domain mapping ${domain} → ${SERVICE}"
-              gcloud beta run domain-mappings create \
+              if ! gcloud beta run domain-mappings create \
                 --project "${PROJECT}" \
                 --region "${REGION}" \
                 --service "${SERVICE}" \
                 --domain "${domain}" \
-                --quiet
+                --quiet; then
+                echo "Could not map ${domain}. Apex mykwetuu.com is the public URL; www needs Search Console verification for this GCP account."
+                continue
+              fi
             fi
             echo "==== ${domain} ===="
             echo "Add these DNS records (DNS-only, not Cloudflare orange-cloud proxy):"
