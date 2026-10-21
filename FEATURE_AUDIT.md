@@ -35,7 +35,7 @@ Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated 
 
 - **Live Cloud Run** still an older image: `/features` 404, homepage title BusinessOS AI, no Google button. Last successful deploy was the kwetuu-cloud-run branch, not this stack.
 - **Shop subdomains** need `*.mykwetuu.com` DNS plus TLS (Cloudflare on `*` or an HTTPS load balancer). Cloud Run domain-mappings cannot bind a wildcard. `.run.app` still uses `/store/{slug}`.
-- **Email sign-up** on staging Auth: GoTrue `email_provider_disabled`. Google is enabled in the project; UI for Google is in PR #26, not live.
+- **Email sign-up** on staging Auth: GoTrue `email_provider_disabled` (Email provider off; password sign-in returns the same code). Google is enabled at GoTrue. Live mykwetuu.com is an older image without the Google button, so the Create account form fails with a generic toast. `/auth` now reads GoTrue settings and tells people to continue with Google until Email is enabled (CI PATCH `external_email_enabled` when `SUPABASE_ACCESS_TOKEN` is set).
 - **Confirm email** will fail until Supabase SMTP is set; keep it off for beta.
 - **Ten templates** are layout variants of one React tree, not ten folders under `src/templates/`. Do not split them into a second data layer.
 - **Product variants as SKUs** are not in the schema. Size/colour is description text.
