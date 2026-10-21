@@ -10,6 +10,7 @@ import {
   enrollAdminMfaFn,
   getAdminOverview,
   overrideSubscriptionFn,
+  setPlatformFxFn,
   verifyAdminMfaChallengeFn,
   verifyAdminMfaEnrollmentFn,
 } from "@/lib/admin/admin.functions";
@@ -42,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
 
 // Not linked from anywhere in the app's nav — a non-admin visitor gets a
 // real 404 (see beforeLoad below), not a login redirect, so the route's
@@ -118,15 +120,38 @@ function AdminDashboard() {
   const queryClient = useQueryClient();
   const fetchOverview = useServerFn(getAdminOverview);
   const overrideFn = useServerFn(overrideSubscriptionFn);
+  const saveFx = useServerFn(setPlatformFxFn);
   const [target, setTarget] = useState<OverrideTarget>(null);
   const [plan, setPlan] = useState<string>("business");
   const [status, setStatus] = useState<string>("active");
   const [periodEnd, setPeriodEnd] = useState("");
   const [reason, setReason] = useState("");
+  const [usdToZwg, setUsdToZwg] = useState("");
+  const [fxSource, setFxSource] = useState("");
+  const [fxOn, setFxOn] = useState("");
+  const [fxNotice, setFxNotice] = useState("");
 
   const overview = useQuery({
     queryKey: ["admin-overview"],
     queryFn: () => fetchOverview(),
+  });
+  const fx = overview.data?.fx ?? null;
+  const zig = planAmountZig(PLAN_MONTHLY_USD.pro, fx);
+  const fxMutation = useMutation({
+    mutationFn: () =>
+      saveFx({
+        data: {
+          usdToZwg: Number(usdToZwg),
+          source: fxSource,
+          effectiveOn: fxOn,
+          notice: fxNotice,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("ZiG display rate saved. Subscriptions are still charged in USD.");
+      await queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Could not save the rate.")),
   });
 
   const overrideMutation = useMutation({
@@ -187,6 +212,55 @@ function AdminDashboard() {
             ))}
           </div>
         )}
+
+        <div className="surface space-y-3 p-4">
+          <h2 className="text-sm font-semibold">
+            ZiG equivalent for the ${PLAN_MONTHLY_USD.pro} USD plan
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Type a rate from a source you are allowed to use. This is display-only. Paynow still
+            collects USD. There is no automatic RBZ feed.
+          </p>
+          {fx ? (
+            <p className="text-sm">
+              Current: 1 USD = {fx.usdToZwg} ZiG ({fx.source}, {fx.effectiveOn}). Listed Pro ≈{" "}
+              {zig != null ? formatMoney(zig, "ZWG") : "—"}.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No rate stored. Pricing hides a ZiG amount.
+            </p>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm">
+              ZiG per 1 USD
+              <Input value={usdToZwg} onChange={(event) => setUsdToZwg(event.target.value)} />
+            </label>
+            <label className="text-sm">
+              Source
+              <Input
+                value={fxSource}
+                onChange={(event) => setFxSource(event.target.value)}
+                placeholder="e.g. RBZ rate board 21 Oct 2026"
+              />
+            </label>
+            <label className="text-sm">
+              Effective on
+              <Input type="date" value={fxOn} onChange={(event) => setFxOn(event.target.value)} />
+            </label>
+            <label className="text-sm">
+              Customer notice
+              <Input value={fxNotice} onChange={(event) => setFxNotice(event.target.value)} />
+            </label>
+          </div>
+          <Button
+            type="button"
+            disabled={fxMutation.isPending || !usdToZwg || fxSource.trim().length < 3 || !fxOn}
+            onClick={() => fxMutation.mutate()}
+          >
+            Save display rate
+          </Button>
+        </div>
 
         <div className="surface overflow-hidden">
           <h2 className="p-4 text-sm font-semibold">Subscriptions</h2>

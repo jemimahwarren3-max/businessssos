@@ -4,6 +4,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { assertCanWrite, assertPermission, type Db } from "@/lib/business.server";
 import { saveShopPaynowCredentials } from "@/lib/payments/shop-paynow.server";
 import { parseAndSanitize } from "@/lib/security";
+import { loadPlatformFx } from "@/lib/platform-fx-read.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
 import {
   checkoutSchema,
@@ -57,6 +58,10 @@ const authed = [
 const shopper = [
   authedRateLimit({ keyPrefix: "store-shopper", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
+
+export const getPlatformFxFn = createServerFn({ method: "GET" })
+  .middleware(publicLimit)
+  .handler(async () => loadPlatformFx());
 
 export const getMarketplaceFn = createServerFn({ method: "POST" })
   .middleware(publicLimit)
@@ -304,18 +309,27 @@ export const transitionOrderFn = createServerFn({ method: "POST" })
 
 export const submitOrderPaymentNoteFn = createServerFn({ method: "POST" })
   .middleware(checkoutLimit)
-  .inputValidator((data: unknown) =>
-    parseAndSanitize(
+  .inputValidator((data: unknown) => {
+    const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+    const proofBase64 = typeof raw["proofBase64"] === "string" ? raw["proofBase64"] : undefined;
+    const parsed = parseAndSanitize(
       z.object({
         slug: z.string().min(3).max(40),
         reference: z.string().min(3).max(40),
         token: z.string().max(80).optional().default(""),
-        proofReference: z.string().trim().min(3).max(80),
+        proofReference: z.string().trim().max(80).optional(),
         proofNote: z.string().trim().max(400).optional(),
       }),
-      data,
-    ),
-  )
+      { ...raw, ["proofBase64"]: undefined },
+    );
+    if (!(parsed.proofReference && parsed.proofReference.length >= 3) && !proofBase64) {
+      throw new Error("Enter a payment reference or attach a screenshot.");
+    }
+    if (proofBase64 && proofBase64.length > 7_000_000) {
+      throw new Error("That file is too large.");
+    }
+    return { ...parsed, proofBase64 };
+  })
   .handler(async ({ data }) =>
     submitOrderPaymentNote({
       slug: data.slug,
@@ -323,6 +337,7 @@ export const submitOrderPaymentNoteFn = createServerFn({ method: "POST" })
       token: data.token,
       proofReference: data.proofReference,
       proofNote: data.proofNote,
+      proofBase64: data.proofBase64,
     }),
   );
 
