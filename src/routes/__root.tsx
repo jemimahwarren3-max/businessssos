@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { captureError } from "@/lib/monitoring/sentry";
+import { BRAND } from "@/lib/brand";
 
 function NotFoundComponent() {
   return (
@@ -79,11 +80,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BusinessOS AI, Run your business, not your spreadsheets" },
+      { title: `${BRAND.name}: Open an online shop for your business` },
       {
         name: "description",
         content:
-          "Inventory, sales, invoices, expenses and intelligent business insights in one simple platform for small businesses.",
+          "Create a shop, add products from your catalogue, take cash or Paynow, and share a live storefront.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

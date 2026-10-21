@@ -32,17 +32,18 @@ import { getDashboard } from "@/lib/business.functions";
 import { formatMoney, formatNumber, formatPercent, greeting } from "@/lib/format";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
+import { BRAND } from "@/lib/brand";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard | BusinessOS AI" },
+      { title: `Dashboard | ${BRAND.name}` },
       {
         name: "description",
         content:
           "Today's sales, profit, outstanding payments, low stock and your business health score.",
       },
-      { property: "og:title", content: "Dashboard | BusinessOS AI" },
+      { property: "og:title", content: `Dashboard | ${BRAND.name}` },
       { property: "og:description", content: "See how your business is doing today." },
     ],
   }),
