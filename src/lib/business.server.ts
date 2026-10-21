@@ -256,6 +256,17 @@ export async function createBusinessRecord(
   return businessId;
 }
 
+export async function markOnboardingComplete(supabase: Db, userId: string): Promise<void> {
+  const workspace = await loadWorkspace(supabase, userId);
+  if (!workspace || workspace.business.onboarding_completed) return;
+  const { error } = await supabase
+    .from("businesses")
+    .update({ onboarding_completed: true })
+    .eq("id", workspace.business.id);
+  if (error) dbFail("complete onboarding", error);
+  await cacheDel(workspaceCacheKey(userId));
+}
+
 /* -------------------------------- billing -------------------------------- */
 
 export async function loadBillingSummary(supabase: Db, businessId: string) {

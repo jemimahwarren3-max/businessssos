@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -28,13 +28,19 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { getDashboard } from "@/lib/business.functions";
+import { getDashboard, getWorkspace } from "@/lib/business.functions";
 import { formatMoney, formatNumber, formatPercent, greeting } from "@/lib/format";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { BRAND } from "@/lib/brand";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  beforeLoad: async () => {
+    const workspace = await getWorkspace();
+    if (!workspace) {
+      throw redirect({ to: "/onboarding", replace: true });
+    }
+  },
   head: () => ({
     meta: [
       { title: `Dashboard | ${BRAND.name}` },
