@@ -187,6 +187,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const [paynowId, setPaynowId] = useState("");
   const [paynowKey, setPaynowKey] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [checkedAccount, setCheckedAccount] = useState(false);
   const savePaynow = useServerFn(saveShopPaynowFn);
 
   const saveMutation = useMutation({
@@ -747,7 +748,10 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                 type="button"
                 className="text-left"
                 onClick={() =>
-                  void loadOrder({ data: { businessId, orderId: order.id } }).then(setSelectedOrder)
+                  void loadOrder({ data: { businessId, orderId: order.id } }).then((next) => {
+                    setSelectedOrder(next);
+                    setCheckedAccount(false);
+                  })
                 }
               >
                 <span className="font-medium">{order.reference}</span> · {order.customerName}
@@ -773,19 +777,52 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                 paid: selectedOrder.paymentStatus === "paid" || Boolean(selectedOrder.saleId),
               }}
             />
-            {selectedOrder.terms?.paymentProof?.reference ? (
+            {selectedOrder.terms?.paymentProof?.reference || selectedOrder.proofUrl ? (
               <div className="mt-3 rounded-md border p-3 text-sm">
-                <p className="font-medium">Customer payment note</p>
-                <p>{selectedOrder.terms.paymentProof.reference}</p>
-                {selectedOrder.terms.paymentProof.note ? (
+                <p className="font-medium">Customer payment proof</p>
+                <p>
+                  {formatMoney(selectedOrder.total, selectedOrder.currency)} ·{" "}
+                  {selectedOrder.paymentMethod}
+                </p>
+                {selectedOrder.proofUrl ? (
+                  selectedOrder.terms?.paymentProof?.storagePath?.endsWith(".pdf") ? (
+                    <a className="mt-2 inline-block underline" href={selectedOrder.proofUrl}>
+                      Open PDF
+                    </a>
+                  ) : (
+                    <img
+                      alt="Customer payment screenshot"
+                      className="mt-2 max-h-72 rounded border"
+                      src={selectedOrder.proofUrl}
+                    />
+                  )
+                ) : null}
+                {selectedOrder.terms?.paymentProof?.reference ? (
+                  <p className="mt-2">{selectedOrder.terms.paymentProof.reference}</p>
+                ) : null}
+                {selectedOrder.terms?.paymentProof?.note ? (
                   <p className="mt-1">{selectedOrder.terms.paymentProof.note}</p>
                 ) : null}
                 <p className="mt-1 text-muted-foreground">
-                  Check your EcoCash, InnBucks, or bank account before recording payment. This note
-                  does not prove the money arrived.
+                  Look at this file, then check the money in EcoCash, InnBucks, or the bank. The
+                  screenshot is not confirmation.
                 </p>
-                {selectedOrder.terms.paymentProof.rejectReason ? (
+                {selectedOrder.terms?.paymentProof?.rejectReason ? (
                   <p className="mt-1">Rejection: {selectedOrder.terms.paymentProof.rejectReason}</p>
+                ) : null}
+                {selectedOrder.paymentMethod === "manual" &&
+                selectedOrder.paymentStatus !== "paid" ? (
+                  <label className="mt-2 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={checkedAccount}
+                      onChange={(event) => setCheckedAccount(event.target.checked)}
+                    />
+                    <span>
+                      I checked my own account for{" "}
+                      {formatMoney(selectedOrder.total, selectedOrder.currency)}.
+                    </span>
+                  </label>
                 ) : null}
               </div>
             ) : null}
@@ -801,6 +838,11 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                   key={action}
                   size="sm"
                   variant={action === "cancel" || action === "reject_proof" ? "outline" : "default"}
+                  disabled={
+                    action === "mark_paid" &&
+                    selectedOrder.paymentMethod === "manual" &&
+                    !checkedAccount
+                  }
                   onClick={() =>
                     void transition({
                       data: {
@@ -815,6 +857,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                     })
                       .then((next) => {
                         setSelectedOrder(next);
+                        setCheckedAccount(false);
                         void queryClient.invalidateQueries({
                           queryKey: ["storefront", businessId],
                         });

@@ -15,3 +15,15 @@ export function planAmountUsd(plan: PaidPlan): number {
 export function isPaidPlan(plan: string): plan is PaidPlan {
   return (PAID_PLANS as readonly string[]).includes(plan);
 }
+
+export type PlatformFx = {
+  usdToZwg: number;
+  source: string;
+  effectiveOn: string;
+  notice: string;
+};
+
+export function planAmountZig(usd: number, fx: PlatformFx | null): number | null {
+  if (!fx || !(fx.usdToZwg > 0)) return null;
+  return Math.round(usd * fx.usdToZwg * 100) / 100;
+}

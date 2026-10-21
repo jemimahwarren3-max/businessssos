@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PLAN_MONTHLY_USD } from "@/lib/billing-plans";
+import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import { sniffPaymentProof } from "@/lib/storefront/payment-proof.server";
 import { CURRENCIES } from "@/lib/business.schemas";
 import { formatMoney } from "@/lib/format";
 import {
@@ -20,6 +21,28 @@ describe("ZiG display", () => {
     expect(CURRENCIES).toContain("ZWG");
     expect(formatMoney(12.5, "ZWG")).toBe("ZiG 12.50");
     expect(formatMoney(12.5, "USD")).toMatch(/12\.50/);
+  });
+
+  it("only shows a ZiG plan equivalent when an operator stored a rate", () => {
+    expect(planAmountZig(7, null)).toBeNull();
+    expect(
+      planAmountZig(7, {
+        usdToZwg: 30.5,
+        source: "test board",
+        effectiveOn: "2026-10-21",
+        notice: "",
+      }),
+    ).toBe(213.5);
+  });
+});
+
+describe("payment screenshot sniffing", () => {
+  it("accepts JPEG magic bytes and rejects HTML", () => {
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(sniffPaymentProof(jpeg).mime).toBe("image/jpeg");
+    expect(() => sniffPaymentProof(new TextEncoder().encode("<html>not a file</html>"))).toThrow(
+      /JPEG/,
+    );
   });
 });
 

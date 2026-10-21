@@ -81,9 +81,12 @@ domain-mappings` (`--region` is not valid on the GA Anthos command).
    Site URL `https://mykwetuu.com`. Redirect URLs: `https://mykwetuu.com/**`
    and `https://www.mykwetuu.com/**`.
 
-Deploys set `SHOP_HOSTS=true`. Add `*.mykwetuu.com` at the registrar (same
-target as the apex mapping). In **staging** Supabase redirect URLs also
-allow `https://*.mykwetuu.com/**`. Paynow `resulturl` stays
+Deploys set `SHOP_HOSTS=true`. Cloud Run cannot bind `*.mykwetuu.com`. Add
+`*.mykwetuu.com` at the registrar (same target as the apex mapping) and
+terminate TLS with Cloudflare on `*` (DNS only is not enough for HTTPS on
+the wildcard) or an HTTPS load balancer plus a wildcard certificate. This
+repo cannot change your registrar. In **staging** Supabase redirect URLs
+also allow `https://*.mykwetuu.com/**`. Paynow `resulturl` stays
 `https://mykwetuu.com/api/webhooks/paynow`.
 
 ## After deploy
