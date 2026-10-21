@@ -1,8 +1,9 @@
 import { friendlyDateTime } from "@/lib/format";
 import type { CustomerOrder, PublicStore } from "./contract";
+import { enabledManualMethods, MANUAL_PAYMENT_LABELS } from "./manual-payments";
 
 export type FulfilmentMethod = "pickup" | "delivery" | "quote";
-export type PaymentMethod = "pay_on_pickup" | "pay_on_delivery" | "quote" | "paynow";
+export type PaymentMethod = "pay_on_pickup" | "pay_on_delivery" | "quote" | "paynow" | "manual";
 
 export function allowedFulfilments(
   store: Pick<PublicStore, "delivery" | "payments">,
@@ -25,6 +26,7 @@ export function allowedPayments(
     methods.push("pay_on_delivery");
   }
   if (store.payments.paynow) methods.push("paynow");
+  if (enabledManualMethods(store.payments.manualMethods).length > 0) methods.push("manual");
   if (store.payments.quotes) methods.push("quote");
   return methods;
 }
@@ -52,7 +54,9 @@ export function snapshotPolicyLines(
   order: Pick<CustomerOrder, "terms" | "currency" | "collectAt">,
 ): string[] {
   const terms = order.terms;
-  if (!terms?.payments && !terms?.delivery) return [];
+  if (!terms?.payments && !terms?.delivery && !terms?.manualPayment && !terms?.paymentProof) {
+    return [];
+  }
   const lines: string[] = [];
   const payments = terms.payments;
   const delivery = terms.delivery;
@@ -74,6 +78,17 @@ export function snapshotPolicyLines(
   const collectAt = order.collectAt ?? terms.collectAt;
   if (collectAt) {
     lines.push(`Agreed collection time: ${friendlyDateTime(collectAt)}.`);
+  }
+  const manual = terms.manualPayment;
+  if (manual) {
+    const label = MANUAL_PAYMENT_LABELS[manual.kind] ?? "Manual payment";
+    lines.push(`Pay ${label}${manual.accountName ? ` (${manual.accountName})` : ""}.`);
+    if (manual.accountDetail) lines.push(manual.accountDetail);
+    if (manual.instructions) lines.push(manual.instructions);
+  }
+  const proof = terms.paymentProof;
+  if (proof?.reference) {
+    lines.push(`Customer payment note: ${proof.reference}. This is not a confirmed payment.`);
   }
   return lines;
 }
