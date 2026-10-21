@@ -10,6 +10,7 @@ import {
   ReceiptText,
   ShieldCheck,
   Sparkle,
+  Store,
   Users,
   Wallet,
 } from "lucide-react";
@@ -77,6 +78,11 @@ const features = [
     icon: BarChart3,
     title: "Reports in plain language",
     body: '"Customers who owe you" instead of "accounts receivable." Business reporting without the jargon.',
+  },
+  {
+    icon: Store,
+    title: "Your own online storefront",
+    body: "Publish your products, take online orders and accept customer payments directly through your Paynow account.",
   },
 ];
 
@@ -147,9 +153,8 @@ function Landing() {
             Run your business. <span className="brand-gradient-text">Not your spreadsheets.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Inventory, sales, invoices, expenses and intelligent business insights in one simple
-            platform. Everything is connected, a sale updates your stock, your customer balance and
-            your profit, automatically.
+            Manage inventory, sales, invoices and expenses, then open your own online storefront.
+            Your in-person sales and online orders connect to the same business workspace.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="gap-2">
@@ -168,41 +173,29 @@ function Landing() {
           </p>
 
           <div className="surface mt-14 overflow-hidden p-2 shadow-pop">
-            <div className="rounded-[10px] bg-muted/40 p-4 sm:p-6">
-              <div className="grid gap-3 sm:grid-cols-4">
+            <div className="rounded-[10px] bg-muted/40 p-5 sm:p-8">
+              <div className="mx-auto max-w-3xl text-center">
+                <p className="text-sm font-semibold text-primary">One workspace, every sale</p>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+                  From your product list to customer orders
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Keep stock, in-person sales and online orders connected without juggling tools.
+                </p>
+              </div>
+              <div className="mx-auto mt-7 grid max-w-4xl gap-3 sm:grid-cols-4">
                 {[
-                  { label: "Today's sales", value: "$842.50", change: "+12.4%" },
-                  { label: "Today's profit", value: "$241.20", change: "+8.1%" },
-                  { label: "Customers owing", value: "$436.00", change: "7 customers" },
-                  { label: "Low stock", value: "8 products", change: "3 urgent" },
-                ].map((card) => (
-                  <div key={card.label} className="surface p-4">
-                    <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
-                      {card.label}
-                    </p>
-                    <p className="mt-2 text-2xl font-bold tracking-tight">{card.value}</p>
-                    <p className="mt-1 text-[13px] text-muted-foreground">{card.change}</p>
+                  { icon: Boxes, label: "Your products", detail: "Manage stock and prices" },
+                  { icon: Store, label: "Your storefront", detail: "Share a public shop link" },
+                  { icon: ReceiptText, label: "Online orders", detail: "Track customer purchases" },
+                  { icon: Wallet, label: "Paynow payments", detail: "Paid to your account" },
+                ].map((item) => (
+                  <div key={item.label} className="surface relative p-4 text-left">
+                    <item.icon className="size-5 text-primary" aria-hidden="true" />
+                    <p className="mt-3 text-sm font-semibold">{item.label}</p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">{item.detail}</p>
                   </div>
                 ))}
-              </div>
-              <div className="surface mt-3 flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-4">
-                  <div className="grid size-16 shrink-0 place-items-center rounded-full border-4 border-success/30 text-xl font-bold text-success">
-                    84
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">Business Health · Healthy</p>
-                    <p className="text-[13px] text-muted-foreground">
-                      Calculated from your real sales, stock and invoice data.
-                    </p>
-                  </div>
-                </div>
-                <ul className="grid flex-1 gap-1.5 text-[13px] text-muted-foreground sm:grid-cols-2">
-                  <li>✓ Revenue increased 12%</li>
-                  <li>✓ Inventory is stable</li>
-                  <li>⚠ 3 products running low</li>
-                  <li>⚠ 2 invoices overdue</li>
-                </ul>
               </div>
             </div>
           </div>
@@ -269,9 +262,18 @@ function Landing() {
         <ol className="mt-8 grid gap-4 sm:grid-cols-4">
           {[
             { t: "Create your business", b: "Name, type and currency. That's it." },
-            { t: "Add your products", b: "Prices, stock and low-stock levels." },
-            { t: "Start selling", b: "Record sales and stock updates itself." },
-            { t: "See what it means", b: "Profit, health score and what to fix next." },
+            {
+              t: "Add your products",
+              b: "Set prices, stock levels and what customers can buy online.",
+            },
+            {
+              t: "Publish your storefront",
+              b: "Connect Paynow, turn on your shop and share its link.",
+            },
+            {
+              t: "Manage every order",
+              b: "Keep online and in-person sales in your business workspace.",
+            },
           ].map((step, i) => (
             <li key={step.t} className="surface p-5">
               <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">

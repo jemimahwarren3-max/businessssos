@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -107,9 +107,26 @@ function Onboarding() {
             </p>
 
             {shopPasswordDone ? (
-              <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-success-soft px-3 py-2.5 text-sm text-success">
-                <Check className="size-4" aria-hidden="true" />
-                Shop password set.
+              <div className="mt-6 space-y-4">
+                <div className="flex items-center justify-center gap-2 rounded-lg bg-success-soft px-3 py-2.5 text-sm text-success">
+                  <Check className="size-4" aria-hidden="true" />
+                  Shop password set.
+                </div>
+                <div className="rounded-xl border border-border p-4 text-left">
+                  <h2 className="text-sm font-semibold">Next, get your shop ready</h2>
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    Add products to your inventory, then connect Paynow and publish your online
+                    storefront when you're ready.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button asChild size="sm">
+                      <Link to="/inventory">Add products</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/settings/storefront">Set up storefront</Link>
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : (
               <form
