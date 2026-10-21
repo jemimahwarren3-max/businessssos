@@ -146,7 +146,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="marketplace-theme grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col justify-center px-5 py-12 sm:px-10">
         <div className="mx-auto w-full max-w-sm">
           <Logo to="/" />
@@ -164,7 +164,7 @@ function AuthPage() {
             </div>
           ) : (
             <>
-              <h1 className="mt-8 text-2xl font-bold tracking-tight">
+              <h1 className="mt-8 font-display text-3xl font-semibold tracking-tight">
                 {mode === "signup"
                   ? "Create your account"
                   : mode === "reset"
@@ -245,7 +245,7 @@ function AuthPage() {
                   ) : null}
                   <Button
                     type="button"
-                    className="w-full"
+                    className="w-full rounded-full"
                     disabled={busy !== null || needsAcceptance}
                     onClick={() => void handleGoogle()}
                   >
@@ -351,7 +351,7 @@ function AuthPage() {
                   ) : null}
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full rounded-full"
                     disabled={
                       busy !== null || needsAcceptance || (mode !== "reset" && !emailEnabled)
                     }
@@ -381,7 +381,7 @@ function AuthPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full rounded-full"
                     disabled={busy !== null || needsAcceptance}
                     onClick={() => void handleGoogle()}
                   >
@@ -419,20 +419,36 @@ function AuthPage() {
         </div>
       </div>
 
-      <div className="hidden flex-col justify-between bg-primary-dark p-10 lg:flex">
-        <p className="text-sm font-medium text-primary-foreground/70">{BRAND.name}</p>
-        <div>
-          <h2 className="text-3xl font-bold leading-tight tracking-tight text-primary-foreground">
-            Open a shop. Sell from the same catalogue you use at the till.
-          </h2>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-primary-foreground/75">
-            Google or email. Then name the business, pick a template, add a product, and publish.
+      <div className="relative hidden overflow-hidden bg-ink p-10 text-sand lg:flex lg:flex-col lg:justify-between">
+        <img
+          src="/marketing/hero-seller.jpg"
+          alt=""
+          className="pointer-events-none absolute inset-0 size-full object-cover opacity-40"
+        />
+        <div className="relative">
+          <p className="inline-block rounded-full bg-accent/90 px-3 py-1 text-sm font-semibold text-accent-foreground">
+            Karibu · Welcome home
           </p>
         </div>
-        <ul className="space-y-2 text-sm text-primary-foreground/80">
-          <li>· Live storefront at your-shop.{BRAND.domain}</li>
-          <li>· Cash now; your own Paynow keys when you add them</li>
-          <li>· Staff still sign in with the business name</li>
+        <div className="relative">
+          <h2 className="max-w-md font-display text-4xl leading-tight text-background">
+            Discover something you love. Or build a store of your own.
+          </h2>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-sand/85">
+            Sign in with Google, then we walk you through naming your shop, choosing a design, and
+            adding your first product — still free until you publish.
+          </p>
+        </div>
+        <ul className="relative space-y-2 text-sm text-sand/90">
+          <li className="flex gap-2">
+            <span aria-hidden="true">·</span> Live address at your-shop.{BRAND.domain}
+          </li>
+          <li className="flex gap-2">
+            <span aria-hidden="true">·</span> Manual payments and your own Paynow keys when ready
+          </li>
+          <li className="flex gap-2">
+            <span aria-hidden="true">·</span> Same catalogue powers your till and storefront
+          </li>
         </ul>
       </div>
     </div>
