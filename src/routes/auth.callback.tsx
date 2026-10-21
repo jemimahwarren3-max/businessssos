@@ -10,7 +10,7 @@ import { exchangeOAuthCode } from "@/lib/auth/auth.functions";
 // cookie it writes.
 const searchSchema = z.object({
   code: z.string().optional(),
-  next: z.enum(["/dashboard", "/reset-password"]).optional().default("/dashboard"),
+  next: z.enum(["/dashboard", "/onboarding", "/reset-password"]).optional().default("/dashboard"),
   error: z.string().optional(),
   acceptedTerms: z.literal("1").optional(),
 });
@@ -34,7 +34,12 @@ export const Route = createFileRoute("/auth/callback")({
     }
 
     throw redirect({
-      to: search.next === "/reset-password" ? "/reset-password" : "/dashboard",
+      to:
+        search.next === "/reset-password"
+          ? "/reset-password"
+          : search.next === "/onboarding"
+            ? "/onboarding"
+            : "/dashboard",
       replace: true,
     });
   },
