@@ -17,6 +17,7 @@ import {
   isTemplateId,
   templateForBusinessType,
 } from "@/lib/storefront/templates";
+import { storeSurface } from "@/lib/storefront/store-surface";
 import { RESERVED_HOST_LABELS } from "@/lib/storefront/host";
 import { allowedFulfilments, allowedPayments, cashPolicyLines } from "@/lib/storefront/order-rules";
 import { fulfilmentActions } from "@/lib/storefront/transitions";
@@ -193,6 +194,13 @@ describe("storefront templates", () => {
     }
     expect(templateForBusinessType("boutique")).toBe("fashion-boutique");
     expect(templateForBusinessType("grocery")).toBe("grocery");
+    const names = STORE_TEMPLATES.map((template) => template.name);
+    expect(new Set(names).size).toBe(10);
+    expect(names).toContain("Fashion & clothing");
+    expect(names).toContain("Beauty & aesthetics");
+    expect(names).toContain("Jewellery & accessories");
+    const surfaces = new Set(STORE_TEMPLATES.map((template) => storeSurface(template.layout).page));
+    expect(surfaces.size).toBe(STORE_TEMPLATES.length);
     const patch = defaultShopPatch({
       businessId: "00000000-0000-0000-0000-000000000001",
       storeName: "Mbare Fresh",
