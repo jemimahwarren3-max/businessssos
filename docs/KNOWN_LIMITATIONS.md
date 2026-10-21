@@ -1,9 +1,9 @@
 # Known limitations
 
 - Not production-ready. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
-- Customer checkout: pay on pickup, pay on delivery, quote, and Paynow when the shop has linked its own keys. InnBucks is not wired. Platform Paynow keys are still billing-only.
+- Customer checkout: pay on pickup, pay on delivery, quote, seller-configured EcoCash / InnBucks / bank / other instructions, and Paynow when the shop has linked its own keys. A customer payment note does not mark the order paid. Image proof uploads are not stored (no private bucket). Platform Paynow keys are still billing-only.
 - Merchant shop alerts are in-app. Email copies and shopper receipts need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
-- Platform Paynow is subscription billing only ($3/month Pro).
+- Platform Paynow is subscription billing only (listed Pro is `PLAN_MONTHLY_USD.pro`, currently $7/month). Billing is off until `BILLING_ENABLED` is on. There is no hardcoded ZiG subscription equivalent.
 - One shop per cart. No marketplace commission.
 - No product variants, no file uploads. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
 - Shop URLs are `{slug}.{APP_URL host}`. Cloud Run domain-mappings cannot attach `*.domain`; add wildcard DNS and TLS (Cloudflare on `*` or an HTTPS load balancer). The `.run.app` URL stays on `/store/{slug}` because it cannot take extra labels. Draft preview stays on the platform host.

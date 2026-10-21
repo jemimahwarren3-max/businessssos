@@ -1,9 +1,13 @@
 export function formatMoney(amount: number, currency = "USD") {
   const value = Number.isFinite(amount) ? amount : 0;
+  const code = currency === "ZiG" ? "ZWG" : currency;
+  if (code === "ZWG") {
+    return `ZiG ${value.toFixed(2)}`;
+  }
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency,
+      currency: code,
       maximumFractionDigits: 2,
     }).format(value);
   } catch {

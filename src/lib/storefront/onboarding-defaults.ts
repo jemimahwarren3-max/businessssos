@@ -49,6 +49,7 @@ export function defaultShopPatch(input: {
       cashCurrencies: "",
       exactCash: false,
       changeProvided: true,
+      manualMethods: [],
     },
   };
 }

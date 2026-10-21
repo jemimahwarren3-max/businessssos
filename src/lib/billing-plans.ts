@@ -5,7 +5,7 @@ export const PAID_PLANS = ["pro"] as const;
 export type PaidPlan = (typeof PAID_PLANS)[number];
 
 export const PLAN_MONTHLY_USD: Record<PaidPlan, number> = {
-  pro: 3,
+  pro: 7,
 };
 
 export function planAmountUsd(plan: PaidPlan): number {

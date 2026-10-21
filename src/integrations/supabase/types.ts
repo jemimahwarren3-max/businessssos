@@ -2413,6 +2413,20 @@ export type Database = {
         Args: { _business_id: string; _order_id: string; _action: string };
         Returns: Json;
       };
+      submit_store_order_proof: {
+        Args: {
+          _slug: string;
+          _reference: string;
+          _token: string;
+          _proof_reference: string;
+          _proof_note: string;
+        };
+        Returns: Json;
+      };
+      reject_store_order_proof: {
+        Args: { _business_id: string; _order_id: string; _reason: string };
+        Returns: Json;
+      };
       list_public_store_paths: { Args: never; Returns: Json };
       browse_marketplace: {
         Args: {
