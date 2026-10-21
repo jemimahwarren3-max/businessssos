@@ -28,7 +28,7 @@ Migrations live in `supabase/migrations/`. Staging already has storefront, marke
 
 ## Cloud Run
 
-See `CLOUD_RUN_LAUNCH.md`, `DEPLOYMENT_AND_ROLLBACK.md`, and `Dockerfile`. Build args must include the VITE Supabase values. First deploy uses staging, path-based shops (`SHOP_HOSTS=false`), service `kwetuu` in `europe-west1`, domain `mykwetuu.com`. Merged PRs on `master` deploy after CI. Do not use the GCP Create service console.
+See `CLOUD_RUN_LAUNCH.md`, `DEPLOYMENT_AND_ROLLBACK.md`, and `Dockerfile`. Build args must include the VITE Supabase values. First deploy uses staging, shop subdomains (`SHOP_HOSTS=true`), service `kwetuu` in `europe-west1`, domain `mykwetuu.com`. Merged PRs on `master` deploy after CI. Do not use the GCP Create service console.
 
 ## Tests
 

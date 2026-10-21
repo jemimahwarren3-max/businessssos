@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { storePublicUrl } from "@/lib/storefront/host";
 import type { PublishedShop } from "@/lib/storefront/published-shops";
 
 type Shop = PublishedShop;
@@ -6,9 +7,8 @@ type Shop = PublishedShop;
 /** Real published shop only. Never pass a hardcoded demo shop. */
 export function PublishedShopCard({ shop }: { shop: Shop }) {
   return (
-    <Link
-      to="/store/$slug"
-      params={{ slug: shop.slug }}
+    <a
+      href={storePublicUrl(shop.slug)}
       className="surface block overflow-hidden p-0 transition-colors hover:bg-muted/40"
     >
       {shop.logoUrl ? (
@@ -26,7 +26,7 @@ export function PublishedShopCard({ shop }: { shop: Shop }) {
         ) : null}
         {shop.address ? <p className="mt-2 text-sm text-muted-foreground">{shop.address}</p> : null}
       </div>
-    </Link>
+    </a>
   );
 }
 

@@ -11,7 +11,7 @@ Stack that is already here (do not replace): **Vite 8 + React 19 + TanStack Star
 | Marketplace             | Real published shops                               | `/stores` gallery; `/market` product search                                                                        |
 | Onboarding              | Name → template → first product → pickup → publish | `/onboarding`                                                                                                      |
 | Merchant OS             | Real CRUD via server fns + RLS                     | `/dashboard`, `/inventory`, `/sales`, `/storefront`, invoices, quotes, customers, expenses, reports, billing, team |
-| Public shop             | Real catalogue listings                            | `/store/$slug`, product, search, cart, checkout, order status, shopper account                                     |
+| Public shop             | Real catalogue listings                            | `{slug}.mykwetuu.com` (internal `/store/$slug`); product, search, cart, checkout, order status                     |
 | Cart                    | localStorage per slug until checkout               | `src/lib/storefront/cart.ts`                                                                                       |
 | Shop Paynow             | Server-side `paynow` package                       | `src/lib/payments/shop-paynow.server.ts`, webhook `POST /api/webhooks/paynow` in `src/server.ts`                   |
 | Platform billing Paynow | Separate keys                                      | `src/lib/payments/paynow.server.ts`                                                                                |
@@ -22,18 +22,19 @@ Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated 
 
 ## Guide route aliases
 
-| Guide                 | Existing            | Action                                                                      |
-| --------------------- | ------------------- | --------------------------------------------------------------------------- |
-| `/stores`             | `/market`           | `/stores` is the published-shop gallery. `/market` still searches products. |
-| `/signup`             | `/auth?mode=signup` | Redirect.                                                                   |
-| `/login`              | `/auth?mode=signin` | Redirect.                                                                   |
-| `/dashboard/products` | `/inventory`        | Keep inventory. Do not add a second products app.                           |
-| `/dashboard/store`    | `/storefront`       | Keep.                                                                       |
-| `/store/:handle`      | `/store/$slug`      | Already Option B (path shops).                                              |
+| Guide                 | Existing            | Action                                                                       |
+| --------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `/stores`             | `/market`           | `/stores` is the published-shop gallery. `/market` still searches products.  |
+| `/signup`             | `/auth?mode=signup` | Redirect.                                                                    |
+| `/login`              | `/auth?mode=signin` | Redirect.                                                                    |
+| `/dashboard/products` | `/inventory`        | Keep inventory. Do not add a second products app.                            |
+| `/dashboard/store`    | `/storefront`       | Keep.                                                                        |
+| `/store/:handle`      | `{slug}.host`       | Public URL is the shop subdomain. `/store/$slug` is rewrite + draft preview. |
 
 ## What is stub / incomplete vs the guide
 
 - **Live Cloud Run** still an older image: `/features` 404, homepage title BusinessOS AI, no Google button. Last successful deploy was the kwetuu-cloud-run branch, not this stack.
+- **Shop subdomains** need `*.mykwetuu.com` DNS plus TLS (Cloudflare on `*` or an HTTPS load balancer). Cloud Run domain-mappings cannot bind a wildcard. `.run.app` still uses `/store/{slug}`.
 - **Email sign-up** on staging Auth: GoTrue `email_provider_disabled`. Google is enabled in the project; UI for Google is in PR #26, not live.
 - **Confirm email** will fail until Supabase SMTP is set; keep it off for beta.
 - **Ten templates** are layout variants of one React tree, not ten folders under `src/templates/`. Do not split them into a second data layer.

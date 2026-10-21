@@ -27,9 +27,10 @@ function FaqPage() {
           <AccordionItem value="q1">
             <AccordionTrigger>Do I get mystore.{BRAND.domain}?</AccordionTrigger>
             <AccordionContent>
-              Application routing supports shop subdomains, but this Cloud Run deploy serves shops
-              at https://{BRAND.domain}/store/your-slug until wildcard DNS and SHOP_HOSTS=true are
-              on. The slug is still unique to your business.
+              Yes. A published shop is https://your-slug.{BRAND.domain}. The merchant app stays on{" "}
+              {BRAND.domain}. Older /store/your-slug links redirect to the shop host. Draft preview
+              stays on {BRAND.domain} because sign-in cookies are not sent to shop subdomains. You
+              need a wildcard DNS record for *.{BRAND.domain}.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="q2">

@@ -87,8 +87,7 @@ function Landing() {
               </Button>
             </div>
             <p className="mt-4 text-[13px] text-muted-foreground">
-              Free during beta · No card required · Live shops at /store/your-slug until wildcard
-              DNS is on
+              Free during beta · No card required · Live shops at your-shop.{BRAND.domain}
             </p>
           </div>
           <div className="relative">

@@ -118,12 +118,21 @@ describe("store subdomains", () => {
 });
 
 describe("shop host flag", () => {
-  it("defaults to path URLs except on localhost", () => {
+  it("uses shop subdomains on a custom domain, not on Cloud Run's default URL", () => {
     expect(shopHostsEnabledFromOrigin("https://svc-abc.a.run.app", undefined)).toBe(false);
-    expect(shopHostsEnabledFromOrigin("https://app.example.com", undefined)).toBe(false);
+    expect(shopHostsEnabledFromOrigin("https://mykwetuu.com", undefined)).toBe(true);
+    expect(shopHostsEnabledFromOrigin("https://app.example.com", undefined)).toBe(true);
     expect(shopHostsEnabledFromOrigin("http://localhost:8080", undefined)).toBe(true);
     expect(shopHostsEnabledFromOrigin("http://localhost:8080", "false")).toBe(false);
     expect(shopHostsEnabledFromOrigin("https://svc-abc.a.run.app", "true")).toBe(true);
+    const live = parsePlatformRoot("https://mykwetuu.com");
+    expect(storePublicUrlOn(live, "harare-cloth", "/")).toBe("https://harare-cloth.mykwetuu.com/");
+    expect(storePublicUrlOn(live, "harare-cloth", "/products/dress")).toBe(
+      "https://harare-cloth.mykwetuu.com/products/dress",
+    );
+    expect(storePublicUrlOn(live, "harare-cloth", "/", false)).toBe(
+      "https://mykwetuu.com/store/harare-cloth",
+    );
   });
 });
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 import type { MarketplaceProduct } from "@/lib/storefront/contract";
 import { BRAND } from "@/lib/brand";
+import { storePublicUrl } from "@/lib/storefront/host";
 import { getMarketplaceFn } from "@/lib/storefront/storefront.functions";
 
 const searchSchema = z.object({
@@ -137,10 +138,9 @@ function ProductSection({
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => (
-            <Link
+            <a
               key={`${product.storeSlug}-${product.slug}`}
-              to="/store/$slug/products/$productSlug"
-              params={{ slug: product.storeSlug, productSlug: product.slug }}
+              href={storePublicUrl(product.storeSlug, `/products/${product.slug}`)}
               className="overflow-hidden rounded-lg border"
             >
               {product.imageUrl ? (
@@ -154,7 +154,7 @@ function ProductSection({
                 <p className="text-xs text-muted-foreground">{product.storeName}</p>
                 <p className="text-xs text-muted-foreground">{product.stockLabel}</p>
               </div>
-            </Link>
+            </a>
           ))}
         </div>
       )}

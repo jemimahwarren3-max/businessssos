@@ -1,9 +1,8 @@
-// Public shops can be served on {slug}.{platform host} (Shopify-style) or on
-// /store/{slug} on the platform host. Cloud Run's default *.run.app URL cannot
-// have extra DNS labels, so path URLs are the deploy default. Wildcard DNS
-// plus SHOP_HOSTS=true turns subdomains on. The router still matches
-// /store/$slug internally. Draft preview stays on the platform host because
-// the sign-in cookie is not shared with shop subdomains.
+// Public shops are {slug}.{platform host} (Shopify-style). The router still
+// matches /store/$slug internally; public links and 308s use the subdomain.
+// Cloud Run's default *.run.app URL cannot have extra DNS labels, so that
+// host stays on /store/{slug}. Draft preview stays on the platform host
+// because the sign-in cookie is not shared with shop subdomains.
 
 export type PlatformRoot = {
   protocol: string;
@@ -135,8 +134,9 @@ export function configuredPlatformRoot(): PlatformRoot | null {
   return origin ? parsePlatformRoot(origin) : null;
 }
 
-/** Explicit SHOP_HOSTS=true/false wins. Otherwise only localhost uses shop
- * subdomains, because browsers resolve `{slug}.localhost` without DNS. */
+/** Explicit SHOP_HOSTS=true/false wins. Otherwise shop subdomains are on for
+ * localhost and custom domains (mykwetuu.com). Cloud Run's *.run.app URL
+ * cannot take extra DNS labels, so it stays on /store/{slug}. */
 export function shopHostsEnabledFromOrigin(
   appUrl: string | undefined,
   flag: string | undefined,
@@ -147,7 +147,8 @@ export function shopHostsEnabledFromOrigin(
   if (!appUrl) return false;
   try {
     const host = new URL(appUrl).hostname.toLowerCase();
-    return host === "localhost" || host.endsWith(".localhost");
+    if (host.endsWith(".run.app")) return false;
+    return Boolean(host);
   } catch {
     return false;
   }
