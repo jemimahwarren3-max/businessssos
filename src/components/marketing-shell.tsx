@@ -8,26 +8,26 @@ export function MarketingShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3.5 sm:flex sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <Logo to="/" />
-          <nav className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
+          <nav className="-mx-4 flex items-center gap-5 overflow-x-auto px-4 text-sm text-muted-foreground lg:mx-0 lg:overflow-visible lg:px-0">
             <Link
-              className="transition-colors hover:text-foreground"
+              className="shrink-0 transition-colors hover:text-foreground"
               to="/market"
               search={{ q: "", category: "" }}
             >
               Shops
             </Link>
-            <Link className="transition-colors hover:text-foreground" to="/features">
+            <Link className="shrink-0 transition-colors hover:text-foreground" to="/features">
               Features
             </Link>
-            <Link className="transition-colors hover:text-foreground" to="/templates">
+            <Link className="shrink-0 transition-colors hover:text-foreground" to="/templates">
               Templates
             </Link>
-            <Link className="transition-colors hover:text-foreground" to="/pricing">
+            <Link className="shrink-0 transition-colors hover:text-foreground" to="/pricing">
               Pricing
             </Link>
-            <Link className="transition-colors hover:text-foreground" to="/faq">
+            <Link className="shrink-0 transition-colors hover:text-foreground" to="/faq">
               FAQ
             </Link>
           </nav>

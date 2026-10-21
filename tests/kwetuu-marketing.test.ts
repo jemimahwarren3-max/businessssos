@@ -10,4 +10,12 @@ describe("Kwetuu public site contract", () => {
     expect(STORE_TEMPLATES).toHaveLength(10);
     expect(PLAN_MONTHLY_USD.pro).toBe(3);
   });
+
+  it("gives each template a distinct layout sketch", () => {
+    const layouts = new Set(STORE_TEMPLATES.map((template) => template.layout));
+    expect(layouts.size).toBe(STORE_TEMPLATES.length);
+    expect(
+      STORE_TEMPLATES.every((template) => template.sampleLabel.includes("not your products")),
+    ).toBe(true);
+  });
 });

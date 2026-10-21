@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Check, ShoppingBag, Store, Wallet } from "lucide-react";
 import { MarketingShell } from "@/components/marketing-shell";
+import { TemplatePreview } from "@/components/storefront/template-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
@@ -26,64 +27,77 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const heroTemplate =
+    STORE_TEMPLATES.find((t) => t.id === "fashion-boutique") ?? STORE_TEMPLATES[0]!;
   return (
     <MarketingShell>
       <section className="relative overflow-hidden">
         <div className="grid-backdrop pointer-events-none absolute inset-0 opacity-60" />
-        <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-16 sm:pt-24">
-          <Badge variant="secondary" className="mb-5 gap-1.5 rounded-full px-3 py-1 font-medium">
-            {BRAND.domain}
-          </Badge>
-          <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-6xl">
-            Open your shop. <span className="brand-gradient-text">Sell today.</span>
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            {BRAND.name} is where a small business gets an online store, a till, and stock that
-            stays honest. Customers shop your catalogue. You take cash on pickup or your own Paynow
-            keys. This is not a demo storefront glued onto empty pages.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="gap-2">
-              <Link to="/auth" search={{ mode: "signup" }}>
-                Create your shop <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link to="/market" search={{ q: "", category: "" }}>
-                Browse live shops
-              </Link>
-            </Button>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-16 sm:pt-20 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <Badge variant="secondary" className="mb-5 gap-1.5 rounded-full px-3 py-1 font-medium">
+              {BRAND.domain}
+            </Badge>
+            <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-6xl">
+              Open your shop. <span className="brand-gradient-text">Sell today.</span>
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              {BRAND.name} is a store, a till, and honest stock in one place. Customers shop your
+              catalogue. You take cash on pickup or your own Paynow keys. This is not a demo
+              storefront glued onto empty pages.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg" className="gap-2">
+                <Link to="/auth" search={{ mode: "signup" }}>
+                  Create your shop <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/templates">See 10 layouts</Link>
+              </Button>
+            </div>
+            <p className="mt-4 text-[13px] text-muted-foreground">
+              Free during beta · No card required · Live shops at /store/your-slug until wildcard
+              DNS is on
+            </p>
           </div>
-          <p className="mt-4 text-[13px] text-muted-foreground">
-            Free during beta · No card required · Staging shops live at /store/your-slug until
-            wildcard DNS is on
-          </p>
+          <div className="relative">
+            <TemplatePreview
+              template={heroTemplate}
+              className="aspect-[4/5] shadow-xl sm:aspect-[5/4] lg:aspect-[4/5]"
+            />
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              {heroTemplate.sampleLabel} · {heroTemplate.name}
+            </p>
+          </div>
+        </div>
+      </section>
 
-          <div className="mt-14 grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                icon: Store,
-                title: "Your storefront",
-                body: "Pick a template. Products you publish here are the products shoppers see.",
-              },
-              {
-                icon: ShoppingBag,
-                title: "Cart and checkout",
-                body: "Pickup, delivery, or a quote. Cash now; EcoCash and cards when you add Paynow.",
-              },
-              {
-                icon: Wallet,
-                title: "Till and stock",
-                body: "The same catalogue runs the counter. A sale writes a stock movement.",
-              },
-            ].map((item) => (
-              <div key={item.title} className="surface p-5">
-                <item.icon className="size-5 text-primary" aria-hidden="true" />
-                <h2 className="mt-3 text-base font-semibold">{item.title}</h2>
-                <p className="mt-1.5 text-sm text-muted-foreground">{item.body}</p>
-              </div>
-            ))}
-          </div>
+      <section className="mx-auto max-w-6xl px-4 pb-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              icon: Store,
+              title: "Your storefront",
+              body: "Pick a template. Products you publish here are the products shoppers see.",
+            },
+            {
+              icon: ShoppingBag,
+              title: "Cart and checkout",
+              body: "Pickup, delivery, or a quote. Cash now; EcoCash and cards when you add Paynow.",
+            },
+            {
+              icon: Wallet,
+              title: "Till and stock",
+              body: "The same catalogue runs the counter. A sale writes a stock movement.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="surface p-5">
+              <item.icon className="size-5 text-primary" aria-hidden="true" />
+              <h2 className="mt-3 text-base font-semibold">{item.title}</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">{item.body}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -118,12 +132,15 @@ function Landing() {
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {STORE_TEMPLATES.slice(0, 6).map((template) => (
-            <div key={template.id} className="surface p-5">
-              <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
-                {template.bestFor}
-              </p>
-              <h3 className="mt-2 text-base font-semibold">{template.name}</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground">{template.description}</p>
+            <div key={template.id} className="surface overflow-hidden p-0">
+              <TemplatePreview template={template} className="h-36 rounded-none border-0" />
+              <div className="p-5">
+                <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {template.bestFor}
+                </p>
+                <h3 className="mt-2 text-base font-semibold">{template.name}</h3>
+                <p className="mt-1.5 text-sm text-muted-foreground">{template.description}</p>
+              </div>
             </div>
           ))}
         </div>
