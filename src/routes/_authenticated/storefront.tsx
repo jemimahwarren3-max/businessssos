@@ -280,10 +280,15 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         {publicUrl ? (
           <p className="text-sm">
             Link: <a href={publicUrl}>{publicUrl}</a>
-            {shopHostsEnabled() ? null : (
+            {shopHostsEnabled() ? (
               <span className="mt-1 block text-muted-foreground">
-                This deploy serves shops on the app host at /store/your-slug. Wildcard DNS is not
-                on, so subdomain shop URLs are not used.
+                Customers open this shop on its own subdomain. *.{BRAND.domain} must point at this
+                service.
+              </span>
+            ) : (
+              <span className="mt-1 block text-muted-foreground">
+                This host cannot serve shop subdomains (Cloud Run .run.app). Shops stay at
+                /store/your-slug here.
               </span>
             )}
             {" · "}

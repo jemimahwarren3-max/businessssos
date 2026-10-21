@@ -156,6 +156,16 @@ export const marketplaceListingSchema = z.object({
 });
 
 export type Marketplace = z.infer<typeof marketplaceSchema>;
+
+export const EMPTY_MARKETPLACE: Marketplace = {
+  query: "",
+  category: "",
+  shops: [],
+  products: [],
+  categories: [],
+  featured: [],
+  recent: [],
+};
 export type MarketplaceProduct = z.infer<typeof marketplaceProductSchema>;
 export type MarketplaceListing = z.infer<typeof marketplaceListingSchema>;
 

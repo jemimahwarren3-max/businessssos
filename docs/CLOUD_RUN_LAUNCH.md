@@ -8,8 +8,10 @@ Database for this first revision: **staging** `slajanbsfqjnuuiohbmg`.
 Production Postgres `maidxfntfpnkcqnuhozo` stays untouched until you
 explicitly apply migrations there.
 
-Shops stay at `https://mykwetuu.com/store/{slug}`. Wildcard
-`{slug}.mykwetuu.com` is a later DNS + certificate job (`SHOP_HOSTS=true`).
+Shops are `https://{slug}.mykwetuu.com`. The app still routes internally
+at `/store/{slug}` and 308s the old path. Cloud Run domain-mappings cannot
+bind `*`; add wildcard DNS and terminate TLS with Cloudflare on `*` or an
+HTTPS load balancer. `.run.app` cannot host shop subdomains.
 
 ## What happens on a merged PR
 
@@ -78,13 +80,15 @@ the DNS records.
    Site URL `https://mykwetuu.com`. Redirect URLs: `https://mykwetuu.com/**`
    and `https://www.mykwetuu.com/**`.
 
-Keep `SHOP_HOSTS=false` until you have a wildcard certificate. Paynow
-`resulturl` is `https://mykwetuu.com/api/webhooks/paynow`.
+Deploys set `SHOP_HOSTS=true`. Add `*.mykwetuu.com` at the registrar (same
+target as the apex mapping). In **staging** Supabase redirect URLs also
+allow `https://*.mykwetuu.com/**`. Paynow `resulturl` stays
+`https://mykwetuu.com/api/webhooks/paynow`.
 
 ## After deploy
 
 - `GET https://mykwetuu.com/health` (or the `.run.app` URL before DNS)
-- Sign in, open `/market`, open `/store/{a-published-slug}`
+- Sign in, open `/stores`, open `https://{a-published-slug}.mykwetuu.com`
 - Mail stays queued until `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` exist
 - Auth confirm/reset still use **Supabase Auth SMTP**
 - Apply pending git migrations on **staging** only, including audit/receipts SQL if they are not there yet
@@ -94,7 +98,7 @@ Keep `SHOP_HOSTS=false` until you have a wildcard certificate. Paynow
 | Included                               | Not included                             |
 | -------------------------------------- | ---------------------------------------- |
 | Merchant app, POS, stock, invoices     | Product variants                         |
-| Public shops at `/store/{slug}`        | `{slug}.mykwetuu.com` until wildcard DNS |
+| Public shops at `{slug}.mykwetuu.com`  | Wildcard TLS until DNS/LB/Cloudflare     |
 | Guest checkout, pay on pickup/delivery | InnBucks                                 |
 | Shopper accounts                       | Production Postgres until you approve it |
 
