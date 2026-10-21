@@ -240,7 +240,7 @@ export function AppShell({
       </a>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="px-5 py-4">
-          <Logo to="/dashboard" />
+          <Logo to="/dashboard" variant="mark" />
         </div>
         <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Main">
           {NAV.map((item) => {
@@ -324,7 +324,7 @@ export function AppShell({
         <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
           <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
-              <Logo to="/dashboard" showWord={false} />
+              <Logo to="/dashboard" showWord={false} variant="mark" />
               <span className="truncate text-sm font-semibold">{businessName}</span>
             </div>
             <div className="hidden min-w-0 items-center gap-2 lg:flex">

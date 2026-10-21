@@ -1,109 +1,126 @@
 import { Link } from "@tanstack/react-router";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { BRAND } from "@/lib/brand";
 
 const NAV = [
-  { to: "/stores" as const, label: "Shops" },
-  { to: "/features" as const, label: "Features" },
-  { to: "/templates" as const, label: "Templates" },
+  { to: "/stores" as const, label: "Browse stores" },
+  { to: "/templates" as const, label: "Store designs" },
   { to: "/pricing" as const, label: "Pricing" },
   { to: "/faq" as const, label: "FAQ" },
-];
-
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
-  return (
-    <>
-      {NAV.map((item) => (
-        <Link
-          key={item.to}
-          className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          to={item.to}
-          onClick={onNavigate}
-        >
-          {item.label}
-        </Link>
-      ))}
-    </>
-  );
-}
+] as const;
 
 export function MarketingShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5">
+    <div className="marketplace-theme min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur">
+        <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between gap-4 px-5">
           <Logo to="/" />
-          <nav className="hidden items-center gap-6 lg:flex">
-            <NavLinks />
+          <nav className="hidden items-center gap-8 text-[15px] md:flex">
+            {NAV.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+                activeProps={{ className: "font-semibold text-foreground" }}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <Link
+              to="/auth"
+              search={{ mode: "signup" }}
+              className="rounded-full bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+            >
+              Start a store
+            </Link>
           </nav>
-          <div className="flex shrink-0 items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link to="/auth" search={{ mode: "signin" }}>
-                Sign in
-              </Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/auth" search={{ mode: "signup" }}>
-                Open a shop
-              </Link>
-            </Button>
-            <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden" aria-label="Open menu">
-                  <Menu className="size-4" aria-hidden="true" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-72">
-                <SheetHeader>
-                  <SheetTitle>{BRAND.name}</SheetTitle>
-                </SheetHeader>
-                <nav className="mt-8 flex flex-col gap-4">
-                  <NavLinks onNavigate={() => setMenuOpen(false)} />
-                  <Link
-                    className="text-sm font-medium text-foreground"
-                    to="/auth"
-                    search={{ mode: "signin" }}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Sign in
-                  </Link>
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
+          <button
+            type="button"
+            className="p-2 md:hidden"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+          >
+            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
         </div>
+        {menuOpen ? (
+          <div className="border-t px-5 pb-6 pt-3 md:hidden">
+            {NAV.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setMenuOpen(false)}
+                className="block border-b border-border py-4 text-lg"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <Link
+              to="/auth"
+              search={{ mode: "signin" }}
+              onClick={() => setMenuOpen(false)}
+              className="block py-3 text-muted-foreground"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/auth"
+              search={{ mode: "signup" }}
+              onClick={() => setMenuOpen(false)}
+              className="mt-4 block rounded-full bg-primary py-3.5 text-center font-semibold text-primary-foreground"
+            >
+              Start a store
+            </Link>
+          </div>
+        ) : null}
       </header>
-      {children}
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <Logo />
-          <nav className="flex flex-wrap gap-4">
-            <Link to="/about" className="hover:text-foreground">
+      <main>{children}</main>
+      <footer className="mt-24 bg-ink text-sand">
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-4">
+          <div className="md:col-span-2">
+            <p className="font-display text-3xl text-background">{BRAND.name}</p>
+            <p className="mt-3 max-w-sm text-sand/80">
+              &ldquo;Kwetuu&rdquo; means <em>our home</em>. Discover independent shops — or open one
+              of your own. Zimbabwe-first, honest about what is live and what is still in preview.
+            </p>
+          </div>
+          <div className="space-y-2 text-sm">
+            <p className="font-semibold text-background">Shop</p>
+            <Link to="/stores" className="block hover:text-background">
+              Browse stores
+            </Link>
+            <Link to="/features" className="block hover:text-background">
+              How shopping works
+            </Link>
+          </div>
+          <div className="space-y-2 text-sm">
+            <p className="font-semibold text-background">Sell</p>
+            <Link to="/auth" search={{ mode: "signup" }} className="block hover:text-background">
+              Start a store
+            </Link>
+            <Link to="/templates" className="block hover:text-background">
+              Store designs
+            </Link>
+            <Link to="/pricing" className="block hover:text-background">
+              Pricing
+            </Link>
+            <Link to="/about" className="block hover:text-background">
               About
             </Link>
-            <Link to="/privacy" className="hover:text-foreground">
+            <Link to="/privacy" className="block hover:text-background">
               Privacy
             </Link>
-            <Link to="/terms" className="hover:text-foreground">
+            <Link to="/terms" className="block hover:text-background">
               Terms
             </Link>
-            <Link to="/legal/refunds" className="hover:text-foreground">
-              Refunds
-            </Link>
-            <Link to="/staff-login" className="hover:text-foreground">
-              Staff sign-in
-            </Link>
-          </nav>
-          <p>
-            © {new Date().getFullYear()} {BRAND.name}. Shops for small businesses, including
-            Zimbabwe.
-          </p>
+          </div>
         </div>
+        <p className="border-t border-sand/15 py-5 text-center text-sm text-sand/60">
+          © {new Date().getFullYear()} {BRAND.name} · Shops at your-store.{BRAND.domain}
+        </p>
       </footer>
     </div>
   );
