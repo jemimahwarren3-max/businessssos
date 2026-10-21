@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getAppUrl } from "@/lib/app-url.server";
 import { deleteMyAccount } from "@/lib/account-deletion.server";
 import type { Db } from "@/lib/business.server";
+import { loadWorkspace } from "@/lib/business.server";
 import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
 import { allowAal1Session } from "@/integrations/supabase/auth-middleware";
 import {
@@ -246,6 +247,17 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(async ()
   if (!ctx) return null;
   const email = (ctx.claims as { email?: string }).email ?? null;
   return { userId: ctx.userId, email };
+});
+
+/** After OAuth or magic link — send new merchants to shop setup, not an empty dashboard. */
+export const getPostAuthDestination = createServerFn({ method: "GET" }).handler(async () => {
+  const ctx = await tryGetAuthedContext();
+  if (!ctx) return { path: "/auth" as const };
+  const workspace = await loadWorkspace(ctx.supabase as Db, ctx.userId);
+  if (!workspace || !workspace.business.onboarding_completed) {
+    return { path: "/onboarding" as const };
+  }
+  return { path: "/dashboard" as const };
 });
 
 export const updatePassword = createServerFn({ method: "POST" })

@@ -156,6 +156,7 @@ import {
   loadDashboard,
   loadReports,
   loadWorkspace,
+  markOnboardingComplete,
   recordInvoicePayment,
   setInvoiceStatus,
   setQuoteStatus,
@@ -226,6 +227,13 @@ export const createBusiness = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     createBusinessRecord(context.supabase as Db, context.userId, data),
   );
+
+export const completeOnboarding = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .handler(async ({ context }) => {
+    await markOnboardingComplete(context.supabase as Db, context.userId);
+    return { ok: true as const };
+  });
 
 export const getDashboard = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)

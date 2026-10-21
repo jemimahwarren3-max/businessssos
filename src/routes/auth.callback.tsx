@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
-import { exchangeOAuthCode } from "@/lib/auth/auth.functions";
+import { exchangeOAuthCode, getPostAuthDestination } from "@/lib/auth/auth.functions";
 
 // Where Google's OAuth redirect and Supabase's magic-link/recovery emails
 // land — the server-side half of the PKCE handoff (see auth.functions.ts's
@@ -33,13 +33,12 @@ export const Route = createFileRoute("/auth/callback")({
       throw redirect({ to: "/auth", search: { mode: "signin" } });
     }
 
+    if (search.next === "/reset-password") {
+      throw redirect({ to: "/reset-password", replace: true });
+    }
+    const destination = await getPostAuthDestination();
     throw redirect({
-      to:
-        search.next === "/reset-password"
-          ? "/reset-password"
-          : search.next === "/onboarding"
-            ? "/onboarding"
-            : "/dashboard",
+      to: destination.path === "/auth" ? "/onboarding" : destination.path,
       replace: true,
     });
   },

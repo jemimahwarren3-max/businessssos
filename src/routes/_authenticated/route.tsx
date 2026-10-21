@@ -40,8 +40,16 @@ function AuthenticatedGate() {
 
   if (status.isLoading || !status.data) {
     return (
-      <div className="mx-auto max-w-md p-6 pt-24">
-        <Skeleton className="h-48" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <img
+          src="/kwetuu-logo.png"
+          alt="Kwetuu"
+          className="h-12 w-auto opacity-90"
+          width={192}
+          height={96}
+        />
+        <p className="text-sm text-muted-foreground">Signing you in…</p>
+        <Skeleton className="h-2 w-48 max-w-full rounded-full" />
       </div>
     );
   }
