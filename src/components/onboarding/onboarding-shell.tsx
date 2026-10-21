@@ -61,13 +61,7 @@ export function OnboardingShell({
   );
 }
 
-export function OnboardingHeading({
-  title,
-  description,
-}: {
-  title: string;
-  description?: string;
-}) {
+export function OnboardingHeading({ title, description }: { title: string; description?: string }) {
   return (
     <>
       <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>

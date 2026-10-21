@@ -128,10 +128,7 @@ function Onboarding() {
     queryFn: () => loadAdmin({ data: { businessId: businessId! } }),
   });
 
-  const zigMonthly = useMemo(
-    () => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null),
-    [fx.data],
-  );
+  const zigMonthly = useMemo(() => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null), [fx.data]);
 
   const exitToDashboard = async () => {
     try {
@@ -247,7 +244,12 @@ function Onboarding() {
   const nameFooter = (
     <div className="flex flex-wrap items-center justify-between gap-3">
       {step > 0 ? (
-        <Button type="button" variant="outline" className="gap-1.5" onClick={() => setStep((s) => s - 1)}>
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => setStep((s) => s - 1)}
+        >
           <ArrowLeft className="size-4" aria-hidden="true" /> Back
         </Button>
       ) : (
@@ -282,13 +284,23 @@ function Onboarding() {
           ) : (
             <span />
           )}
-          <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => void exitToDashboard()}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={() => void exitToDashboard()}
+          >
             Finish later
           </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="button" variant="outline" className="w-full sm:flex-1" onClick={() => void exitToDashboard()}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:flex-1"
+            onClick={() => void exitToDashboard()}
+          >
             Go to dashboard without publishing
           </Button>
         </div>
@@ -406,7 +418,12 @@ function Onboarding() {
                   ) : null}
                   List on the shop
                 </Button>
-                <Button type="button" variant="ghost" className="w-full" onClick={() => setShopStep(2)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setShopStep(2)}
+                >
                   Skip for now
                 </Button>
               </div>
@@ -480,7 +497,12 @@ function Onboarding() {
               {slug ? (
                 <p className="mt-3 text-sm">
                   Preview now:{" "}
-                  <Link to="/store/$slug" params={{ slug }} search={{ preview: "1" }} className="font-medium text-primary underline-offset-2 hover:underline">
+                  <Link
+                    to="/store/$slug"
+                    params={{ slug }}
+                    search={{ preview: "1" }}
+                    className="font-medium text-primary underline-offset-2 hover:underline"
+                  >
                     Open draft preview
                   </Link>
                 </p>
@@ -490,13 +512,17 @@ function Onboarding() {
                   <p className="font-display text-3xl tabular-nums text-primary">
                     {formatMoney(PLAN_MONTHLY_USD.pro, "USD")}
                   </p>
-                  <p className="text-sm text-muted-foreground">USD per month when billing applies</p>
+                  <p className="text-sm text-muted-foreground">
+                    USD per month when billing applies
+                  </p>
                 </div>
                 <div className="rounded-xl border-2 border-primary/30 p-5">
                   <p className="font-display text-3xl tabular-nums text-primary">
                     {zigMonthly != null ? formatMoney(zigMonthly, "ZWG") : "ZiG —"}
                   </p>
-                  <p className="text-sm text-muted-foreground">ZiG per month (separate price, not converted)</p>
+                  <p className="text-sm text-muted-foreground">
+                    ZiG per month (separate price, not converted)
+                  </p>
                 </div>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
@@ -573,7 +599,10 @@ function Onboarding() {
 
       {step === 1 ? (
         <>
-          <OnboardingHeading title="What do you sell?" description="This helps us suggest a storefront layout." />
+          <OnboardingHeading
+            title="What do you sell?"
+            description="This helps us suggest a storefront layout."
+          />
           <OnboardingCard>
             <Select
               value={form.businessType}
