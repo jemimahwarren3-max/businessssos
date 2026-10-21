@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { BRAND } from "@/lib/brand";
 
 const NAV = [
-  { to: "/market" as const, label: "Shops", search: { q: "", category: "" } },
+  { to: "/stores" as const, label: "Shops" },
   { to: "/features" as const, label: "Features" },
   { to: "/templates" as const, label: "Templates" },
   { to: "/pricing" as const, label: "Pricing" },
@@ -17,28 +17,16 @@ const NAV = [
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
-      {NAV.map((item) =>
-        item.to === "/market" ? (
-          <Link
-            key={item.to}
-            className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            to="/market"
-            search={item.search}
-            onClick={onNavigate}
-          >
-            {item.label}
-          </Link>
-        ) : (
-          <Link
-            key={item.to}
-            className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            to={item.to}
-            onClick={onNavigate}
-          >
-            {item.label}
-          </Link>
-        ),
-      )}
+      {NAV.map((item) => (
+        <Link
+          key={item.to}
+          className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          to={item.to}
+          onClick={onNavigate}
+        >
+          {item.label}
+        </Link>
+      ))}
     </>
   );
 }

@@ -23,7 +23,16 @@ export const Route = createFileRoute("/sitemap.xml")({
         }
         const stores = origin ? await listPublicPaths() : [];
         const urls = [
-          ...(origin ? [`${origin}/market`] : []),
+          ...(origin
+            ? [
+                `${origin}/`,
+                `${origin}/stores`,
+                `${origin}/market`,
+                `${origin}/pricing`,
+                `${origin}/templates`,
+                `${origin}/features`,
+              ]
+            : []),
           ...stores.flatMap((store) => [
             storePublicUrl(store.slug),
             ...store.products.map((product) => storePublicUrl(store.slug, `/products/${product}`)),

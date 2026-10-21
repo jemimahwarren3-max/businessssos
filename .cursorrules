@@ -41,7 +41,7 @@ Public shop data goes through published-storefront RPCs.
 
 ## Stage order
 1. Audit (SCHEMA_AUDIT.md + FEATURE_AUDIT.md) — done in git; keep them true
-2. Public website (existing `/`, `/market`, `/pricing`, `/auth`; aliases `/stores`, `/signup`, `/login`)
+2. Public website — `/`, `/stores` (real published shops), `/pricing`, `/auth`; `/signup` and `/login` redirect to `/auth`
 3. Merchant dashboard (existing `/dashboard`, `/inventory`, `/storefront`)
 4. Storefront templates (ten layouts, one catalogue — extend `store-experience.tsx`, do not add a second products API)
 5. Checkout + Paynow (existing cart + checkout + webhook)

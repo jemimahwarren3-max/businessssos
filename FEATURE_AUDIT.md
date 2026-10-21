@@ -6,9 +6,9 @@ Stack that is already here (do not replace): **Vite 8 + React 19 + TanStack Star
 
 | Area                    | Status                                             | Routes / files                                                                                                     |
 | ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Public marketing        | Built on this stack                                | `/`, `/features`, `/pricing`, `/templates`, `/faq`, `/about`                                                       |
+| Public marketing        | Stage 2: homepage, gallery, pricing, auth aliases  | `/`, `/stores`, `/pricing`, `/signup`, `/login`, `/features`, `/templates`, `/faq`, `/about`                       |
 | Auth                    | Email + Google PKCE callback                       | `/auth`, `/auth/callback`, `/staff-login`, `/reset-password`                                                       |
-| Marketplace             | Real published shops                               | `/market` (guide’s `/stores`)                                                                                      |
+| Marketplace             | Real published shops                               | `/stores` gallery; `/market` product search                                                                        |
 | Onboarding              | Name → template → first product → pickup → publish | `/onboarding`                                                                                                      |
 | Merchant OS             | Real CRUD via server fns + RLS                     | `/dashboard`, `/inventory`, `/sales`, `/storefront`, invoices, quotes, customers, expenses, reports, billing, team |
 | Public shop             | Real catalogue listings                            | `/store/$slug`, product, search, cart, checkout, order status, shopper account                                     |
@@ -22,14 +22,14 @@ Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated 
 
 ## Guide route aliases
 
-| Guide                 | Existing            | Action                                            |
-| --------------------- | ------------------- | ------------------------------------------------- |
-| `/stores`             | `/market`           | Redirect `/stores` → `/market` (this phase).      |
-| `/signup`             | `/auth?mode=signup` | Redirect.                                         |
-| `/login`              | `/auth?mode=signin` | Redirect.                                         |
-| `/dashboard/products` | `/inventory`        | Keep inventory. Do not add a second products app. |
-| `/dashboard/store`    | `/storefront`       | Keep.                                             |
-| `/store/:handle`      | `/store/$slug`      | Already Option B (path shops).                    |
+| Guide                 | Existing            | Action                                                                      |
+| --------------------- | ------------------- | --------------------------------------------------------------------------- |
+| `/stores`             | `/market`           | `/stores` is the published-shop gallery. `/market` still searches products. |
+| `/signup`             | `/auth?mode=signup` | Redirect.                                                                   |
+| `/login`              | `/auth?mode=signin` | Redirect.                                                                   |
+| `/dashboard/products` | `/inventory`        | Keep inventory. Do not add a second products app.                           |
+| `/dashboard/store`    | `/storefront`       | Keep.                                                                       |
+| `/store/:handle`      | `/store/$slug`      | Already Option B (path shops).                                              |
 
 ## What is stub / incomplete vs the guide
 
@@ -43,6 +43,10 @@ Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated 
 - **Concurrent oversell** is intended to be locked in SQL on reserve; needs a live two-buyer test (Stage 7).
 - **Images >5MB**: product media PR exists (#24); not on this branch.
 - Merchant dashboard titles still say BusinessOS on many inner pages.
+
+## Stage 2 (public site)
+
+Homepage `/` and `/stores` load `getMarketplaceFn`. Featured and gallery cards are published shops from the database, or an empty state — never hardcoded demo shops. `/pricing` compares founding beta ($0) with Pro (`PLAN_MONTHLY_USD.pro` after notice). `/signup` and `/login` still redirect to `/auth`. `/market` remains product search.
 
 ## Do not rebuild
 

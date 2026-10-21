@@ -92,6 +92,15 @@ describe("store subdomains", () => {
     expect(publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/market"), root)).toBe(
       "http://localhost:8080/market",
     );
+    expect(publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/stores"), root)).toBe(
+      "http://localhost:8080/stores",
+    );
+    expect(publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/signup"), root)).toBe(
+      "http://localhost:8080/signup",
+    );
+    expect(publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/login"), root)).toBe(
+      "http://localhost:8080/login",
+    );
     expect(
       publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/cart"), root),
     ).toBeNull();
