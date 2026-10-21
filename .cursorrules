@@ -1,0 +1,57 @@
+# KWETUU — Cursor Build Rules
+
+## Identity
+You are extending Kwetuu on the existing BusinessOS Vite + React + Supabase app.
+Do not create a new project. Do not run create-react-app or create-next-app.
+
+## First rule
+Read SCHEMA_AUDIT.md and FEATURE_AUDIT.md.
+Do not assume a `stores` table — tenants are `businesses` + `storefronts`.
+Do not assume React Router v6 — routing is TanStack Router (file routes in `src/routes/`).
+
+## Stack constraints
+- Framework: Vite + React + TanStack Start only. No Next.js, Remix, or CRA.
+- Database: Existing Supabase project only. No new projects. No Prisma/Drizzle.
+- Auth: Existing Supabase Auth (`src/lib/auth/`). No Clerk, Auth0, or NextAuth.
+- Payments: Paynow Zimbabwe (`paynow` npm) only. Shop keys in `store_paynow_credentials`. Platform billing keys are separate. No Stripe/PayPal.
+- Paynow calls: server-side (`*.server.ts` / Cloud Run webhook `/api/webhooks/paynow`). Not the browser. Do not add duplicate Edge Functions unless asked.
+- State: TanStack Query + existing cart helper. No Redux.
+- Icons: lucide-react (already installed)
+- UI: existing `src/components/ui/` shadcn copies
+- Toasts: sonner (already installed)
+
+## What NOT to do
+- Never replace working code without being asked
+- Never hardcode products, orders, or user data as if they were live shops
+- Template gallery sketches must stay labelled as samples
+- Never copy authentication from reference repos
+- Never bypass RLS / never query another business’s rows from the client
+- Never deduct shop stock on the client
+- Never mark a Paynow order paid from the return URL alone — only the server webhook
+
+## Multi-tenancy
+Merchant-owned tables use `business_id` (not `store_id`).
+Dashboard data goes through existing server functions and RPCs.
+Public shop data goes through published-storefront RPCs.
+
+## Reference repos (layout only)
+- vercel/commerce, medusajs/nextjs-starter-medusa, storefront-ui — JSX/CSS patterns only
+- cruip/mosaic-react, openstatusHQ/openstatus, shadcn data-table — dashboard patterns; we already have AppShell + DataTable
+- paynowinc/paynow-node-sdk — already used on the server
+
+## Stage order
+1. Audit (SCHEMA_AUDIT.md + FEATURE_AUDIT.md) — done in git; keep them true
+2. Public website (existing `/`, `/market`, `/pricing`, `/auth`; aliases `/stores`, `/signup`, `/login`)
+3. Merchant dashboard (existing `/dashboard`, `/inventory`, `/storefront`)
+4. Storefront templates (ten layouts, one catalogue — extend `store-experience.tsx`, do not add a second products API)
+5. Checkout + Paynow (existing cart + checkout + webhook)
+6. Path routing `/store/$slug` first; subdomains only when SHOP_HOSTS is on
+7. Testing (tenant-isolation, stock, payment failure, mobile)
+
+## File structure (actual)
+src/routes/           TanStack file routes (not src/pages/)
+src/components/ui/    shadcn
+src/components/storefront/
+src/lib/storefront/
+src/lib/payments/     shop-paynow.server.ts, paynow.server.ts
+src/lib/auth/

@@ -1,38 +1,60 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { Menu } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { BRAND } from "@/lib/brand";
 
+const NAV = [
+  { to: "/market" as const, label: "Shops", search: { q: "", category: "" } },
+  { to: "/features" as const, label: "Features" },
+  { to: "/templates" as const, label: "Templates" },
+  { to: "/pricing" as const, label: "Pricing" },
+  { to: "/faq" as const, label: "FAQ" },
+];
+
+function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <>
+      {NAV.map((item) =>
+        item.to === "/market" ? (
+          <Link
+            key={item.to}
+            className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            to="/market"
+            search={item.search}
+            onClick={onNavigate}
+          >
+            {item.label}
+          </Link>
+        ) : (
+          <Link
+            key={item.to}
+            className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            to={item.to}
+            onClick={onNavigate}
+          >
+            {item.label}
+          </Link>
+        ),
+      )}
+    </>
+  );
+}
+
 export function MarketingShell({ children }: { children: ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5">
           <Logo to="/" />
-          <nav className="-mx-4 flex items-center gap-5 overflow-x-auto px-4 text-sm text-muted-foreground lg:mx-0 lg:overflow-visible lg:px-0">
-            <Link
-              className="shrink-0 transition-colors hover:text-foreground"
-              to="/market"
-              search={{ q: "", category: "" }}
-            >
-              Shops
-            </Link>
-            <Link className="shrink-0 transition-colors hover:text-foreground" to="/features">
-              Features
-            </Link>
-            <Link className="shrink-0 transition-colors hover:text-foreground" to="/templates">
-              Templates
-            </Link>
-            <Link className="shrink-0 transition-colors hover:text-foreground" to="/pricing">
-              Pricing
-            </Link>
-            <Link className="shrink-0 transition-colors hover:text-foreground" to="/faq">
-              FAQ
-            </Link>
+          <nav className="hidden items-center gap-6 lg:flex">
+            <NavLinks />
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link to="/auth" search={{ mode: "signin" }}>
                 Sign in
               </Link>
@@ -42,6 +64,29 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 Open a shop
               </Link>
             </Button>
+            <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="lg:hidden" aria-label="Open menu">
+                  <Menu className="size-4" aria-hidden="true" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72">
+                <SheetHeader>
+                  <SheetTitle>{BRAND.name}</SheetTitle>
+                </SheetHeader>
+                <nav className="mt-8 flex flex-col gap-4">
+                  <NavLinks onNavigate={() => setMenuOpen(false)} />
+                  <Link
+                    className="text-sm font-medium text-foreground"
+                    to="/auth"
+                    search={{ mode: "signin" }}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Sign in
+                  </Link>
+                </nav>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>

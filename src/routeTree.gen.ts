@@ -16,6 +16,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as ApiInternalFlushMailRouteImport } from './routes/api.internal.flush-mail'
 import { Route as MarketRouteImport } from './routes/market'
+import { Route as StoresRouteImport } from './routes/stores'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -101,6 +104,21 @@ const ApiInternalFlushMailRoute = ApiInternalFlushMailRouteImport.update({
 const MarketRoute = MarketRouteImport.update({
   id: '/market',
   path: '/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoresRoute = StoresRouteImport.update({
+  id: '/stores',
+  path: '/stores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -380,6 +398,9 @@ export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
+  '/stores': typeof StoresRoute
+  '/signup': typeof SignupRoute
+  '/login': typeof LoginRoute
   '/templates': typeof TemplatesRoute
   '/pricing': typeof PricingRoute
   '/faq': typeof FaqRoute
@@ -440,6 +461,9 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
+  '/stores': typeof StoresRoute
+  '/signup': typeof SignupRoute
+  '/login': typeof LoginRoute
   '/about': typeof AboutRoute
   '/features': typeof FeaturesRoute
   '/faq': typeof FaqRoute
@@ -501,6 +525,9 @@ export interface FileRoutesById {
   '/health': typeof HealthRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/market': typeof MarketRoute
+  '/stores': typeof StoresRoute
+  '/signup': typeof SignupRoute
+  '/login': typeof LoginRoute
   '/about': typeof AboutRoute
   '/features': typeof FeaturesRoute
   '/faq': typeof FaqRoute
@@ -563,6 +590,9 @@ export interface FileRouteTypes {
     | '/health'
     | '/api/internal/flush-mail'
     | '/market'
+    | '/stores'
+    | '/signup'
+    | '/login'
 | '/about'
 | '/features'
 | '/faq'
@@ -623,6 +653,9 @@ export interface FileRouteTypes {
     | '/health'
     | '/api/internal/flush-mail'
     | '/market'
+    | '/stores'
+    | '/signup'
+    | '/login'
 | '/about'
 | '/features'
 | '/faq'
@@ -683,6 +716,9 @@ export interface FileRouteTypes {
     | '/health'
     | '/api/internal/flush-mail'
     | '/market'
+    | '/stores'
+    | '/signup'
+    | '/login'
 | '/about'
 | '/features'
 | '/faq'
@@ -745,6 +781,9 @@ export interface RootRouteChildren {
   HealthRoute: typeof HealthRoute
   ApiInternalFlushMailRoute: typeof ApiInternalFlushMailRoute
   MarketRoute: typeof MarketRoute
+  StoresRoute: typeof StoresRoute
+  SignupRoute: typeof SignupRoute
+  LoginRoute: typeof LoginRoute
   AboutRoute: typeof AboutRoute
   FeaturesRoute: typeof FeaturesRoute
   FaqRoute: typeof FaqRoute
@@ -814,6 +853,27 @@ declare module '@tanstack/react-router' {
       path: '/market'
       fullPath: '/market'
       preLoaderRoute: typeof MarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stores': {
+      id: '/stores'
+      path: '/stores'
+      fullPath: '/stores'
+      preLoaderRoute: typeof StoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -1286,6 +1346,9 @@ const rootRouteChildren: RootRouteChildren = {
   HealthRoute: HealthRoute,
   ApiInternalFlushMailRoute: ApiInternalFlushMailRoute,
   MarketRoute: MarketRoute,
+  StoresRoute: StoresRoute,
+  SignupRoute: SignupRoute,
+  LoginRoute: LoginRoute,
   AboutRoute: AboutRoute,
   FeaturesRoute: FeaturesRoute,
   FaqRoute: FaqRoute,
