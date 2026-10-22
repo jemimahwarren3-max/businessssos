@@ -10,6 +10,8 @@ The migration also stops signed-in members from reading `businesses.staff_passwo
 
 Apply `20261019140000_storefront_order_rules.sql` after the marketplace and host-slug migrations. That snapshot stores the agreed cash, delivery, and acceptance rules on each order.
 
+Apply `20261021150000_storefront_template_library.sql` after the existing storefront migration. It expands the template allow-list and persists seller theme settings without changing products or orders.
+
 ## Order and stock rules
 
 - A normal order locks product rows, checks `selling_price` and stock on the server, and decrements stock. It writes `inventory_movements` with `reference_type = 'store_order'`.
@@ -29,7 +31,7 @@ Platform Paynow keys (`PAYNOW_INTEGRATION_ID` / `PAYNOW_INTEGRATION_KEY`) remain
 
 ## Templates
 
-Ten layouts share one renderer (`src/components/storefront/store-experience.tsx`) and one template list (`src/lib/storefront/templates.ts`). Changing template does not copy products or orders. Gallery thumbnails are labelled sample layouts, not live products.
+Sixty storefront designs (six each in ten retail categories) share one renderer (`src/components/storefront/store-experience.tsx`) and one template registry (`src/lib/storefront/templates.ts`). Sellers can filter/search the gallery, preview their published products on desktop or mobile, customize palettes, color tokens, type pairing, logo, cover image, and section visibility, and save those settings to their own store. Changing template does not copy products or orders. Gallery sketches are labelled sample layouts; the seller's draft preview uses their actual published catalogue.
 
 There are no purchasable variants. Size, shade, and ingredient text are merchant notes on the single product stock count.
 

@@ -48,11 +48,20 @@ function SearchPage() {
         <input
           id="store-search"
           className="w-full rounded-md border px-3 py-2"
+          style={{
+            backgroundColor: store.theme.surface,
+            color: store.theme.text,
+            borderColor: store.theme.accent + "70",
+          }}
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder="Search products"
         />
-        <button className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white" type="submit">
+        <button
+          className="rounded-md px-4 py-2 text-sm"
+          style={{ backgroundColor: store.theme.button, color: store.theme.buttonText }}
+          type="submit"
+        >
           Search
         </button>
       </form>

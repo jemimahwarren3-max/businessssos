@@ -53,7 +53,7 @@ export const Route = createFileRoute("/")({
 const SETUP_STEPS = [
   { icon: Store, title: "Name your shop", body: "Tell us what you sell. That's it." },
   { icon: PackagePlus, title: "Add your products", body: "Snap a photo, type a price." },
-  { icon: Palette, title: "Pick a design", body: "Ten storefront designs, made for real shops." },
+  { icon: Palette, title: "Pick a design", body: "60 storefront designs for ten shop categories." },
   { icon: Wallet, title: "Say how you get paid", body: "EcoCash, bank, InnBucks or cash." },
   { icon: Share2, title: "Share your link", body: "Send it on WhatsApp and start selling." },
 ] as const;

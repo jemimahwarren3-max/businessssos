@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { marketplaceSchema } from "@/lib/storefront/contract";
+import { marketplaceSchema, saveStoreSchema } from "@/lib/storefront/contract";
 import {
   parsePlatformRoot,
   publicStoreRedirect,
@@ -14,10 +14,11 @@ import { defaultShopPatch } from "@/lib/storefront/onboarding-defaults";
 import {
   STORE_TEMPLATES,
   TEMPLATE_IDS,
+  getTemplate,
   isTemplateId,
   templateForBusinessType,
 } from "@/lib/storefront/templates";
-import { storeSurface } from "@/lib/storefront/store-surface";
+import { STORE_PALETTES, themeContrastWarnings, themeFromPalette } from "@/lib/storefront/theme";
 import { RESERVED_HOST_LABELS } from "@/lib/storefront/host";
 import { allowedFulfilments, allowedPayments, cashPolicyLines } from "@/lib/storefront/order-rules";
 import { fulfilmentActions } from "@/lib/storefront/transitions";
@@ -184,33 +185,58 @@ describe("storefront pricing", () => {
 });
 
 describe("storefront templates", () => {
-  it("defines ten distinct layouts", () => {
-    expect(STORE_TEMPLATES).toHaveLength(10);
-    expect(new Set(STORE_TEMPLATES.map((template) => template.layout)).size).toBe(10);
-    expect(new Set(TEMPLATE_IDS).size).toBe(10);
+  it("defines six distinct design directions in each of ten categories", () => {
+    expect(STORE_TEMPLATES).toHaveLength(60);
+    expect(new Set(TEMPLATE_IDS).size).toBe(60);
+    expect([...STORE_TEMPLATES.map((template) => template.id)].sort()).toEqual(
+      [...TEMPLATE_IDS].sort(),
+    );
     for (const template of STORE_TEMPLATES) {
       expect(template.sampleLabel.toLowerCase()).toContain("sample");
       expect(isTemplateId(template.id)).toBe(true);
+      expect(template.configurationSchema).toBeDefined();
+    }
+    for (const category of new Set(STORE_TEMPLATES.map((template) => template.category))) {
+      const designs = STORE_TEMPLATES.filter((template) => template.category === category);
+      expect(designs).toHaveLength(6);
+      expect(new Set(designs.map((template) => template.heroStyle)).size).toBe(6);
+      expect(new Set(designs.map((template) => template.catalogStyle)).size).toBe(6);
+      expect(new Set(designs.map((template) => template.cardStyle)).size).toBe(6);
     }
     expect(templateForBusinessType("boutique")).toBe("fashion-boutique");
     expect(templateForBusinessType("grocery")).toBe("grocery");
+    expect(getTemplate("grocery").layout).toBe("dense");
+    expect(getTemplate("wholesale").layout).toBe("wholesale");
+    expect(getTemplate("social").layout).toBe("social");
     const names = STORE_TEMPLATES.map((template) => template.name);
-    expect(new Set(names).size).toBe(10);
-    expect(names).toContain("Fashion & clothing");
-    expect(names).toContain("Beauty & aesthetics");
-    expect(names).toContain("Jewellery & accessories");
-    const surfaces = new Set(STORE_TEMPLATES.map((template) => storeSurface(template.layout).page));
-    expect(surfaces.size).toBe(STORE_TEMPLATES.length);
+    expect(new Set(names).size).toBe(60);
+    expect(STORE_TEMPLATES.map((template) => template.category).length).toBe(60);
+    expect(STORE_TEMPLATES.map((template) => template.id)).toContain("electronics-tech");
     const patch = defaultShopPatch({
       businessId: "00000000-0000-0000-0000-000000000001",
       storeName: "Mbare Fresh",
       templateId: "grocery",
     });
+    expect(saveStoreSchema.parse(patch).theme).toEqual(patch.theme);
     expect(patch.delivery.pickupEnabled).toBe(true);
     expect(patch.payments.acceptPaynow).toBe(false);
     expect(patch.payments.manualMethods).toEqual([]);
     expect(RESERVED_HOST_LABELS.has("templates")).toBe(true);
     expect(RESERVED_HOST_LABELS.has("features")).toBe(true);
+  });
+
+  it("provides readable contrast by default and detects low-contrast customization", () => {
+    for (const palette of STORE_PALETTES) {
+      expect(themeContrastWarnings(themeFromPalette(palette.id))).toEqual([]);
+    }
+    const lowContrast = {
+      ...themeFromPalette("linen"),
+      text: "#EEEEEE",
+      button: "#EEEEEE",
+      buttonText: "#EEEEEE",
+      link: "#EEEEEE",
+    };
+    expect(themeContrastWarnings(lowContrast)).toHaveLength(5);
   });
 });
 

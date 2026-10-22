@@ -32,7 +32,16 @@ import {
   transitionOrderFn,
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
+import { TEMPLATE_CATEGORIES } from "@/lib/storefront/templates";
+import {
+  STOREFRONT_THEME_SCHEMA,
+  STORE_PALETTES,
+  themeContrastWarnings,
+  themeFromPalette,
+  type StorefrontTheme,
+} from "@/lib/storefront/theme";
 import { TemplatePreview } from "@/components/storefront/template-preview";
+import { LiveTemplatePreview } from "@/components/storefront/live-template-preview";
 import { BRAND } from "@/lib/brand";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
@@ -153,8 +162,20 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const [address, setAddress] = useState(store?.address ?? "");
   const [heroTitle, setHeroTitle] = useState(store?.heroTitle ?? "");
   const [heroSubtitle, setHeroSubtitle] = useState(store?.heroSubtitle ?? "");
-  const [accent, setAccent] = useState(store?.accentColor ?? "");
+  const [logoUrl, setLogoUrl] = useState(store?.logoUrl ?? "");
   const [templateId, setTemplateId] = useState(store?.templateId ?? "modern-minimal");
+  const [theme, setTheme] = useState<StorefrontTheme>(() =>
+    STOREFRONT_THEME_SCHEMA.parse(
+      store?.theme ??
+        themeFromPalette(
+          getTemplate(store?.templateId ?? "modern-minimal").defaultPalette,
+          store?.accentColor ?? undefined,
+        ),
+    ),
+  );
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [templateCategory, setTemplateCategory] = useState("all");
+  const [previewViewport, setPreviewViewport] = useState<"mobile" | "desktop">("desktop");
   const [slug, setSlug] = useState(store?.slug ?? "");
   const [pickup, setPickup] = useState(store?.delivery.pickupEnabled ?? true);
   const [delivery, setDelivery] = useState(store?.delivery.deliveryEnabled ?? false);
@@ -203,7 +224,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           whatsapp,
           phone,
           address,
-          accentColor: accent || undefined,
+          logoUrl,
+          accentColor: theme.accent,
+          theme,
           heroTitle,
           heroSubtitle,
           policies,
@@ -325,31 +348,282 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Design</h2>
-        <div className="grid gap-3 md:grid-cols-2">
-          {STORE_TEMPLATES.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => {
-                setTemplateId(template.id);
-                if (!accent) setAccent("");
-              }}
-              className="rounded-lg border p-3 text-left"
-              style={{
-                outline: templateId === template.id ? "2px solid var(--primary)" : undefined,
-              }}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm">
+            <Label htmlFor="template-search">Search designs</Label>
+            <Input
+              id="template-search"
+              value={templateSearch}
+              onChange={(event) => setTemplateSearch(event.target.value)}
+              placeholder="Search layouts, categories, or styles"
+            />
+          </label>
+          <label className="text-sm">
+            <Label htmlFor="template-category">Category</Label>
+            <select
+              id="template-category"
+              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3"
+              value={templateCategory}
+              onChange={(event) => setTemplateCategory(event.target.value)}
             >
-              <TemplatePreview template={template} className="mb-3 h-20" />
-              <p className="text-xs text-muted-foreground">{template.sampleLabel}</p>
-              <p className="font-medium">{template.name}</p>
-              <p className="text-sm text-muted-foreground">{template.description}</p>
-              <p className="mt-1 text-xs">Best for {template.bestFor}</p>
-            </button>
-          ))}
+              <option value="all">All categories (60 designs)</option>
+              {TEMPLATE_CATEGORIES.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name} (6)
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {(() => {
+          const query = templateSearch.trim().toLowerCase();
+          const templates = STORE_TEMPLATES.filter((template) => {
+            const matchesCategory =
+              templateCategory === "all" || template.category === templateCategory;
+            const matchesSearch =
+              !query ||
+              `${template.name} ${template.categoryName} ${template.description} ${template.bestFor}`
+                .toLowerCase()
+                .includes(query);
+            return matchesCategory && matchesSearch;
+          });
+          return (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Showing {templates.length} of {STORE_TEMPLATES.length} storefront designs.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {templates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => setTemplateId(template.id)}
+                    className="rounded-lg border p-3 text-left"
+                    style={{
+                      outline: templateId === template.id ? "2px solid var(--primary)" : undefined,
+                    }}
+                    aria-pressed={templateId === template.id}
+                  >
+                    <TemplatePreview template={template} className="mb-3 h-24" />
+                    <p className="text-xs text-muted-foreground">{template.categoryName}</p>
+                    <p className="font-medium">{template.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{template.description}</p>
+                  </button>
+                ))}
+                {templates.length === 0 ? (
+                  <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground sm:col-span-2 xl:col-span-3">
+                    No designs match this search. Try another phrase or category.
+                  </p>
+                ) : null}
+              </div>
+            </>
+          );
+        })()}
+        <div className="space-y-3 rounded-xl border p-4">
+          <div>
+            <h3 className="font-semibold">Brand and storefront theme</h3>
+            <p className="text-sm text-muted-foreground">
+              Palette, colors, typography, logo, cover image, and visible sections update the
+              preview below and are saved with this shop.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {STORE_PALETTES.map((palette) => (
+              <button
+                key={palette.id}
+                type="button"
+                className="flex items-center gap-2 rounded-lg border p-2 text-left text-sm"
+                onClick={() =>
+                  setTheme((current) => ({
+                    ...themeFromPalette(palette.id),
+                    fontPair: current.fontPair,
+                    coverUrl: current.coverUrl,
+                    sections: current.sections,
+                  }))
+                }
+              >
+                <span className="flex overflow-hidden rounded-full border">
+                  {[palette.colors.primary, palette.colors.accent, palette.colors.background].map(
+                    (color) => (
+                      <span key={color} className="size-5" style={{ backgroundColor: color }} />
+                    ),
+                  )}
+                </span>
+                {palette.name}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(
+              [
+                ["primary", "Primary"],
+                ["accent", "Accent"],
+                ["background", "Background"],
+                ["surface", "Surface"],
+                ["text", "Text"],
+                ["button", "Button"],
+                ["buttonText", "Button text"],
+                ["link", "Link"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-sm">
+                <input
+                  aria-label={`${label} color`}
+                  type="color"
+                  value={theme[key]}
+                  onChange={(event) =>
+                    setTheme((current) => ({ ...current, [key]: event.target.value }))
+                  }
+                  className="size-9 cursor-pointer rounded border p-0.5"
+                />
+                <span>
+                  {label}
+                  <span className="block text-xs text-muted-foreground">{theme[key]}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm">
+              <Label>Font pairing</Label>
+              <select
+                className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3"
+                value={theme.fontPair}
+                onChange={(event) =>
+                  setTheme((current) => ({
+                    ...current,
+                    fontPair: event.target.value as StorefrontTheme["fontPair"],
+                  }))
+                }
+              >
+                <option value="system">Modern system</option>
+                <option value="editorial">Editorial serif</option>
+                <option value="humanist">Humanist</option>
+                <option value="geometric">Geometric</option>
+                <option value="rounded">Rounded</option>
+                <option value="mono">Monospace</option>
+              </select>
+            </label>
+            <label className="text-sm">
+              <Label>Cover image URL (HTTPS)</Label>
+              <Input
+                value={theme.coverUrl}
+                onChange={(event) =>
+                  setTheme((current) => ({ ...current, coverUrl: event.target.value }))
+                }
+                placeholder="https://..."
+              />
+            </label>
+            <label className="text-sm">
+              <Label>Logo image URL (HTTPS)</Label>
+              <Input
+                value={logoUrl}
+                onChange={(event) => setLogoUrl(event.target.value)}
+                placeholder="https://..."
+              />
+            </label>
+          </div>
+          <fieldset>
+            <legend className="text-sm font-medium">Visible storefront sections</legend>
+            <div className="mt-2 flex flex-wrap gap-4 text-sm">
+              {(
+                [
+                  ["hero", "Hero"],
+                  ["categories", "Categories"],
+                  ["featured", "Featured products"],
+                  ["about", "About text"],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={theme.sections[key]}
+                    onChange={(event) =>
+                      setTheme((current) => ({
+                        ...current,
+                        sections: { ...current.sections, [key]: event.target.checked },
+                      }))
+                    }
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {themeContrastWarnings(theme).length > 0 ? (
+            <div role="alert" className="rounded-md bg-amber-50 p-3 text-sm text-amber-950">
+              <p className="font-medium">Check color contrast before publishing</p>
+              <ul className="mt-1 list-inside list-disc">
+                {themeContrastWarnings(theme).map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-green-700">
+              Selected text and button colors meet 4.5:1 contrast.
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              const template = getTemplate(templateId);
+              setTheme(themeFromPalette(template.defaultPalette, template.defaultAccent));
+            }}
+          >
+            Reset theme to template defaults
+          </Button>
+        </div>
+        <div className="space-y-3 rounded-xl border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold">Storefront preview</h3>
+              <p className="text-sm text-muted-foreground">
+                Uses your current draft branding and published catalogue items.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={previewViewport === "desktop" ? "default" : "outline"}
+                onClick={() => setPreviewViewport("desktop")}
+                aria-pressed={previewViewport === "desktop"}
+              >
+                Desktop
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={previewViewport === "mobile" ? "default" : "outline"}
+                onClick={() => setPreviewViewport("mobile")}
+                aria-pressed={previewViewport === "mobile"}
+              >
+                Mobile
+              </Button>
+            </div>
+          </div>
+          <LiveTemplatePreview
+            template={getTemplate(templateId)}
+            storeName={storeName}
+            currency={initial.currency}
+            tagline={tagline}
+            about={about}
+            phone={phone}
+            address={address}
+            policies={policies}
+            heroTitle={heroTitle}
+            heroSubtitle={heroSubtitle}
+            logoUrl={logoUrl}
+            theme={theme}
+            products={initial.products}
+            viewport={previewViewport}
+          />
         </div>
         <p className="text-sm text-muted-foreground">
-          Switching design keeps your products, orders, and settings. The sample blocks above are
-          not your catalogue.
+          Switching design keeps your existing products, orders, and store. Save the draft to apply
+          these changes to the customer-facing storefront.
         </p>
       </section>
 
@@ -385,14 +659,6 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <label className="text-sm">
           <Label>Hero title</Label>
           <Input value={heroTitle} onChange={(event) => setHeroTitle(event.target.value)} />
-        </label>
-        <label className="text-sm">
-          <Label>Accent hex</Label>
-          <Input
-            value={accent}
-            placeholder={getTemplate(templateId).defaultAccent}
-            onChange={(event) => setAccent(event.target.value)}
-          />
         </label>
         <label className="text-sm md:col-span-2">
           <Label>Hero subtitle</Label>
@@ -671,12 +937,13 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             type="button"
             variant="outline"
             onClick={() => {
-              setAccent("");
+              const template = getTemplate(templateId);
+              setTheme(themeFromPalette(template.defaultPalette, template.defaultAccent));
               setHeroTitle("");
               setHeroSubtitle("");
             }}
           >
-            Reset hero and colour
+            Reset hero and theme
           </Button>
           <Button
             type="button"

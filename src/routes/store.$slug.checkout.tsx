@@ -523,7 +523,8 @@ function CheckoutPage() {
             .
           </p>
           <button
-            className="mt-4 w-full rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-4 w-full rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50"
+            style={{ backgroundColor: store.theme.button, color: store.theme.buttonText }}
             disabled={
               pending ||
               lines.length === 0 ||
