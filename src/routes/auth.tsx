@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup", "reset"]).default("signin").catch("signin"),
+  reason: z.enum(["oauth"]).optional().catch(undefined),
   // Only ever used to bounce back to an invite link after auth — deliberately
   // narrow (not a general-purpose redirect target) to rule out open-redirect
   // abuse via a crafted /auth?redirect= link.
@@ -54,7 +55,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { mode, redirect } = Route.useSearch();
+  const { mode, redirect, reason } = Route.useSearch();
   const { providers } = Route.useLoaderData();
   const emailEnabled = providers.email;
   const googleEnabled = providers.google;
@@ -73,9 +74,21 @@ function AuthPage() {
   const needsAcceptance = mode === "signup" && !acceptedTerms;
 
   useEffect(() => {
-    fetchCurrentUser().then((user) => {
-      if (user) navigate({ to: destination, replace: true });
+    if (reason === "oauth") {
+      toast.error(
+        "Google sign-in did not finish. Try again, or use a private window if it keeps looping.",
+      );
+    }
+  }, [reason]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCurrentUser().then((user) => {
+      if (!cancelled && user) navigate({ to: destination, replace: true });
     });
+    return () => {
+      cancelled = true;
+    };
   }, [navigate, fetchCurrentUser, destination]);
 
   async function handleSubmit(event: React.FormEvent) {

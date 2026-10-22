@@ -34,7 +34,8 @@ const authStorage = {
       return;
     }
     if (typeof document === "undefined") return;
-    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; path=/; max-age=600; SameSite=Lax`;
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; path=/; max-age=600; SameSite=Lax${secure}`;
   },
   removeItem(key: string) {
     if (!key.endsWith("-code-verifier")) {
@@ -42,7 +43,8 @@ const authStorage = {
       return;
     }
     if (typeof document === "undefined") return;
-    document.cookie = `${encodeURIComponent(key)}=; path=/; max-age=0; SameSite=Lax`;
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${encodeURIComponent(key)}=; path=/; max-age=0; SameSite=Lax${secure}`;
   },
 };
 

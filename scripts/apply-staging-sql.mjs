@@ -13,6 +13,7 @@ const FILES = [
   "20261021120000_manual_shop_payments.sql",
   "20261021140000_payment_proof_storage.sql",
   "20261021141000_platform_fx.sql",
+  "20261021150000_storefront_template_library.sql",
 ];
 
 const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
