@@ -88,6 +88,7 @@ export const publicProductSchema = z.object({
   details: z.string(),
   sizeGuide: z.string(),
   imageUrl: z.string().nullable(),
+  galleryUrls: z.array(z.string().max(500)).max(8).default([]),
   price: z.coerce.number(),
   currency: z.string(),
   unit: z.string(),
@@ -101,6 +102,39 @@ export const publicProductSchema = z.object({
   stockLabel: z.string(),
   maxPurchasable: z.coerce.number(),
 });
+
+const storefrontCollectionSchema = z.object({
+  id: z.string().max(40),
+  title: z.string().max(80),
+  description: z.string().max(200),
+  categoryName: z.string().max(80),
+});
+
+const storefrontPromoTileSchema = z.object({
+  id: z.string().max(40),
+  title: z.string().max(80),
+  subtitle: z.string().max(160),
+  imageUrl: z.string().max(500),
+  categoryName: z.string().max(80),
+});
+
+const storefrontFaqSchema = z.object({
+  question: z.string().max(200),
+  answer: z.string().max(1000),
+});
+
+export const storefrontContentSchema = z.object({
+  announcement: z.string().max(200).default(""),
+  collections: z.array(storefrontCollectionSchema).max(6).default([]),
+  promoTiles: z.array(storefrontPromoTileSchema).max(4).default([]),
+  faqs: z.array(storefrontFaqSchema).max(12).default([]),
+  deliveryPolicy: z.string().max(2000).default(""),
+  returnsPolicy: z.string().max(2000).default(""),
+  privacyPolicy: z.string().max(2000).default(""),
+});
+
+export type StorefrontContent = z.infer<typeof storefrontContentSchema>;
+export const EMPTY_STOREFRONT_CONTENT: StorefrontContent = storefrontContentSchema.parse({});
 
 export const publicStoreSchema = z.object({
   slug: z.string(),
@@ -116,6 +150,7 @@ export const publicStoreSchema = z.object({
   logoUrl: z.string().nullable(),
   accentColor: z.string().nullable(),
   theme: STOREFRONT_THEME_SCHEMA,
+  content: storefrontContentSchema.default(EMPTY_STOREFRONT_CONTENT),
   heroTitle: z.string(),
   heroSubtitle: z.string(),
   policies: z.string(),
@@ -407,6 +442,7 @@ const adminProductSchema = z.object({
   stock: z.coerce.number(),
   unit: z.string(),
   imageUrl: z.string().nullable(),
+  galleryUrls: z.array(z.string().max(500)).max(8).default([]),
   categoryName: z.string().nullable(),
   published: z.boolean(),
   slug: z.string().nullable(),
@@ -434,6 +470,7 @@ export const adminStoreSchema = z.object({
       logoUrl: z.string().nullable(),
       accentColor: z.string().nullable(),
       theme: STOREFRONT_THEME_SCHEMA,
+      content: storefrontContentSchema.default(EMPTY_STOREFRONT_CONTENT),
       heroTitle: z.string(),
       heroSubtitle: z.string(),
       policies: z.string(),
@@ -533,12 +570,13 @@ export const saveStoreSchema = z.object({
   tagline: z.string().max(160).optional(),
   about: z.string().max(2000).optional(),
   whatsapp: z.string().max(20).optional(),
-  email: z.string().max(120).optional(),
+  email: z.string().trim().email().max(120).or(z.literal("")).optional(),
   phone: z.string().max(40).optional(),
   address: z.string().max(300).optional(),
   logoUrl: z.string().max(500).optional(),
   accentColor: z.string().max(7).optional(),
   theme: STOREFRONT_THEME_SCHEMA,
+  content: storefrontContentSchema.optional(),
   heroTitle: z.string().max(120).optional(),
   heroSubtitle: z.string().max(200).optional(),
   policies: z.string().max(4000).optional(),

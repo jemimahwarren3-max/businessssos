@@ -13,6 +13,7 @@ import { getMarketplaceFn } from "@/lib/storefront/storefront.functions";
 const searchSchema = z.object({
   q: z.string().max(80).optional().catch(""),
   category: z.string().max(80).optional().catch(""),
+  shop: z.string().max(40).optional().catch(""),
 });
 
 export const Route = createFileRoute("/market")({
@@ -49,7 +50,11 @@ function MarketError({ error }: { error: Error }) {
 function MarketPage() {
   const market = Route.useLoaderData();
   const search = Route.useSearch();
-  const filtering = Boolean(market.query || market.category);
+  const selectedShop = search.shop ?? "";
+  const products = selectedShop
+    ? market.products.filter((product) => product.storeSlug === selectedShop)
+    : market.products;
+  const filtering = Boolean(market.query || market.category || selectedShop);
   return (
     <MarketFrame>
       <form className="mt-6 flex flex-col gap-2 sm:flex-row" method="get">
@@ -64,14 +69,49 @@ function MarketPage() {
           className="h-11 flex-1 rounded-md border border-input bg-background px-3 text-sm"
         />
         {market.category ? <input type="hidden" name="category" value={market.category} /> : null}
+        {selectedShop ? <input type="hidden" name="shop" value={selectedShop} /> : null}
         <Button type="submit">Search</Button>
       </form>
+
+      {market.shops.length > 0 ? (
+        <form className="mt-3 flex flex-wrap items-end gap-2" method="get">
+          <input type="hidden" name="q" value={search.q ?? ""} />
+          <input type="hidden" name="category" value={market.category} />
+          <label className="grid gap-1 text-sm">
+            <span>Choose a preferred shop</span>
+            <select
+              name="shop"
+              defaultValue={selectedShop}
+              className="h-10 min-w-56 rounded-md border border-input bg-background px-3"
+            >
+              <option value="">All shops</option>
+              {market.shops.map((shop) => (
+                <option key={shop.slug} value={shop.slug}>
+                  {shop.storeName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button type="submit" variant="outline">
+            Apply shop
+          </Button>
+          {selectedShop ? (
+            <Link
+              to="/market"
+              search={{ q: search.q ?? "", category: market.category, shop: "" }}
+              className="px-2 py-2 text-sm underline"
+            >
+              Clear shop
+            </Link>
+          ) : null}
+        </form>
+      ) : null}
 
       {market.categories.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             to="/market"
-            search={{ q: search.q ?? "", category: "" }}
+            search={{ q: search.q ?? "", category: "", shop: selectedShop }}
             className={`rounded-full border px-3 py-1 text-sm ${market.category ? "text-muted-foreground" : "border-foreground"}`}
           >
             All
@@ -80,7 +120,7 @@ function MarketPage() {
             <Link
               key={category.name}
               to="/market"
-              search={{ q: search.q ?? "", category: category.name }}
+              search={{ q: search.q ?? "", category: category.name, shop: selectedShop }}
               className={`rounded-full border px-3 py-1 text-sm ${
                 market.category.toLowerCase() === category.name.toLowerCase()
                   ? "border-foreground"
@@ -110,11 +150,11 @@ function MarketPage() {
       ) : null}
       {filtering ? (
         <ProductSection
-          title={market.products.length === 0 ? "No matching products" : "Products"}
-          products={market.products}
+          title={products.length === 0 ? "No matching products" : "Products"}
+          products={products}
           empty="Nothing matched that search in the shops currently listed."
         />
-      ) : market.products.length > 0 ? (
+      ) : products.length > 0 ? (
         <ProductSection title="Products" products={market.products} />
       ) : null}
     </MarketFrame>

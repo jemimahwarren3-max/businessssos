@@ -22,6 +22,10 @@ export const STOREFRONT_THEME_DEFAULTS = {
     categories: true,
     featured: true,
     about: true,
+    announcement: true,
+    collections: true,
+    promoTiles: true,
+    faqs: true,
   },
 } as const;
 
@@ -44,6 +48,10 @@ export const STOREFRONT_THEME_SCHEMA = z.object({
       categories: z.boolean().default(true),
       featured: z.boolean().default(true),
       about: z.boolean().default(true),
+      announcement: z.boolean().default(true),
+      collections: z.boolean().default(true),
+      promoTiles: z.boolean().default(true),
+      faqs: z.boolean().default(true),
     })
     .default(STOREFRONT_THEME_DEFAULTS.sections),
 });

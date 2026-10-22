@@ -200,6 +200,22 @@ function CheckoutPage() {
             )}
           </p>
           <p className="text-sm text-neutral-600">{orderDecisionCopy(store)}</p>
+          {store.content.deliveryPolicy || store.content.returnsPolicy ? (
+            <aside className="space-y-3 rounded-lg border p-4 text-sm">
+              {store.content.deliveryPolicy ? (
+                <div>
+                  <h2 className="font-semibold">Delivery and collection</h2>
+                  <p className="mt-1 whitespace-pre-wrap">{store.content.deliveryPolicy}</p>
+                </div>
+              ) : null}
+              {store.content.returnsPolicy ? (
+                <div>
+                  <h2 className="font-semibold">Returns and refunds</h2>
+                  <p className="mt-1 whitespace-pre-wrap">{store.content.returnsPolicy}</p>
+                </div>
+              ) : null}
+            </aside>
+          ) : null}
           <label className="block text-sm">
             Name
             <input

@@ -5,6 +5,7 @@ import { assertCanWrite, assertPermission, type Db } from "@/lib/business.server
 import { saveShopPaynowCredentials } from "@/lib/payments/shop-paynow.server";
 import { parseAndSanitize } from "@/lib/security";
 import { loadPlatformFx } from "@/lib/platform-fx-read.server";
+import { removeProductGalleryImage, uploadProductGalleryImage } from "@/lib/product-media.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
 import {
   checkoutSchema,
@@ -339,6 +340,47 @@ export const submitOrderPaymentNoteFn = createServerFn({ method: "POST" })
       proofNote: data.proofNote,
       proofBase64: data.proofBase64,
     }),
+  );
+
+export const uploadStorefrontProductImageFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown): { businessId: string; productId: string; file: File } => {
+    if (!(data instanceof FormData)) throw new Error("Choose a photo.");
+    const businessId = String(data.get("businessId") ?? "");
+    const productId = String(data.get("productId") ?? "");
+    const file = data.get("file");
+    if (
+      !z.string().uuid().safeParse(businessId).success ||
+      !z.string().uuid().safeParse(productId).success
+    ) {
+      throw new Error("That product could not be found.");
+    }
+    if (!(file instanceof File)) throw new Error("Choose a photo.");
+    return { businessId, productId, file };
+  })
+  .handler(async ({ data, context }) =>
+    uploadProductGalleryImage(context.supabase as Db, data.businessId, data.productId, data.file),
+  );
+
+export const removeStorefrontProductImageFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        productId: z.string().uuid(),
+        imageUrl: z.string().url().max(500),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    removeProductGalleryImage(
+      context.supabase as Db,
+      data.businessId,
+      data.productId,
+      data.imageUrl,
+    ),
   );
 
 export const createComplaintFn = createServerFn({ method: "POST" })

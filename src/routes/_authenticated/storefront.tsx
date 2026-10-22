@@ -23,6 +23,7 @@ import {
   listListingReportsFn,
   listReviewsAdminFn,
   publishStorefrontFn,
+  removeStorefrontProductImageFn,
   saveShopPaynowFn,
   respondComplaintFn,
   respondListingReportFn,
@@ -30,6 +31,7 @@ import {
   saveListingFn,
   saveStorefrontFn,
   transitionOrderFn,
+  uploadStorefrontProductImageFn,
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
 import { TEMPLATE_CATEGORIES } from "@/lib/storefront/templates";
@@ -62,6 +64,7 @@ import type {
   AdminStore,
   ComplaintItem,
   ListingReportItem,
+  StorefrontContent,
 } from "@/lib/storefront/contract";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
@@ -157,6 +160,25 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const [whatsapp, setWhatsapp] = useState(store?.whatsapp ?? "");
   const [tagline, setTagline] = useState(store?.tagline ?? "");
   const [about, setAbout] = useState(store?.about ?? "");
+  const [email, setEmail] = useState(store?.email ?? "");
+  const [socials, setSocials] = useState({
+    instagram: store?.socials.instagram ?? "",
+    facebook: store?.socials.facebook ?? "",
+    website: store?.socials.website ?? "",
+    tiktok: store?.socials.tiktok ?? "",
+  });
+  const [content, setContent] = useState<StorefrontContent>(
+    () =>
+      store?.content ?? {
+        announcement: "",
+        collections: [],
+        promoTiles: [],
+        faqs: [],
+        deliveryPolicy: "",
+        returnsPolicy: "",
+        privacyPolicy: "",
+      },
+  );
   const [policies, setPolicies] = useState(store?.policies ?? "");
   const [hours, setHours] = useState(store?.hours ?? "");
   const [address, setAddress] = useState(store?.address ?? "");
@@ -221,6 +243,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           templateId,
           tagline,
           about,
+          email,
+          socials,
+          content,
           whatsapp,
           phone,
           address,
@@ -532,6 +557,10 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                   ["categories", "Categories"],
                   ["featured", "Featured products"],
                   ["about", "About text"],
+                  ["announcement", "Announcement bar"],
+                  ["collections", "Curated collections"],
+                  ["promoTiles", "Promotional tiles"],
+                  ["faqs", "Frequently asked questions"],
                 ] as const
               ).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2">
@@ -611,8 +640,10 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             tagline={tagline}
             about={about}
             phone={phone}
+            email={email}
             address={address}
             policies={policies}
+            content={content}
             heroTitle={heroTitle}
             heroSubtitle={heroSubtitle}
             logoUrl={logoUrl}
@@ -620,6 +651,333 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             products={initial.products}
             viewport={previewViewport}
           />
+        </div>
+        <div className="space-y-4 rounded-xl border p-4">
+          <div>
+            <h3 className="font-semibold">Store content sections</h3>
+            <p className="text-sm text-muted-foreground">
+              Add useful shop information and merchandising. Empty sections stay hidden.
+            </p>
+          </div>
+          <label className="block text-sm">
+            Announcement bar
+            <Input
+              className="mt-1"
+              maxLength={200}
+              value={content.announcement}
+              onChange={(event) =>
+                setContent((current) => ({ ...current, announcement: event.target.value }))
+              }
+              placeholder="For example: Free delivery in Harare this weekend"
+            />
+          </label>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium">Curated collections</legend>
+            {content.collections.map((collection, index) => (
+              <div key={collection.id} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-3">
+                <Input
+                  aria-label={`Collection ${index + 1} title`}
+                  value={collection.title}
+                  maxLength={80}
+                  placeholder="Collection title"
+                  onChange={(event) =>
+                    setContent((current) => ({
+                      ...current,
+                      collections: current.collections.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, title: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Input
+                  aria-label={`Collection ${index + 1} description`}
+                  value={collection.description}
+                  maxLength={200}
+                  placeholder="Short description"
+                  onChange={(event) =>
+                    setContent((current) => ({
+                      ...current,
+                      collections: current.collections.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, description: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <div className="flex gap-2">
+                  <select
+                    aria-label={`Collection ${index + 1} category`}
+                    className="h-10 min-w-0 flex-1 rounded-md border bg-background px-2"
+                    value={collection.categoryName}
+                    onChange={(event) =>
+                      setContent((current) => ({
+                        ...current,
+                        collections: current.collections.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, categoryName: event.target.value }
+                            : item,
+                        ),
+                      }))
+                    }
+                  >
+                    {Array.from(
+                      new Set(
+                        initial.products
+                          .map((product) => product.categoryName)
+                          .filter((name): name is string => Boolean(name)),
+                      ),
+                    ).map((name) => (
+                      <option key={name}>{name}</option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setContent((current) => ({
+                        ...current,
+                        collections: current.collections.filter(
+                          (_, itemIndex) => itemIndex !== index,
+                        ),
+                      }))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                content.collections.length >= 6 ||
+                initial.products.every((product) => !product.categoryName)
+              }
+              onClick={() => {
+                const categoryName =
+                  initial.products.find((product) => product.categoryName)?.categoryName ?? "";
+                setContent((current) => ({
+                  ...current,
+                  collections: [
+                    ...current.collections,
+                    { id: `collection-${Date.now()}`, title: "", description: "", categoryName },
+                  ],
+                }));
+              }}
+            >
+              Add collection
+            </Button>
+          </fieldset>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium">Promotional tiles</legend>
+            {content.promoTiles.map((tile, index) => (
+              <div key={tile.id} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-2">
+                <Input
+                  aria-label={`Promotion ${index + 1} title`}
+                  value={tile.title}
+                  maxLength={80}
+                  placeholder="Promotion title"
+                  onChange={(event) =>
+                    setContent((current) => ({
+                      ...current,
+                      promoTiles: current.promoTiles.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, title: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Input
+                  aria-label={`Promotion ${index + 1} subtitle`}
+                  value={tile.subtitle}
+                  maxLength={160}
+                  placeholder="Short supporting text"
+                  onChange={(event) =>
+                    setContent((current) => ({
+                      ...current,
+                      promoTiles: current.promoTiles.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, subtitle: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Input
+                  aria-label={`Promotion ${index + 1} image URL`}
+                  value={tile.imageUrl}
+                  maxLength={500}
+                  placeholder="https:// image URL"
+                  onChange={(event) =>
+                    setContent((current) => ({
+                      ...current,
+                      promoTiles: current.promoTiles.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, imageUrl: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <div className="flex gap-2">
+                  <select
+                    aria-label={`Promotion ${index + 1} category`}
+                    className="h-10 min-w-0 flex-1 rounded-md border bg-background px-2"
+                    value={tile.categoryName}
+                    onChange={(event) =>
+                      setContent((current) => ({
+                        ...current,
+                        promoTiles: current.promoTiles.map((item, itemIndex) =>
+                          itemIndex === index
+                            ? { ...item, categoryName: event.target.value }
+                            : item,
+                        ),
+                      }))
+                    }
+                  >
+                    {Array.from(
+                      new Set(
+                        initial.products
+                          .map((product) => product.categoryName)
+                          .filter((name): name is string => Boolean(name)),
+                      ),
+                    ).map((name) => (
+                      <option key={name}>{name}</option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setContent((current) => ({
+                        ...current,
+                        promoTiles: current.promoTiles.filter(
+                          (_, itemIndex) => itemIndex !== index,
+                        ),
+                      }))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                content.promoTiles.length >= 4 ||
+                initial.products.every((product) => !product.categoryName)
+              }
+              onClick={() => {
+                const categoryName =
+                  initial.products.find((product) => product.categoryName)?.categoryName ?? "";
+                setContent((current) => ({
+                  ...current,
+                  promoTiles: [
+                    ...current.promoTiles,
+                    {
+                      id: `promotion-${Date.now()}`,
+                      title: "",
+                      subtitle: "",
+                      imageUrl: "",
+                      categoryName,
+                    },
+                  ],
+                }));
+              }}
+            >
+              Add promotion
+            </Button>
+          </fieldset>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium">Frequently asked questions</legend>
+            {content.faqs.map((faq, index) => (
+              <div key={`${index}-${faq.question}`} className="grid gap-2 rounded-lg border p-3">
+                <Input
+                  aria-label={`FAQ ${index + 1} question`}
+                  value={faq.question}
+                  maxLength={200}
+                  placeholder="Question"
+                  onChange={(event) =>
+                    setContent((current) => ({
+                      ...current,
+                      faqs: current.faqs.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, question: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Textarea
+                  aria-label={`FAQ ${index + 1} answer`}
+                  value={faq.answer}
+                  maxLength={1000}
+                  placeholder="Answer"
+                  onChange={(event) =>
+                    setContent((current) => ({
+                      ...current,
+                      faqs: current.faqs.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, answer: event.target.value } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-self-start"
+                  onClick={() =>
+                    setContent((current) => ({
+                      ...current,
+                      faqs: current.faqs.filter((_, itemIndex) => itemIndex !== index),
+                    }))
+                  }
+                >
+                  Remove FAQ
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={content.faqs.length >= 12}
+              onClick={() =>
+                setContent((current) => ({
+                  ...current,
+                  faqs: [...current.faqs, { question: "", answer: "" }],
+                }))
+              }
+            >
+              Add FAQ
+            </Button>
+          </fieldset>
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="text-sm">
+              Delivery information
+              <Textarea
+                maxLength={2000}
+                value={content.deliveryPolicy}
+                onChange={(event) =>
+                  setContent((current) => ({ ...current, deliveryPolicy: event.target.value }))
+                }
+              />
+            </label>
+            <label className="text-sm">
+              Returns and refunds
+              <Textarea
+                maxLength={2000}
+                value={content.returnsPolicy}
+                onChange={(event) =>
+                  setContent((current) => ({ ...current, returnsPolicy: event.target.value }))
+                }
+              />
+            </label>
+            <label className="text-sm">
+              Privacy information
+              <Textarea
+                maxLength={2000}
+                value={content.privacyPolicy}
+                onChange={(event) =>
+                  setContent((current) => ({ ...current, privacyPolicy: event.target.value }))
+                }
+              />
+            </label>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground">
           Switching design keeps your existing products, orders, and store. Save the draft to apply
@@ -647,6 +1005,59 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <label className="text-sm">
           <Label>WhatsApp number</Label>
           <Input value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} />
+        </label>
+        <label className="text-sm">
+          <Label>Support email</Label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="hello@example.com"
+          />
+        </label>
+        <label className="text-sm">
+          <Label>Website</Label>
+          <Input
+            type="url"
+            value={socials.website}
+            onChange={(event) =>
+              setSocials((current) => ({ ...current, website: event.target.value }))
+            }
+            placeholder="https://..."
+          />
+        </label>
+        <label className="text-sm">
+          <Label>Instagram</Label>
+          <Input
+            type="url"
+            value={socials.instagram}
+            onChange={(event) =>
+              setSocials((current) => ({ ...current, instagram: event.target.value }))
+            }
+            placeholder="https://..."
+          />
+        </label>
+        <label className="text-sm">
+          <Label>Facebook</Label>
+          <Input
+            type="url"
+            value={socials.facebook}
+            onChange={(event) =>
+              setSocials((current) => ({ ...current, facebook: event.target.value }))
+            }
+            placeholder="https://..."
+          />
+        </label>
+        <label className="text-sm">
+          <Label>TikTok</Label>
+          <Input
+            type="url"
+            value={socials.tiktok}
+            onChange={(event) =>
+              setSocials((current) => ({ ...current, tiktok: event.target.value }))
+            }
+            placeholder="https://..."
+          />
         </label>
         <label className="text-sm md:col-span-2">
           <Label>Tagline</Label>
@@ -972,6 +1383,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           These are the same products as Inventory. Publishing one here does not copy it.
         </p>
         <StorefrontProductTable
+          businessId={businessId}
           products={initial.products}
           onToggle={(product) =>
             void saveListing({
@@ -1327,12 +1739,41 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
 type StorefrontProduct = AdminStore["products"][number];
 
 function StorefrontProductTable({
+  businessId,
   products,
   onToggle,
 }: {
+  businessId: string;
   products: StorefrontProduct[];
   onToggle: (product: StorefrontProduct) => void;
 }) {
+  const queryClient = useQueryClient();
+  const uploadImage = useServerFn(uploadStorefrontProductImageFn);
+  const removeImage = useServerFn(removeStorefrontProductImageFn);
+  const uploadMutation = useMutation({
+    mutationFn: ({ productId, file }: { productId: string; file: File }) => {
+      const data = new FormData();
+      data.set("businessId", businessId);
+      data.set("productId", productId);
+      data.set("file", file);
+      return uploadImage({ data });
+    },
+    onSuccess: () => {
+      toast.success("Product photo added");
+      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Could not add the product photo")),
+  });
+  const removeMutation = useMutation({
+    mutationFn: (input: { productId: string; imageUrl: string }) =>
+      removeImage({ data: { businessId, ...input } }),
+    onSuccess: () => {
+      toast.success("Product photo removed");
+      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Could not remove the product photo")),
+  });
   const columns: ColumnDef<StorefrontProduct, unknown>[] = [
     {
       accessorKey: "name",
@@ -1347,6 +1788,61 @@ function StorefrontProductTable({
     {
       accessorKey: "stock",
       header: "Stock",
+    },
+    {
+      id: "photos",
+      header: "Product photos",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const product = row.original;
+        const uploading =
+          uploadMutation.isPending && uploadMutation.variables?.productId === product.id;
+        const removing =
+          removeMutation.isPending && removeMutation.variables?.productId === product.id;
+        return (
+          <div className="flex max-w-64 flex-wrap items-center gap-2">
+            {product.galleryUrls.map((imageUrl, index) => (
+              <div key={imageUrl} className="relative size-12 overflow-hidden rounded border">
+                <img
+                  src={imageUrl}
+                  alt={`${product.name} photo ${index + 2}`}
+                  className="h-full w-full object-cover"
+                />
+                <button
+                  type="button"
+                  className="absolute right-0 top-0 rounded-bl bg-background/90 px-1 text-xs"
+                  aria-label={`Remove ${product.name} photo ${index + 2}`}
+                  disabled={removing}
+                  onClick={() => removeMutation.mutate({ productId: product.id, imageUrl })}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {product.published && product.galleryUrls.length < 8 ? (
+              <label className="cursor-pointer rounded-md border px-2 py-1 text-xs hover:bg-muted">
+                {uploading ? "Uploading…" : "Add photo"}
+                <input
+                  className="sr-only"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-label={`Add a product photo for ${product.name}`}
+                  disabled={uploading}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) uploadMutation.mutate({ productId: product.id, file });
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            ) : product.published ? (
+              <span className="text-xs text-muted-foreground">8 extra photos max</span>
+            ) : (
+              <span className="text-xs text-muted-foreground">Publish to add photos</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: "online",
