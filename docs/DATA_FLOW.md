@@ -111,6 +111,26 @@ returns it as one JSON object, downloaded client-side as a file. Nothing is
 written to disk or a temp table server-side — it's assembled in memory per
 request and streamed back.
 
+## Flow 6: Transactional shop email (Resend)
+
+1. Database functions enqueue shopper receipts/status updates and opted-in
+   merchant alerts in `notification_outbox`. The first shopper receipt may
+   contain the one-time order access code; later status emails never include
+   it.
+2. The Cloud Run server claims pending rows and sends plain-text messages to
+   Resend. A stable outbox ID is sent as the provider idempotency key so
+   retries after a delivery-state update failure do not create duplicate
+   messages.
+3. The GitHub Actions mail-flush workflow calls the authenticated endpoint
+   every ten minutes. Provider failures are retried with backoff. If Resend
+   is not configured, messages remain queued and the scheduled workflow
+   reports the configuration failure.
+
+The API key is server-only. Sending from `noreply@mykwetuu.com` requires
+verifying `mykwetuu.com` and publishing the DNS records Resend provides.
+Authentication confirmation and password-reset messages remain on Supabase
+Auth SMTP.
+
 ## What's explicitly _not_ collected or sent anywhere
 
 - No analytics or tracking tool is integrated (verified by grep — no

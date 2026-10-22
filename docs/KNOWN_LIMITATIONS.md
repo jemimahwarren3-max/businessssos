@@ -2,7 +2,7 @@
 
 - Not production-ready. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
 - Customer checkout: pay on pickup, pay on delivery, quote, seller-configured EcoCash / InnBucks / bank / other instructions, and Paynow when the shop has linked its own keys. Screenshots go in a private `payment-proofs` bucket and are shown on signed URLs. A file never marks the order paid. Platform Paynow keys are still billing-only.
-- Merchant shop alerts are in-app. Email copies and shopper receipts need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
+- Merchant shop alerts are in-app. Shop-owner alerts and shopper receipts/status emails are queued for Resend, but will only send after `RESEND_API_KEY`, a verified `NOTIFY_FROM_EMAIL`, `MAIL_FLUSH_SECRET`, and the scheduled mail-flush workflow are configured. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
 - Platform Paynow is subscription billing only (listed Pro is `PLAN_MONTHLY_USD.pro`, currently $7/month). Billing is off until `BILLING_ENABLED` is on. ZiG is a display equivalent from `platform_fx` when an operator stores a rate and source. Paynow still charges USD. There is no automatic RBZ feed and no stored-card recurring.
 - One shop per cart. No marketplace commission.
 - No product variants. Product photos upload to the `product-media` bucket (JPEG/PNG/WebP, 2 MB). There is no virus scanner. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.

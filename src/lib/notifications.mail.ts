@@ -60,3 +60,11 @@ export function buildResendEmail(input: {
     text: input.body,
   };
 }
+
+export function buildResendHeaders(apiKey: string, idempotencyKey: string) {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+    "Idempotency-Key": idempotencyKey,
+  };
+}

@@ -15,6 +15,10 @@ Required: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, matching `VITE_*`, `SESSIO
 Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, `PAYNOW_*`, `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`.
 
 Optional: Redis, Sentry DSN, `PLATFORM_ADMIN_USER_ID`, `NOTIFY_FROM_EMAIL`.
+Transactional emails stay queued unless Resend is configured with `RESEND_API_KEY`
+and `NOTIFY_FROM_EMAIL`; scheduled delivery also needs `MAIL_FLUSH_SECRET` and
+the GitHub Actions mail-flush workflow. The Cloud Run launch guide documents
+the verified sender and staging test steps.
 
 `VITE_*` values are public by design. Never prefix the service role.
 
