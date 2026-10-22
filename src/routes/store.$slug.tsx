@@ -38,7 +38,9 @@ export const Route = createFileRoute("/store/$slug")({
         { property: "og:title", content: store.storeName },
         { property: "og:description", content: description.slice(0, 180) },
         { property: "og:type", content: "website" },
-        ...(store.logoUrl ? [{ property: "og:image", content: store.logoUrl }] : []),
+        ...(store.theme.coverUrl || store.logoUrl
+          ? [{ property: "og:image", content: store.theme.coverUrl || store.logoUrl || "" }]
+          : []),
         ...(preview ? [{ name: "robots", content: "noindex, nofollow" }] : []),
       ],
       links: [{ rel: "stylesheet", href: template.fontHref }],

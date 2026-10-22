@@ -1,137 +1,82 @@
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
-import type { StoreLayout, StoreTemplate } from "@/lib/storefront/templates";
+import type { StoreTemplate } from "@/lib/storefront/templates";
 
 function Tile({ className, style }: { className?: string; style?: CSSProperties }) {
   return <span className={cn("block bg-white/80", className)} style={style} />;
 }
 
-function LayoutSketch({ layout, accent }: { layout: StoreLayout; accent: string }) {
-  if (layout === "editorial") {
+function LayoutSketch({ template, accent }: { template: StoreTemplate; accent: string }) {
+  if (template.heroStyle === "split") {
     return (
-      <div className="grid h-full grid-cols-[1.4fr_1fr] gap-1.5 p-2">
-        <Tile className="h-full rounded-md" style={{ background: accent, opacity: 0.85 }} />
+      <div className="grid h-full grid-cols-[1.5fr_1fr] gap-1.5 p-2">
+        <Tile className="h-full rounded-sm" style={{ background: accent }} />
         <div className="grid grid-rows-2 gap-1.5">
-          <Tile className="rounded-md" />
-          <Tile className="rounded-md" />
-        </div>
-      </div>
-    );
-  }
-  if (layout === "soft") {
-    return (
-      <div className="grid h-full grid-cols-2 gap-2 p-2.5">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Tile
-            key={i}
-            className="rounded-full"
-            style={{ background: i === 0 ? accent : undefined, opacity: i === 0 ? 0.8 : 1 }}
-          />
-        ))}
-      </div>
-    );
-  }
-  if (layout === "dense") {
-    return (
-      <div className="grid h-full grid-cols-4 grid-rows-3 gap-1 p-2">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <Tile
-            key={i}
-            className="rounded-sm"
-            style={{
-              background: i % 5 === 0 ? accent : undefined,
-              opacity: i % 5 === 0 ? 0.75 : 1,
-            }}
-          />
-        ))}
-      </div>
-    );
-  }
-  if (layout === "menu") {
-    return (
-      <div className="flex h-full flex-col justify-center gap-1.5 p-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <span key={i} className="flex h-3 items-center gap-2">
-            <Tile className="h-3 flex-1 rounded-sm" />
-            <Tile className="h-2 w-8 rounded-sm" style={{ background: accent, opacity: 0.8 }} />
-          </span>
-        ))}
-      </div>
-    );
-  }
-  if (layout === "luxury") {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-4">
-        <Tile className="h-[70%] w-2/5 rounded-sm" style={{ background: accent, opacity: 0.9 }} />
-        <Tile className="h-1.5 w-1/3 rounded-sm" />
-      </div>
-    );
-  }
-  if (layout === "showcase") {
-    return (
-      <div className="flex h-full flex-col gap-1.5 p-2">
-        <Tile className="h-1/2 rounded-md" style={{ background: accent, opacity: 0.8 }} />
-        <div className="grid flex-1 grid-cols-3 gap-1.5">
-          <Tile className="rounded-sm" />
           <Tile className="rounded-sm" />
           <Tile className="rounded-sm" />
         </div>
       </div>
     );
   }
-  if (layout === "wholesale") {
+  if (template.heroStyle === "full-bleed") {
     return (
-      <div className="flex h-full flex-col gap-1 p-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span key={i} className="grid flex-1 grid-cols-[2fr_1fr_1fr] gap-1">
-            <Tile className="rounded-sm" />
-            <Tile className="rounded-sm" />
-            <Tile
-              className="rounded-sm"
-              style={{ background: i === 1 ? accent : undefined, opacity: i === 1 ? 0.75 : 1 }}
-            />
-          </span>
-        ))}
-      </div>
-    );
-  }
-  if (layout === "social") {
-    return (
-      <div className="relative h-full p-2">
-        <div className="grid h-full grid-cols-3 grid-rows-2 gap-1">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Tile key={i} className="rounded-md" />
+      <div className="grid h-full grid-rows-[3fr_1fr] gap-1.5 p-2">
+        <Tile className="rounded-sm" style={{ background: accent, opacity: 0.88 }} />
+        <div className="grid grid-cols-4 gap-1.5">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Tile key={index} className="rounded-sm" />
           ))}
         </div>
-        <span
-          className="absolute bottom-3 right-3 size-6 rounded-full"
-          style={{ background: accent }}
-        />
       </div>
     );
   }
-  if (layout === "services") {
+  if (template.heroStyle === "centered") {
     return (
-      <div className="grid h-full grid-cols-2 gap-2 p-3">
-        <div className="flex flex-col gap-1.5">
-          <Tile className="h-8 rounded-md" style={{ background: accent, opacity: 0.85 }} />
-          <Tile className="flex-1 rounded-md" />
+      <div className="flex h-full flex-col items-center gap-2 p-2.5">
+        <Tile className="h-1/4 w-2/5 rounded-full" style={{ background: accent }} />
+        <div className="grid flex-1 grid-cols-3 gap-1.5 self-stretch">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Tile key={index} className="rounded-full" />
+          ))}
         </div>
-        <div className="flex flex-col justify-end gap-1.5">
-          <Tile className="h-3 rounded-sm" />
-          <Tile className="h-8 rounded-md" />
+      </div>
+    );
+  }
+  if (template.heroStyle === "compact") {
+    return (
+      <div className="flex h-full flex-col gap-1.5 p-2">
+        <Tile className="h-1/5 rounded-sm" style={{ background: accent }} />
+        <div className="grid flex-1 grid-cols-4 gap-1">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <Tile key={index} className="rounded-sm" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (template.heroStyle === "side-panel") {
+    return (
+      <div className="grid h-full grid-cols-[1fr_1.5fr] gap-1.5 p-2">
+        <div className="flex flex-col justify-center gap-1.5">
+          <Tile className="h-1/3 rounded-sm" style={{ background: accent }} />
+          <Tile className="h-2 rounded-sm" />
+          <Tile className="h-2 w-2/3 rounded-sm" />
+        </div>
+        <div className="grid grid-rows-2 gap-1.5">
+          <Tile className="rounded-sm" />
+          <Tile className="rounded-sm" />
         </div>
       </div>
     );
   }
   return (
-    <div className="grid h-full grid-cols-3 grid-rows-2 gap-1.5 p-2">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Tile
-          key={i}
-          className="rounded-md"
-          style={{ background: i === 0 ? accent : undefined, opacity: i === 0 ? 0.85 : 1 }}
-        />
+    <div className="flex h-full flex-col justify-center gap-1.5 p-2.5">
+      <Tile className="h-1/5 w-1/3 rounded-sm" style={{ background: accent }} />
+      {Array.from({ length: 4 }).map((_, index) => (
+        <span key={index} className="flex h-3 items-center gap-2 border-b border-white/40 pb-1">
+          <Tile className="h-2 flex-1 rounded-sm" />
+          <Tile className="h-2 w-8 rounded-sm" />
+        </span>
       ))}
     </div>
   );
@@ -150,8 +95,10 @@ export function TemplatePreview({
       style={{ background: `${template.defaultAccent}18` }}
       data-layout={template.layout}
       data-template={template.id}
+      data-category={template.category}
+      data-composition={template.heroStyle}
     >
-      <LayoutSketch layout={template.layout} accent={template.defaultAccent} />
+      <LayoutSketch template={template} accent={template.defaultAccent} />
     </div>
   );
 }

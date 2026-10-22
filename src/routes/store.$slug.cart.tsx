@@ -95,6 +95,11 @@ function CartPage() {
                     Quantity
                     <input
                       className="ml-2 w-20 rounded border px-2 py-1"
+                      style={{
+                        backgroundColor: store.theme.surface,
+                        color: store.theme.text,
+                        borderColor: store.theme.accent + "70",
+                      }}
                       type="number"
                       min={1}
                       value={line.quantity}
@@ -112,6 +117,7 @@ function CartPage() {
                 </div>
                 <button
                   className="text-sm underline"
+                  style={{ color: store.theme.link }}
                   type="button"
                   onClick={() => update(lines.filter((item) => item.productId !== line.productId))}
                 >
@@ -149,6 +155,7 @@ function CartPage() {
           to="/store/$slug/checkout"
           params={{ slug: store.slug }}
           className="mt-6 inline-flex rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+          style={{ backgroundColor: store.theme.button, color: store.theme.buttonText }}
         >
           Checkout
         </Link>

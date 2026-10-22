@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type { saveStoreSchema } from "@/lib/storefront/contract";
-import type { TemplateId } from "@/lib/storefront/templates";
+import { getTemplate, type TemplateId } from "@/lib/storefront/templates";
+import { themeFromPalette } from "@/lib/storefront/theme";
 
 export type SaveStoreInput = z.input<typeof saveStoreSchema>;
 
@@ -20,6 +21,10 @@ export function defaultShopPatch(input: {
     businessId: input.businessId,
     storeName: input.storeName,
     templateId: input.templateId,
+    theme: themeFromPalette(
+      getTemplate(input.templateId).defaultPalette,
+      getTemplate(input.templateId).defaultAccent,
+    ),
     phone: input.phone ?? "",
     address: input.address ?? "",
     policies: input.policies ?? "",

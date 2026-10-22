@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TEMPLATE_IDS } from "./templates";
+import { STOREFRONT_THEME_SCHEMA } from "./theme";
 
 const deliverySchema = z.object({
   pickupEnabled: z.boolean(),
@@ -114,6 +115,7 @@ export const publicStoreSchema = z.object({
   address: z.string(),
   logoUrl: z.string().nullable(),
   accentColor: z.string().nullable(),
+  theme: STOREFRONT_THEME_SCHEMA,
   heroTitle: z.string(),
   heroSubtitle: z.string(),
   policies: z.string(),
@@ -431,6 +433,7 @@ export const adminStoreSchema = z.object({
       address: z.string(),
       logoUrl: z.string().nullable(),
       accentColor: z.string().nullable(),
+      theme: STOREFRONT_THEME_SCHEMA,
       heroTitle: z.string(),
       heroSubtitle: z.string(),
       policies: z.string(),
@@ -535,6 +538,7 @@ export const saveStoreSchema = z.object({
   address: z.string().max(300).optional(),
   logoUrl: z.string().max(500).optional(),
   accentColor: z.string().max(7).optional(),
+  theme: STOREFRONT_THEME_SCHEMA,
   heroTitle: z.string().max(120).optional(),
   heroSubtitle: z.string().max(200).optional(),
   policies: z.string().max(4000).optional(),
