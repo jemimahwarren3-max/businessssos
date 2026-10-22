@@ -4,7 +4,6 @@ import { z } from "zod";
 import { getAppUrl } from "@/lib/app-url.server";
 import { deleteMyAccount } from "@/lib/account-deletion.server";
 import type { Db } from "@/lib/business.server";
-import { loadWorkspace } from "@/lib/business.server";
 import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
 import { allowAal1Session } from "@/integrations/supabase/auth-middleware";
 import {
@@ -26,10 +25,10 @@ import {
   verifyTotpEnrollment,
 } from "./mfa.server";
 import { verifyCurrentPassword } from "./reauth.server";
+import { completeOAuthCallback, resolvePostAuthPath } from "./oauth-callback.server";
 import {
   clearServerSession,
   createAnonClient,
-  createExchangeClient,
   createMfaScopedClient,
   setServerSession,
   tryGetAuthedContext,
@@ -196,19 +195,10 @@ export const exchangeOAuthCode = createServerFn({ method: "POST" })
     z.object({ code: z.string().min(1), acceptedTerms: z.boolean().optional() }).parse(data),
   )
   .handler(async ({ data }) => {
-    const { data: result, error } = await createExchangeClient().auth.exchangeCodeForSession(
-      data.code,
-    );
-    if (error || !result.session) {
-      throw new Error("That sign-in link is invalid or has expired.");
-    }
-    // Only set when the auth page's sign-up tab (with its required
-    // checkbox) initiated this OAuth flow — a plain sign-in never sends it,
-    // so an existing user re-authenticating doesn't get a spurious new row.
+    const { userId } = await completeOAuthCallback({ code: data.code });
     if (data.acceptedTerms) {
-      await recordLegalAcceptance(result.user.id, getRequestIP() ?? null);
+      await recordLegalAcceptance(userId, getRequestIP() ?? null);
     }
-    await establishSession(result.session);
     return { ok: true };
   });
 
@@ -251,13 +241,8 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(async ()
 
 /** After OAuth or magic link — send new merchants to shop setup, not an empty dashboard. */
 export const getPostAuthDestination = createServerFn({ method: "GET" }).handler(async () => {
-  const ctx = await tryGetAuthedContext();
-  if (!ctx) return { path: "/auth" as const };
-  const workspace = await loadWorkspace(ctx.supabase as Db, ctx.userId);
-  if (!workspace || !workspace.business.onboarding_completed) {
-    return { path: "/onboarding" as const };
-  }
-  return { path: "/dashboard" as const };
+  const path = await resolvePostAuthPath();
+  return { path };
 });
 
 export const updatePassword = createServerFn({ method: "POST" })

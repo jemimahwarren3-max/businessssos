@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -36,7 +36,25 @@ function AuthenticatedGate() {
   const status = useQuery({
     queryKey: ["mfa-status"],
     queryFn: () => fetchStatus(),
+    retry: 1,
   });
+
+  if (status.isError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Your session could not be verified. Sign in again to continue.
+        </p>
+        <Link
+          to="/auth"
+          search={{ mode: "signin" }}
+          className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+        >
+          Sign in
+        </Link>
+      </div>
+    );
+  }
 
   if (status.isLoading || !status.data) {
     return (
