@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
-import { buildResendEmail, readNotificationMailConfig } from "./notifications.mail";
+import {
+  buildResendEmail,
+  buildResendHeaders,
+  readNotificationMailConfig,
+} from "./notifications.mail";
 
 type RpcClient = { rpc: (...args: never[]) => unknown };
 
@@ -37,8 +41,12 @@ async function untypedRpc(
 }
 
 function parseItems(data: Json | null): OutboxItem[] {
-  const parsed = z.array(outboxItemSchema).safeParse(data ?? []);
-  return parsed.success ? parsed.data : [];
+  const parsed = z.array(outboxItemSchema).safeParse(data);
+  if (!parsed.success) {
+    console.error("[businessos] invalid notification outbox payload", parsed.error.flatten());
+    throw new Error("The notification outbox returned an invalid payload.");
+  }
+  return parsed.data;
 }
 
 export function isNotificationEmailConfigured(): boolean {
@@ -65,10 +73,7 @@ async function sendResend(item: OutboxItem, from: string, apiKey: string): Promi
   });
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: buildResendHeaders(apiKey, item.id),
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -88,7 +93,10 @@ async function complete(
     _status: status,
     _error: error ?? "",
   });
-  if (result.error) console.error("[businessos] complete notification delivery", result.error);
+  if (result.error) {
+    console.error("[businessos] complete notification delivery", result.error);
+    throw new Error("Could not update notification delivery status.");
+  }
 }
 
 async function dispatch(
@@ -111,7 +119,11 @@ async function dispatch(
     } catch (error) {
       const message = error instanceof Error ? error.message : "Email send failed.";
       console.error("[businessos] notification email", message);
-      await complete(client, item.id, "failed", message);
+      try {
+        await complete(client, item.id, "failed", message);
+      } catch (completionError) {
+        console.error("[businessos] record notification email failure", completionError);
+      }
       failed += 1;
     }
   }
@@ -132,20 +144,31 @@ export async function flushNotificationOutboxForBusiness(
       _limit: 15,
     });
     if (result.error) {
-      if (
-        result.error.message?.includes("schema cache") ||
-        result.error.message?.includes("Could not find")
-      ) {
-        return { sent: 0, skipped: 0, failed: 0, configured: true };
-      }
       console.error("[businessos] claim notification outbox", result.error);
-      return { sent: 0, skipped: 0, failed: 0, configured: true };
+      const migrationMissing =
+        result.error.message?.includes("schema cache") ||
+        result.error.message?.includes("Could not find");
+      return {
+        sent: 0,
+        skipped: 0,
+        failed: 1,
+        configured: true,
+        reason: migrationMissing
+          ? "The notification outbox migration is missing from this database."
+          : "Could not claim queued notification emails.",
+      };
     }
     const counts = await dispatch(supabase, parseItems(result.data));
     return { ...counts, configured: true };
   } catch (error) {
     console.error("[businessos] notification flush", error);
-    return { sent: 0, skipped: 0, failed: 0, configured: true };
+    return {
+      sent: 0,
+      skipped: 0,
+      failed: 1,
+      configured: true,
+      reason: "Could not process queued notification emails.",
+    };
   }
 }
 
@@ -160,19 +183,30 @@ export async function flushNotificationOutboxAdmin(): Promise<FlushMailResult> {
       _limit: 25,
     });
     if (result.error) {
-      if (
-        result.error.message?.includes("schema cache") ||
-        result.error.message?.includes("Could not find")
-      ) {
-        return { sent: 0, skipped: 0, failed: 0, configured: true };
-      }
       console.error("[businessos] admin notification claim", result.error);
-      return { sent: 0, skipped: 0, failed: 0, configured: true };
+      const migrationMissing =
+        result.error.message?.includes("schema cache") ||
+        result.error.message?.includes("Could not find");
+      return {
+        sent: 0,
+        skipped: 0,
+        failed: 1,
+        configured: true,
+        reason: migrationMissing
+          ? "The notification outbox migration is missing from this database."
+          : "Could not claim queued notification emails.",
+      };
     }
     const counts = await dispatch(supabaseAdmin, parseItems(result.data));
     return { ...counts, configured: true };
   } catch (error) {
     console.error("[businessos] admin notification flush skipped", error);
-    return { sent: 0, skipped: 0, failed: 0, configured: true };
+    return {
+      sent: 0,
+      skipped: 0,
+      failed: 1,
+      configured: true,
+      reason: "Could not process queued notification emails.",
+    };
   }
 }

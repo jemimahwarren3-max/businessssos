@@ -131,7 +131,7 @@ jobs:
           STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL }}
+          NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL || 'Kwetuu <noreply@mykwetuu.com>' }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_FLUSH_SECRET: ${{ secrets.MAIL_FLUSH_SECRET }}
         run: |

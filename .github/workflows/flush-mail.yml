@@ -23,6 +23,17 @@ jobs:
             echo "Set GitHub secrets APP_URL (or STAGING_APP_URL) and MAIL_FLUSH_SECRET."
             exit 1
           fi
-          curl -fsS -X POST "${APP_URL%/}/api/internal/flush-mail" \
+          response="$(curl -fsS -X POST "${APP_URL%/}/api/internal/flush-mail" \
             -H "Authorization: Bearer ${MAIL_FLUSH_SECRET}" \
-            -H "Content-Type: application/json"
+            -H "Content-Type: application/json")"
+          printf '%s\n' "$response" | python3 -c '
+          import json, sys
+          result = json.load(sys.stdin)
+          print("Mail flush: sent={sent}, failed={failed}, skipped={skipped}".format(**result))
+          if not result.get("configured"):
+              print(result.get("reason", "Resend is not configured."), file=sys.stderr)
+              raise SystemExit(1)
+          if result.get("failed", 0):
+              print(result.get("reason", "One or more email deliveries failed."), file=sys.stderr)
+              raise SystemExit(1)
+          '

@@ -52,17 +52,18 @@ console steps in the operator reply / GitHub secrets table below.
 
 ## GitHub Actions secrets
 
-| Secret                             | Value                                                                                  |
-| ---------------------------------- | -------------------------------------------------------------------------------------- |
-| `GCP_PROJECT_ID`                   | The GCP project id                                                                     |
+| Secret                             | Value                                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `GCP_PROJECT_ID`                   | The GCP project id                                                                       |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER`   | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/kwetuu/providers/github` |
-| `GCP_SERVICE_ACCOUNT`              | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                     |
-| `APP_URL`                          | Always `https://mykwetuu.com` (do not flip to `.run.app`)                              |
-| `STAGING_SUPABASE_URL`             | Staging project URL                                                                    |
-| `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging anon/publishable key                                                           |
-| `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                 |
-| `NOTIFY_FROM_EMAIL`                | Optional. e.g. `Kwetuu <alerts@mykwetuu.com>` after Resend verifies the domain         |
-| `MAIL_FLUSH_SECRET`                | Optional. 16+ characters, same value as Secret Manager                                 |
+| `GCP_SERVICE_ACCOUNT`              | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                       |
+| `APP_URL`                          | Always `https://mykwetuu.com` (do not flip to `.run.app`)                                |
+| `STAGING_SUPABASE_URL`             | Staging project URL                                                                      |
+| `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging anon/publishable key                                                             |
+| `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                   |
+| `RESEND_API_KEY`                   | Resend API key; required to send queued mail                                             |
+| `NOTIFY_FROM_EMAIL`                | Defaults to `Kwetuu <noreply@mykwetuu.com>`; override only with a verified sender        |
+| `MAIL_FLUSH_SECRET`                | Random secret of at least 16 characters; required by the scheduled mail flush workflow   |
 
 ## Domain `mykwetuu.com`
 
@@ -93,7 +94,10 @@ also allow `https://*.mykwetuu.com/**`. Paynow `resulturl` stays
 
 - `GET https://mykwetuu.com/health` (or the `.run.app` URL before DNS)
 - Sign in, open `/stores`, open `https://{a-published-slug}.mykwetuu.com`
-- Mail stays queued until `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` exist
+- In Resend, verify `mykwetuu.com` and publish the DNS records Resend provides before sending from `noreply@mykwetuu.com`
+- Add the Resend API key as the GitHub Actions secret `RESEND_API_KEY`; set `MAIL_FLUSH_SECRET` and `APP_URL` (or `STAGING_APP_URL`) so the scheduled outbox workflow can run
+- Apply `20261019170000_notification_outbox.sql` and `20261019220000_shopper_order_emails.sql` to staging before testing email; then trigger **Actions → Flush mail outbox** and confirm sent counts and Resend delivery logs
+- Emails stay queued, not discarded, until Resend and the scheduled flush are configured
 - Auth confirm/reset still use **Supabase Auth SMTP**
 - Apply pending git migrations on **staging** only, including audit/receipts SQL if they are not there yet
 

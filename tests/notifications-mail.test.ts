@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   authorizeMailFlush,
   buildResendEmail,
+  buildResendHeaders,
   readNotificationMailConfig,
 } from "@/lib/notifications.mail";
 
@@ -39,6 +40,12 @@ describe("merchant alert email config", () => {
     expect(payload.to).toEqual(["owner@shop.test"]);
     expect(payload.text).toContain("Ada");
     expect(payload).not.toHaveProperty("html");
+  });
+
+  it("sends a stable provider idempotency key for outbox retries", () => {
+    const headers = buildResendHeaders("re_test", "2bc89462-1d20-4b8e-a59a-65c601a7182a");
+    expect(headers.Authorization).toBe("Bearer re_test");
+    expect(headers["Idempotency-Key"]).toBe("2bc89462-1d20-4b8e-a59a-65c601a7182a");
   });
 
   it("does not treat missing Resend as a discard", () => {
