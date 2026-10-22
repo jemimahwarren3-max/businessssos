@@ -10,10 +10,8 @@ import { fileURLToPath } from "node:url";
 const STAGING = "slajanbsfqjnuuiohbmg";
 const PRODUCTION = "maidxfntfpnkcqnuhozo";
 const FILES = [
-  "20261021120000_manual_shop_payments.sql",
-  "20261021140000_payment_proof_storage.sql",
-  "20261021141000_platform_fx.sql",
-  "20261021150000_storefront_template_library.sql",
+  "20261022120000_fix_store_order_notification_currency_precedence.sql",
+  "20261022130000_allow_storefront_audit_actions.sql",
 ];
 
 const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();

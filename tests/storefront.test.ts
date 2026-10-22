@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { marketplaceSchema, saveStoreSchema } from "@/lib/storefront/contract";
+import {
+  marketplaceSchema,
+  publicProductSchema,
+  saveStoreSchema,
+  storefrontContentSchema,
+} from "@/lib/storefront/contract";
 import {
   parsePlatformRoot,
   publicStoreRedirect,
@@ -20,6 +25,7 @@ import {
 } from "@/lib/storefront/templates";
 import { STORE_PALETTES, themeContrastWarnings, themeFromPalette } from "@/lib/storefront/theme";
 import { RESERVED_HOST_LABELS } from "@/lib/storefront/host";
+import { recentProductIds, toggleProductId } from "@/lib/storefront/shopper-tools";
 import { allowedFulfilments, allowedPayments, cashPolicyLines } from "@/lib/storefront/order-rules";
 import { fulfilmentActions } from "@/lib/storefront/transitions";
 import type { PublicStore } from "@/lib/storefront/contract";
@@ -217,6 +223,7 @@ describe("storefront templates", () => {
       storeName: "Mbare Fresh",
       templateId: "grocery",
     });
+
     expect(saveStoreSchema.parse(patch).theme).toEqual(patch.theme);
     expect(patch.delivery.pickupEnabled).toBe(true);
     expect(patch.payments.acceptPaynow).toBe(false);
@@ -238,6 +245,65 @@ describe("storefront templates", () => {
     };
     expect(themeContrastWarnings(lowContrast)).toHaveLength(5);
   });
+
+  it("validates editable storefront content and defaults optional sections", () => {
+    expect(storefrontContentSchema.parse({})).toEqual({
+      announcement: "",
+      collections: [],
+      promoTiles: [],
+      faqs: [],
+      deliveryPolicy: "",
+      returnsPolicy: "",
+      privacyPolicy: "",
+    });
+    expect(
+      storefrontContentSchema.parse({
+        announcement: "Weekend delivery",
+        collections: [
+          { id: "new", title: "New arrivals", description: "Just in", categoryName: "Fashion" },
+        ],
+        faqs: [{ question: "Where do you deliver?", answer: "Harare." }],
+      }).collections[0]?.title,
+    ).toBe("New arrivals");
+    expect(
+      storefrontContentSchema.safeParse({
+        faqs: Array.from({ length: 13 }, () => ({ question: "Q", answer: "A" })),
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("product photo galleries", () => {
+  it("defaults old storefront payloads to no extra photos and caps galleries at eight", () => {
+    const product = {
+      id: "product-1",
+      slug: "linen-shirt",
+      name: "Linen shirt",
+      description: "",
+      details: "",
+      sizeGuide: "",
+      imageUrl: "https://example.com/main.jpg",
+      price: 12,
+      currency: "USD",
+      unit: "unit",
+      taxRate: 0,
+      categoryId: null,
+      categoryName: null,
+      minQty: 1,
+      maxQty: null,
+      featured: false,
+      available: true,
+      stockLabel: "In stock",
+      maxPurchasable: 3,
+    };
+    expect(publicProductSchema.parse(product).galleryUrls).toEqual([]);
+    expect(
+      publicProductSchema.safeParse({
+        ...product,
+        galleryUrls: Array.from({ length: 9 }, (_, index) => `https://example.com/${index}.jpg`),
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("online order transitions", () => {
@@ -249,6 +315,7 @@ describe("online order transitions", () => {
       paymentStatus: "unpaid",
       saleId: null,
     });
+
     expect(actions).toContain("confirm");
     expect(actions).toContain("mark_paid");
     expect(actions).toContain("cancel");
@@ -290,6 +357,20 @@ describe("online order transitions", () => {
     });
     expect(actions).toContain("mark_paid");
     expect(actions).toContain("reject_proof");
+  });
+});
+
+describe("shopper product shelves", () => {
+  it("deduplicates recently viewed and saved product IDs and caps the list", () => {
+    expect(recentProductIds(["a", "b", "c"], "b")).toEqual(["b", "a", "c"]);
+    expect(toggleProductId(["a", "b"], "a")).toEqual(["b"]);
+    expect(toggleProductId(["a"], "c")).toEqual(["c", "a"]);
+    expect(
+      recentProductIds(
+        Array.from({ length: 12 }, (_, index) => `${index}`),
+        "new",
+      ),
+    ).toHaveLength(12);
   });
 });
 

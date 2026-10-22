@@ -1,5 +1,5 @@
 import { formatMoney } from "@/lib/format";
-import type { AdminStore } from "@/lib/storefront/contract";
+import type { AdminStore, StorefrontContent } from "@/lib/storefront/contract";
 import type { StorefrontTheme } from "@/lib/storefront/theme";
 import type { StoreTemplate } from "@/lib/storefront/templates";
 import { cn } from "@/lib/utils";
@@ -13,8 +13,10 @@ export function LiveTemplatePreview({
   tagline,
   about,
   phone,
+  email,
   address,
   policies,
+  content,
   heroTitle,
   heroSubtitle,
   logoUrl,
@@ -28,8 +30,10 @@ export function LiveTemplatePreview({
   tagline: string;
   about: string;
   phone: string;
+  email: string;
   address: string;
   policies: string;
+  content: StorefrontContent;
   heroTitle: string;
   heroSubtitle: string;
   logoUrl: string;
@@ -78,6 +82,14 @@ export function LiveTemplatePreview({
       }}
       data-preview-viewport={viewport}
     >
+      {theme.sections.announcement && content.announcement ? (
+        <p
+          className="px-3 py-2 text-center text-xs"
+          style={{ backgroundColor: theme.primary, color: theme.buttonText }}
+        >
+          {content.announcement}
+        </p>
+      ) : null}
       <header
         className="flex items-center justify-between gap-4 border-b px-4 py-3"
         style={{ backgroundColor: theme.surface, borderColor: theme.accent + "30" }}
@@ -172,6 +184,35 @@ export function LiveTemplatePreview({
         </section>
       ) : null}
 
+      {theme.sections.promoTiles && content.promoTiles.length > 0 ? (
+        <section className="grid gap-2 px-4 py-3 sm:grid-cols-2">
+          {content.promoTiles.map((tile) => (
+            <article
+              key={tile.id}
+              className="rounded-md border p-3 text-xs"
+              style={{ borderColor: theme.accent + "40" }}
+            >
+              <p className="font-semibold">{tile.title}</p>
+              <p className="mt-1 opacity-70">{tile.subtitle}</p>
+            </article>
+          ))}
+        </section>
+      ) : null}
+
+      {theme.sections.collections && content.collections.length > 0 ? (
+        <section className="space-y-2 px-4 py-3">
+          {content.collections.map((collection) => (
+            <p
+              key={collection.id}
+              className="rounded-md border p-2 text-xs"
+              style={{ borderColor: theme.accent + "40" }}
+            >
+              <strong>{collection.title || "Collection"}</strong> · {collection.categoryName}
+            </p>
+          ))}
+        </section>
+      ) : null}
+
       <section className="px-4 py-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <h4 className="text-sm font-semibold">Shop all</h4>
@@ -238,11 +279,25 @@ export function LiveTemplatePreview({
           {about ? <p className="whitespace-pre-wrap">{about}</p> : null}
           {address ? <p className="mt-2">{address}</p> : null}
           {phone ? <p className="mt-1">{phone}</p> : null}
+          {email ? <p className="mt-1">{email}</p> : null}
           {policies ? <p className="mt-2 whitespace-pre-wrap">{policies}</p> : null}
-          {!about && !address && !phone && !policies ? (
+          {content.deliveryPolicy ? (
+            <p className="mt-2">Delivery: {content.deliveryPolicy}</p>
+          ) : null}
+          {content.returnsPolicy ? <p className="mt-2">Returns: {content.returnsPolicy}</p> : null}
+          {!about && !address && !phone && !email && !policies ? (
             <p>Add your about text, contact details, or policies to preview them here.</p>
           ) : null}
         </footer>
+      ) : null}
+      {theme.sections.faqs && content.faqs.length > 0 ? (
+        <section className="space-y-2 px-4 py-3">
+          {content.faqs.map((faq, index) => (
+            <p key={`${index}-${faq.question}`} className="text-xs">
+              <strong>{faq.question || "FAQ question"}</strong> {faq.answer}
+            </p>
+          ))}
+        </section>
       ) : null}
     </div>
   );
@@ -266,9 +321,9 @@ function PreviewProductGrid({
           style={{ backgroundColor: theme.surface }}
         >
           <div className="aspect-[4/3] bg-black/5">
-            {product.imageUrl ? (
+            {product.imageUrl || product.galleryUrls[0] ? (
               <img
-                src={product.imageUrl}
+                src={product.imageUrl ?? product.galleryUrls[0]}
                 alt={product.name}
                 className="h-full w-full object-cover"
               />

@@ -112,18 +112,13 @@ describeStaging("cross-tenant isolation", () => {
     ["business B's owner (a real user, just not a member of A)", () => ownerB],
     ["a total outsider (no business membership at all)", () => outsider],
   ])("%s cannot reach business A's data", (_label, getAttacker) => {
-    // 13 sequential Management API round trips (one per table) — the
-    // default 20s budget is tight enough that a couple of retried requests
-    // (see helpers.ts's transient-failure backoff) can blow through it even
-    // though nothing is actually wrong.
     it("cannot read any of business A's rows in any exported table", async () => {
-      for (const table of EXPORT_TABLES) {
-        const rows = await asUser(
-          getAttacker(),
-          `select * from public.${table} where business_id = '${bizA}';`,
-        );
-        expect(rows, `table "${table}" leaked a row to a non-member`).toEqual([]);
-      }
+      const checks = EXPORT_TABLES.map(
+        (table) =>
+          `select '${table}'::text as table_name where exists (select 1 from public.${table} where business_id = '${bizA}')`,
+      ).join("\nunion all\n");
+      const rows = await asUser<{ table_name: string }>(getAttacker(), checks);
+      expect(rows.map((row) => row.table_name)).toEqual([]);
     }, 60_000);
 
     it("cannot read business A's subscription", async () => {

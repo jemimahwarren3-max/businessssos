@@ -7,6 +7,12 @@ import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefron
 import { getTemplate } from "@/lib/storefront/templates";
 import { storeSurface } from "@/lib/storefront/store-surface";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
+import {
+  readRecentlyViewed,
+  readWishlist,
+  recordRecentlyViewed,
+  toggleWishlist,
+} from "@/lib/storefront/shopper-tools";
 import { formatMoney } from "@/lib/format";
 import { WEEKDAYS } from "@/lib/storefront/clocks";
 import { BRAND } from "@/lib/brand";
@@ -141,6 +147,14 @@ export function StoreChrome({
         ["--store-link" as string]: theme.link,
       }}
     >
+      {theme.sections.announcement && store.content.announcement ? (
+        <p
+          className="px-4 py-2 text-center text-sm font-medium"
+          style={{ backgroundColor: theme.primary, color: theme.buttonText }}
+        >
+          {store.content.announcement}
+        </p>
+      ) : null}
       {preview ? (
         <p className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-950">
           Draft preview. Customers cannot see this shop until you publish it.
@@ -203,8 +217,26 @@ export function StoreChrome({
             {theme.sections.about && store.about ? (
               <p className="mt-2 whitespace-pre-wrap opacity-80">{store.about}</p>
             ) : null}
-            {store.address ? <p className="mt-2">{store.address}</p> : null}
-            {store.phone ? <p>{store.phone}</p> : null}
+            {store.address ? (
+              <a
+                className="mt-2 block underline-offset-2 hover:underline"
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.address)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {store.address} · View map
+              </a>
+            ) : null}
+            {store.phone ? (
+              <a className="block" href={`tel:${store.phone}`}>
+                {store.phone}
+              </a>
+            ) : null}
+            {store.email ? (
+              <a className="block" href={`mailto:${store.email}`}>
+                {store.email}
+              </a>
+            ) : null}
             {store.hours ? <p className="mt-2 whitespace-pre-wrap">{store.hours}</p> : null}
             {(store.delivery.weeklyHours ?? []).length > 0 ? (
               <ul className="mt-2 space-y-0.5">
@@ -218,6 +250,24 @@ export function StoreChrome({
             ) : null}
           </div>
           <div>
+            {store.content.deliveryPolicy ? (
+              <div>
+                <p className="font-medium">Delivery and collection</p>
+                <p className="mt-2 whitespace-pre-wrap">{store.content.deliveryPolicy}</p>
+              </div>
+            ) : null}
+            {store.content.returnsPolicy ? (
+              <div className="mt-4">
+                <p className="font-medium">Returns and refunds</p>
+                <p className="mt-2 whitespace-pre-wrap">{store.content.returnsPolicy}</p>
+              </div>
+            ) : null}
+            {store.content.privacyPolicy ? (
+              <div className="mt-4">
+                <p className="font-medium">Privacy</p>
+                <p className="mt-2 whitespace-pre-wrap">{store.content.privacyPolicy}</p>
+              </div>
+            ) : null}
             {store.policies ? (
               <>
                 <p className="font-medium text-neutral-900">Policies</p>
@@ -252,6 +302,17 @@ export function StoreChrome({
             {store.socials.facebook ? (
               <a className="block" style={{ color: theme.link }} href={store.socials.facebook}>
                 Facebook
+              </a>
+            ) : null}
+            {store.socials.tiktok ? (
+              <a
+                className="block"
+                style={{ color: theme.link }}
+                href={store.socials.tiktok}
+                target="_blank"
+                rel="noreferrer"
+              >
+                TikTok
               </a>
             ) : null}
             {preview ? null : <ListingReportForm slug={store.slug} />}
@@ -336,6 +397,12 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
   const template = getTemplate(store.templateId);
   const { theme } = store;
   const [category, setCategory] = useState<string>("all");
+  const [wishlistIds, setWishlistIds] = useState<string[]>([]);
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  useEffect(() => {
+    setWishlistIds(readWishlist(store.slug));
+    setRecentIds(readRecentlyViewed(store.slug));
+  }, [store.slug]);
   const products = useMemo(() => {
     return store.products.filter(
       (product) => category === "all" || product.categoryId === category,
@@ -495,6 +562,75 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           </div>
         </section>
       ) : null}
+      {theme.sections.promoTiles && store.content.promoTiles.length > 0 ? (
+        <section className="mx-auto grid max-w-6xl gap-4 px-4 py-6 sm:grid-cols-2">
+          {store.content.promoTiles.map((tile) => {
+            const category = store.categories.find((item) => item.name === tile.categoryName);
+            const matching = store.products.filter(
+              (product) => product.categoryId === category?.id,
+            );
+            return (
+              <div
+                key={tile.id}
+                className="relative min-h-40 overflow-hidden rounded-xl"
+                style={{ backgroundColor: theme.surface }}
+              >
+                {tile.imageUrl ? (
+                  <img
+                    src={tile.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover opacity-35"
+                  />
+                ) : null}
+                <div className="relative p-6">
+                  <h2 className="text-xl font-semibold" style={{ color: theme.primary }}>
+                    {tile.title}
+                  </h2>
+                  <p className="mt-1 text-sm">{tile.subtitle}</p>
+                  {category ? (
+                    <button
+                      className="mt-4 rounded-md px-3 py-2 text-sm font-medium"
+                      style={{ backgroundColor: theme.button, color: theme.buttonText }}
+                      onClick={() => setCategory(category.id)}
+                    >
+                      Explore {tile.categoryName} ({matching.length})
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+      {theme.sections.collections && store.content.collections.length > 0 ? (
+        <div className="space-y-3">
+          {store.content.collections.map((collection) => {
+            const category = store.categories.find((item) => item.name === collection.categoryName);
+            const items = store.products
+              .filter((product) => product.categoryId === category?.id)
+              .slice(0, 4);
+            if (!items.length || !collection.title) return null;
+            return (
+              <section key={collection.id} className="mx-auto max-w-6xl px-4 py-5">
+                <div className="mb-3">
+                  <h2 className="text-xl font-semibold" style={{ color: theme.primary }}>
+                    {collection.title}
+                  </h2>
+                  {collection.description ? (
+                    <p className="mt-1 text-sm opacity-75">{collection.description}</p>
+                  ) : null}
+                </div>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  {items.map((product) => (
+                    <ProductCard key={product.id} store={store} product={product} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : null}
       {products.length === 0 ? (
         <p className="mx-auto max-w-6xl px-4 py-16 opacity-70">
           No products are published in this view yet.
@@ -530,6 +666,32 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           ))}
         </div>
       )}
+      {theme.sections.faqs && store.content.faqs.some((faq) => faq.question && faq.answer) ? (
+        <section className="mx-auto max-w-4xl space-y-3 px-4 pb-12">
+          <h2 className="text-xl font-semibold" style={{ color: theme.primary }}>
+            Frequently asked questions
+          </h2>
+          {store.content.faqs
+            .filter((faq) => faq.question && faq.answer)
+            .map((faq) => (
+              <details key={faq.question} className="rounded-lg border p-4">
+                <summary className="cursor-pointer font-medium">{faq.question}</summary>
+                <p className="mt-3 whitespace-pre-wrap text-sm opacity-80">{faq.answer}</p>
+              </details>
+            ))}
+        </section>
+      ) : null}
+      {wishlistIds.length > 0 ? (
+        <ProductShelf
+          title="Saved for later"
+          ids={wishlistIds}
+          store={store}
+          onRemove={(id) => setWishlistIds(toggleWishlist(store.slug, id))}
+        />
+      ) : null}
+      {recentIds.length > 0 ? (
+        <ProductShelf title="Recently viewed" ids={recentIds} store={store} />
+      ) : null}
     </div>
   );
 }
@@ -548,6 +710,13 @@ export function ProductView({
   const [qty, setQty] = useState(product.minQty);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const images = useMemo(
+    () =>
+      [product.imageUrl, ...product.galleryUrls].filter((image): image is string => Boolean(image)),
+    [product.galleryUrls, product.imageUrl],
+  );
+  const [selectedImage, setSelectedImage] = useState(images[0] ?? null);
   const max = Math.max(product.minQty, product.maxPurchasable || product.minQty);
   const related = store.products
     .filter((item) => item.id !== product.id && item.categoryId === product.categoryId)
@@ -555,7 +724,10 @@ export function ProductView({
   const [share, setShare] = useState("");
   useEffect(() => {
     setShare(window.location.href);
-  }, []);
+    setSaved(readWishlist(store.slug).includes(product.id));
+    recordRecentlyViewed(store.slug, product.id);
+    setSelectedImage(images[0] ?? null);
+  }, [images, product.id, store.slug]);
 
   function add() {
     if (!product.available) {
@@ -580,13 +752,33 @@ export function ProductView({
         className={cn("bg-neutral-100", ratioClass(template.imageRatio))}
         style={{ backgroundColor: theme.surface }}
       >
-        {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+        {selectedImage ? (
+          <img src={selectedImage} alt={product.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full min-h-64 items-center justify-center text-sm text-neutral-400">
             No photo
           </div>
         )}
+        {images.length > 1 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {images.map((image, index) => (
+              <button
+                key={image}
+                type="button"
+                className={cn(
+                  "size-16 overflow-hidden rounded border-2",
+                  selectedImage === image ? "border-current" : "border-transparent",
+                )}
+                style={{ color: theme.primary }}
+                aria-label={`Show product photo ${index + 1}`}
+                aria-pressed={selectedImage === image}
+                onClick={() => setSelectedImage(image)}
+              >
+                <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div>
         <h1 className="text-3xl font-semibold">{product.name}</h1>
@@ -595,6 +787,24 @@ export function ProductView({
           {product.unit && product.unit !== "unit" ? ` per ${product.unit}` : ""}
         </p>
         <p className="mt-2 text-sm text-neutral-500">{product.stockLabel}</p>
+        {store.content.deliveryPolicy || store.content.returnsPolicy ? (
+          <div className="mt-5 space-y-3 rounded-lg border p-4 text-sm">
+            {store.content.deliveryPolicy ? (
+              <div>
+                <h2 className="font-semibold">Delivery and collection</h2>
+                <p className="mt-1 whitespace-pre-wrap opacity-80">
+                  {store.content.deliveryPolicy}
+                </p>
+              </div>
+            ) : null}
+            {store.content.returnsPolicy ? (
+              <div>
+                <h2 className="font-semibold">Returns and refunds</h2>
+                <p className="mt-1 whitespace-pre-wrap opacity-80">{store.content.returnsPolicy}</p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {product.description ? (
           <p className="mt-4 whitespace-pre-wrap text-neutral-700">{product.description}</p>
         ) : null}
@@ -656,6 +866,17 @@ export function ProductView({
             Copy product link
           </button>
         ) : null}
+        <button
+          type="button"
+          className="ml-4 mt-4 text-sm underline"
+          aria-pressed={saved}
+          onClick={() => {
+            const next = toggleWishlist(store.slug, product.id);
+            setSaved(next.includes(product.id));
+          }}
+        >
+          {saved ? "Remove from saved items" : "Save for later"}
+        </button>
         <ProductReviewsBlock reviews={reviews} />
         <div className="mt-8">
           <ListingReportForm slug={store.slug} productId={product.id} />
@@ -672,6 +893,44 @@ export function ProductView({
         ) : null}
       </div>
     </article>
+  );
+}
+
+function ProductShelf({
+  title,
+  ids,
+  store,
+  onRemove,
+}: {
+  title: string;
+  ids: string[];
+  store: PublicStore;
+  onRemove?: (id: string) => void;
+}) {
+  const products = ids
+    .map((id) => store.products.find((product) => product.id === id))
+    .filter((product): product is PublicProduct => Boolean(product));
+  if (!products.length) return null;
+  return (
+    <section className="mx-auto max-w-6xl px-4 pb-8">
+      <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {products.map((product) => (
+          <div key={product.id}>
+            <ProductCard store={store} product={product} />
+            {onRemove ? (
+              <button
+                type="button"
+                className="mt-1 text-xs underline"
+                onClick={() => onRemove(product.id)}
+              >
+                Remove saved item
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

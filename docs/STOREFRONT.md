@@ -33,7 +33,13 @@ Platform Paynow keys (`PAYNOW_INTEGRATION_ID` / `PAYNOW_INTEGRATION_KEY`) remain
 
 Sixty storefront designs (six each in ten retail categories) share one renderer (`src/components/storefront/store-experience.tsx`) and one template registry (`src/lib/storefront/templates.ts`). Sellers can filter/search the gallery, preview their published products on desktop or mobile, customize palettes, color tokens, type pairing, logo, cover image, and section visibility, and save those settings to their own store. Changing template does not copy products or orders. Gallery sketches are labelled sample layouts; the seller's draft preview uses their actual published catalogue.
 
-There are no purchasable variants. Size, shade, and ingredient text are merchant notes on the single product stock count.
+The content editor also supports an announcement bar, category-based collections, promotional tiles, FAQs, separate delivery/returns/privacy notes, and editable contact/social links. Apply `20261022100000_storefront_content_sections.sql` after the storefront template migration to persist these sections. Shop addresses link to a map search generated from the seller-entered address; no device location is collected.
+
+Published products support up to eight additional storefront photos beside the existing inventory photo. Apply `20261022110000_storefront_product_gallery.sql` after the content sections migration. Gallery photos use the existing product-media bucket and are returned through the storefront RPCs; they do not create separate catalogue items.
+
+The marketplace searches products across listed shops and lets shoppers narrow those results to a preferred shop. Checkout remains within the selected shop and does not combine orders from multiple businesses.
+
+There are no purchasable variants. Size, shade, and ingredient text are merchant notes on the single product stock count. Wishlists and recently viewed shelves are currently stored in the shopper's browser per shop; they are not account-synced. Newsletter signup and an interactive unsaved storefront preview are not implemented.
 
 ## Routes
 

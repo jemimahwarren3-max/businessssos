@@ -2704,6 +2704,14 @@ export type Database = {
         Args: { _business_id: string; _product_id: string; _image_url: string };
         Returns: undefined;
       };
+      add_product_listing_media: {
+        Args: { _business_id: string; _product_id: string; _image_url: string };
+        Returns: string[];
+      };
+      remove_product_listing_media: {
+        Args: { _business_id: string; _product_id: string; _image_url: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       app_role: "owner" | "admin" | "manager" | "cashier" | "accountant";
