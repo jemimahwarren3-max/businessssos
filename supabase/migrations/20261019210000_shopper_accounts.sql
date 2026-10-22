@@ -276,7 +276,7 @@ begin
   values (
     _store.business_id, 'store_order',
     case when _payment_method = 'quote' then 'New quote request ' || _reference else 'New online order ' || _reference end,
-    _name || ' · ' || _priced->>'currency' || ' ' || (_priced->>'total'),
+    _name || ' · ' || (_priced->>'currency') || ' ' || (_priced->>'total'),
     'info', '/storefront'
   );
 

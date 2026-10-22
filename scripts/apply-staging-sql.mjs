@@ -14,6 +14,7 @@ const FILES = [
   "20261021140000_payment_proof_storage.sql",
   "20261021141000_platform_fx.sql",
   "20261021150000_storefront_template_library.sql",
+  "20261022120000_fix_store_order_notification_currency_precedence.sql",
 ];
 
 const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
