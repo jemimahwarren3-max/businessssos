@@ -256,7 +256,7 @@ function Landing() {
             A storefront that feels like <em>you</em>.
           </h2>
           <Link to="/templates" className="font-semibold text-primary hover:underline">
-            See all ten designs →
+            Browse all storefront designs →
           </Link>
         </div>
         <div className="mt-10 flex snap-x gap-5 overflow-x-auto pb-4">
