@@ -24,6 +24,7 @@ import {
   listReviewsAdminFn,
   publishStorefrontFn,
   removeStorefrontProductImageFn,
+  respondReviewFn,
   saveShopPaynowFn,
   respondComplaintFn,
   respondListingReportFn,
@@ -140,6 +141,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const respondComplaint = useServerFn(respondComplaintFn);
   const loadReviews = useServerFn(listReviewsAdminFn);
   const hideReview = useServerFn(hideReviewFn);
+  const saveReviewResponse = useServerFn(respondReviewFn);
   const loadReports = useServerFn(listListingReportsFn);
   const respondReport = useServerFn(respondListingReportFn);
   const complaints = useQuery({
@@ -1588,6 +1590,17 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                 {item.orderReference ? ` · ${item.orderReference}` : ""}
               </p>
               <p>{item.body}</p>
+              <ReviewResponseEditor
+                key={`${item.id}-${item.merchantRespondedAt ?? "new"}`}
+                id={item.id}
+                response={item.merchantResponse ?? ""}
+                onSave={async (response) => {
+                  const rows = await saveReviewResponse({
+                    data: { businessId, reviewId: item.id, response },
+                  });
+                  queryClient.setQueryData(["store-reviews", businessId], rows);
+                }}
+              />
               <Button
                 size="sm"
                 variant="outline"
@@ -1733,6 +1746,52 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         </ul>
       </section>
     </div>
+  );
+}
+
+function ReviewResponseEditor({
+  id,
+  response,
+  onSave,
+}: {
+  id: string;
+  response: string;
+  onSave: (response: string) => Promise<void>;
+}) {
+  const [value, setValue] = useState(response);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(value.trim());
+    } catch (reason) {
+      setError(readableError(reason as Error, "Could not save the shop response."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="space-y-2" onSubmit={(event) => void submit(event)}>
+      <Label htmlFor={`review-response-${id}`}>Public shop response</Label>
+      <Textarea
+        id={`review-response-${id}`}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        minLength={2}
+        maxLength={1000}
+        required
+        placeholder="Reply to this review"
+      />
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <Button size="sm" variant="outline" type="submit" disabled={saving || value.trim().length < 2}>
+        {saving ? "Saving…" : response ? "Update response" : "Reply publicly"}
+      </Button>
+    </form>
   );
 }
 

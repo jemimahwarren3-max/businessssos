@@ -30,6 +30,19 @@ export function ProductReviewsBlock({ reviews }: { reviews: ProductReviews }) {
             </p>
             <p className="mt-1 whitespace-pre-wrap text-neutral-700">{review.body}</p>
             <p className="mt-1 text-xs text-neutral-500">{friendlyDate(review.createdAt)}</p>
+            {review.merchantResponse ? (
+              <div className="mt-3 border-l-2 border-neutral-300 pl-3">
+                <p className="font-medium">Shop response</p>
+                <p className="mt-1 whitespace-pre-wrap text-neutral-700">
+                  {review.merchantResponse}
+                </p>
+                {review.merchantRespondedAt ? (
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {friendlyDate(review.merchantRespondedAt)}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>

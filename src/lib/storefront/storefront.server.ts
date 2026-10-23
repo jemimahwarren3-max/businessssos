@@ -578,12 +578,29 @@ export async function hideStoreReview(
   hidden: boolean,
 ): Promise<AdminReviewItem[]> {
   await assertCanWrite(supabase, businessId);
+  await assertPermission(supabase, businessId, "business.settings");
   const result = await untypedRpc(supabase, "hide_store_review", {
     _business_id: businessId,
     _review_id: reviewId,
     _hidden: hidden,
   });
   return parseRpc("hide review", result, adminReviewListSchema);
+}
+
+export async function respondToStoreReview(
+  supabase: Db,
+  businessId: string,
+  reviewId: string,
+  response: string,
+): Promise<AdminReviewItem[]> {
+  await assertCanWrite(supabase, businessId);
+  await assertPermission(supabase, businessId, "business.settings");
+  const result = await untypedRpc(supabase, "respond_store_review", {
+    _business_id: businessId,
+    _review_id: reviewId,
+    _response: response,
+  });
+  return parseRpc("respond to review", result, adminReviewListSchema);
 }
 
 export async function createListingReport(input: {

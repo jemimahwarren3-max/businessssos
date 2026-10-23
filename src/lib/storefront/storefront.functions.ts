@@ -14,6 +14,7 @@ import {
   createReviewSchema,
   listingSchema,
   saveStoreSchema,
+  storeReviewResponseSchema,
 } from "./contract";
 import {
   claimShopperOrder,
@@ -38,6 +39,7 @@ import {
   quoteCart,
   respondListingReport,
   respondStoreComplaint,
+  respondToStoreReview,
   saveListing,
   saveStorefront,
   setMarketplaceVisible,
@@ -458,6 +460,13 @@ export const hideReviewFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) =>
     hideStoreReview(context.supabase as Db, data.businessId, data.reviewId, data.hidden),
+  );
+
+export const respondReviewFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) => parseAndSanitize(storeReviewResponseSchema, data))
+  .handler(async ({ data, context }) =>
+    respondToStoreReview(context.supabase as Db, data.businessId, data.reviewId, data.response),
   );
 
 export const createListingReportFn = createServerFn({ method: "POST" })

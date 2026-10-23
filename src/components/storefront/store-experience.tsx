@@ -1,9 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
 import { ListingReportForm } from "@/components/storefront/listing-report-form";
 import { ProductReviewsBlock } from "@/components/storefront/product-reviews";
+import { StoreReviewForm } from "@/components/storefront/review-form";
 import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefront/contract";
+import { getProductReviewsFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 import { storeSurface } from "@/lib/storefront/store-surface";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
@@ -717,6 +720,8 @@ export function ProductView({
     [product.galleryUrls, product.imageUrl],
   );
   const [selectedImage, setSelectedImage] = useState(images[0] ?? null);
+  const [currentReviews, setCurrentReviews] = useState(reviews);
+  const loadReviews = useServerFn(getProductReviewsFn);
   const max = Math.max(product.minQty, product.maxPurchasable || product.minQty);
   const related = store.products
     .filter((item) => item.id !== product.id && item.categoryId === product.categoryId)
@@ -728,6 +733,15 @@ export function ProductView({
     recordRecentlyViewed(store.slug, product.id);
     setSelectedImage(images[0] ?? null);
   }, [images, product.id, store.slug]);
+  useEffect(() => {
+    setCurrentReviews(reviews);
+  }, [reviews]);
+
+  async function refreshReviews() {
+    setCurrentReviews(
+      await loadReviews({ data: { slug: store.slug, productId: product.id } }),
+    );
+  }
 
   function add() {
     if (!product.available) {
@@ -877,7 +891,19 @@ export function ProductView({
         >
           {saved ? "Remove from saved items" : "Save for later"}
         </button>
-        <ProductReviewsBlock reviews={reviews} />
+        <ProductReviewsBlock reviews={currentReviews} />
+        <div className="mt-6 rounded-lg border p-4">
+          <h2 className="mb-3 text-sm font-semibold">Have you bought this?</h2>
+          <StoreReviewForm
+            slug={store.slug}
+            reference=""
+            token=""
+            productId={product.id}
+            productName={product.name}
+            askForOrderAccess
+            onSaved={refreshReviews}
+          />
+        </div>
         <div className="mt-8">
           <ListingReportForm slug={store.slug} productId={product.id} />
         </div>
