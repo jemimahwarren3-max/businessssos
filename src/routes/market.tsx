@@ -5,7 +5,7 @@ import { Logo } from "@/components/logo";
 import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
-import type { MarketplaceProduct } from "@/lib/storefront/contract";
+import type { Marketplace, MarketplaceProduct } from "@/lib/storefront/contract";
 import { BRAND } from "@/lib/brand";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { getMarketplaceFn } from "@/lib/storefront/storefront.functions";
@@ -17,9 +17,10 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/market")({
-  validateSearch: searchSchema,
+  validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
   loaderDeps: ({ search }) => ({ q: search.q ?? "", category: search.category ?? "" }),
-  loader: ({ deps }) => getMarketplaceFn({ data: { query: deps.q, category: deps.category } }),
+  loader: async ({ deps }): Promise<Marketplace> =>
+    getMarketplaceFn({ data: { query: deps.q, category: deps.category } }),
   head: ({ loaderData }) => {
     const category = loaderData?.category ? `${loaderData.category} · ` : "";
     const title = `${category}Shops on ${BRAND.name}`;
@@ -39,10 +40,11 @@ export const Route = createFileRoute("/market")({
   errorComponent: MarketError,
 });
 
-function MarketError({ error }: { error: Error }) {
+function MarketError({ error }: { error: unknown }) {
+  const message = error instanceof Error ? error.message : "Something unexpected happened.";
   return (
     <MarketFrame>
-      <p className="text-sm text-destructive">{error.message}</p>
+      <p className="text-sm text-destructive">{message}</p>
     </MarketFrame>
   );
 }

@@ -36,12 +36,13 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+  const normalizedError = error instanceof Error ? error : new Error("Unknown route error");
+  console.error(normalizedError);
   // Redundant with error-capture.ts server-side (console.error is already
   // wrapped there) but this is the only path that also catches a client-
   // side render error after hydration, where that wrapping doesn't reach.
-  void captureError(error);
+  void captureError(normalizedError);
   const router = useRouter();
 
   return (
