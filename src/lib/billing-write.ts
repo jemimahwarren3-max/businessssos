@@ -22,3 +22,10 @@ export function canWriteForSubscription(
     new Date(subscription.trial_ends_at) > new Date(),
   );
 }
+
+export function canWriteWithPlatformEntitlement(
+  subscription: { status: string; trial_ends_at: string | null } | null,
+  hasOwnerBypass: boolean,
+) {
+  return hasOwnerBypass || canWriteForSubscription(subscription);
+}

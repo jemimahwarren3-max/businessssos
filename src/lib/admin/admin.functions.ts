@@ -45,7 +45,7 @@ const adminMfaRateLimit = [
 export const checkPlatformAdmin = createServerFn({ method: "GET" })
   .middleware(adminStatusLimit)
   .handler(async ({ context }) => {
-    const isAdmin = isPlatformAdmin(context.userId);
+    const isAdmin = await isPlatformAdmin(context.userId);
     if (!isAdmin) return { isAdmin: false as const };
     const mfa = await getMfaStatus(context.tokens);
     return { isAdmin: true as const, ...mfa };
@@ -54,7 +54,7 @@ export const checkPlatformAdmin = createServerFn({ method: "GET" })
 export const enrollAdminMfaFn = createServerFn({ method: "POST" })
   .middleware(adminRateLimit)
   .handler(async ({ context }) => {
-    if (!isPlatformAdmin(context.userId)) throw new Error("Not found.");
+    if (!(await isPlatformAdmin(context.userId))) throw new Error("Not found.");
     return enrollTotp(context.tokens);
   });
 
@@ -66,7 +66,7 @@ export const verifyAdminMfaEnrollmentFn = createServerFn({ method: "POST" })
   .middleware(adminMfaRateLimit)
   .inputValidator((data: unknown) => verifyEnrollSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!isPlatformAdmin(context.userId)) throw new Error("Not found.");
+    if (!(await isPlatformAdmin(context.userId))) throw new Error("Not found.");
     const { accessToken, refreshToken } = await verifyTotpEnrollment(
       context.tokens,
       data.factorId,
@@ -83,7 +83,7 @@ export const challengeAdminMfaFn = createServerFn({ method: "POST" })
   .middleware(adminMfaRateLimit)
   .inputValidator((data: unknown) => challengeSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!isPlatformAdmin(context.userId)) throw new Error("Not found.");
+    if (!(await isPlatformAdmin(context.userId))) throw new Error("Not found.");
     return challengeTotp(context.tokens, data.factorId);
   });
 
@@ -96,7 +96,7 @@ export const verifyAdminMfaChallengeFn = createServerFn({ method: "POST" })
   .middleware(adminMfaRateLimit)
   .inputValidator((data: unknown) => verifyChallengeSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!isPlatformAdmin(context.userId)) throw new Error("Not found.");
+    if (!(await isPlatformAdmin(context.userId))) throw new Error("Not found.");
     const { accessToken, refreshToken } = await verifyTotpChallenge(
       context.tokens,
       data.factorId,

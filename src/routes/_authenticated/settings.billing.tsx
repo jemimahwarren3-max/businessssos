@@ -189,7 +189,9 @@ function Billing() {
                     </Badge>
                   ) : null}
                 </div>
-                {subscription.status === "trialing" && subscription.trial_ends_at ? (
+                {!workspace.data.isPlatformOwner &&
+                subscription.status === "trialing" &&
+                subscription.trial_ends_at ? (
                   <p className="text-sm text-muted-foreground">
                     Trial ends {friendlyDate(subscription.trial_ends_at)}. Pay for a plan below to
                     keep access after that.
@@ -203,9 +205,16 @@ function Billing() {
             ) : (
               <p className="text-sm text-muted-foreground">No subscription found yet.</p>
             )}
+            {workspace.data.isPlatformOwner ? (
+              <p className="rounded-lg bg-info-soft p-3 text-sm text-info">
+                Platform owner access is a separate entitlement. No subscription payment is
+                required; the subscription and payment history shown here remain actual billing
+                records.
+              </p>
+            ) : null}
           </div>
 
-          {!billingEnabled ? null : !canManageBilling ? (
+          {!billingEnabled || workspace.data.isPlatformOwner ? null : !canManageBilling ? (
             <div className="surface p-5 text-sm text-muted-foreground">
               Only an owner or admin can manage billing for this business.
             </div>

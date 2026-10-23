@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { randomBytes } from "node:crypto";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
 import { openPaynowSecrets, sealPaynowSecrets } from "@/lib/payments/paynow-seal";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("shared receipt copy", () => {
   it("says what was paid and how, without mixing cash and Paynow", () => {
@@ -12,9 +17,8 @@ describe("shared receipt copy", () => {
 });
 
 describe("shop Paynow seal", () => {
-  it("round-trips merchant keys without using platform env names", () => {
-    const previous = process.env["SESSION_SECRET"];
-    process.env["SESSION_SECRET"] = "test-session-secret-ok";
+  it("round-trips merchant keys with the dedicated encryption key", () => {
+    vi.stubEnv("SHOP_PAYMENT_ENCRYPTION_KEY", randomBytes(32).toString("base64url"));
     const sealed = sealPaynowSecrets({
       integrationId: "shop-int",
       integrationKey: "shop-key-value",
@@ -23,7 +27,7 @@ describe("shop Paynow seal", () => {
     expect(openPaynowSecrets(sealed)).toEqual({
       integrationId: "shop-int",
       integrationKey: "shop-key-value",
+      needsReEncryption: false,
     });
-    process.env["SESSION_SECRET"] = previous;
   });
 });

@@ -20,6 +20,7 @@ import {
   invalidateWorkspaceCacheForBusiness,
   type Db,
 } from "@/lib/business.server";
+import { amountToMinorUnits, fetchPaynowPollResponse } from "./paynow-poll";
 
 function getAppUrl(): string {
   const url = process.env["APP_URL"];
@@ -112,14 +113,26 @@ export async function pollAndConfirmPayment(
 ): Promise<PaynowPollResult> {
   const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
   const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
-  if (!integrationId || !integrationKey) return "pending";
+  if (!integrationId || !integrationKey) {
+    console.error("[paynow] subscription polling is unavailable; platform credentials are missing");
+    return "pending";
+  }
 
   const paynow = new Paynow(integrationId, integrationKey);
+  const { data: attempt, error: attemptError } = await supabaseAdmin
+    .from("subscription_payments")
+    .select("amount, currency, status")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (attemptError) {
+    console.error("[paynow] load subscription payment for verification", attemptError);
+    return "pending";
+  }
+  if (!attempt || attempt.status !== "created" || attempt.currency !== "USD") return "pending";
 
   let rawBody: string;
   try {
-    const res = await fetch(pollUrl, { method: "POST" });
-    rawBody = await res.text();
+    rawBody = await fetchPaynowPollResponse(pollUrl);
   } catch (error) {
     console.error("[paynow] poll request failed", error);
     return "pending";
@@ -129,7 +142,18 @@ export async function pollAndConfirmPayment(
   try {
     statusResponse = paynow.parseStatusUpdate(rawBody);
   } catch (error) {
-    console.error("[paynow] poll response failed hash verification", error, rawBody);
+    console.error("[paynow] poll response failed hash verification", error);
+    return "pending";
+  }
+
+  if (statusResponse.reference?.trim() !== reference) {
+    console.error("[paynow] verified poll reference did not match the subscription payment");
+    return "pending";
+  }
+  const expectedAmount = amountToMinorUnits(attempt.amount);
+  const reportedAmount = amountToMinorUnits(statusResponse.amount ?? "");
+  if (expectedAmount === null || expectedAmount !== reportedAmount) {
+    console.error("[paynow] verified poll amount did not match the subscription payment");
     return "pending";
   }
 
@@ -137,12 +161,16 @@ export async function pollAndConfirmPayment(
   const paynowReference = statusResponse.paynowReference ?? null;
 
   if (status === "paid") {
-    await supabaseAdmin.rpc("paynow_confirm_payment", {
+    const { error } = await supabaseAdmin.rpc("paynow_confirm_payment", {
       _reference: reference,
-      _provider_reference: paynowReference as never,
-      _raw_status: (statusResponse.status ?? null) as never,
+      _provider_reference: paynowReference,
+      _raw_status: statusResponse.status ?? null,
       _paid: true,
     });
+    if (error) {
+      console.error("[paynow] confirm subscription payment", error);
+      return "pending";
+    }
     const { data: payment } = await supabaseAdmin
       .from("subscription_payments")
       .select("business_id")
@@ -153,12 +181,16 @@ export async function pollAndConfirmPayment(
   }
 
   if (FAILURE_STATUSES.has(status)) {
-    await supabaseAdmin.rpc("paynow_confirm_payment", {
+    const { error } = await supabaseAdmin.rpc("paynow_confirm_payment", {
       _reference: reference,
-      _provider_reference: paynowReference as never,
-      _raw_status: (statusResponse.status ?? null) as never,
+      _provider_reference: paynowReference,
+      _raw_status: statusResponse.status ?? null,
       _paid: false,
     });
+    if (error) {
+      console.error("[paynow] record failed subscription payment", error);
+      return "pending";
+    }
     return "failed";
   }
 

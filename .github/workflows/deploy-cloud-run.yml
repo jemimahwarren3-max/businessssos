@@ -134,6 +134,8 @@ jobs:
           NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL || 'Kwetuu <noreply@mykwetuu.com>' }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_FLUSH_SECRET: ${{ secrets.MAIL_FLUSH_SECRET }}
+          SHOP_PAYMENT_ENCRYPTION_KEY: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY }}
+          SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS }}
         run: |
           set -euo pipefail
           missing=0
@@ -176,6 +178,12 @@ jobs:
           mail_flush = os.environ.get("MAIL_FLUSH_SECRET") or ""
           if mail_flush:
               pairs["MAIL_FLUSH_SECRET"] = mail_flush
+          payment_key = os.environ.get("SHOP_PAYMENT_ENCRYPTION_KEY") or ""
+          if payment_key:
+              pairs["SHOP_PAYMENT_ENCRYPTION_KEY"] = payment_key
+          payment_key_previous = os.environ.get("SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS") or ""
+          if payment_key_previous:
+              pairs["SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS"] = payment_key_previous
           path = pathlib.Path("/tmp/kwetuu-run-env.yaml")
           with path.open("w", encoding="utf-8") as fh:
               for key, value in pairs.items():

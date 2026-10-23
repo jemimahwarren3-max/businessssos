@@ -358,6 +358,18 @@ describe("online order transitions", () => {
     expect(actions).toContain("mark_paid");
     expect(actions).toContain("reject_proof");
   });
+
+  it("requires gateway verification instead of offering seller mark-paid for Paynow", () => {
+    const actions = fulfilmentActions({
+      fulfilmentStatus: "confirmed",
+      fulfilmentMethod: "pickup",
+      paymentMethod: "paynow",
+      paymentStatus: "unpaid",
+      saleId: null,
+    });
+    expect(actions).not.toContain("mark_paid");
+    expect(actions).toContain("cancel");
+  });
 });
 
 describe("shopper product shelves", () => {

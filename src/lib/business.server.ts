@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
-import { canWriteForSubscription } from "@/lib/billing-write";
+import { canWriteForSubscription, canWriteWithPlatformEntitlement } from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
 import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
@@ -68,6 +68,7 @@ export type Workspace = {
   plan: string;
   planStatus: string;
   isReadOnly: boolean;
+  isPlatformOwner: boolean;
   billingEnabled: boolean;
 };
 
@@ -108,13 +109,18 @@ const READ_ONLY_MESSAGE =
 
 /** Gate for every write (create/update/delete) — read paths never call this. */
 export async function assertCanWrite(supabase: Db, businessId: string) {
-  const { data: subscription, error } = await supabase
-    .from("subscriptions")
-    .select("status, trial_ends_at")
-    .eq("business_id", businessId)
-    .maybeSingle();
+  const [{ data: subscription, error }, { data: hasOwnerBypass, error: entitlementError }] =
+    await Promise.all([
+      supabase
+        .from("subscriptions")
+        .select("status, trial_ends_at")
+        .eq("business_id", businessId)
+        .maybeSingle(),
+      supabase.rpc("has_platform_subscription_bypass"),
+    ]);
   if (error) dbFail("check subscription status", error);
-  if (!canWriteForSubscription(subscription)) fail(READ_ONLY_MESSAGE);
+  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
+  if (!canWriteWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(READ_ONLY_MESSAGE);
 }
 
 export async function recordAudit(
@@ -166,24 +172,30 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   if (error) dbFail("load membership", error);
   if (!membership) return null;
 
-  const [{ data: business, error: bizError }, { data: subscription }, { data: permissions }] =
-    await Promise.all([
-      supabase
-        .from("businesses")
-        .select("id, name, business_type, currency, onboarding_completed, logo_url")
-        .eq("id", membership.business_id)
-        .maybeSingle(),
-      supabase
-        .from("subscriptions")
-        .select("plan, status, trial_ends_at")
-        .eq("business_id", membership.business_id)
-        .maybeSingle(),
-      // Every member's own effective permission set — owner gets everything,
-      // everyone else gets exactly what business_role_permissions grants
-      // their role, defaulted to today's behavior on first access.
-      supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
-    ]);
+  const [
+    { data: business, error: bizError },
+    { data: subscription },
+    { data: permissions },
+    { data: hasOwnerBypass, error: entitlementError },
+  ] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select("id, name, business_type, currency, onboarding_completed, logo_url")
+      .eq("id", membership.business_id)
+      .maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan, status, trial_ends_at")
+      .eq("business_id", membership.business_id)
+      .maybeSingle(),
+    // Every member's own effective permission set — owner gets everything,
+    // everyone else gets exactly what business_role_permissions grants
+    // their role, defaulted to today's behavior on first access.
+    supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
+    supabase.rpc("has_platform_subscription_bypass"),
+  ]);
   if (bizError) dbFail("load business", bizError);
+  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
   if (!business) return null;
 
   const workspace: Workspace = {
@@ -192,7 +204,8 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     permissions: permissions ?? [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
-    isReadOnly: !canWriteForSubscription(subscription ?? null),
+    isReadOnly: !canWriteWithPlatformEntitlement(subscription ?? null, hasOwnerBypass),
+    isPlatformOwner: hasOwnerBypass,
     billingEnabled: isBillingEnabled(),
   };
   await cacheSet(cacheKey, workspace, 60);

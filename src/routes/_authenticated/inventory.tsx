@@ -524,8 +524,8 @@ function Inventory() {
       <ImportDialog<ProductImportRow>
         open={importOpen}
         onOpenChange={setImportOpen}
-        title="Import products"
-        description="Bring in a product list from a spreadsheet, opening stock is recorded as a stock-in movement."
+        title="Import products and opening stock"
+        description="Upload a .csv or Excel spreadsheet (.xlsx) with product details and a Stock or SOH column. Opening quantities are recorded as stock-in movements."
         columns={PRODUCT_IMPORT_COLUMNS}
         templateFilename="products-template"
         parseRow={(record, rowNumber) => {
