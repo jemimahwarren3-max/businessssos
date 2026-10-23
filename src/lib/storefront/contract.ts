@@ -267,6 +267,8 @@ export const publicReviewSchema = z.object({
   displayName: z.string(),
   createdAt: z.string(),
   verifiedPurchase: z.boolean(),
+  merchantResponse: z.string().nullable().optional(),
+  merchantRespondedAt: z.string().nullable().optional(),
 });
 
 export const productReviewsSchema = z.object({
@@ -284,6 +286,12 @@ export const createReviewSchema = z.object({
   body: z.string().trim().min(8).max(1000),
 });
 
+export const storeReviewResponseSchema = z.object({
+  businessId: z.string().uuid(),
+  reviewId: z.string().uuid(),
+  response: z.string().trim().min(2).max(1000),
+});
+
 export const adminReviewListSchema = z.array(
   z.object({
     id: z.string(),
@@ -294,6 +302,8 @@ export const adminReviewListSchema = z.array(
     displayName: z.string(),
     productName: z.string().nullable().optional(),
     orderReference: z.string().nullable().optional(),
+    merchantResponse: z.string().nullable().optional(),
+    merchantRespondedAt: z.string().nullable().optional(),
   }),
 );
 

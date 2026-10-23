@@ -4,6 +4,8 @@ import {
   createReviewSchema,
   emptyProductReviews,
   productReviewsSchema,
+  publicReviewSchema,
+  storeReviewResponseSchema,
 } from "@/lib/storefront/contract";
 
 describe("verified purchase reviews", () => {
@@ -46,6 +48,21 @@ describe("verified purchase reviews", () => {
     expect(parsed.average).toBeNull();
     expect(parsed.reviews).toEqual([]);
   });
+
+  it("shows a shop response alongside a verified public review", () => {
+    const parsed = publicReviewSchema.parse({
+      id: "review-1",
+      rating: 4,
+      body: "The dress matched the photo and arrived on time.",
+      displayName: "Tariro",
+      createdAt: "2026-10-20T12:00:00Z",
+      verifiedPurchase: true,
+      merchantResponse: "Thanks for taking the time to share this.",
+      merchantRespondedAt: "2026-10-20T13:00:00Z",
+    });
+    expect(parsed.merchantResponse).toContain("Thanks");
+    expect(parsed.verifiedPurchase).toBe(true);
+  });
 });
 
 describe("listing reports", () => {
@@ -55,6 +72,7 @@ describe("listing reports", () => {
       reason: "hate",
       detail: "no",
     });
+
     expect(bad.success).toBe(false);
     const ok = createListingReportSchema.parse({
       slug: "harare-cloth",
@@ -63,5 +81,21 @@ describe("listing reports", () => {
     });
     expect(ok.reason).toBe("misleading");
     expect(ok.productId).toBeUndefined();
+  });
+});
+
+describe("shop review responses", () => {
+  it("requires a review and a short public response", () => {
+    const base = {
+      businessId: "00000000-0000-4000-8000-000000000001",
+      reviewId: "00000000-0000-4000-8000-000000000002",
+    };
+    expect(storeReviewResponseSchema.safeParse({ ...base, response: " " }).success).toBe(false);
+    expect(
+      storeReviewResponseSchema.safeParse({ ...base, response: "x".repeat(1001) }).success,
+    ).toBe(false);
+    expect(storeReviewResponseSchema.parse({ ...base, response: "Thank you!" }).response).toBe(
+      "Thank you!",
+    );
   });
 });

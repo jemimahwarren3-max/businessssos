@@ -9,6 +9,7 @@ export function StoreReviewForm({
   token,
   productId,
   productName,
+  askForOrderAccess = false,
   onSaved,
 }: {
   slug: string;
@@ -16,9 +17,12 @@ export function StoreReviewForm({
   token: string;
   productId: string;
   productName: string;
-  onSaved?: () => void;
+  askForOrderAccess?: boolean;
+  onSaved?: () => void | Promise<void>;
 }) {
   const submit = useServerFn(createReviewFn);
+  const [orderReference, setOrderReference] = useState(reference);
+  const [orderToken, setOrderToken] = useState(token);
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
   const [pending, setPending] = useState(false);
@@ -31,12 +35,23 @@ export function StoreReviewForm({
     setError(null);
     try {
       await submit({
-        data: { slug, reference, token, productId, rating, body },
+        data: { slug, reference: orderReference, token: orderToken, productId, rating, body },
       });
-      setDone(true);
-      onSaved?.();
     } catch (reason) {
       setError(readableError(reason as Error, "The review was not saved. You can try again."));
+      setPending(false);
+      return;
+    }
+    setDone(true);
+    try {
+      await onSaved?.();
+    } catch (reason) {
+      setError(
+        readableError(
+          reason as Error,
+          "Your review was saved, but the review list did not refresh.",
+        ),
+      );
     } finally {
       setPending(false);
     }
@@ -44,9 +59,10 @@ export function StoreReviewForm({
 
   if (done) {
     return (
-      <p className="text-sm text-neutral-600">
-        Saved as a verified purchase review for {productName}.
-      </p>
+      <div className="text-sm text-neutral-600">
+        <p>Saved as a verified purchase review for {productName}.</p>
+        {error ? <p className="mt-1 text-amber-800">{error}</p> : null}
+      </div>
     );
   }
 
@@ -54,9 +70,36 @@ export function StoreReviewForm({
     <form className="space-y-2 text-sm" onSubmit={(event) => void onSubmit(event)}>
       <p className="font-medium">Review {productName}</p>
       <p className="text-neutral-500">
-        This uses your order access code. The shop can hide the review. It is not a platform
-        guarantee.
+        Reviews are tied to an eligible order and its access code. The shop can hide the review;
+        this is not a platform guarantee.
       </p>
+      {askForOrderAccess ? (
+        <>
+          <label className="block">
+            Order reference
+            <input
+              className="mt-1 w-full rounded border px-3 py-2"
+              autoComplete="off"
+              required
+              maxLength={40}
+              value={orderReference}
+              onChange={(event) => setOrderReference(event.target.value)}
+            />
+          </label>
+          <label className="block">
+            Order access code
+            <input
+              className="mt-1 w-full rounded border px-3 py-2"
+              type="password"
+              autoComplete="off"
+              required
+              maxLength={80}
+              value={orderToken}
+              onChange={(event) => setOrderToken(event.target.value)}
+            />
+          </label>
+        </>
+      ) : null}
       <label className="block">
         Rating
         <select
