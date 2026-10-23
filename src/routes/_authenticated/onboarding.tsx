@@ -529,6 +529,21 @@ function Onboarding() {
                 Draft shops stay private until you publish. Customer payments go to you directly —{" "}
                 {BRAND.name} subscription billing is separate from shop checkout.
               </p>
+              <div className="mt-6 rounded-xl border border-border p-4">
+                <h2 className="text-sm font-semibold">Before you publish</h2>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  Add products, set EcoCash or bank instructions in Storefront, then share your link
+                  when orders are ready to go live.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button asChild size="sm">
+                    <Link to="/inventory">Add products</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/storefront">Payment &amp; publish settings</Link>
+                  </Button>
+                </div>
+              </div>
             </OnboardingCard>
             <Button
               className="mt-6 w-full rounded-full"
