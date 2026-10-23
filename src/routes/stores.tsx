@@ -28,12 +28,13 @@ export const Route = createFileRoute("/stores")({
   errorComponent: StoresError,
 });
 
-function StoresError({ error }: { error: Error }) {
+function StoresError({ error }: { error: unknown }) {
+  const message = error instanceof Error ? error.message : "Something unexpected happened.";
   return (
     <MarketingShell>
       <div className="mx-auto max-w-6xl px-4 py-16">
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Shops</h1>
-        <p className="mt-3 text-sm text-destructive">{error.message}</p>
+        <p className="mt-3 text-sm text-destructive">{message}</p>
       </div>
     </MarketingShell>
   );

@@ -64,12 +64,13 @@ const SAMPLE_MOOD = [
   { img: "/marketing/beauty.jpg", label: "Beauty" },
 ] as const;
 
-function LandingError({ error }: { error: Error }) {
+function LandingError({ error }: { error: unknown }) {
+  const message = error instanceof Error ? error.message : "Something unexpected happened.";
   return (
     <MarketingShell>
       <div className="mx-auto max-w-6xl px-5 py-16">
         <h1 className="text-3xl font-semibold">Discover something you love</h1>
-        <p className="mt-3 text-sm text-destructive">{error.message}</p>
+        <p className="mt-3 text-sm text-destructive">{message}</p>
         <Button asChild className="mt-6 rounded-full">
           <Link to="/auth" search={{ mode: "signup" }}>
             Start your store

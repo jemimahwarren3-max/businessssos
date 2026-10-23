@@ -8,8 +8,8 @@ name: Nightly production backup
 # tables) taken nightly, encrypted, and kept as a workflow artifact for 14
 # days. See docs/disaster-recovery.md for how to actually restore from one.
 #
-# GitHub's runners have normal outbound IPv4/IPv6 — the IPv6-only direct
-# connection that fails on the developer's local network works fine here.
+# Use the Supabase session-pooler connection string. The direct database host
+# can resolve to IPv6, which GitHub-hosted runners may not be able to reach.
 
 on:
   schedule:
@@ -25,11 +25,14 @@ jobs:
 
       - name: Dump production database
         env:
-          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
-          pg_dump \
-            "host=db.maidxfntfpnkcqnuhozo.supabase.co port=5432 dbname=postgres user=postgres sslmode=require" \
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "Set repository secret SUPABASE_DB_URL to the production Supabase session-pooler connection string."
+            exit 1
+          fi
+          pg_dump "$SUPABASE_DB_URL" \
             --schema=public --schema=auth \
             --no-owner --no-privileges \
             --format=custom \
@@ -40,6 +43,10 @@ jobs:
           PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
         run: |
           set -euo pipefail
+          if [ -z "${PASSPHRASE:-}" ]; then
+            echo "Set repository secret BACKUP_ENCRYPTION_PASSPHRASE and keep a copy in your password manager."
+            exit 1
+          fi
           gpg --batch --yes --symmetric --cipher-algo AES256 \
             --passphrase "$PASSPHRASE" backup.dump
           rm backup.dump

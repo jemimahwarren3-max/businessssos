@@ -15,11 +15,11 @@ exist. Restoring both together keeps those IDs intact.
 **One-time setup**, before the first run does anything useful — add two
 repository secrets (Settings → Secrets and variables → Actions):
 
-- `SUPABASE_DB_PASSWORD` — the production database password. Reset it from
-  the Supabase dashboard (Project Settings → Database → Reset database
-  password) if you don't have it recorded anywhere; resetting it doesn't
-  break the running app, since it authenticates the Postgres connection
-  directly, not the app's own Supabase client keys.
+- `SUPABASE_DB_URL` — the production Supabase **session pooler** connection
+  string from the dashboard's Connect dialog. Use the session pooler, not the
+  direct database host: the direct host can resolve to IPv6, which GitHub
+  hosted runners may not be able to reach. Keep the password embedded in this
+  connection string private.
 - `BACKUP_ENCRYPTION_PASSPHRASE` — a long random passphrase, used to encrypt
   every dump. **Save it somewhere outside GitHub too** (a password manager) —
   if it only lives in the GitHub secret and the repo or account is ever
