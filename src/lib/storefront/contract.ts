@@ -51,6 +51,7 @@ const paymentsSchema = z.object({
   payOnDelivery: z.boolean(),
   quotes: z.boolean(),
   paynow: z.boolean(),
+  paynowAvailable: z.boolean().optional(),
   acceptPaynow: z.boolean().catch(false),
   cashCurrencies: z.string().catch(""),
   exactCash: z.boolean().catch(false),

@@ -52,18 +52,24 @@ console steps in the operator reply / GitHub secrets table below.
 
 ## GitHub Actions secrets
 
-| Secret                             | Value                                                                                    |
-| ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| `GCP_PROJECT_ID`                   | The GCP project id                                                                       |
-| `GCP_WORKLOAD_IDENTITY_PROVIDER`   | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/kwetuu/providers/github` |
-| `GCP_SERVICE_ACCOUNT`              | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                       |
-| `APP_URL`                          | Always `https://mykwetuu.com` (do not flip to `.run.app`)                                |
-| `STAGING_SUPABASE_URL`             | Staging project URL                                                                      |
-| `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging anon/publishable key                                                             |
-| `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                   |
-| `RESEND_API_KEY`                   | Resend API key; required to send queued mail                                             |
-| `NOTIFY_FROM_EMAIL`                | Defaults to `Kwetuu <noreply@mykwetuu.com>`; override only with a verified sender        |
-| `MAIL_FLUSH_SECRET`                | Random secret of at least 16 characters; required by the scheduled mail flush workflow   |
+| Secret                                 | Value                                                                                                                                             |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GCP_PROJECT_ID`                       | The GCP project id                                                                                                                                |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER`       | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/kwetuu/providers/github`                                                          |
+| `GCP_SERVICE_ACCOUNT`                  | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                                                                                |
+| `APP_URL`                              | Always `https://mykwetuu.com` (do not flip to `.run.app`)                                                                                         |
+| `STAGING_SUPABASE_URL`                 | Staging project URL                                                                                                                               |
+| `STAGING_SUPABASE_PUBLISHABLE_KEY`     | Staging anon/publishable key                                                                                                                      |
+| `STAGING_SUPABASE_PROJECT_ID`          | `slajanbsfqjnuuiohbmg`                                                                                                                            |
+| `RESEND_API_KEY`                       | Resend API key; required to send queued mail                                                                                                      |
+| `NOTIFY_FROM_EMAIL`                    | Defaults to `Kwetuu <noreply@mykwetuu.com>`; override only with a verified sender                                                                 |
+| `MAIL_FLUSH_SECRET`                    | Random secret of at least 16 characters; required by the scheduled mail flush workflow                                                            |
+| `SHOP_PAYMENT_ENCRYPTION_KEY`          | Server-only 32-byte base64url key for seller Paynow credential encryption; do not enable seller Paynow without written provider/platform approval |
+| `SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS` | Previous encryption key during a credential-key rotation                                                                                          |
+
+Seller Paynow checkout is disabled by default in the database. Seller credentials
+alone do not enable it. The deployed app currently uses the staging Supabase
+project; do not treat this Cloud Run deployment as production payment processing.
 
 ## Domain `mykwetuu.com`
 

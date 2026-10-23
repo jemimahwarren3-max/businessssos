@@ -109,6 +109,7 @@ export async function loadPublicStore(input: {
   if (data == null) return null;
   const store = await parseRpc("load public store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: input.slug });
+  if (offered.error) rpcFail("check public shop Paynow availability", offered.error);
   store.payments.paynow = offered.data === true;
   return store;
 }
@@ -119,6 +120,7 @@ export async function loadStorePreview(supabase: Db, slug: string): Promise<Publ
   if (data == null) return null;
   const store = await parseRpc("preview store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: slug });
+  if (offered.error) rpcFail("check preview shop Paynow availability", offered.error);
   store.payments.paynow = offered.data === true;
   return store;
 }
@@ -265,7 +267,12 @@ async function withProofUrl<T extends object>(order: T): Promise<T> {
 async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promise<AdminStore> {
   if (admin.store) {
     const connected = await shopPaynowConnected(businessId);
+    const { data: available, error } = await supabaseAdmin.rpc("shop_offers_paynow_business", {
+      _business_id: businessId,
+    });
+    if (error) dbFail("shop Paynow availability", error);
     admin.store.payments.paynow = connected;
+    admin.store.payments.paynowAvailable = available;
     admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
   }
   return admin;
@@ -356,6 +363,7 @@ export async function transitionOrder(
   orderId: string,
   action: string,
   reason?: string,
+  paymentReference?: string,
 ) {
   await assertCanWrite(supabase, businessId);
   if (action === "reject_proof") {
@@ -366,11 +374,18 @@ export async function transitionOrder(
     });
     return withProofUrl(await parseRpc("reject payment note", result, adminOrderSchema));
   }
-  const result = await supabase.rpc("transition_store_order", {
-    _business_id: businessId,
-    _order_id: orderId,
-    _action: action,
-  });
+  const result =
+    action === "mark_paid"
+      ? await supabase.rpc("record_store_order_payment", {
+          _business_id: businessId,
+          _order_id: orderId,
+          _confirmation_reference: paymentReference ?? "",
+        })
+      : await supabase.rpc("transition_store_order", {
+          _business_id: businessId,
+          _order_id: orderId,
+          _action: action,
+        });
   const parsed = withProofUrl(await parseRpc("update online order", result, adminOrderSchema));
   await flushNotificationOutboxForBusiness(supabase, businessId);
   return parsed;

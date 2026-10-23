@@ -30,7 +30,7 @@ export function fulfilmentActions(input: {
 }): OrderAction[] {
   if (input.fulfilmentStatus === "cancelled") return [];
   const actions: OrderAction[] = [];
-  if (input.paymentStatus !== "paid" && input.saleId == null) {
+  if (input.paymentStatus !== "paid" && input.saleId == null && input.paymentMethod !== "paynow") {
     if (!(input.paymentMethod === "quote" && input.fulfilmentStatus === "awaiting_confirmation")) {
       actions.push("mark_paid");
     }

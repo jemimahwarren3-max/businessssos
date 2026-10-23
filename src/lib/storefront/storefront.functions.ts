@@ -7,6 +7,7 @@ import { parseAndSanitize } from "@/lib/security";
 import { loadPlatformFx } from "@/lib/platform-fx-read.server";
 import { removeProductGalleryImage, uploadProductGalleryImage } from "@/lib/product-media.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
+import { generateShopDraft } from "./ai-builder.server";
 import {
   checkoutSchema,
   createComplaintSchema,
@@ -58,6 +59,9 @@ const checkoutLimit = [
 const authed = [
   authedRateLimit({ keyPrefix: "store-admin", maxRequests: 60, windowSeconds: 60 }),
 ] as const;
+const aiShopBuilderLimit = [
+  authedRateLimit({ keyPrefix: "ai-shop-builder", maxRequests: 5, windowSeconds: 60 }),
+] as const;
 const shopper = [
   authedRateLimit({ keyPrefix: "store-shopper", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
@@ -65,6 +69,19 @@ const shopper = [
 export const getPlatformFxFn = createServerFn({ method: "GET" })
   .middleware(publicLimit)
   .handler(async () => loadPlatformFx());
+
+export const generateShopDraftFn = createServerFn({ method: "POST" })
+  .middleware(aiShopBuilderLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        brief: z.string().trim().min(10).max(1200),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) => generateShopDraft(context.supabase as Db, data));
 
 export const getMarketplaceFn = createServerFn({ method: "POST" })
   .middleware(publicLimit)
@@ -178,12 +195,7 @@ export const saveShopPaynowFn = createServerFn({ method: "POST" })
     const supabase = context.supabase as Db;
     await assertCanWrite(supabase, data.businessId);
     await assertPermission(supabase, data.businessId, "business.settings");
-    return saveShopPaynowCredentials(
-      supabase,
-      data.businessId,
-      data.integrationId,
-      data.integrationKey,
-    );
+    return saveShopPaynowCredentials(data.businessId, data.integrationId, data.integrationKey);
   });
 
 export const getCustomerOrderFn = createServerFn({ method: "POST" })
@@ -296,6 +308,7 @@ export const transitionOrderFn = createServerFn({ method: "POST" })
           "reject_proof",
         ]),
         reason: z.string().max(400).optional(),
+        paymentReference: z.string().trim().max(80).optional(),
       }),
       data,
     ),
@@ -307,6 +320,7 @@ export const transitionOrderFn = createServerFn({ method: "POST" })
       data.orderId,
       data.action,
       data.reason,
+      data.paymentReference,
     ),
   );
 

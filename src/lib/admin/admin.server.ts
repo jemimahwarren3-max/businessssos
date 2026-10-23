@@ -1,12 +1,8 @@
-// Platform-admin data access — see the migration's header comment
-// (20260808200000_platform_admin.sql / 20260808210000_fix_grant_leaks.sql)
-// for the full authorization model. Short version: PLATFORM_ADMIN_USER_ID
-// is an env var, never a grantable role; every function here is checked
-// against it before touching supabaseAdmin, and the underlying Postgres
-// functions are independently locked to service_role only via GRANT/REVOKE
-// (not an internal current_user check — see 20260808220000_fix_broken_secdef_check.sql
-// for why that pattern is unsound) so this app-layer check is defense in
-// depth, not the only gate.
+// Platform-admin data access. The database-backed super_admin role is
+// authoritative after the one-time owner bootstrap; PLATFORM_ADMIN_USER_ID
+// is retained only as a compatibility path until then. The service-role RPC
+// checks are never exposed to the browser, and every action below also
+// requires an aal2 MFA session.
 import type { Database } from "@/integrations/supabase/types";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadPlatformFx } from "@/lib/platform-fx-read.server";
@@ -31,16 +27,26 @@ export type AdminStats = {
   payments_stuck_count: number;
 };
 
-export function isPlatformAdmin(userId: string | undefined | null): boolean {
-  const adminId = process.env["PLATFORM_ADMIN_USER_ID"];
-  return Boolean(adminId) && userId === adminId;
+export async function isPlatformAdmin(userId: string | undefined | null): Promise<boolean> {
+  if (!userId) return false;
+  const { data, error } = await supabaseAdmin.rpc("platform_admin_access", {
+    _user_id: userId,
+  });
+  if (error) dbFail("check platform admin role", error);
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new AppError("Could not verify platform administrator access.");
+  }
+  if (data["is_super_admin"] === true) return true;
+  const bootstrapComplete = data["bootstrap_complete"] === true;
+  const legacyAdminId = process.env["PLATFORM_ADMIN_USER_ID"];
+  return !bootstrapComplete && Boolean(legacyAdminId) && userId === legacyAdminId;
 }
 
 // MFA is checked here, on every admin action, not just at the route's
 // beforeLoad — beforeLoad only guards page navigation, not the underlying
 // server functions, which are the actual security boundary.
 export async function requireAdmin(userId: string, tokens: SupabaseTokens) {
-  if (!isPlatformAdmin(userId)) {
+  if (!(await isPlatformAdmin(userId))) {
     throw new AppError("Not found.");
   }
   const mfa = await getMfaStatus(tokens);

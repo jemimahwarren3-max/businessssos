@@ -107,7 +107,7 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
     }
 
     const raw = await request.text();
-    const { paynowReferenceFromBody, pollAndConfirmShopPayment } =
+    const { paynowReferenceFromBody, pollAndConfirmShopPayment, verifyShopPaynowWebhookBody } =
       await import("./lib/payments/shop-paynow.server");
     const reference = paynowReferenceFromBody(raw);
     if (!reference) return new Response("Unauthorized", { status: 401 });
@@ -122,6 +122,12 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
       return new Response("Error", { status: 500 });
     }
     if (shopPayment.data) {
+      const valid = await verifyShopPaynowWebhookBody(
+        raw,
+        shopPayment.data.reference,
+        shopPayment.data.business_id,
+      );
+      if (!valid) return new Response("Unauthorized", { status: 401 });
       if (shopPayment.data.status === "created") {
         await pollAndConfirmShopPayment(
           shopPayment.data.reference,

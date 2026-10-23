@@ -1,0 +1,65 @@
+# Kwetuu execution status
+
+**Updated:** 23 October 2026
+**Branch:** `feature/payments-foundation`
+**Base:** `origin/master` at `7dd36ba`
+
+Status meanings: **not started**, **in progress**, **blocked**,
+**implemented**, **verified**. Verified means the listed evidence ran; it does
+not mean production-ready.
+
+| Feature / scope                                           | Status                                             | Files / migration                                                                                                                          | Tests actually run                                                                                                            | Blockers / remaining defects                                                                                                                                                                                  |
+| --------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product and repository audit                              | implemented                                        | `PRODUCT_AUDIT.md`, existing full and feature audits                                                                                       | Repository/docs/routes/migrations inspected; no complete platform E2E audit run                                               | Live deployment, legal and backup claims are outside local evidence.                                                                                                                                          |
+| Architecture, rules, security and test docs               | implemented                                        | `ARCHITECTURE.md`, `BUSINESS_RULES.md`, `SECURITY.md`, `TEST_PLAN.md`                                                                      | Documentation reviewed against existing audits and code paths                                                                 | Continue updating as later slices are implemented.                                                                                                                                                            |
+| Payment implementation plan and status                    | implemented                                        | `IMPLEMENTATION_PLAN.md`, this file                                                                                                        | Worktree and validation commands checked                                                                                      | Full roadmap remains staged, not all built.                                                                                                                                                                   |
+| Business accounts, memberships and permissions            | implemented; not re-verified in this slice         | Existing auth/session modules, `src/routes/_authenticated/settings.team.tsx`, historical migrations                                        | Full unit suite passed; staging permission integration tests skipped                                                          | Verify tenant isolation against current staging schema; admin/ownership and account-recovery operations remain separate checks.                                                                               |
+| Products, POS and shared inventory                        | implemented; not re-verified in this slice         | `src/routes/_authenticated/inventory.tsx`, `sales.tsx`, product/inventory migrations                                                       | Full unit suite passed; staging transaction/race tests skipped                                                                | CSV and Excel product import supports opening Stock/SOH and records stock-in movements; product variants and branch-transfer workflow remain missing.                                                         |
+| Store builder and templates                               | implemented; AI draft assistance added             | `src/routes/_authenticated/storefront.tsx`, `src/lib/storefront/ai-builder.server.ts`, `src/lib/storefront/templates.ts`                   | AI response validation tests passed; no live Groq or browser journey run                                                      | AI produces editable copy/design suggestions only; requires `GROQ_API_KEY`. User must save and publish; confirm mobile/accessibility and live preview in browser.                                             |
+| Marketplace, cart and checkout                            | implemented; not re-verified in this slice         | `src/routes/market.tsx`, `src/routes/store.$slug.*.tsx`, storefront SQL migrations                                                         | Full unit suite passed; 42 staging-dependent tests skipped                                                                    | One shop per cart; live database and oversell tests not run in this task.                                                                                                                                     |
+| Manual seller payment audit trail and Paynow bypass block | implemented; staging verification pending          | `supabase/migrations/20261023120000_payment_safety_foundation.sql`, storefront server/UI/types, `tests/integration/payment-safety.test.ts` | Unit suite includes storefront regression; new DB tests are staged but skipped locally because no staging token is configured | Migration now creates the seller Paynow tables if missing, adds its policy idempotently, and extends the audit-action constraint. Run staging migration and DB integration tests before treating it verified. |
+| Seller Paynow default-off gate and credential encryption  | implemented; staging/provider blocked              | migration, `paynow-seal.ts`, deploy workflow, `.env.example`                                                                               | Encryption key, legacy/previous-key unit tests; typecheck/lint/build                                                          | Written provider/platform approval and legal review absent; keep disabled.                                                                                                                                    |
+| Paynow polling and callback validation                    | implemented; staging/provider verification pending | `paynow-poll.ts`, `shop-paynow.server.ts`, `paynow.server.ts`, `server.ts`                                                                 | URL/money unit tests, typecheck/lint/build                                                                                    | Provider sandbox callback replay and staging RPC tests not run.                                                                                                                                               |
+| Fulfilment, receipts and customer notifications           | implemented; operationally unverified              | Storefront order functions/routes, order/email migrations and outbox workflow                                                              | Full unit suite passed; no live mail or browser journey run                                                                   | Resend sender/secrets/job and seller delivery/collection operations require deployment verification; refunds/returns remain incomplete.                                                                       |
+| Platform subscription billing                             | implemented; deployment disabled by default        | `src/lib/payments/paynow.server.ts`, billing routes and billing migrations                                                                 | Typecheck/build and full unit suite passed                                                                                    | Cloud Run sets billing off; subscription webhook/poll integration tests and live account setup not tested here.                                                                                               |
+| Platform owner role and subscription entitlement          | implemented; staging verification pending          | `20261023130000_platform_owner_foundation.sql`, admin auth, billing gate, `PLATFORM_OWNER_BOOTSTRAP.md`                                    | Owner entitlement unit test passed; four staging DB permission tests skipped without a staging token                          | Owner has not been invited or bootstrapped. Migration not applied. Transfer, staff role workflows, account/store/order oversight and complete admin audit coverage remain open.                               |
+| Marketplace administration, moderation and support        | partial                                            | Admin, report and review routes/RPCs; related migrations                                                                                   | Full unit suite passed; no live admin workflow run                                                                            | Comprehensive dispute case management and end-to-end moderation/support verification remain open.                                                                                                             |
+| Full platform journeys / browser E2E                      | not started                                        | Existing routes and `TEST_PLAN.md`                                                                                                         | No browser automation run                                                                                                     | No Playwright/Cypress setup; staging and journey coverage needed.                                                                                                                                             |
+| Production database deployment                            | blocked                                            | None applied by this task                                                                                                                  | Not run                                                                                                                       | Explicit approval, reviewed backup/recovery plan, and production migration procedure required.                                                                                                                |
+
+## Validation results on this branch
+
+- `npx vitest run`: **134 passed, 49 skipped**; 28 test files passed and 11
+  were skipped. Staging-dependent database tests, including payment safety and
+  platform-owner permissions, are skipped because no staging token is
+  configured locally.
+- `npx tsc --noEmit`: passed.
+- Focused ESLint on changed TypeScript/tests: passed.
+- Prettier check on changed source/docs/workflow/test files: passed.
+- `npm run build`: passed. Build emitted existing dependency/bundler warnings.
+- `git diff --check`: passed. Line-ending warnings on Windows are informational.
+
+## Manual setup / release dependencies
+
+- Apply the migration to staging through the authorized staging process; inspect
+  migration replay, RLS/grants, and the manual-payment journey. The staging
+  error `public.shop_order_payments does not exist` is addressed by creating
+  that table in the payment-safety migration when absent.
+- The `storefronts_theme_object_check already exists` error means the
+  template-library migration has already been applied at least through that
+  constraint. Do not rerun that historical migration: it renames/replaces
+  functions and replaying it could overwrite later database changes.
+- Configure the encryption key as a GitHub Actions repository secret before
+  any shop credentials are saved; deployment injects it into Cloud Run.
+- Obtain written Paynow permission for the platform arrangement and legal/
+  regulatory review before considering seller Paynow enablement.
+- Do not apply to production or enable seller Paynow based on this local
+  validation.
+
+## Next task
+
+Invite and verify the owner through Supabase Auth, apply both new migrations to
+staging, bootstrap the owner from the SQL Editor, and run the staging payment,
+platform-owner, and tenant-isolation integration tests. Implement the remaining
+administration and support workflows before claiming the full owner-system
+brief is complete. Keep production untouched.

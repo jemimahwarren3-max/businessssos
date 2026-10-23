@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canWriteForSubscription } from "@/lib/business.server";
+import { canWriteWithPlatformEntitlement } from "@/lib/billing-write";
 import {
   createInviteSchema,
   createStaffAccountSchema,
@@ -60,6 +61,16 @@ describe("audit hardening contracts", () => {
       if (previous === undefined) delete process.env["BILLING_ENABLED"];
       else process.env["BILLING_ENABLED"] = previous;
     }
+  });
+
+  it("uses a separate owner entitlement without changing subscription billing state", () => {
+    const expiredSubscription = {
+      status: "past_due",
+      trial_ends_at: "2020-01-01T00:00:00.000Z",
+    };
+    expect(canWriteWithPlatformEntitlement(expiredSubscription, true)).toBe(true);
+    expect(canWriteWithPlatformEntitlement(expiredSubscription, false)).toBe(false);
+    expect(canWriteWithPlatformEntitlement(null, false)).toBe(false);
   });
 
   it("prefers runtime APP_URL over a baked Vite origin", () => {

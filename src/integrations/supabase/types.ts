@@ -2209,6 +2209,9 @@ export type Database = {
         Returns: undefined;
       };
       admin_platform_stats: { Args: never; Returns: Json };
+      bootstrap_platform_owner: { Args: { _owner_email: string }; Returns: string };
+      has_platform_subscription_bypass: { Args: never; Returns: boolean };
+      platform_admin_access: { Args: { _user_id: string }; Returns: Json };
       adjust_time_entry: {
         Args: {
           _business_id: string;
@@ -2443,6 +2446,14 @@ export type Database = {
         Args: { _business_id: string; _order_id: string; _action: string };
         Returns: Json;
       };
+      record_store_order_payment: {
+        Args: {
+          _business_id: string;
+          _order_id: string;
+          _confirmation_reference?: string;
+        };
+        Returns: Json;
+      };
       submit_store_order_proof: {
         Args: {
           _slug: string;
@@ -2625,11 +2636,11 @@ export type Database = {
       confirm_shop_paynow_payment: {
         Args: {
           _paid: boolean;
-          _provider_reference: string;
-          _raw_status: string;
+          _provider_reference: string | null;
+          _raw_status: string | null;
           _reference: string;
         };
-        Returns: undefined;
+        Returns: string;
       };
       storefront_paynow_context: { Args: { _slug: string }; Returns: Json };
       storefront_order_id: { Args: { _slug: string; _reference: string }; Returns: string };
@@ -2638,8 +2649,8 @@ export type Database = {
       paynow_confirm_payment: {
         Args: {
           _paid: boolean;
-          _provider_reference: string;
-          _raw_status: string;
+          _provider_reference: string | null;
+          _raw_status: string | null;
           _reference: string;
         };
         Returns: undefined;

@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { Loader2, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DataTable, type ColumnDef } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
 import { shopHostsEnabled, storePublicUrl } from "@/lib/storefront/host";
 import {
   getAdminOrderFn,
+  generateShopDraftFn,
   getMarketplaceListingFn,
   getStorefrontAdminFn,
   hideReviewFn,
@@ -67,6 +69,7 @@ import type {
   ListingReportItem,
   StorefrontContent,
 } from "@/lib/storefront/contract";
+import type { ShopDraft } from "@/lib/storefront/shop-draft";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
@@ -113,7 +116,7 @@ function StorefrontPage() {
       isReadOnly={workspaceData.isReadOnly}
       billingEnabled={workspaceData.billingEnabled}
       title="Storefront"
-      subtitle="Publish products you already sell. Customers get a receipt; you see the same one here. Link this shop's own Paynow to take EcoCash and card."
+      subtitle="Publish products you already sell. Customers get a receipt; you see the same one here. Manual payments stay seller-confirmed; automated seller Paynow is currently disabled."
     >
       {admin.isLoading ? <Skeleton className="h-64" /> : null}
       {admin.isError ? (
@@ -122,13 +125,25 @@ function StorefrontPage() {
         </p>
       ) : null}
       {admin.data && businessId ? (
-        <StorefrontEditor businessId={businessId} initial={admin.data} />
+        <StorefrontEditor
+          businessId={businessId}
+          initial={admin.data}
+          permissions={workspaceData.permissions}
+        />
       ) : null}
     </AppShell>
   );
 }
 
-function StorefrontEditor({ businessId, initial }: { businessId: string; initial: AdminStore }) {
+function StorefrontEditor({
+  businessId,
+  initial,
+  permissions,
+}: {
+  businessId: string;
+  initial: AdminStore;
+  permissions: string[];
+}) {
   const queryClient = useQueryClient();
   const save = useServerFn(saveStorefrontFn);
   const publish = useServerFn(publishStorefrontFn);
@@ -197,6 +212,8 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         ),
     ),
   );
+  const [shopBrief, setShopBrief] = useState("");
+  const [shopDraft, setShopDraft] = useState<ShopDraft | null>(null);
   const [templateSearch, setTemplateSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("all");
   const [previewViewport, setPreviewViewport] = useState<"mobile" | "desktop">("desktop");
@@ -231,9 +248,11 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   );
   const [paynowId, setPaynowId] = useState("");
   const [paynowKey, setPaynowKey] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [checkedAccount, setCheckedAccount] = useState(false);
   const savePaynow = useServerFn(saveShopPaynowFn);
+  const generateShopDraft = useServerFn(generateShopDraftFn);
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -294,6 +313,12 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
     },
     onError: (error: Error) => toast.error(readableError(error, "Could not save the shop")),
   });
+  const shopDraftMutation = useMutation({
+    mutationFn: () => generateShopDraft({ data: { businessId, brief: shopBrief } }),
+    onSuccess: setShopDraft,
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Could not generate a shop draft.")),
+  });
 
   const listing = useQuery({
     queryKey: ["marketplace-listing", businessId],
@@ -336,8 +361,8 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <p className="text-sm text-muted-foreground">
           Cash on pickup/delivery still works without Paynow. EcoCash, InnBucks, and bank
           instructions are only shown when you turn them on and fill in the details. Recording
-          payment creates a sale after you check your own account. Paynow uses this shop's keys,
-          never the {BRAND.name} billing keys.
+          payment creates a sale after you check your own account. Shop Paynow, if later approved,
+          uses this shop's keys, never the {BRAND.name} billing keys.
         </p>
         {publicUrl ? (
           <p className="text-sm">
@@ -372,6 +397,75 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           {initial.metrics.outOfStockPublished} · Low stock: {initial.metrics.lowStockPublished}
         </p>
       </section>
+
+      {permissions.includes("business.settings") && permissions.includes("ai.use") ? (
+        <section className="surface space-y-3 p-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 text-primary" aria-hidden="true" />
+            <h2 className="text-base font-semibold">Build a shop draft with AI</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Describe your products, customers, and the look you want. AI suggests shop copy, a
+            design, and a colour palette. Review everything before applying; it will not save or
+            publish your shop.
+          </p>
+          <Textarea
+            value={shopBrief}
+            onChange={(event) => setShopBrief(event.target.value)}
+            maxLength={1200}
+            placeholder="For example: I sell handmade skincare in Harare. I want a calm botanical look, clear product descriptions, and a friendly tone for gift buyers."
+            aria-label="Describe the shop you want"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={shopDraftMutation.isPending || shopBrief.trim().length < 10}
+            onClick={() => shopDraftMutation.mutate()}
+          >
+            {shopDraftMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Sparkles className="size-4" aria-hidden="true" />
+            )}
+            Generate shop ideas
+          </Button>
+          {shopDraft ? (
+            <div className="space-y-3 rounded-lg border p-3">
+              <div>
+                <p className="font-medium">{shopDraft.storeName}</p>
+                <p className="text-sm text-muted-foreground">{shopDraft.rationale}</p>
+                <p className="mt-1 text-sm">
+                  Suggested design: {getTemplate(shopDraft.templateId).name}
+                </p>
+              </div>
+              <p className="text-sm">
+                <span className="font-medium">{shopDraft.heroTitle}</span>
+                {shopDraft.heroSubtitle ? `: ${shopDraft.heroSubtitle}` : ""}
+              </p>
+              <Button
+                type="button"
+                onClick={() => {
+                  setStoreName(shopDraft.storeName);
+                  setTagline(shopDraft.tagline);
+                  setAbout(shopDraft.about);
+                  setHeroTitle(shopDraft.heroTitle);
+                  setHeroSubtitle(shopDraft.heroSubtitle);
+                  setTemplateId(shopDraft.templateId);
+                  setTheme(
+                    themeFromPalette(
+                      shopDraft.paletteId,
+                      getTemplate(shopDraft.templateId).defaultAccent,
+                    ),
+                  );
+                  toast.success("AI ideas added to your editable shop draft. Save when ready.");
+                }}
+              >
+                Apply ideas to editor
+              </Button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Design</h2>
@@ -1196,6 +1290,10 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             Customers see only the methods you enable. A customer payment note never marks an order
             paid. You still check EcoCash, InnBucks, or the bank yourself, then record payment.
           </p>
+          <p className="text-muted-foreground">
+            Configure only payment details and account arrangements you are authorized to use.
+            Customers pay you directly; Kwetuu does not receive or verify manual payments.
+          </p>
           {manualMethods.map((method, index) => (
             <div key={method.id} className="space-y-2 rounded-md border p-3">
               <label className="flex items-center gap-2">
@@ -1259,14 +1357,18 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <div className="space-y-2 text-sm md:col-span-2">
           <p className="font-medium">This shop's Paynow</p>
           <p className="text-muted-foreground">
-            Paste the integration ID and key from your Paynow merchant dashboard. Money goes to that
-            account, not {BRAND.name}. Manual EcoCash / InnBucks instructions above are not Paynow.
-            Only Paynow keys you paste here start an automated Paynow checkout.
+            Paynow keys belong to this shop and are encrypted on the server. Automated checkout
+            remains unavailable until Paynow confirms in writing that this platform arrangement is
+            permitted and Kwetuu enables it.
           </p>
+          {!store?.payments.paynowAvailable ? (
+            <p className="text-sm text-amber-700">
+              Automated seller Paynow checkout is currently disabled. Saving seller credentials does
+              not enable payments.
+            </p>
+          ) : null}
           <p>
-            {store?.payments.paynow
-              ? "Keys are saved. Customers can pay with Paynow when the box below is on."
-              : "No Paynow keys saved yet."}
+            {store?.payments.paynow ? "Shop Paynow keys are saved." : "No Paynow keys saved yet."}
           </p>
           <label className="block">
             <Label>Paynow integration ID</Label>
@@ -1305,6 +1407,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             <input
               type="checkbox"
               checked={acceptPaynow}
+              disabled={!store?.payments.paynowAvailable}
               onChange={(event) => setAcceptPaynow(event.target.checked)}
             />{" "}
             Let customers pay with this shop's Paynow at checkout
@@ -1432,6 +1535,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                   void loadOrder({ data: { businessId, orderId: order.id } }).then((next) => {
                     setSelectedOrder(next);
                     setCheckedAccount(false);
+                    setPaymentReference("");
                   })
                 }
               >
@@ -1491,18 +1595,34 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                 {selectedOrder.terms?.paymentProof?.rejectReason ? (
                   <p className="mt-1">Rejection: {selectedOrder.terms.paymentProof.rejectReason}</p>
                 ) : null}
-                {selectedOrder.paymentMethod === "manual" &&
-                selectedOrder.paymentStatus !== "paid" ? (
-                  <label className="mt-2 flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={checkedAccount}
-                      onChange={(event) => setCheckedAccount(event.target.checked)}
+              </div>
+            ) : null}
+            {selectedOrder.paymentStatus !== "paid" &&
+            selectedOrder.paymentMethod !== "paynow" &&
+            (selectedOrder.paymentMethod !== "quote" ||
+              selectedOrder.fulfilmentStatus !== "awaiting_confirmation") ? (
+              <div className="mt-3 space-y-2 rounded-md border p-3">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={checkedAccount}
+                    onChange={(event) => setCheckedAccount(event.target.checked)}
+                  />
+                  <span>
+                    I received {formatMoney(selectedOrder.total, selectedOrder.currency)} directly
+                    and checked my own account or received the cash.
+                  </span>
+                </label>
+                {selectedOrder.paymentMethod === "manual" ||
+                selectedOrder.paymentMethod === "quote" ? (
+                  <label className="block">
+                    Payment reference (optional)
+                    <Input
+                      className="mt-1"
+                      maxLength={80}
+                      value={paymentReference}
+                      onChange={(event) => setPaymentReference(event.target.value)}
                     />
-                    <span>
-                      I checked my own account for{" "}
-                      {formatMoney(selectedOrder.total, selectedOrder.currency)}.
-                    </span>
                   </label>
                 ) : null}
               </div>
@@ -1519,17 +1639,15 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                   key={action}
                   size="sm"
                   variant={action === "cancel" || action === "reject_proof" ? "outline" : "default"}
-                  disabled={
-                    action === "mark_paid" &&
-                    selectedOrder.paymentMethod === "manual" &&
-                    !checkedAccount
-                  }
+                  disabled={action === "mark_paid" && !checkedAccount}
                   onClick={() =>
                     void transition({
                       data: {
                         businessId,
                         orderId: selectedOrder.id,
                         action,
+                        paymentReference:
+                          action === "mark_paid" ? paymentReference.trim() : undefined,
                         reason:
                           action === "reject_proof"
                             ? "The shop could not confirm this payment. Send a new reference."
@@ -1539,6 +1657,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                       .then((next) => {
                         setSelectedOrder(next);
                         setCheckedAccount(false);
+                        setPaymentReference("");
                         void queryClient.invalidateQueries({
                           queryKey: ["storefront", businessId],
                         });
@@ -1548,7 +1667,10 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                       )
                   }
                 >
-                  {action === "mark_paid" && selectedOrder.paymentMethod === "manual"
+                  {action === "mark_paid" &&
+                  (selectedOrder.paymentMethod === "manual" ||
+                    selectedOrder.paymentMethod === "pay_on_pickup" ||
+                    selectedOrder.paymentMethod === "pay_on_delivery")
                     ? "Record payment after checking your account"
                     : ACTION_LABEL[action]}
                 </Button>
