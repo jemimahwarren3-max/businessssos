@@ -104,22 +104,25 @@ describeStaging("store payment safety", () => {
       business_id: string;
       payment_method: string;
       confirmation_reference: string;
-      amount: number;
+      amount: string;
       currency: string;
       confirmed_by: string;
+      order_total: string;
     }>(`
-      select business_id, payment_method, confirmation_reference, amount, currency, confirmed_by
-      from public.store_order_payment_confirmations
-      where order_id = '${orderId}';
+      select c.business_id, c.payment_method, c.confirmation_reference, c.amount,
+        c.currency, c.confirmed_by, o.total as order_total
+      from public.store_order_payment_confirmations c
+      join public.store_orders o on o.id = c.order_id
+      where c.order_id = '${orderId}';
     `);
     expect(record).toMatchObject({
       business_id: businessId,
       payment_method: "manual",
       confirmation_reference: "TXN-123",
-      amount: 10,
       currency: "USD",
       confirmed_by: owner,
     });
+    expect(Number(record!.amount)).toBe(Number(record!.order_total));
     const [audit] = await sql<{ action: string; user_id: string }>(`
       select action, user_id
       from public.audit_logs
