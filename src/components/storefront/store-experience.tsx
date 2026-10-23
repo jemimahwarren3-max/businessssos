@@ -738,9 +738,7 @@ export function ProductView({
   }, [reviews]);
 
   async function refreshReviews() {
-    setCurrentReviews(
-      await loadReviews({ data: { slug: store.slug, productId: product.id } }),
-    );
+    setCurrentReviews(await loadReviews({ data: { slug: store.slug, productId: product.id } }));
   }
 
   function add() {

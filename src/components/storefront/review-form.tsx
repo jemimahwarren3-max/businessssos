@@ -47,7 +47,10 @@ export function StoreReviewForm({
       await onSaved?.();
     } catch (reason) {
       setError(
-        readableError(reason as Error, "Your review was saved, but the review list did not refresh."),
+        readableError(
+          reason as Error,
+          "Your review was saved, but the review list did not refresh.",
+        ),
       );
     } finally {
       setPending(false);

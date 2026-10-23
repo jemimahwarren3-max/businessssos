@@ -1788,7 +1788,12 @@ function ReviewResponseEditor({
         placeholder="Reply to this review"
       />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button size="sm" variant="outline" type="submit" disabled={saving || value.trim().length < 2}>
+      <Button
+        size="sm"
+        variant="outline"
+        type="submit"
+        disabled={saving || value.trim().length < 2}
+      >
         {saving ? "Saving…" : response ? "Update response" : "Reply publicly"}
       </Button>
     </form>
