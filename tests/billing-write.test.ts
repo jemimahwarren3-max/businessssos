@@ -51,17 +51,11 @@ describe("billing write gate", () => {
 describe("platform owner subscription entitlement", () => {
   it("allows writes when owner bypass is true even if subscription is expired", () => {
     process.env["BILLING_ENABLED"] = "true";
+    expect(canWriteWithPlatformEntitlement({ status: "canceled", trial_ends_at: null }, true)).toBe(
+      true,
+    );
     expect(
-      canWriteWithPlatformEntitlement(
-        { status: "canceled", trial_ends_at: null },
-        true,
-      ),
-    ).toBe(true);
-    expect(
-      canWriteWithPlatformEntitlement(
-        { status: "canceled", trial_ends_at: null },
-        false,
-      ),
+      canWriteWithPlatformEntitlement({ status: "canceled", trial_ends_at: null }, false),
     ).toBe(false);
   });
 });
