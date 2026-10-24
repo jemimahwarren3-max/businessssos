@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { EMAIL_PROVIDER_OFF_MESSAGE, fetchAuthProviderStatus } from "@/lib/auth/
 import { googleOAuthRedirectTo } from "@/lib/auth/google-oauth";
 import { readableError } from "@/lib/format";
 import { BRAND } from "@/lib/brand";
+import { navigateAfterAuth } from "@/lib/auth/post-auth-navigate";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/logo";
 import { Alert, AlertTitle } from "@/components/ui/alert";
@@ -36,10 +37,23 @@ const searchSchema = z.object({
     .regex(/^\/invite\/[a-zA-Z0-9]+$/)
     .optional()
     .catch(undefined),
+  // Supabase sometimes lands on /auth when Site URL is wrong — forward to the real handler.
+  code: z.string().min(1).optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
+  beforeLoad: ({ search }) => {
+    if (search.code) {
+      throw redirect({
+        to: "/auth/callback",
+        search: {
+          code: search.code,
+          next: "/onboarding",
+        },
+      });
+    }
+  },
   loader: async () => {
     try {
       return { providers: await fetchAuthProviderStatus() };
@@ -102,12 +116,12 @@ function AuthPage() {
           return;
         }
         if (redirect) {
-          navigate({ to: redirect, replace: true });
+          navigateAfterAuth(redirect);
           return;
         }
         const destination = await fetchPostAuthDestination();
         const path = destination.path === "/auth" ? "/onboarding" : destination.path;
-        navigate({ to: path, replace: true });
+        navigateAfterAuth(path);
       })
       .catch(() => {
         if (!cancelled) setBootState("ready");
@@ -167,11 +181,11 @@ function AuthPage() {
           setSentTo(email.trim());
           return;
         }
-        navigate({ to: result.path ?? "/onboarding", replace: true });
+        navigateAfterAuth(result.path ?? "/onboarding");
         return;
       }
       const signInResult = await signInFn({ data: { email: email.trim(), password } });
-      navigate({ to: signInResult.path ?? "/onboarding", replace: true });
+      navigateAfterAuth(signInResult.path ?? "/onboarding");
     } catch (error) {
       toast.error(readableError(error as Error, "We couldn't complete that. Please try again."));
     } finally {

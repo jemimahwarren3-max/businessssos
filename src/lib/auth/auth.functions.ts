@@ -25,6 +25,7 @@ import {
   verifyTotpEnrollment,
 } from "./mfa.server";
 import { verifyCurrentPassword } from "./reauth.server";
+import { handleAuthCallback } from "./handle-auth-callback.server";
 import {
   completeOAuthCallback,
   resolvePostAuthPath,
@@ -225,12 +226,10 @@ export const finishOAuthCallback = createServerFn({ method: "POST" })
   .middleware(oauthCallbackLimit)
   .inputValidator((data: unknown) => oauthCallbackSchema.parse(data))
   .handler(async ({ data }) => {
-    const { userId, tokens } = await completeOAuthCallback({ code: data.code });
-    if (data.acceptedTerms) {
-      await recordLegalAcceptance(userId, getRequestIP() ?? null);
-    }
-    const path = await resolvePostAuthPathForUser(tokens.accessToken, userId);
-    return { path };
+    return handleAuthCallback({
+      code: data.code,
+      ...(data.acceptedTerms === undefined ? {} : { acceptedTerms: data.acceptedTerms }),
+    });
   });
 
 /** @deprecated Prefer finishOAuthCallback — kept for tests calling exchange only. */
