@@ -25,7 +25,11 @@ import {
   verifyTotpEnrollment,
 } from "./mfa.server";
 import { verifyCurrentPassword } from "./reauth.server";
-import { completeOAuthCallback, resolvePostAuthPath } from "./oauth-callback.server";
+import {
+  completeOAuthCallback,
+  resolvePostAuthPath,
+  resolvePostAuthPathForUser,
+} from "./oauth-callback.server";
 import {
   clearServerSession,
   createAnonClient,
@@ -129,7 +133,8 @@ export const signIn = createServerFn({ method: "POST" })
     }
     await clearLoginFailures(lockoutKey);
     await establishSession(result.session);
-    return { userId: result.user.id };
+    const path = await resolvePostAuthPathForUser(result.session.access_token, result.user.id);
+    return { userId: result.user.id, path };
   });
 
 const BREACHED_PASSWORD_MESSAGE =
@@ -165,7 +170,8 @@ export const signUp = createServerFn({ method: "POST" })
 
     if (result.session) {
       await establishSession(result.session);
-      return { needsEmailConfirmation: false };
+      const path = await resolvePostAuthPathForUser(result.session.access_token, result.user!.id);
+      return { needsEmailConfirmation: false, path };
     }
     // Whether this is a new signup awaiting confirmation or an email that
     // already has an account, Supabase's response — and ours — look
@@ -189,11 +195,28 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
 // of the PKCE OAuth/magic-link handoff. The browser holds the code_verifier
 // (see integrations/supabase/client.ts's cookie-backed storage adapter);
 // Supabase's SDK reads it back out of that same cookie via this request.
+const oauthCallbackSchema = z.object({
+  code: z.string().min(1),
+  acceptedTerms: z.boolean().optional(),
+});
+
+/** Single round-trip: exchange PKCE code, seal session, return onboarding vs dashboard. */
+export const finishOAuthCallback = createServerFn({ method: "POST" })
+  .middleware(oauthCallbackLimit)
+  .inputValidator((data: unknown) => oauthCallbackSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { userId, tokens } = await completeOAuthCallback({ code: data.code });
+    if (data.acceptedTerms) {
+      await recordLegalAcceptance(userId, getRequestIP() ?? null);
+    }
+    const path = await resolvePostAuthPathForUser(tokens.accessToken, userId);
+    return { path };
+  });
+
+/** @deprecated Prefer finishOAuthCallback — kept for tests calling exchange only. */
 export const exchangeOAuthCode = createServerFn({ method: "POST" })
   .middleware(oauthCallbackLimit)
-  .inputValidator((data: unknown) =>
-    z.object({ code: z.string().min(1), acceptedTerms: z.boolean().optional() }).parse(data),
-  )
+  .inputValidator((data: unknown) => oauthCallbackSchema.parse(data))
   .handler(async ({ data }) => {
     const { userId } = await completeOAuthCallback({ code: data.code });
     if (data.acceptedTerms) {

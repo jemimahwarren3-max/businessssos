@@ -102,7 +102,7 @@ export function createExchangeClient() {
   });
 }
 
-function createTokenScopedClient(accessToken: string) {
+export function createTokenScopedClient(accessToken: string) {
   const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = getSupabaseEnv();
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
