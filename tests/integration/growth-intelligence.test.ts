@@ -143,14 +143,14 @@ describeStaging("store growth intelligence", () => {
       trackedPaidOrders: 1,
       trackedPaidVisitors: 1,
       conversionRate: 100,
-      paidRevenueByCurrency: [{ currency: "USD", amount: 20 }],
+      paidRevenueByCurrency: [{ currency: "USD", amount: 10 }],
       campaigns: [
         {
           id: campaignId,
           visitors: 1,
           orders: 1,
           paidOrders: 1,
-          paidRevenueByCurrency: [{ currency: "USD", amount: 10 }],
+          paidRevenueByCurrency: [{ currency: "USD", amount: 5 }],
         },
       ],
     });
