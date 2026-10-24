@@ -16,8 +16,24 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
-  { file: "20261022100000_storefront_content_sections.sql" },
-  { file: "20261022110000_storefront_product_gallery.sql" },
+  {
+    file: "20261022100000_storefront_content_sections.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_constraint
+        where conname = 'storefronts_content_object_check'
+      ) as skip
+    `,
+  },
+  {
+    file: "20261022110000_storefront_product_gallery.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_constraint
+        where conname = 'product_listings_gallery_urls_limit'
+      ) as skip
+    `,
+  },
   { file: "20261022120000_fix_store_order_notification_currency_precedence.sql" },
   { file: "20261022130000_allow_storefront_audit_actions.sql" },
   { file: "20261022140000_store_review_responses.sql" },
