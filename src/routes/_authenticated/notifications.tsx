@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
   head: () => ({
-    meta: [{ title: "Notifications | BusinessOS AI" }],
+    meta: [{ title: "Notifications | Kwetuu" }],
   }),
   component: NotificationsPage,
 });

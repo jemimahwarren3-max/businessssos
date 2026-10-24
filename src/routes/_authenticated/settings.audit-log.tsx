@@ -21,7 +21,7 @@ import { friendlyDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/audit-log")({
   head: () => ({
-    meta: [{ title: "Audit log | BusinessOS AI" }],
+    meta: [{ title: "Audit log | Kwetuu" }],
   }),
   component: AuditLog,
 });

@@ -73,12 +73,12 @@ function salesChartSummary(
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
     meta: [
-      { title: "Reports | BusinessOS AI" },
+      { title: "Reports | Kwetuu" },
       {
         name: "description",
         content: "Sales, profit, expenses, inventory and customer reports for your business.",
       },
-      { property: "og:title", content: "Reports | BusinessOS AI" },
+      { property: "og:title", content: "Reports | Kwetuu" },
       { property: "og:description", content: "See how your business is really doing." },
     ],
   }),

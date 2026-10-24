@@ -60,12 +60,12 @@ const EMPTY_ITEM: LineItemInput = {
 export const Route = createFileRoute("/_authenticated/customers")({
   head: () => ({
     meta: [
-      { title: "Customers | BusinessOS AI" },
+      { title: "Customers | Kwetuu" },
       {
         name: "description",
         content: "Your customer directory with contact details and outstanding balances.",
       },
-      { property: "og:title", content: "Customers | BusinessOS AI" },
+      { property: "og:title", content: "Customers | Kwetuu" },
       { property: "og:description", content: "Know who buys from you and who owes you." },
     ],
   }),

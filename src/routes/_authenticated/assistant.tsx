@@ -16,12 +16,12 @@ import { readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/assistant")({
   head: () => ({
     meta: [
-      { title: "AI Assistant | BusinessOS AI" },
+      { title: "AI Assistant | Kwetuu" },
       {
         name: "description",
         content: "Ask questions about your business and get answers grounded in your real data.",
       },
-      { property: "og:title", content: "AI Assistant | BusinessOS AI" },
+      { property: "og:title", content: "AI Assistant | Kwetuu" },
       { property: "og:description", content: "Don't just see your data. Understand it." },
     ],
   }),

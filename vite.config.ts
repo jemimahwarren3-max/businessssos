@@ -75,7 +75,8 @@ export default defineConfig(({ command }) => {
         manifest: {
           name: "Kwetuu",
           short_name: "Kwetuu",
-          description: "Run your business, not your spreadsheets.",
+          description:
+            "Discover independent shops across Zimbabwe, or open your own online store on mykwetuu.com.",
           theme_color: "#4F46E5",
           background_color: "#F8FAFC",
           display: "standalone",

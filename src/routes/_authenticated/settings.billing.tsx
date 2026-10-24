@@ -28,7 +28,7 @@ import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
   head: () => ({
-    meta: [{ title: "Billing | BusinessOS AI" }],
+    meta: [{ title: "Billing | Kwetuu" }],
   }),
   component: Billing,
 });
@@ -143,7 +143,7 @@ function Billing() {
         role=""
         plan=""
         title="Billing"
-        subtitle="Manage your BusinessOS AI subscription."
+        subtitle="Manage your Kwetuu subscription."
       >
         <Skeleton className="h-64" />
       </AppShell>
@@ -162,7 +162,7 @@ function Billing() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Billing"
-      subtitle="Manage your BusinessOS AI subscription."
+      subtitle="Manage your Kwetuu subscription."
     >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
@@ -172,8 +172,8 @@ function Billing() {
               <div className="flex items-start gap-2.5">
                 <Sparkles className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
-                  BusinessOS is currently free while we build with our founding users. Every feature
-                  is unlocked, no card required. Pricing may be introduced later, and we'll give you
+                  Kwetuu is currently free while we build with our founding users. Every feature is
+                  unlocked, no card required. Pricing may be introduced later, and we'll give you
                   clear notice before anything changes.
                 </p>
               </div>

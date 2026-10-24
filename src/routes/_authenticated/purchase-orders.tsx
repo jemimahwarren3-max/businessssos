@@ -15,12 +15,12 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 export const Route = createFileRoute("/_authenticated/purchase-orders")({
   head: () => ({
     meta: [
-      { title: "Purchase Orders | BusinessOS AI" },
+      { title: "Purchase Orders | Kwetuu" },
       {
         name: "description",
         content: "Every order you've sent to a supplier, in one place.",
       },
-      { property: "og:title", content: "Purchase Orders | BusinessOS AI" },
+      { property: "og:title", content: "Purchase Orders | Kwetuu" },
       { property: "og:description", content: "What you've ordered, and from whom." },
     ],
   }),

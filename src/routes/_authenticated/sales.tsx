@@ -59,12 +59,12 @@ import { useOnlineStatus } from "@/lib/offline/use-online-status";
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
     meta: [
-      { title: "Sales | BusinessOS AI" },
+      { title: "Sales | Kwetuu" },
       {
         name: "description",
         content: "Ring up a sale, take payment, and update stock automatically.",
       },
-      { property: "og:title", content: "Sales | BusinessOS AI" },
+      { property: "og:title", content: "Sales | Kwetuu" },
       { property: "og:description", content: "The fastest way to sell." },
     ],
   }),

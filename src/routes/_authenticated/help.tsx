@@ -21,8 +21,8 @@ import { useWorkspace } from "@/hooks/use-workspace";
 export const Route = createFileRoute("/_authenticated/help")({
   head: () => ({
     meta: [
-      { title: "Help | BusinessOS AI" },
-      { name: "description", content: "How to use every part of BusinessOS AI." },
+      { title: "Help | Kwetuu" },
+      { name: "description", content: "How to use every part of Kwetuu." },
     ],
   }),
   component: Help,
@@ -109,7 +109,7 @@ function Help() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Help"
-      subtitle="What every part of BusinessOS AI does, and how to use it."
+      subtitle="What every part of Kwetuu does, and how to use it."
     >
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {SECTIONS.map((s) => (
@@ -303,9 +303,9 @@ function Help() {
 
         <Section id="exporting" icon={Download} title="Exporting your data">
           <p>
-            <strong>Export data</strong> (in the sidebar) downloads everything BusinessOS AI stores
-            for your business, products, customers, sales, invoices, quotes, expenses, stock
-            history, as either a full-fidelity <strong>JSON</strong> backup or a browsable{" "}
+            <strong>Export data</strong> (in the sidebar) downloads everything Kwetuu stores for
+            your business, products, customers, sales, invoices, quotes, expenses, stock history, as
+            either a full-fidelity <strong>JSON</strong> backup or a browsable{" "}
             <strong>Excel</strong> workbook with one sheet per table. Owners and admins only.
           </p>
         </Section>

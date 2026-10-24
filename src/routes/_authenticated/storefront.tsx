@@ -1476,7 +1476,7 @@ function StorefrontEditor({
                 disabled={listingMutation.isPending}
                 onChange={(event) => listingMutation.mutate(event.target.checked)}
               />
-              Show this shop on the BusinessOS marketplace
+              Show this shop on the Kwetuu marketplace
             </label>
           ) : null}
         </div>

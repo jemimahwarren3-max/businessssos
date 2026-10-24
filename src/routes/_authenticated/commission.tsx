@@ -16,7 +16,7 @@ import { formatMoney, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/commission")({
   head: () => ({
     meta: [
-      { title: "Sales commission | BusinessOS AI" },
+      { title: "Sales commission | Kwetuu" },
       { name: "description", content: "What each team member sold, and what they've earned." },
     ],
   }),

@@ -50,12 +50,12 @@ const EXPENSE_IMPORT_COLUMNS: ImportColumn[] = [
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({
     meta: [
-      { title: "Expenses | BusinessOS AI" },
+      { title: "Expenses | Kwetuu" },
       {
         name: "description",
         content: "Track rent, salaries, supplies and everything else your business spends.",
       },
-      { property: "og:title", content: "Expenses | BusinessOS AI" },
+      { property: "og:title", content: "Expenses | Kwetuu" },
       { property: "og:description", content: "Know exactly where your money goes." },
     ],
   }),

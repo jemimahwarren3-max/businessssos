@@ -25,12 +25,12 @@ import { storePublicUrl } from "@/lib/storefront/host";
 export const Route = createFileRoute("/_authenticated/growth")({
   head: () => ({
     meta: [
-      { title: "Grow | BusinessOS AI" },
+      { title: "Grow | Kwetuu" },
       {
         name: "description",
         content: "Understand store visits, measure campaigns, and plan your next business action.",
       },
-      { property: "og:title", content: "Grow | BusinessOS AI" },
+      { property: "og:title", content: "Grow | Kwetuu" },
       {
         property: "og:description",
         content: "Store analytics and an AI-assisted marketing studio, grounded in your records.",

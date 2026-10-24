@@ -45,12 +45,12 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 export const Route = createFileRoute("/_authenticated/invoices")({
   head: () => ({
     meta: [
-      { title: "Invoices | BusinessOS AI" },
+      { title: "Invoices | Kwetuu" },
       {
         name: "description",
         content: "Bill customers, track what's owed, and record payments as they come in.",
       },
-      { property: "og:title", content: "Invoices | BusinessOS AI" },
+      { property: "og:title", content: "Invoices | Kwetuu" },
       { property: "og:description", content: "Get paid, faster." },
     ],
   }),
