@@ -8,6 +8,7 @@ import {
   getCurrentUser,
   getPostAuthDestination,
   requestPasswordReset,
+  resendSignupConfirmation,
   signIn,
   signUp,
 } from "@/lib/auth/auth.functions";
@@ -77,6 +78,10 @@ function AuthPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [busy, setBusy] = useState<null | "email" | "google">(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [bootState, setBootState] = useState<"checking" | "ready">("checking");
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const resendFn = useServerFn(resendSignupConfirmation);
   const needsAcceptance = mode === "signup" && !acceptedTerms;
 
   useEffect(() => {
@@ -89,20 +94,48 @@ function AuthPage() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchCurrentUser().then(async (user) => {
-      if (cancelled || !user) return;
-      if (redirect) {
-        navigate({ to: redirect, replace: true });
-        return;
-      }
-      const destination = await fetchPostAuthDestination();
-      const path = destination.path === "/auth" ? "/onboarding" : destination.path;
-      navigate({ to: path, replace: true });
-    });
+    void fetchCurrentUser()
+      .then(async (user) => {
+        if (cancelled) return;
+        if (!user) {
+          setBootState("ready");
+          return;
+        }
+        if (redirect) {
+          navigate({ to: redirect, replace: true });
+          return;
+        }
+        const destination = await fetchPostAuthDestination();
+        const path = destination.path === "/auth" ? "/onboarding" : destination.path;
+        navigate({ to: path, replace: true });
+      })
+      .catch(() => {
+        if (!cancelled) setBootState("ready");
+      });
     return () => {
       cancelled = true;
     };
   }, [navigate, fetchCurrentUser, fetchPostAuthDestination, redirect]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setTimeout(() => setResendCooldown((value) => value - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
+
+  async function handleResendConfirmation() {
+    if (!sentTo || resendCooldown > 0 || resendBusy) return;
+    setResendBusy(true);
+    try {
+      await resendFn({ data: { email: sentTo } });
+      toast.success("Confirmation email sent again.");
+      setResendCooldown(60);
+    } catch (error) {
+      toast.error(readableError(error as Error, "Could not resend the confirmation email."));
+    } finally {
+      setResendBusy(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -171,6 +204,16 @@ function AuthPage() {
     }
   }
 
+  if (bootState === "checking") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <Logo to="/" />
+        <Loader2 className="size-6 animate-spin text-primary" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">Checking your session…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="marketplace-theme grid min-h-screen lg:grid-cols-2">
       <div className="flex flex-col justify-center px-5 py-12 sm:px-10">
@@ -179,12 +222,28 @@ function AuthPage() {
           {sentTo ? (
             <div className="surface mt-8 p-6 text-center">
               <Mail className="mx-auto size-6 text-primary" aria-hidden="true" />
-              <h1 className="mt-3 text-xl font-bold tracking-tight">Check your email</h1>
+              <h1 className="mt-3 text-xl font-bold tracking-tight">Confirm your email</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                We sent a link to <span className="font-medium text-foreground">{sentTo}</span>.
-                Open it to continue, you're not signed in until you do.
+                We sent a confirmation link to{" "}
+                <span className="font-medium text-foreground">{sentTo}</span>. You are not signed in
+                until you open that link. Auth email is sent by Supabase, not the shop receipt
+                system.
               </p>
-              <Button variant="outline" className="mt-5 w-full" onClick={() => setSentTo(null)}>
+              <Button
+                type="button"
+                className="mt-5 w-full"
+                disabled={resendBusy || resendCooldown > 0}
+                onClick={() => void handleResendConfirmation()}
+              >
+                {resendBusy ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : resendCooldown > 0 ? (
+                  `Resend in ${resendCooldown}s`
+                ) : (
+                  "Resend confirmation email"
+                )}
+              </Button>
+              <Button variant="outline" className="mt-2 w-full" onClick={() => setSentTo(null)}>
                 Back
               </Button>
             </div>

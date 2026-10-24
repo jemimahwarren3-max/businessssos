@@ -191,6 +191,26 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const resendConfirmationSchema = z.object({ email: emailSchema });
+
+/** Resend Supabase Auth signup confirmation (not Resend transactional mail). */
+export const resendSignupConfirmation = createServerFn({ method: "POST" })
+  .middleware(resetLimit)
+  .inputValidator((data: unknown) => resendConfirmationSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { error } = await createAnonClient().auth.resend({
+      type: "signup",
+      email: data.email,
+      options: {
+        emailRedirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
+      },
+    });
+    if (error) {
+      throw new Error(friendlySignUpError(`${error.code ?? ""} ${error.message}`));
+    }
+    return { ok: true as const };
+  });
+
 // Called from routes/auth.callback.tsx's beforeLoad — the server-side half
 // of the PKCE OAuth/magic-link handoff. The browser holds the code_verifier
 // (see integrations/supabase/client.ts's cookie-backed storage adapter);
