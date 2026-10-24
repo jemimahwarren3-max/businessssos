@@ -14,7 +14,9 @@ test.describe("marketplace journey", () => {
       return;
     }
 
-    const shopsSection = page.locator("section").filter({ has: page.getByRole("heading", { name: "Shops" }) });
+    const shopsSection = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Shops" }) });
     const shopLink = shopsSection.locator("a[href]").first();
     await expect(shopLink).toBeVisible({ timeout: 15_000 });
     const href = await shopLink.getAttribute("href");
