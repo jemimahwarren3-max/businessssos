@@ -8,6 +8,8 @@ import { loadPlatformFx } from "@/lib/platform-fx-read.server";
 import { removeProductGalleryImage, uploadProductGalleryImage } from "@/lib/product-media.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
 import { generateShopDraft } from "./ai-builder.server";
+import { recordStorefrontEvent } from "@/lib/growth.server";
+import { storefrontEventSchema } from "@/lib/growth.contract";
 import {
   checkoutSchema,
   createComplaintSchema,
@@ -52,6 +54,9 @@ import {
 
 const publicLimit = [
   ipRateLimit({ keyPrefix: "store-public", maxRequests: 60, windowSeconds: 60 }),
+] as const;
+const storefrontAnalyticsLimit = [
+  ipRateLimit({ keyPrefix: "storefront-analytics", maxRequests: 240, windowSeconds: 60 }),
 ] as const;
 const checkoutLimit = [
   ipRateLimit({ keyPrefix: "store-checkout", maxRequests: 15, windowSeconds: 60 }),
@@ -128,6 +133,11 @@ export const getPublicStoreFn = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data }) => loadPublicStore(data));
+
+export const recordStorefrontEventFn = createServerFn({ method: "POST" })
+  .middleware(storefrontAnalyticsLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(storefrontEventSchema, data))
+  .handler(async ({ data }) => recordStorefrontEvent(data));
 
 export const getStorePreviewFn = createServerFn({ method: "POST" })
   .middleware(authed)

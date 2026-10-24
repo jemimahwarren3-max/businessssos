@@ -15,6 +15,7 @@ import {
 } from "@/lib/storefront/payment-proof.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
+import { attributeStoreOrderAnalytics } from "@/lib/growth.server";
 import {
   adminOrderSchema,
   adminStoreSchema,
@@ -141,6 +142,8 @@ export async function quoteCart(
 
 export async function placeOrder(input: {
   slug: string;
+  campaignId?: string | undefined;
+  analyticsVisitorId?: string | undefined;
   idempotencyKey: string;
   customer: {
     name: string;
@@ -171,6 +174,9 @@ export async function placeOrder(input: {
     _collect_at: input.collectAt ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
+  if (parsed.orderId && input.analyticsVisitorId) {
+    await attributeStoreOrderAnalytics(parsed.orderId, input.analyticsVisitorId, input.campaignId);
+  }
   if (parsed.paymentMethod === "paynow" && parsed.orderId && input.customer.email) {
     try {
       const paynow = await initiateShopPaynow({

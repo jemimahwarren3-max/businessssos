@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Info,
   Plus,
+  Sparkles,
   TrendingUp,
   Users,
   Wallet,
@@ -27,12 +28,13 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { getDashboard, getWorkspace } from "@/lib/business.functions";
-import { formatMoney, formatNumber, formatPercent, greeting } from "@/lib/format";
+import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { BRAND } from "@/lib/brand";
+import { getDailyBusinessBriefingFn } from "@/lib/growth.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   beforeLoad: async () => {
@@ -85,7 +87,10 @@ function Dashboard() {
   const workspace = useWorkspace();
   const [range, setRange] = useState("7");
   const fetchDashboard = useServerFn(getDashboard);
+  const fetchBriefing = useServerFn(getDailyBusinessBriefingFn);
   const businessId = workspace.data?.business.id;
+  const canReadBriefing =
+    hasPermission(workspace.data, "reports.financial") && hasPermission(workspace.data, "ai.use");
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -103,6 +108,12 @@ function Dashboard() {
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId),
     queryFn: () => loadStore({ data: { businessId: businessId! } }),
+  });
+  const briefing = useQuery({
+    queryKey: ["daily-business-briefing", businessId],
+    enabled: Boolean(businessId) && canReadBriefing,
+    staleTime: 60 * 60 * 1000,
+    queryFn: () => fetchBriefing({ data: { businessId: businessId! } }),
   });
 
   if (!workspace.data) {
@@ -181,6 +192,44 @@ function Dashboard() {
               <Link to="/storefront">Storefront settings</Link>
             </Button>
           </div>
+        </section>
+      ) : null}
+      {canReadBriefing ? (
+        <section className="surface mb-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Sparkles className="size-4.5 text-primary" aria-hidden="true" />
+                Your business today
+              </h2>
+              <p className="text-[13px] text-muted-foreground">
+                A daily AI briefing based on recorded business and opted-in storefront activity.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/growth">Explore growth</Link>
+            </Button>
+          </div>
+          {briefing.isLoading ? (
+            <Skeleton className="mt-4 h-16 w-full" />
+          ) : briefing.isError ? (
+            <p className="mt-4 text-sm text-destructive">
+              {readableError(briefing.error, "Today's AI briefing is unavailable.")}
+            </p>
+          ) : briefing.data ? (
+            <div>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">
+                {briefing.data.text}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {briefing.data.cached ? "Today's saved briefing" : "Generated today"} ·{" "}
+                {new Date(briefing.data.generatedAt).toLocaleTimeString("en", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+          ) : null}
         </section>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -17,6 +17,7 @@ const FILES = [
   "20261022140000_store_review_responses.sql",
   "20261023120000_payment_safety_foundation.sql",
   "20261023130000_platform_owner_foundation.sql",
+  "20261023150000_growth_intelligence.sql",
 ];
 
 const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();

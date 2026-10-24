@@ -20,6 +20,7 @@ import { formatMoney } from "@/lib/format";
 import { WEEKDAYS } from "@/lib/storefront/clocks";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { useStoreAnalytics } from "@/components/storefront/store-analytics";
 
 const StorePreviewContext = createContext(false);
 
@@ -708,6 +709,7 @@ export function ProductView({
   product: PublicProduct;
   reviews: ProductReviews;
 }) {
+  const { track } = useStoreAnalytics();
   const template = getTemplate(store.templateId);
   const { theme } = store;
   const [qty, setQty] = useState(product.minQty);
@@ -755,6 +757,7 @@ export function ProductView({
     if (note.trim()) next.note = note.trim().slice(0, 200);
     lines.push(next);
     writeCart(store.slug, lines);
+    track("add_to_cart", product.slug);
     setMessage("Added to cart. The final total is calculated when you view the cart.");
   }
 
