@@ -41,6 +41,7 @@ import {
   saveStorefrontFn,
 } from "@/lib/storefront/storefront.functions";
 import {
+  getTemplate,
   STORE_TEMPLATES,
   templateForBusinessType,
   type TemplateId,
@@ -129,6 +130,12 @@ function Onboarding() {
   });
 
   const zigMonthly = useMemo(() => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null), [fx.data]);
+
+  const templateChoices = useMemo(() => {
+    const category = getTemplate(templateForBusinessType(form.businessType)).category;
+    const forCategory = STORE_TEMPLATES.filter((template) => template.category === category);
+    return forCategory.length > 0 ? forCategory : STORE_TEMPLATES;
+  }, [form.businessType]);
 
   const exitToDashboard = async () => {
     try {
@@ -319,19 +326,26 @@ function Onboarding() {
               title="Pick a look for your storefront"
               description="Layout and style only — your products and settings stay when you switch later."
             />
-            <div className="mt-6 grid max-h-[28rem] gap-3 overflow-y-auto sm:grid-cols-2">
-              {STORE_TEMPLATES.map((template) => (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Each design starts with placeholder photos — swap them for your logo and product shots
+              in Storefront settings.
+            </p>
+            <div className="mt-6 grid max-h-[32rem] gap-3 overflow-y-auto sm:grid-cols-2">
+              {templateChoices.map((template) => (
                 <button
                   key={template.id}
                   type="button"
                   onClick={() => setTemplateId(template.id)}
                   className={
                     templateId === template.id
-                      ? "flex gap-3 overflow-hidden rounded-xl border-2 border-primary bg-card p-2 text-left shadow-soft transition"
-                      : "flex gap-3 overflow-hidden rounded-xl border-2 border-transparent bg-card p-2 text-left transition hover:border-border"
+                      ? "flex flex-col gap-2 overflow-hidden rounded-xl border-2 border-primary bg-card p-2 text-left shadow-soft transition sm:flex-row"
+                      : "flex flex-col gap-2 overflow-hidden rounded-xl border-2 border-transparent bg-card p-2 text-left transition hover:border-border sm:flex-row"
                   }
                 >
-                  <TemplatePreview template={template} className="h-16 w-24 shrink-0" />
+                  <TemplatePreview
+                    template={template}
+                    className="h-28 w-full shrink-0 sm:h-24 sm:w-32"
+                  />
                   <span className="min-w-0 py-1">
                     <span className="font-semibold">{template.name}</span>
                     <span className="mt-1 block text-sm text-muted-foreground">

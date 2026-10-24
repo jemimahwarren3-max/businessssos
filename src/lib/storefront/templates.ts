@@ -1,4 +1,5 @@
 import { STOREFRONT_THEME_SCHEMA } from "./theme";
+import { categoryPlaceholderImage } from "./template-placeholders";
 
 export const TEMPLATE_IDS = [
   "beauty",
@@ -127,6 +128,8 @@ export type StoreTemplate = {
   configurationSchema: typeof STOREFRONT_THEME_SCHEMA;
   /** Shown only inside the merchant gallery. Not real products. */
   sampleLabel: string;
+  /** Demo hero photo until the merchant uploads their own. */
+  previewImageUrl: string;
 };
 
 const DIRECTIONS = [
@@ -527,7 +530,8 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = CATEGORIES.flatMap((cat
       imageRatio: direction.imageRatio,
       density: direction.density,
       configurationSchema: STOREFRONT_THEME_SCHEMA,
-      sampleLabel: "Sample layout, not your products",
+      sampleLabel: "Sample layout, not your products — replace placeholder photos",
+      previewImageUrl: categoryPlaceholderImage(category.id),
     };
   }),
 );

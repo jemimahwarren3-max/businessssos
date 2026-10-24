@@ -4,7 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
 import { CircleAlert, Loader2, Mail } from "lucide-react";
-import { getCurrentUser, requestPasswordReset, signIn, signUp } from "@/lib/auth/auth.functions";
+import {
+  getCurrentUser,
+  getPostAuthDestination,
+  requestPasswordReset,
+  signIn,
+  signUp,
+} from "@/lib/auth/auth.functions";
 import { EMAIL_PROVIDER_OFF_MESSAGE, fetchAuthProviderStatus } from "@/lib/auth/auth-providers";
 import { googleOAuthRedirectTo } from "@/lib/auth/google-oauth";
 import { readableError } from "@/lib/format";
@@ -59,9 +65,9 @@ function AuthPage() {
   const { providers } = Route.useLoaderData();
   const emailEnabled = providers.email;
   const googleEnabled = providers.google;
-  const destination = redirect ?? (mode === "signup" ? "/onboarding" : "/dashboard");
   const navigate = useNavigate();
   const fetchCurrentUser = useServerFn(getCurrentUser);
+  const fetchPostAuthDestination = useServerFn(getPostAuthDestination);
   const signInFn = useServerFn(signIn);
   const signUpFn = useServerFn(signUp);
   const requestResetFn = useServerFn(requestPasswordReset);
@@ -83,13 +89,20 @@ function AuthPage() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchCurrentUser().then((user) => {
-      if (!cancelled && user) navigate({ to: destination, replace: true });
+    void fetchCurrentUser().then(async (user) => {
+      if (cancelled || !user) return;
+      if (redirect) {
+        navigate({ to: redirect, replace: true });
+        return;
+      }
+      const destination = await fetchPostAuthDestination();
+      const path = destination.path === "/auth" ? "/onboarding" : destination.path;
+      navigate({ to: path, replace: true });
     });
     return () => {
       cancelled = true;
     };
-  }, [navigate, fetchCurrentUser, destination]);
+  }, [navigate, fetchCurrentUser, fetchPostAuthDestination, redirect]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -121,11 +134,11 @@ function AuthPage() {
           setSentTo(email.trim());
           return;
         }
-        navigate({ to: destination, replace: true });
+        navigate({ to: result.path ?? "/onboarding", replace: true });
         return;
       }
-      await signInFn({ data: { email: email.trim(), password } });
-      navigate({ to: destination, replace: true });
+      const signInResult = await signInFn({ data: { email: email.trim(), password } });
+      navigate({ to: signInResult.path ?? "/onboarding", replace: true });
     } catch (error) {
       toast.error(readableError(error as Error, "We couldn't complete that. Please try again."));
     } finally {
@@ -144,7 +157,7 @@ function AuthPage() {
         provider: "google",
         options: {
           redirectTo: googleOAuthRedirectTo(window.location.origin, {
-            next: mode === "signup" ? "/onboarding" : "/dashboard",
+            next: "/onboarding",
             acceptedTerms: mode === "signup",
           }),
         },

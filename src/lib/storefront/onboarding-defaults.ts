@@ -21,10 +21,13 @@ export function defaultShopPatch(input: {
     businessId: input.businessId,
     storeName: input.storeName,
     templateId: input.templateId,
-    theme: themeFromPalette(
-      getTemplate(input.templateId).defaultPalette,
-      getTemplate(input.templateId).defaultAccent,
-    ),
+    theme: {
+      ...themeFromPalette(
+        getTemplate(input.templateId).defaultPalette,
+        getTemplate(input.templateId).defaultAccent,
+      ),
+      coverUrl: getTemplate(input.templateId).previewImageUrl,
+    },
     phone: input.phone ?? "",
     address: input.address ?? "",
     policies: input.policies ?? "",

@@ -91,14 +91,26 @@ export function TemplatePreview({
 }) {
   return (
     <div
-      className={cn("overflow-hidden rounded-lg border bg-muted/60", className)}
+      className={cn("relative overflow-hidden rounded-lg border bg-muted/60", className)}
       style={{ background: `${template.defaultAccent}18` }}
       data-layout={template.layout}
       data-template={template.id}
       data-category={template.category}
       data-composition={template.heroStyle}
     >
-      <LayoutSketch template={template} accent={template.defaultAccent} />
+      <img
+        src={template.previewImageUrl}
+        alt=""
+        className="absolute inset-0 size-full object-cover"
+        loading="lazy"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
+      <div className="relative h-full min-h-[4rem] opacity-90 mix-blend-soft-light">
+        <LayoutSketch template={template} accent={template.defaultAccent} />
+      </div>
+      <span className="absolute bottom-1 left-1 rounded bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
+        Placeholder
+      </span>
     </div>
   );
 }

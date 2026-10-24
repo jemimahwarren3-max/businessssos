@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
-import { exchangeOAuthCode, getPostAuthDestination } from "@/lib/auth/auth.functions";
+import { finishOAuthCallback } from "@/lib/auth/auth.functions";
 
 const searchSchema = z.object({
   code: z.string().optional(),
@@ -19,10 +19,11 @@ export const Route = createFileRoute("/auth/callback")({
       throw redirect({ to: "/auth", search: { mode: "signin" } });
     }
 
+    let path: "/onboarding" | "/dashboard";
     try {
-      await exchangeOAuthCode({
+      ({ path } = await finishOAuthCallback({
         data: { code: search.code, acceptedTerms: search.acceptedTerms === "1" },
-      });
+      }));
     } catch {
       throw redirect({ to: "/auth", search: { mode: "signin", reason: "oauth" } });
     }
@@ -31,11 +32,7 @@ export const Route = createFileRoute("/auth/callback")({
       throw redirect({ to: "/reset-password", replace: true });
     }
 
-    const destination = await getPostAuthDestination();
-    throw redirect({
-      to: destination.path === "/auth" ? "/onboarding" : destination.path,
-      replace: true,
-    });
+    throw redirect({ to: path, replace: true });
   },
   component: () => null,
 });

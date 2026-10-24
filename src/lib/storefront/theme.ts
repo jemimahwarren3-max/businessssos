@@ -4,7 +4,10 @@ const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
 const coverUrlSchema = z
   .string()
   .max(500)
-  .refine((value) => !value || value.startsWith("https://"), "Use an HTTPS image URL.");
+  .refine(
+    (value) => !value || value.startsWith("https://") || value.startsWith("/"),
+    "Use an HTTPS URL or a site path like /marketing/photo.jpg.",
+  );
 
 export const STOREFRONT_THEME_DEFAULTS = {
   primary: "#1F2937",
