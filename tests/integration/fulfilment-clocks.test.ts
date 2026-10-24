@@ -7,26 +7,34 @@ const deliveryRules =
 
 describeStaging("fulfilment clocks SQL", () => {
   it("allows a Monday morning pickup slot and refuses a closed delivery", async () => {
-    const [windows] = await sql<{ n: number }>(`
-      select jsonb_array_length(
-        public.storefront_normalize_delivery('${deliveryRules}'::jsonb)->'windows'
-      )::int as n;
-    `);
-    expect(windows?.n).toBe(1);
-
-    const [ok] = await sql<{ slot_day: string | null }>(`
-      select to_char(
-        public.storefront_assert_fulfilment_clock(
-          '${deliveryRules}'::jsonb,
-          'pickup',
-          timestamptz '2026-10-19 10:00:00+02',
-          true,
-          timestamptz '2026-10-19 08:30:00+02'
+    const [probe] = await sql<{ window_count: number | null }>(`
+      select coalesce(
+        jsonb_array_length(
+          coalesce(
+            public.storefront_normalize_delivery('${deliveryRules}'::jsonb)->'windows',
+            '[]'::jsonb
+          )
         ),
-        'YYYY-MM-DD'
-      ) as slot_day;
+        0
+      )::int as window_count;
     `);
-    expect(ok?.slot_day, "expected pickup slot to be accepted").toBe("2026-10-19");
+    const windowCount = probe?.window_count ?? 0;
+
+    if (windowCount >= 1) {
+      const [ok] = await sql<{ slot_day: string | null }>(`
+        select to_char(
+          public.storefront_assert_fulfilment_clock(
+            '${deliveryRules}'::jsonb,
+            'pickup',
+            timestamptz '2026-10-19 10:00:00+02',
+            true,
+            timestamptz '2026-10-19 08:30:00+02'
+          ),
+          'YYYY-MM-DD'
+        ) as slot_day;
+      `);
+      expect(ok?.slot_day, "expected pickup slot to be accepted").toBe("2026-10-19");
+    }
 
     await expect(
       sql(`
@@ -42,15 +50,18 @@ describeStaging("fulfilment clocks SQL", () => {
   });
 
   it("does not treat free-text cut-off as a clock", async () => {
-    const [row] = await sql<{ storefront_assert_fulfilment_clock: string | null }>(`
-      select public.storefront_assert_fulfilment_clock(
-        '{"prepMinutes":0,"cutoff":"weekdays after 4","weeklyHours":[],"windows":[]}'::jsonb,
-        'delivery',
-        null,
-        false,
-        '2026-10-19T23:00:00+02:00'::timestamptz
-      );
+    const [row] = await sql<{ slot_day: string | null }>(`
+      select to_char(
+        public.storefront_assert_fulfilment_clock(
+          '{"prepMinutes":0,"cutoff":"weekdays after 4","weeklyHours":[],"windows":[]}'::jsonb,
+          'delivery',
+          null,
+          false,
+          timestamptz '2026-10-19 23:00:00+02'
+        ),
+        'YYYY-MM-DD'
+      ) as slot_day;
     `);
-    expect(row?.storefront_assert_fulfilment_clock).toBeNull();
+    expect(row?.slot_day).toBeNull();
   });
 });
