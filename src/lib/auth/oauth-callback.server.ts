@@ -41,11 +41,18 @@ export async function resolvePostAuthPathForUser(
   userId: string,
 ): Promise<"/onboarding" | "/dashboard"> {
   const supabase = createTokenScopedClient(accessToken);
-  const workspace = await loadWorkspace(supabase as Db, userId);
-  if (!workspace || !workspace.business.onboarding_completed) {
+  try {
+    const workspace = await loadWorkspace(supabase as Db, userId);
+    if (!workspace || !workspace.business.onboarding_completed) {
+      return "/onboarding";
+    }
+    return "/dashboard";
+  } catch (error) {
+    // New merchants have no business row yet; a transient DB/RPC error should
+    // still land them in shop setup, not back on the sign-in page.
+    console.error("[auth] resolvePostAuthPathForUser", error);
     return "/onboarding";
   }
-  return "/dashboard";
 }
 
 export async function resolvePostAuthPath(): Promise<PostAuthPath> {

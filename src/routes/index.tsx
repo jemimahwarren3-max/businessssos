@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { z } from "zod";
 import {
   ArrowRight,
   Check,
@@ -22,7 +23,20 @@ import { getMarketplaceFn, getPlatformFxFn } from "@/lib/storefront/storefront.f
 import { STORE_TEMPLATES } from "@/lib/storefront/templates";
 import { storePublicUrl } from "@/lib/storefront/host";
 
+const landingSearchSchema = z.object({
+  code: z.string().min(1).optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/")({
+  validateSearch: landingSearchSchema,
+  beforeLoad: ({ search }) => {
+    if (search.code) {
+      throw redirect({
+        to: "/auth/callback",
+        search: { code: search.code, next: "/onboarding" },
+      });
+    }
+  },
   loader: async () => {
     const [market, fx] = await Promise.all([
       getMarketplaceFn({ data: {} }).catch(() => EMPTY_MARKETPLACE),

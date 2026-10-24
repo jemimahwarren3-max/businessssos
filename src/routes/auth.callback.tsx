@@ -24,7 +24,8 @@ export const Route = createFileRoute("/auth/callback")({
       ({ path } = await finishOAuthCallback({
         data: { code: search.code, acceptedTerms: search.acceptedTerms === "1" },
       }));
-    } catch {
+    } catch (error) {
+      console.error("[auth] callback exchange failed", error);
       throw redirect({ to: "/auth", search: { mode: "signin", reason: "oauth" } });
     }
 
