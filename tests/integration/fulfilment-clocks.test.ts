@@ -7,18 +7,29 @@ const deliveryRules =
 
 describeStaging("fulfilment clocks SQL", () => {
   it("allows a Monday morning pickup slot and refuses a closed delivery", async () => {
-    const [probe] = await sql<{ window_count: number | null }>(`
-      select coalesce(
-        jsonb_array_length(
-          coalesce(
-            public.storefront_normalize_delivery('${deliveryRules}'::jsonb)->'windows',
-            '[]'::jsonb
-          )
-        ),
-        0
-      )::int as window_count;
+    const [probe] = await sql<{ window_count: number | null; hour_count: number | null }>(`
+      select
+        coalesce(
+          jsonb_array_length(
+            coalesce(
+              public.storefront_normalize_delivery('${deliveryRules}'::jsonb)->'windows',
+              '[]'::jsonb
+            )
+          ),
+          0
+        )::int as window_count,
+        coalesce(
+          jsonb_array_length(
+            coalesce(
+              public.storefront_normalize_delivery('${deliveryRules}'::jsonb)->'weeklyHours',
+              '[]'::jsonb
+            )
+          ),
+          0
+        )::int as hour_count;
     `);
     const windowCount = probe?.window_count ?? 0;
+    const hourCount = probe?.hour_count ?? 0;
 
     if (windowCount >= 1) {
       const [ok] = await sql<{ slot_day: string | null }>(`
