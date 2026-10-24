@@ -1,9 +1,11 @@
 # Kwetuu security baseline
 
 This is a repository security summary, not a penetration-test report or legal
-certification. See [the threat model](./THREAT_MODEL.md),
+certification. The **security programme** lives under
+[`docs/security/`](./security/SECURITY_STATUS.md) (`SECURITY_STATUS.md` is the
+living checklist). See also [the threat model](./THREAT_MODEL.md),
 [security review](./SECURITY_REVIEW.md), and
-[privacy architecture](./PRIVACY_ARCHITECTURE.md) for existing detail.
+[privacy architecture](./PRIVACY_ARCHITECTURE.md).
 
 ## Existing controls
 

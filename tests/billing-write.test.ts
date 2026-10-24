@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { canWriteForSubscription } from "@/lib/billing-write";
+import { canWriteForSubscription, canWriteWithPlatformEntitlement } from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
 
 const original = process.env["BILLING_ENABLED"];
@@ -45,5 +45,23 @@ describe("billing write gate", () => {
       }),
     ).toBe(false);
     expect(canWriteForSubscription({ status: "canceled", trial_ends_at: null })).toBe(false);
+  });
+});
+
+describe("platform owner subscription entitlement", () => {
+  it("allows writes when owner bypass is true even if subscription is expired", () => {
+    process.env["BILLING_ENABLED"] = "true";
+    expect(
+      canWriteWithPlatformEntitlement(
+        { status: "canceled", trial_ends_at: null },
+        true,
+      ),
+    ).toBe(true);
+    expect(
+      canWriteWithPlatformEntitlement(
+        { status: "canceled", trial_ends_at: null },
+        false,
+      ),
+    ).toBe(false);
   });
 });
