@@ -4,10 +4,7 @@ import content from "../../legal/TERMS_OF_SERVICE.md?raw";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
-    meta: [
-      { title: "Terms and Conditions | BusinessOS AI" },
-      { name: "robots", content: "index,follow" },
-    ],
+    meta: [{ title: "Terms and Conditions | Kwetuu" }, { name: "robots", content: "index,follow" }],
   }),
   component: () => <LegalDocument content={content} />,
 });

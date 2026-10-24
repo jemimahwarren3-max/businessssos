@@ -80,12 +80,12 @@ const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
 export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory | BusinessOS AI" },
+      { title: "Inventory | Kwetuu" },
       {
         name: "description",
         content: "Track products, stock levels, cost and selling prices, and restock alerts.",
       },
-      { property: "og:title", content: "Inventory | BusinessOS AI" },
+      { property: "og:title", content: "Inventory | Kwetuu" },
       { property: "og:description", content: "Know exactly what you have in stock." },
     ],
   }),

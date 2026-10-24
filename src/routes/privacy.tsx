@@ -4,10 +4,7 @@ import content from "../../legal/PRIVACY_POLICY.md?raw";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
-    meta: [
-      { title: "Privacy Policy | BusinessOS AI" },
-      { name: "robots", content: "index,follow" },
-    ],
+    meta: [{ title: "Privacy Policy | Kwetuu" }, { name: "robots", content: "index,follow" }],
   }),
   component: () => <LegalDocument content={content} />,
 });

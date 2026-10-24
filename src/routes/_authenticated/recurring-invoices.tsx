@@ -41,7 +41,7 @@ import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/recurring-invoices")({
   head: () => ({
     meta: [
-      { title: "Recurring invoices | BusinessOS AI" },
+      { title: "Recurring invoices | Kwetuu" },
       { name: "description", content: "Invoices that generate themselves on a schedule." },
     ],
   }),

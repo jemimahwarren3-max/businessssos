@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { captureError } from "@/lib/monitoring/sentry";
-import { BRAND } from "@/lib/brand";
+import { BRAND, HOME_SEO } from "@/lib/brand";
 
 function NotFoundComponent() {
   return (
@@ -81,13 +81,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: `${BRAND.name}: Open an online shop for your business` },
-      {
-        name: "description",
-        content:
-          "Create a shop, add products from your catalogue, take cash or Paynow, and share a live storefront.",
-      },
+      { title: HOME_SEO.title },
+      { name: "description", content: HOME_SEO.description },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: BRAND.name },
+      { property: "og:title", content: HOME_SEO.title },
+      { property: "og:description", content: HOME_SEO.ogDescription },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [

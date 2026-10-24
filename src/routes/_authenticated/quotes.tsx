@@ -45,12 +45,12 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 export const Route = createFileRoute("/_authenticated/quotes")({
   head: () => ({
     meta: [
-      { title: "Quotes | BusinessOS AI" },
+      { title: "Quotes | Kwetuu" },
       {
         name: "description",
         content: "Send quotations and turn accepted ones into invoices in one click.",
       },
-      { property: "og:title", content: "Quotes | BusinessOS AI" },
+      { property: "og:title", content: "Quotes | Kwetuu" },
       { property: "og:description", content: "Quote it, then bill it." },
     ],
   }),

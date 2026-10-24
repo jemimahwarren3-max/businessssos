@@ -21,7 +21,7 @@ import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/cash-drawer")({
   head: () => ({
     meta: [
-      { title: "Cash drawer | BusinessOS AI" },
+      { title: "Cash drawer | Kwetuu" },
       {
         name: "description",
         content:

@@ -14,12 +14,12 @@ import { formatNumber, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/insights")({
   head: () => ({
     meta: [
-      { title: "Insights | BusinessOS AI" },
+      { title: "Insights | Kwetuu" },
       {
         name: "description",
         content: "A weekly report, low-stock forecasts, and anomalies spotted in your data.",
       },
-      { property: "og:title", content: "Insights | BusinessOS AI" },
+      { property: "og:title", content: "Insights | Kwetuu" },
       { property: "og:description", content: "What changed, what needs attention, what's next." },
     ],
   }),

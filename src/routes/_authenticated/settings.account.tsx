@@ -28,7 +28,7 @@ import { readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/account")({
   head: () => ({
-    meta: [{ title: "Account | BusinessOS AI" }],
+    meta: [{ title: "Account | Kwetuu" }],
   }),
   component: AccountSettings,
 });
@@ -317,7 +317,7 @@ function AccountSettings() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Account"
-      subtitle="Manage your BusinessOS AI account."
+      subtitle="Manage your Kwetuu account."
     >
       <div className="mb-4">
         <SecuritySection />

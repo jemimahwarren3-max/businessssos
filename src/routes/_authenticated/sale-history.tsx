@@ -25,7 +25,7 @@ import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/sale-history")({
   head: () => ({
     meta: [
-      { title: "Sales history | BusinessOS AI" },
+      { title: "Sales history | Kwetuu" },
       { name: "description", content: "Every sale, and refunds when something needs to go back." },
     ],
   }),

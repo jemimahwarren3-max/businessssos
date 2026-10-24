@@ -13,7 +13,7 @@ import { MarketingShell } from "@/components/marketing-shell";
 import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { TemplatePreview } from "@/components/storefront/template-preview";
 import { Button } from "@/components/ui/button";
-import { BRAND } from "@/lib/brand";
+import { BRAND, HOME_SEO } from "@/lib/brand";
 import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
 import { formatMoney } from "@/lib/format";
 import { EMPTY_MARKETPLACE } from "@/lib/storefront/contract";
@@ -32,19 +32,17 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Kwetuu — Discover independent shops, or open your own" },
-      {
-        name: "description",
-        content:
-          "Shop independent businesses across Zimbabwe, explore unique products, or create your own online store with a website that feels like your brand.",
-      },
-      { property: "og:title", content: "Kwetuu — Discover independent shops, or open your own" },
-      {
-        property: "og:description",
-        content:
-          "A shopping destination and the easiest way for a small business to launch its own online store.",
-      },
+      { title: HOME_SEO.title },
+      { name: "description", content: HOME_SEO.description },
+      { property: "og:title", content: HOME_SEO.title },
+      { property: "og:description", content: HOME_SEO.ogDescription },
+      { property: "og:url", content: BRAND.appUrl },
+      { property: "og:image", content: `${BRAND.appUrl}/kwetuu-logo.png` },
+      { name: "twitter:title", content: HOME_SEO.title },
+      { name: "twitter:description", content: HOME_SEO.description },
+      { name: "twitter:image", content: `${BRAND.appUrl}/kwetuu-logo.png` },
     ],
+    links: [{ rel: "canonical", href: BRAND.appUrl }],
   }),
   component: Landing,
   errorComponent: LandingError,

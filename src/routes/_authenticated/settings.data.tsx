@@ -15,7 +15,7 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 
 export const Route = createFileRoute("/_authenticated/settings/data")({
   head: () => ({
-    meta: [{ title: "Export data | BusinessOS AI" }],
+    meta: [{ title: "Export data | Kwetuu" }],
   }),
   component: DataExport,
 });
@@ -134,7 +134,7 @@ function DataExport() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Export data"
-      subtitle="Download everything BusinessOS AI stores for your business."
+      subtitle="Download everything Kwetuu stores for your business."
     >
       <div className="surface max-w-xl space-y-4 p-5">
         <div>
