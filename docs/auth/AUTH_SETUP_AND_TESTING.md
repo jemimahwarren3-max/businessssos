@@ -37,10 +37,17 @@ Setting `RESEND_API_KEY` in GitHub/Cloud Run **does not** enable Auth confirmati
 
 1. **Project Settings → API:** note project URL and anon key (already in env).
 2. **Authentication → URL configuration**
-   - **Site URL:** `https://mykwetuu.com` (or staging URL)
-   - **Redirect URLs:** add  
-     `https://mykwetuu.com/auth/callback`  
-     `http://localhost:8080/auth/callback` (local dev)
+   - **Site URL:** `https://mykwetuu.com` — **must be HTTPS**, not `http://`
+   - **Redirect URLs:** add (staging project `businessos-staging` / `slajanbsfqjnuuiohbmg`)
+     - `https://mykwetuu.com/auth/callback` (Google OAuth)
+     - `https://mykwetuu.com/auth/callback/**`
+     - `https://mykwetuu.com/auth/confirm` (signup / onboarding email)
+     - `https://mykwetuu.com/auth/confirm/**`
+     - `https://mykwetuu.com/auth/recover` (password reset email)
+     - `https://mykwetuu.com/auth/recover/**`
+     - `http://localhost:8080/auth/callback` (local dev)
+     - `http://localhost:8080/auth/confirm`
+     - `http://localhost:8080/auth/recover`
 3. **Authentication → Providers → Email**
    - Enable email provider
    - Choose confirm email **on** or **off**:
@@ -87,7 +94,23 @@ Auth confirmation logs appear in **Supabase Auth logs**, not Resend, unless Auth
 1. Open `/auth?mode=signup` with Email provider **enabled**.
 2. Submit form → expect **“Confirm your email”** (if confirmation required) or redirect to **onboarding** (if autoconfirm).
 3. In Supabase **Authentication → Logs**, confirm `signup` / mail event.
-4. Click link in inbox → lands on `/auth/callback` → **onboarding**.
+4. Click link in inbox → lands on `/auth/confirm` (or `/` with tokens — app forwards) → **onboarding**.
+
+---
+
+## Delete test users (Supabase Dashboard)
+
+Use project **`businessos-staging`** while `mykwetuu.com` points at staging Auth.
+
+1. **Authentication → Users**
+2. Search by email
+3. Open the row → **Delete user** (or select checkbox → delete)
+
+This removes the Auth user only. If they created a business, you may also delete rows in **Table Editor** (`business_members`, `businesses`) for a clean retest — optional for QA.
+
+**Do not** delete users in **`businessos`** (production ref `maidxfntfpnkcqnuhozo`) unless you intend to wipe production Auth.
+
+After deleting, wait a minute before re-signing up with the same email.
 
 ### Resend confirmation (UI)
 
