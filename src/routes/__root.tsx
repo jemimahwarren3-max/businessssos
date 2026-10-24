@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { captureError } from "@/lib/monitoring/sentry";
+import { AuthLinkHashHandler } from "@/components/auth-link-hash-handler";
 import { BRAND, HOME_SEO } from "@/lib/brand";
 
 function NotFoundComponent() {
@@ -126,6 +127,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <AuthLinkHashHandler />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>

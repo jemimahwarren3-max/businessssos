@@ -51,6 +51,8 @@ import { Route as AuthenticatedStorefrontRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSuppliersRouteImport } from './routes/_authenticated/suppliers'
 import { Route as AuthenticatedTimeClockRouteImport } from './routes/_authenticated/time-clock'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
+import { Route as AuthRecoverRouteImport } from './routes/auth.recover'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LegalAccessibilityRouteImport } from './routes/legal.accessibility'
 import { Route as LegalAiDisclaimerRouteImport } from './routes/legal.ai-disclaimer'
@@ -286,6 +288,16 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/confirm',
+  path: '/confirm',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthRecoverRoute = AuthRecoverRouteImport.update({
+  id: '/recover',
+  path: '/recover',
+  getParentRoute: () => AuthRoute,
+} as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -440,6 +452,8 @@ export interface FileRoutesByFullPath {
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/recover': typeof AuthRecoverRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/accessibility': typeof LegalAccessibilityRoute
   '/legal/ai-disclaimer': typeof LegalAiDisclaimerRoute
@@ -504,6 +518,8 @@ export interface FileRoutesByTo {
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/recover': typeof AuthRecoverRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/accessibility': typeof LegalAccessibilityRoute
   '/legal/ai-disclaimer': typeof LegalAiDisclaimerRoute
@@ -569,6 +585,8 @@ export interface FileRoutesById {
   '/_authenticated/suppliers': typeof AuthenticatedSuppliersRoute
   '/_authenticated/time-clock': typeof AuthenticatedTimeClockRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/recover': typeof AuthRecoverRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/accessibility': typeof LegalAccessibilityRoute
   '/legal/ai-disclaimer': typeof LegalAiDisclaimerRoute
@@ -635,6 +653,8 @@ export interface FileRouteTypes {
     | '/suppliers'
     | '/time-clock'
     | '/auth/callback'
+    | '/auth/confirm'
+    | '/auth/recover'
     | '/invite/$token'
     | '/legal/accessibility'
     | '/legal/ai-disclaimer'
@@ -699,6 +719,8 @@ export interface FileRouteTypes {
     | '/suppliers'
     | '/time-clock'
     | '/auth/callback'
+    | '/auth/confirm'
+    | '/auth/recover'
     | '/invite/$token'
     | '/legal/accessibility'
     | '/legal/ai-disclaimer'
@@ -763,6 +785,8 @@ export interface FileRouteTypes {
     | '/_authenticated/suppliers'
     | '/_authenticated/time-clock'
     | '/auth/callback'
+    | '/auth/confirm'
+    | '/auth/recover'
     | '/invite/$token'
     | '/legal/accessibility'
     | '/legal/ai-disclaimer'
@@ -1113,6 +1137,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/recover': {
+      id: '/auth/recover'
+      path: '/recover'
+      fullPath: '/auth/recover'
+      preLoaderRoute: typeof AuthRecoverRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/invite/$token': {
       id: '/invite/$token'
       path: '/invite/$token'
@@ -1328,10 +1366,14 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
+  AuthRecoverRoute: typeof AuthRecoverRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
+  AuthRecoverRoute: AuthRecoverRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

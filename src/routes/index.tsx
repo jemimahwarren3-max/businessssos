@@ -25,16 +25,15 @@ import { storePublicUrl } from "@/lib/storefront/host";
 
 const landingSearchSchema = z.object({
   code: z.string().min(1).optional().catch(undefined),
+  type: z.string().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/")({
   validateSearch: landingSearchSchema,
   beforeLoad: ({ search }) => {
     if (search.code) {
-      throw redirect({
-        to: "/auth/callback",
-        search: { code: search.code, next: "/onboarding" },
-      });
+      const to = search.type === "recovery" ? "/auth/recover" : "/auth/confirm";
+      throw redirect({ to, search: { code: search.code } });
     }
   },
   loader: async () => {

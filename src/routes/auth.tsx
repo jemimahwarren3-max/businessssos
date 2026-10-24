@@ -39,19 +39,15 @@ const searchSchema = z.object({
     .catch(undefined),
   // Supabase sometimes lands on /auth when Site URL is wrong — forward to the real handler.
   code: z.string().min(1).optional().catch(undefined),
+  type: z.string().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   beforeLoad: ({ search }) => {
     if (search.code) {
-      throw redirect({
-        to: "/auth/callback",
-        search: {
-          code: search.code,
-          next: "/onboarding",
-        },
-      });
+      const to = search.type === "recovery" ? "/auth/recover" : "/auth/confirm";
+      throw redirect({ to, search: { code: search.code } });
     }
   },
   loader: async () => {

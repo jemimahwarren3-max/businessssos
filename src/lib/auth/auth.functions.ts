@@ -153,7 +153,7 @@ export const signUp = createServerFn({ method: "POST" })
       password: data.password,
       options: {
         data: { full_name: data.fullName },
-        emailRedirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${getAppUrl()}/auth/confirm`,
       },
     });
     if (error) {
@@ -185,7 +185,7 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => requestResetSchema.parse(data))
   .handler(async ({ data }) => {
     await createAnonClient().auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${getAppUrl()}/auth/callback?next=/reset-password`,
+      redirectTo: `${getAppUrl()}/auth/recover`,
     });
     // Always looks the same to the caller, regardless of whether the email
     // has an account — same reasoning as signUp above.
@@ -203,7 +203,7 @@ export const resendSignupConfirmation = createServerFn({ method: "POST" })
       type: "signup",
       email: data.email,
       options: {
-        emailRedirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${getAppUrl()}/auth/confirm`,
       },
     });
     if (error) {
@@ -220,6 +220,48 @@ const oauthCallbackSchema = z.object({
   code: z.string().min(1),
   acceptedTerms: z.boolean().optional(),
 });
+
+const authTokensSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1),
+});
+
+/** Legacy email links that redirect to Site URL with `#access_token=` (not PKCE `?code=`). */
+export const establishSessionFromAuthTokens = createServerFn({ method: "POST" })
+  .middleware(oauthCallbackLimit)
+  .inputValidator((data: unknown) => authTokensSchema.parse(data))
+  .handler(async ({ data }) => {
+    const client = createAnonClient();
+    const { data: sessionData, error } = await client.auth.setSession({
+      access_token: data.accessToken,
+      refresh_token: data.refreshToken,
+    });
+    if (error || !sessionData.session) {
+      throw new Error("That link is invalid or has expired.");
+    }
+    await establishSession(sessionData.session);
+    return { ok: true as const };
+  });
+
+const emailLinkOtpSchema = z.object({
+  tokenHash: z.string().min(1),
+  type: z.enum(["recovery", "signup", "email"]),
+});
+
+export const verifyEmailLinkOtp = createServerFn({ method: "POST" })
+  .middleware(oauthCallbackLimit)
+  .inputValidator((data: unknown) => emailLinkOtpSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { data: result, error } = await createAnonClient().auth.verifyOtp({
+      token_hash: data.tokenHash,
+      type: data.type,
+    });
+    if (error || !result.session) {
+      throw new Error("That link is invalid or has expired.");
+    }
+    await establishSession(result.session);
+    return { ok: true as const };
+  });
 
 /** Single round-trip: exchange PKCE code, seal session, return onboarding vs dashboard. */
 export const finishOAuthCallback = createServerFn({ method: "POST" })
