@@ -2144,6 +2144,102 @@ export type Database = {
           },
         ];
       };
+      store_marketing_campaigns: {
+        Row: {
+          business_id: string;
+          call_to_action: string;
+          channel: string;
+          copy: string;
+          created_at: string;
+          headline: string;
+          id: string;
+          name: string;
+          objective: string;
+          product_id: string | null;
+        };
+        Insert: {
+          business_id: string;
+          call_to_action: string;
+          channel: string;
+          copy: string;
+          created_at?: string;
+          headline: string;
+          id?: string;
+          name: string;
+          objective: string;
+          product_id?: string | null;
+        };
+        Update: {
+          business_id?: string;
+          call_to_action?: string;
+          channel?: string;
+          copy?: string;
+          created_at?: string;
+          headline?: string;
+          id?: string;
+          name?: string;
+          objective?: string;
+          product_id?: string | null;
+        };
+        Relationships: [];
+      };
+      storefront_analytics_events: {
+        Row: {
+          business_id: string;
+          campaign_id: string | null;
+          event_key: string;
+          event_type: string;
+          id: string;
+          occurred_at: string;
+          product_id: string | null;
+          source: string;
+          visitor_id: string;
+        };
+        Insert: {
+          business_id: string;
+          campaign_id?: string | null;
+          event_key: string;
+          event_type: string;
+          id?: string;
+          occurred_at?: string;
+          product_id?: string | null;
+          source?: string;
+          visitor_id: string;
+        };
+        Update: {
+          business_id?: string;
+          campaign_id?: string | null;
+          event_key?: string;
+          event_type?: string;
+          id?: string;
+          occurred_at?: string;
+          product_id?: string | null;
+          source?: string;
+          visitor_id?: string;
+        };
+        Relationships: [];
+      };
+      daily_business_briefings: {
+        Row: {
+          briefing: string;
+          briefing_date: string;
+          business_id: string;
+          generated_at: string;
+        };
+        Insert: {
+          briefing: string;
+          briefing_date: string;
+          business_id: string;
+          generated_at?: string;
+        };
+        Update: {
+          briefing?: string;
+          briefing_date?: string;
+          business_id?: string;
+          generated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -2390,6 +2486,27 @@ export type Database = {
           _limit?: number;
           _offset?: number;
         };
+        Returns: Json;
+      };
+      record_storefront_analytics_event: {
+        Args: {
+          _slug: string;
+          _event_key: string;
+          _visitor_id: string;
+          _event_type: string;
+          _product_slug?: string | null;
+          _campaign_id?: string | null;
+          _source?: string;
+        };
+        Returns: boolean;
+      };
+      attribute_store_order_analytics: {
+        Args: { _order_id: string; _visitor_id: string; _campaign_id?: string | null };
+        Returns: boolean;
+      };
+      cleanup_storefront_analytics: { Args: never; Returns: undefined };
+      get_store_growth_metrics: {
+        Args: { _business_id: string; _days?: number };
         Returns: Json;
       };
       get_store_preview: { Args: { _slug: string }; Returns: Json };

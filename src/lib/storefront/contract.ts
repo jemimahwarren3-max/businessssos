@@ -667,6 +667,8 @@ export const cartItemSchema = z.object({
 
 export const checkoutSchema = z.object({
   slug: z.string().min(3).max(40),
+  campaignId: z.string().uuid().optional(),
+  analyticsVisitorId: z.string().uuid().optional(),
   idempotencyKey: z.string().min(8).max(80),
   fulfilment: z.enum(["pickup", "delivery", "quote"]),
   paymentMethod: z.enum(["pay_on_pickup", "pay_on_delivery", "quote", "paynow", "manual"]),

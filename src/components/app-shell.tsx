@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   LogOut,
+  Megaphone,
   Receipt,
   Settings,
   ShoppingCart,
@@ -64,6 +65,7 @@ const NAV = [
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/growth", label: "Grow", icon: Megaphone },
   { to: "/insights", label: "Insights", icon: Lightbulb },
   { to: "/assistant", label: "AI Assistant", icon: Sparkles },
 ] as const;

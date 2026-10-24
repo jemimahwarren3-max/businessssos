@@ -36,6 +36,8 @@ const EXPORT_TABLES = [
   "store_orders",
   "store_order_items",
   "store_order_events",
+  "store_marketing_campaigns",
+  "storefront_analytics_events",
   "store_complaints",
   "store_reviews",
   "store_listing_reports",

@@ -25,6 +25,11 @@ import { BRAND } from "@/lib/brand";
 import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { enabledManualMethods, MANUAL_PAYMENT_LABELS } from "@/lib/storefront/manual-payments";
 import { Route as StoreRoute } from "./store.$slug";
+import {
+  readStoreAnalyticsVisitorId,
+  readStoreCampaignId,
+  useStoreAnalytics,
+} from "@/components/storefront/store-analytics";
 
 export const Route = createFileRoute("/store/$slug/checkout")({
   head: () => ({ meta: [{ title: "Checkout" }, { name: "robots", content: "noindex" }] }),
@@ -33,6 +38,7 @@ export const Route = createFileRoute("/store/$slug/checkout")({
 
 function CheckoutPage() {
   const { store, preview } = StoreRoute.useLoaderData();
+  const { track } = useStoreAnalytics();
   const quote = useServerFn(quoteCartFn);
   const place = useServerFn(placeOrderFn);
   const navigate = useNavigate();
@@ -126,6 +132,8 @@ function CheckoutPage() {
       const result = await place({
         data: {
           slug: store.slug,
+          campaignId: readStoreCampaignId(store.slug),
+          analyticsVisitorId: readStoreAnalyticsVisitorId(store.slug),
           idempotencyKey,
           fulfilment,
           paymentMethod,
@@ -143,6 +151,7 @@ function CheckoutPage() {
           manualMethodId: paymentMethod === "manual" ? manualMethodId : undefined,
         },
       });
+      track("order_placed");
       if (result.accessToken) {
         sessionStorage.setItem(orderTokenKey(store.slug, result.reference), result.accessToken);
       }

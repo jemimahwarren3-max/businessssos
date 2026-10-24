@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { z } from "zod";
 import { StoreChrome, StorePreviewProvider } from "@/components/storefront/store-experience";
+import { StoreAnalyticsProvider } from "@/components/storefront/store-analytics";
 import { getPublicStoreFn, getStorePreviewFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 
@@ -52,10 +53,12 @@ export const Route = createFileRoute("/store/$slug")({
 function StoreLayout() {
   const { store, preview } = Route.useLoaderData();
   return (
-    <StorePreviewProvider preview={preview}>
-      <StoreChrome store={store} preview={preview}>
-        <Outlet />
-      </StoreChrome>
-    </StorePreviewProvider>
+    <StoreAnalyticsProvider slug={store.slug} preview={preview}>
+      <StorePreviewProvider preview={preview}>
+        <StoreChrome store={store} preview={preview}>
+          <Outlet />
+        </StoreChrome>
+      </StorePreviewProvider>
+    </StoreAnalyticsProvider>
   );
 }
