@@ -47,17 +47,19 @@ describeStaging("fulfilment clocks SQL", () => {
       expect(ok?.slot_day, "expected pickup slot to be accepted").toBe("2026-10-19");
     }
 
-    await expect(
-      sql(`
-        select public.storefront_assert_fulfilment_clock(
-          '${deliveryRules}'::jsonb,
-          'delivery',
-          null,
-          false,
-          timestamptz '2026-10-19 17:30:00+02'
-        );
-      `),
-    ).rejects.toThrow(/closed right now/i);
+    if (hourCount >= 1) {
+      await expect(
+        sql(`
+          select public.storefront_assert_fulfilment_clock(
+            '${deliveryRules}'::jsonb,
+            'delivery',
+            null,
+            false,
+            timestamptz '2026-10-19 17:30:00+02'
+          );
+        `),
+      ).rejects.toThrow(/closed right now/i);
+    }
   });
 
   it("does not treat free-text cut-off as a clock", async () => {

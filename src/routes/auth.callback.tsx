@@ -34,5 +34,20 @@ export const Route = createFileRoute("/auth/callback")({
 
     throw redirect({ to: path, replace: true });
   },
-  component: () => null,
+  component: AuthCallbackPending,
 });
+
+function AuthCallbackPending() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+      <img
+        src="/kwetuu-logo.png"
+        alt=""
+        className="h-12 w-auto opacity-90"
+        width={192}
+        height={96}
+      />
+      <p className="text-sm text-muted-foreground">Finishing Google sign-in…</p>
+    </div>
+  );
+}

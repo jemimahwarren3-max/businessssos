@@ -13,6 +13,9 @@ export function friendlySignUpError(message: string): string {
   if (m.includes("rate limit") || m.includes("too many")) {
     return "Too many attempts. Please wait a moment and try again.";
   }
+  if (m.includes("email not confirmed") || m.includes("not confirmed")) {
+    return "Confirm your email first. Use resend below or check your inbox.";
+  }
   if (
     m.includes("error sending") ||
     m.includes("confirmation email") ||
