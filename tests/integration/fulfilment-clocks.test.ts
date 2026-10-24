@@ -1,35 +1,41 @@
 import { expect, it } from "vitest";
 import { describeStaging, sql } from "./helpers";
 
-const hours = `{
-  "prepMinutes": 30,
-  "timezone": "Africa/Harare",
-  "weeklyHours": [{"weekday": 1, "open": "08:00", "close": "17:00"}],
-  "windows": [{"weekday": 1, "start": "10:00", "end": "12:00"}],
-  "cutoffTime": "16:00"
-}`;
+/** Monday 2026-10-19 in Africa/Harare — matches unit tests in tests/fulfilment-clocks.test.ts */
+const deliveryRules =
+  '{"prepMinutes":30,"timezone":"Africa/Harare","weeklyHours":[{"weekday":1,"open":"08:00","close":"17:00"}],"windows":[{"weekday":1,"start":"10:00","end":"12:00"}],"cutoffTime":"16:00"}';
 
 describeStaging("fulfilment clocks SQL", () => {
   it("allows a Monday morning pickup slot and refuses a closed delivery", async () => {
-    const [ok] = await sql<{ storefront_assert_fulfilment_clock: string }>(`
-      select public.storefront_assert_fulfilment_clock(
-        '${hours}'::jsonb,
-        'pickup',
-        '2026-10-19T10:00:00+02:00'::timestamptz,
-        true,
-        '2026-10-19T08:30:00+02:00'::timestamptz
-      );
+    const [windows] = await sql<{ n: number }>(`
+      select jsonb_array_length(
+        public.storefront_normalize_delivery('${deliveryRules}'::jsonb)->'windows'
+      )::int as n;
     `);
-    expect(ok?.storefront_assert_fulfilment_clock).toContain("2026-10-19");
+    expect(windows?.n).toBe(1);
+
+    const [ok] = await sql<{ slot_day: string | null }>(`
+      select to_char(
+        public.storefront_assert_fulfilment_clock(
+          '${deliveryRules}'::jsonb,
+          'pickup',
+          timestamptz '2026-10-19 10:00:00+02',
+          true,
+          timestamptz '2026-10-19 08:30:00+02'
+        ),
+        'YYYY-MM-DD'
+      ) as slot_day;
+    `);
+    expect(ok?.slot_day, "expected pickup slot to be accepted").toBe("2026-10-19");
 
     await expect(
       sql(`
         select public.storefront_assert_fulfilment_clock(
-          '${hours}'::jsonb,
+          '${deliveryRules}'::jsonb,
           'delivery',
           null,
           false,
-          '2026-10-19T17:30:00+02:00'::timestamptz
+          timestamptz '2026-10-19 17:30:00+02'
         );
       `),
     ).rejects.toThrow(/closed right now/i);

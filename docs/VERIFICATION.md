@@ -32,6 +32,7 @@ On each push/PR, CI runs `verify:local` steps individually (typecheck, lint, tes
 ## Master checklist tracking
 
 Gap analysis mapped to checklist §1–§23: `docs/MASTER_CHECKLIST_GAP.md`.  
+Twelve workflows mapped to tests: `docs/WORKFLOW_VERIFICATION.md`.  
 Execution table: `docs/EXECUTION_STATUS.md` — update after each verified slice.
 
 ## What “verified” means here
