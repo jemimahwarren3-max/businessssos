@@ -98,19 +98,30 @@ Auth confirmation logs appear in **Supabase Auth logs**, not Resend, unless Auth
 
 ---
 
-## Delete test users (Supabase Dashboard)
+## Delete test users (Supabase)
 
 Use project **`businessos-staging`** while `mykwetuu.com` points at staging Auth.
 
-1. **Authentication → Users**
-2. Search by email
-3. Open the row → **Delete user** (or select checkbox → delete)
+### Why dashboard delete fails
 
-This removes the Auth user only. If they created a business, you may also delete rows in **Table Editor** (`business_members`, `businesses`) for a clean retest — optional for QA.
+**Authentication → Users → Delete** only removes `auth.users`. Kwetuu stores merchants in **`public.businesses`** (`created_by` → auth user, **no cascade**) and other tables (e.g. **`shop_order_payments.confirmed_by`** is **ON DELETE RESTRICT**). Postgres then returns **“Database error deleting user”**.
 
-**Do not** delete users in **`businessos`** (production ref `maidxfntfpnkcqnuhozo`) unless you intend to wipe production Auth.
+**“User not found”** usually means the Auth row is already gone but the UI list is stale — refresh the page.
 
-After deleting, wait a minute before re-signing up with the same email.
+### Recommended: SQL cleanup script (staging)
+
+1. **SQL Editor** in **businessos-staging**
+2. Open `scripts/staging-delete-auth-user.sql` from the repo
+3. Set `v_email := 'your-test@email.com'`
+4. **Run** → refresh **Authentication → Users**
+
+### In-app (signed-in test user)
+
+**Settings → Account → Delete account** runs `delete_owned_businesses` then removes Auth (same FK rules; sole owner only).
+
+**Do not** run bulk deletes on **`businessos`** (production `maidxfntfpnkcqnuhozo`) unless you intend to wipe production.
+
+Wait ~1 minute before re-signing up with the same email.
 
 ### Resend confirmation (UI)
 
