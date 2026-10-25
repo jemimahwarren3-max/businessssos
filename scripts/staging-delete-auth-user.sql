@@ -1,11 +1,4 @@
--- Run in Supabase SQL Editor on **businessos-staging** only (slajanbsfqjnuuiohbmg).
--- Dashboard "Delete user" often fails with "Database error deleting user" when
--- public tables still reference auth.users (businesses.created_by, payment
--- confirmations, cash drawer, etc.). This removes QA data then deletes Auth.
---
--- 1. Replace the email below.
--- 2. Run the whole script once.
--- 3. Refresh Authentication → Users.
+-- businessos-staging only. Replace email on line 12, then Run once.
 
 do $$
 declare
@@ -17,27 +10,36 @@ begin
     raise exception 'No auth.users row for %', v_email;
   end if;
 
-  -- Blocks auth delete (on delete restrict)
-  delete from public.shop_order_payments where confirmed_by = v_user_id;
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'shop_order_payments'
+      and column_name = 'confirmed_by'
+  ) then
+    delete from public.shop_order_payments where confirmed_by = v_user_id;
+  end if;
 
-  -- POS / team rows that reference auth.users without cascade
-  delete from public.cash_movements where session_id in (
-    select id from public.cash_sessions where opened_by = v_user_id
-  );
-  delete from public.cash_sessions where opened_by = v_user_id;
-  delete from public.team_invites where created_by = v_user_id or accepted_by = v_user_id;
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'cash_movements')
+     and exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'cash_sessions') then
+    delete from public.cash_movements where session_id in (
+      select id from public.cash_sessions where opened_by = v_user_id
+    );
+  end if;
 
-  -- Drop businesses this user owns (cascades members, products, storefront, etc.)
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'cash_sessions') then
+    delete from public.cash_sessions where opened_by = v_user_id;
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'team_invites') then
+    delete from public.team_invites where created_by = v_user_id or accepted_by = v_user_id;
+  end if;
+
   delete from public.businesses b
   where b.id in (
-    select m.business_id
-    from public.business_members m
+    select m.business_id from public.business_members m
     where m.user_id = v_user_id and m.role = 'owner' and m.is_active
   );
 
-  -- Orphan businesses still pointing at created_by
   delete from public.businesses where created_by = v_user_id;
-
   delete from public.business_members where user_id = v_user_id;
 
   update public.business_members set invited_by = null where invited_by = v_user_id;
