@@ -5,13 +5,14 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { CircleAlert, Loader2, Mail } from "lucide-react";
 import {
+  assertEmailSignUpAllowed,
+  establishSessionFromAuthTokens,
   getCurrentUser,
   getPostAuthDestination,
-  requestPasswordReset,
-  resendSignupConfirmation,
+  recordSignupLegalAcceptance,
   signIn,
-  signUp,
 } from "@/lib/auth/auth.functions";
+import { friendlySignUpError } from "@/lib/auth/signup-errors";
 import { EMAIL_PROVIDER_OFF_MESSAGE, fetchAuthProviderStatus } from "@/lib/auth/auth-providers";
 import { googleOAuthRedirectTo } from "@/lib/auth/google-oauth";
 import { readableError } from "@/lib/format";
@@ -80,8 +81,9 @@ function AuthPage() {
   const fetchCurrentUser = useServerFn(getCurrentUser);
   const fetchPostAuthDestination = useServerFn(getPostAuthDestination);
   const signInFn = useServerFn(signIn);
-  const signUpFn = useServerFn(signUp);
-  const requestResetFn = useServerFn(requestPasswordReset);
+  const assertSignUpFn = useServerFn(assertEmailSignUpAllowed);
+  const recordLegalFn = useServerFn(recordSignupLegalAcceptance);
+  const sealSessionFn = useServerFn(establishSessionFromAuthTokens);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -91,7 +93,6 @@ function AuthPage() {
   const [bootState, setBootState] = useState<"checking" | "ready">("checking");
   const [resendBusy, setResendBusy] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const resendFn = useServerFn(resendSignupConfirmation);
   const needsAcceptance = mode === "signup" && !acceptedTerms;
 
   useEffect(() => {
@@ -137,7 +138,13 @@ function AuthPage() {
     if (!sentTo || resendCooldown > 0 || resendBusy) return;
     setResendBusy(true);
     try {
-      await resendFn({ data: { email: sentTo } });
+      const origin = window.location.origin.replace(/\/+$/, "");
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: sentTo,
+        options: { emailRedirectTo: `${origin}/auth/confirm` },
+      });
+      if (error) throw new Error(friendlySignUpError(`${error.code ?? ""} ${error.message}`));
       toast.success("Confirmation email sent again.");
       setResendCooldown(60);
     } catch (error) {
@@ -152,7 +159,11 @@ function AuthPage() {
     setBusy("email");
     try {
       if (mode === "reset") {
-        await requestResetFn({ data: { email: email.trim() } });
+        const origin = window.location.origin.replace(/\/+$/, "");
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${origin}/auth/recover`,
+        });
+        if (error) throw error;
         setSentTo(email.trim());
         toast.success("Password reset link sent.");
         return;
@@ -170,14 +181,45 @@ function AuthPage() {
           toast.error("Please accept the Terms of Service and Privacy Policy first.");
           return;
         }
-        const result = await signUpFn({
-          data: { email: email.trim(), password, fullName: fullName.trim(), acceptedTerms },
+        const trimmedEmail = email.trim();
+        await assertSignUpFn({
+          data: {
+            email: trimmedEmail,
+            password,
+            fullName: fullName.trim(),
+            acceptedTerms: true,
+          },
         });
-        if (result.needsEmailConfirmation) {
-          setSentTo(email.trim());
+        const origin = window.location.origin.replace(/\/+$/, "");
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password,
+          options: {
+            data: { full_name: fullName.trim() },
+            emailRedirectTo: `${origin}/auth/confirm`,
+          },
+        });
+        if (signUpError) {
+          throw new Error(friendlySignUpError(`${signUpError.code ?? ""} ${signUpError.message}`));
+        }
+        if (signUpData.user) {
+          await recordLegalFn({
+            data: { userId: signUpData.user.id, acceptedTerms: true },
+          });
+        }
+        if (signUpData.session) {
+          await sealSessionFn({
+            data: {
+              accessToken: signUpData.session.access_token,
+              refreshToken: signUpData.session.refresh_token,
+            },
+          });
+          const destination = await fetchPostAuthDestination();
+          const path = destination.path === "/auth" ? "/onboarding" : destination.path;
+          navigateAfterAuth(path);
           return;
         }
-        navigateAfterAuth(result.path ?? "/onboarding");
+        setSentTo(trimmedEmail);
         return;
       }
       const signInResult = await signInFn({ data: { email: email.trim(), password } });

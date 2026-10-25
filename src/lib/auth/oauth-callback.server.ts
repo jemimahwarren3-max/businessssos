@@ -1,6 +1,7 @@
 import type { Db } from "@/lib/business.server";
 import { loadWorkspace } from "@/lib/business.server";
 import {
+  createAnonClient,
   createExchangeClient,
   createTokenScopedClient,
   setServerSession,
@@ -16,6 +17,19 @@ async function establishSession(session: { access_token: string; refresh_token: 
 }
 
 /** Shared by OAuth server fn (never import this module from route files). */
+async function sealSessionFromAuthSession(session: {
+  access_token: string;
+  refresh_token: string;
+  user: { id: string };
+}): Promise<{ userId: string; tokens: SupabaseTokens }> {
+  const tokens: SupabaseTokens = {
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
+  };
+  await establishSession(session);
+  return { userId: session.user.id, tokens };
+}
+
 export async function completeOAuthCallback(input: { code: string }): Promise<{
   userId: string;
   tokens: SupabaseTokens;
@@ -23,15 +37,25 @@ export async function completeOAuthCallback(input: { code: string }): Promise<{
   const { data: result, error } = await createExchangeClient().auth.exchangeCodeForSession(
     input.code,
   );
-  if (error || !result.session) {
-    throw new Error("That sign-in link is invalid or has expired.");
+  if (!error && result.session) {
+    return sealSessionFromAuthSession(result.session);
   }
-  const tokens: SupabaseTokens = {
-    accessToken: result.session.access_token,
-    refreshToken: result.session.refresh_token,
-  };
-  await establishSession(result.session);
-  return { userId: result.user.id, tokens };
+
+  // Email confirm / recovery links after server-side mail often have no PKCE
+  // verifier cookie — try Supabase OTP verify with the same `code` param.
+  const anon = createAnonClient();
+  for (const type of ["signup", "email", "recovery"] as const) {
+    const { data: otp, error: otpError } = await anon.auth.verifyOtp({
+      token_hash: input.code,
+      type,
+    });
+    if (!otpError && otp.session) {
+      return sealSessionFromAuthSession(otp.session);
+    }
+  }
+
+  console.error("[auth] exchangeCodeForSession", error?.message ?? "no session");
+  throw new Error("That sign-in link is invalid or has expired.");
 }
 
 export type PostAuthPath = "/auth" | "/onboarding" | "/dashboard";

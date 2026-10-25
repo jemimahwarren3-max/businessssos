@@ -141,6 +141,27 @@ export const signIn = createServerFn({ method: "POST" })
 const BREACHED_PASSWORD_MESSAGE =
   "That password has appeared in known data breaches, so it's not safe to use. Please choose a different one.";
 
+/** Breach + terms check before browser `supabase.auth.signUp` (stores PKCE verifier for email links). */
+export const assertEmailSignUpAllowed = createServerFn({ method: "POST" })
+  .middleware(signUpLimit)
+  .inputValidator((data: unknown) => signUpSchema.parse(data))
+  .handler(async ({ data }) => {
+    if (await isPasswordBreached(data.password)) {
+      throw new Error(BREACHED_PASSWORD_MESSAGE);
+    }
+    return { ok: true as const };
+  });
+
+export const recordSignupLegalAcceptance = createServerFn({ method: "POST" })
+  .middleware(signUpLimit)
+  .inputValidator((data: unknown) =>
+    z.object({ userId: z.string().uuid(), acceptedTerms: z.literal(true) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    await recordLegalAcceptance(data.userId, getRequestIP() ?? null);
+    return { ok: true as const };
+  });
+
 export const signUp = createServerFn({ method: "POST" })
   .middleware(signUpLimit)
   .inputValidator((data: unknown) => signUpSchema.parse(data))
