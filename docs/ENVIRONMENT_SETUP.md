@@ -12,7 +12,7 @@ Copy `.env.example` to `.env`. Use `npm run env:staging` or `env:production` to 
 
 Required: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, matching `VITE_*`, `SESSION_SECRET`, `APP_URL`.
 
-Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (preferred AI provider; falls back to `GROQ_API_KEY` when absent), `PAYNOW_*`, `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`.
+Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (preferred AI provider; falls back to `GROQ_API_KEY` when absent), `PAYNOW_INTEGRATION_ID` / `PAYNOW_INTEGRATION_KEY` for USD subscriptions, `paynow_integration_id_zig` / `paynow_integration_key_zig` for ZiG (ZWG) subscriptions, `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`.
 AI assistance is review-first: it can suggest changes and prepare drafts, but the user must apply,
 save, send, or publish them. See `AI_BUSINESS_COPILOT.md` for workflows and data sharing.
 

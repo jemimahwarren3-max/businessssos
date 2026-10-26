@@ -9,13 +9,17 @@
 | npm audit | `npm audit` | Known CVEs in dependency tree |
 | Manual review | `docs/DEPENDENCY_REVIEW.md` | Major upgrades and licence notes |
 
-## Current priorities (Oct 2026)
+## Current priorities (26 Oct 2026)
 
-1. **Critical — TanStack Start** GHSA-qx66-fv34-fjm8: upgrade `@tanstack/react-start` to ≥1.169.4 with aligned plugin packages; **do not merge** until `npm run build` passes. Details: `../TANSTACK_GHSA_UPGRADE.md`.
+1. **TanStack Start GHSA-qx66-fv34-fjm8 — patched in repository.**
+   `@tanstack/react-start@1.168.60` and `@tanstack/start-server-core@1.169.39`
+   are the patched versions. The aligned set is installed, `npm audit` reports
+   zero vulnerabilities, and local type-check/tests/build pass. Production
+   deployment remains unverified. Details: `../TANSTACK_GHSA_UPGRADE.md`.
 
-2. **High — axios** (transitive, e.g. Paynow SDK): track upstream; no blind major bump without integration test.
-
-3. **Moderate — vitest** (@vitest/mocker): dev-only; patch on schedule.
+2. `npm audit --audit-level=high` and the full `npm audit` report zero
+   vulnerabilities on 26 October 2026. Re-run after lockfile changes and review
+   dependency advisories during routine maintenance.
 
 ## Supply chain practices
 

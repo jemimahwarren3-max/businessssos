@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { addProduct, completeOnboarding, createBusiness } from "@/lib/business.functions";
-import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import { PLAN_MONTHLY_USD, PLAN_MONTHLY_ZWG } from "@/lib/billing-plans";
 import {
   BUSINESS_TYPES,
   CURRENCIES,
@@ -34,7 +34,6 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { defaultShopPatch } from "@/lib/storefront/onboarding-defaults";
 import { previewShopSlug } from "@/lib/storefront/slug-preview";
 import {
-  getPlatformFxFn,
   getStorefrontAdminFn,
   publishStorefrontFn,
   saveListingFn,
@@ -83,7 +82,6 @@ function Onboarding() {
   const saveListing = useServerFn(saveListingFn);
   const publish = useServerFn(publishStorefrontFn);
   const loadAdmin = useServerFn(getStorefrontAdminFn);
-  const loadFx = useServerFn(getPlatformFxFn);
 
   const existingId = workspace.data?.business.id ?? null;
   const [step, setStep] = useState(0);
@@ -105,11 +103,6 @@ function Onboarding() {
   const [delivery, setDelivery] = useState(false);
   const [shopStep, setShopStep] = useState(0);
 
-  const fx = useQuery({
-    queryKey: ["platform-fx"],
-    queryFn: () => loadFx(),
-  });
-
   useEffect(() => {
     if (existingId) setBusinessId(existingId);
   }, [existingId]);
@@ -128,8 +121,6 @@ function Onboarding() {
     enabled: Boolean(businessId),
     queryFn: () => loadAdmin({ data: { businessId: businessId! } }),
   });
-
-  const zigMonthly = useMemo(() => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null), [fx.data]);
 
   const templateChoices = useMemo(() => {
     const category = getTemplate(templateForBusinessType(form.businessType)).category;
@@ -532,7 +523,7 @@ function Onboarding() {
                 </div>
                 <div className="rounded-xl border-2 border-primary/30 p-5">
                   <p className="font-display text-3xl tabular-nums text-primary">
-                    {zigMonthly != null ? formatMoney(zigMonthly, "ZWG") : "ZiG —"}
+                    {formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     ZiG per month (separate price, not converted)

@@ -43,7 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
-import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import { PLAN_MONTHLY_USD, PLAN_MONTHLY_ZWG, planAmountZig } from "@/lib/billing-plans";
 
 // Not linked from anywhere in the app's nav — a non-admin visitor gets a
 // real 404 (see beforeLoad below), not a login redirect, so the route's
@@ -214,21 +214,21 @@ function AdminDashboard() {
         )}
 
         <div className="surface space-y-3 p-4">
-          <h2 className="text-sm font-semibold">
-            ZiG equivalent for the ${PLAN_MONTHLY_USD.pro} USD plan
-          </h2>
+          <h2 className="text-sm font-semibold">Informational ZiG exchange rate</h2>
           <p className="text-sm text-muted-foreground">
-            Type a rate from a source you are allowed to use. This is display-only. Paynow still
-            collects USD. There is no automatic RBZ feed.
+            Type a rate from a source you are allowed to use. This is display-only and does not
+            change subscription prices or Paynow charges. Pro subscriptions are priced separately at{" "}
+            {formatMoney(PLAN_MONTHLY_USD.pro, "USD")} or {formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")}
+            . There is no automatic RBZ feed.
           </p>
           {fx ? (
             <p className="text-sm">
-              Current: 1 USD = {fx.usdToZwg} ZiG ({fx.source}, {fx.effectiveOn}). Listed Pro ≈{" "}
+              Reference rate: 1 USD = {fx.usdToZwg} ZiG ({fx.source}, {fx.effectiveOn}).{" "}
               {zig != null ? formatMoney(zig, "ZWG") : "—"}.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No rate stored. Pricing hides a ZiG amount.
+              No reference rate stored. This does not affect subscription pricing.
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">

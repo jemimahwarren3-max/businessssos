@@ -12,7 +12,12 @@
 // hash on that response before crediting anything.
 import { Paynow, type InitResponse } from "paynow";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { planAmountUsd, type PaidPlan } from "@/lib/billing-plans";
+import {
+  isSubscriptionCurrency,
+  planAmountForCurrency,
+  type PaidPlan,
+  type SubscriptionCurrency,
+} from "@/lib/billing-plans";
 import type { SubscriptionCheckoutInput } from "@/lib/business.schemas";
 import {
   AppError,
@@ -30,19 +35,50 @@ function getAppUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-function createPaynowClient(): Paynow {
-  const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
-  const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
-  if (!integrationId || !integrationKey) {
-    throw new AppError("Payments aren't set up yet. Ask your admin to configure Paynow.");
+function getPlatformPaynowCredentials(currency: SubscriptionCurrency) {
+  const integrationId =
+    currency === "USD"
+      ? process.env["PAYNOW_INTEGRATION_ID"]
+      : process.env["paynow_integration_id_zig"];
+  const integrationKey =
+    currency === "USD"
+      ? process.env["PAYNOW_INTEGRATION_KEY"]
+      : process.env["paynow_integration_key_zig"];
+  return integrationId && integrationKey ? { integrationId, integrationKey } : null;
+}
+
+function createPaynowClient(currency: SubscriptionCurrency): Paynow {
+  const credentials = getPlatformPaynowCredentials(currency);
+  if (!credentials) {
+    throw new AppError(
+      `${currency === "ZWG" ? "ZiG" : "USD"} subscription payments aren't configured yet.`,
+    );
   }
   const appUrl = getAppUrl();
   return new Paynow(
-    integrationId,
-    integrationKey,
+    credentials.integrationId,
+    credentials.integrationKey,
     `${appUrl}/api/webhooks/paynow`,
     `${appUrl}/settings/billing`,
   );
+}
+
+export function verifyPlatformPaynowWebhookBody(
+  raw: string,
+  currency: string,
+  expectedReference: string,
+): boolean {
+  if (!isSubscriptionCurrency(currency)) return false;
+  const credentials = getPlatformPaynowCredentials(currency);
+  if (!credentials) return false;
+
+  try {
+    const paynow = new Paynow(credentials.integrationId, credentials.integrationKey);
+    return paynow.parseStatusUpdate(raw).reference?.trim() === expectedReference;
+  } catch (error) {
+    console.error(`[paynow webhook] ${currency} platform hash verification failed`, error);
+    return false;
+  }
 }
 
 const PLAN_LABEL: Record<PaidPlan, string> = {
@@ -61,12 +97,14 @@ export async function initiateSubscriptionCheckout(
   authEmail: string,
 ): Promise<CheckoutResult> {
   const plan = input.plan as PaidPlan;
-  const amount = planAmountUsd(plan);
-  const reference = `sub-${input.businessId}-${crypto.randomUUID()}`;
+  const currency = input.currency;
+  const amount = planAmountForCurrency(plan, currency);
+  const referencePrefix = currency === "ZWG" ? "sub-zig" : "sub";
+  const reference = `${referencePrefix}-${input.businessId}-${crypto.randomUUID()}`;
 
-  const paynow = createPaynowClient();
+  const paynow = createPaynowClient(currency);
   const payment = paynow.createPayment(reference, authEmail);
-  payment.add(`BusinessOS AI ${PLAN_LABEL[plan]} plan (monthly)`, amount);
+  payment.add(`Kwetuu ${PLAN_LABEL[plan]} plan (monthly)`, amount);
 
   let response: InitResponse | undefined;
   try {
@@ -90,7 +128,7 @@ export async function initiateSubscriptionCheckout(
     _plan: plan,
     _interval: "month",
     _amount: amount,
-    _currency: "USD",
+    _currency: currency,
     _poll_url: response.pollUrl,
   });
   if (rpcError) dbFail("record subscription payment", rpcError);
@@ -111,14 +149,6 @@ export async function pollAndConfirmPayment(
   reference: string,
   pollUrl: string,
 ): Promise<PaynowPollResult> {
-  const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
-  const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
-  if (!integrationId || !integrationKey) {
-    console.error("[paynow] subscription polling is unavailable; platform credentials are missing");
-    return "pending";
-  }
-
-  const paynow = new Paynow(integrationId, integrationKey);
   const { data: attempt, error: attemptError } = await supabaseAdmin
     .from("subscription_payments")
     .select("amount, currency, status")
@@ -128,7 +158,15 @@ export async function pollAndConfirmPayment(
     console.error("[paynow] load subscription payment for verification", attemptError);
     return "pending";
   }
-  if (!attempt || attempt.status !== "created" || attempt.currency !== "USD") return "pending";
+  if (!attempt || attempt.status !== "created" || !isSubscriptionCurrency(attempt.currency)) {
+    return "pending";
+  }
+  const credentials = getPlatformPaynowCredentials(attempt.currency);
+  if (!credentials) {
+    console.error(`[paynow] ${attempt.currency} subscription polling credentials are missing`);
+    return "pending";
+  }
+  const paynow = new Paynow(credentials.integrationId, credentials.integrationKey);
 
   let rawBody: string;
   try {

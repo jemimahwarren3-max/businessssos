@@ -36,6 +36,10 @@ called out rather than assumed.
   manual review.
 - Refund success must not be claimed without a verified provider outcome.
 - USD is the only seller Paynow order currency in this implementation.
+- Platform subscriptions are priced at USD 7 or ZWG 210 per month. Each
+  currency uses its own Kwetuu-owned Paynow integration credentials; these
+  platform credentials are not used for seller proceeds. The ZiG integration
+  must be configured in Paynow to charge and settle in ZWG.
 
 ## Access and publication
 

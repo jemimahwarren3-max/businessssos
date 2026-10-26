@@ -18,12 +18,12 @@ import {
   startSubscriptionCheckout,
 } from "@/lib/business.functions";
 import {
+  isSubscriptionCurrency,
+  planAmountForCurrency,
   PLAN_MONTHLY_USD,
-  planAmountUsd,
-  planAmountZig,
-  type PlatformFx,
+  PLAN_MONTHLY_ZWG,
+  type SubscriptionCurrency,
 } from "@/lib/billing-plans";
-import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
@@ -66,7 +66,6 @@ function Billing() {
   const workspace = useWorkspace();
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
-  const currency = workspace.data?.business.currency ?? "USD";
   const canManageBilling = hasPermission(workspace.data, "business.billing");
 
   const fetchBilling = useServerFn(getBilling);
@@ -74,8 +73,7 @@ function Billing() {
   const checkPayment = useServerFn(checkSubscriptionPaymentFn);
 
   const [channel, setChannel] = useState<"web" | "ecocash" | "onemoney">("web");
-  const loadFx = useServerFn(getPlatformFxFn);
-  const [fx, setFx] = useState<PlatformFx | null>(null);
+  const [paymentCurrency, setPaymentCurrency] = useState<SubscriptionCurrency>("USD");
   const [phone, setPhone] = useState("");
   const [pendingInstructions, setPendingInstructions] = useState<string | null>(null);
 
@@ -86,8 +84,8 @@ function Billing() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   useEffect(() => {
-    void loadFx().then(setFx);
-  }, [loadFx]);
+    setPaymentCurrency(workspace.data?.business.currency === "ZWG" ? "ZWG" : "USD");
+  }, [businessId, workspace.data?.business.currency]);
 
   const billing = useQuery({
     queryKey: ["billing", businessId],
@@ -102,7 +100,13 @@ function Billing() {
   const checkoutMutation = useMutation({
     mutationFn: () =>
       startCheckout({
-        data: { businessId: businessId!, plan: "pro", channel, phone: phone || undefined },
+        data: {
+          businessId: businessId!,
+          plan: "pro",
+          currency: paymentCurrency,
+          channel,
+          phone: phone || undefined,
+        },
       }),
     onSuccess: async (result) => {
       if (result.redirectUrl) {
@@ -227,12 +231,30 @@ function Billing() {
                 <div className="rounded-lg border border-primary bg-primary/5 p-3">
                   <span className="text-sm font-semibold">Pro</span>
                   <span className="ml-2 text-[13px] text-muted-foreground">
-                    ${PLAN_MONTHLY_USD.pro}/mo USD
-                    {planAmountZig(PLAN_MONTHLY_USD.pro, fx) != null
-                      ? ` · about ${formatMoney(planAmountZig(PLAN_MONTHLY_USD.pro, fx)!, "ZWG")} (display only)`
-                      : ""}
+                    {formatMoney(PLAN_MONTHLY_USD.pro, "USD")}/mo or{" "}
+                    {formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")}/mo
                   </span>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Subscription currency</Label>
+                <RadioGroup
+                  value={paymentCurrency}
+                  onValueChange={(value) => {
+                    if (isSubscriptionCurrency(value)) setPaymentCurrency(value);
+                  }}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                    <RadioGroupItem value="USD" />
+                    <span className="text-sm">{formatMoney(PLAN_MONTHLY_USD.pro, "USD")}</span>
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                    <RadioGroupItem value="ZWG" />
+                    <span className="text-sm">{formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")}</span>
+                  </label>
+                </RadioGroup>
               </div>
 
               <div className="space-y-2">
@@ -281,7 +303,7 @@ function Billing() {
                 {checkoutMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : null}
-                Pay {formatMoney(planAmountUsd("pro"), currency)}
+                Pay {formatMoney(planAmountForCurrency("pro", paymentCurrency), paymentCurrency)}
               </Button>
 
               {pendingInstructions ? (

@@ -65,33 +65,9 @@ function isH3SwallowedErrorBody(body: string): boolean {
 // POST, not a TanStack `createServerFn` call, so it has to be handled here
 // rather than as a route.
 //
-// Authenticity gate: Paynow doesn't send a signature header — it embeds a
-// SHA512 hash directly in the POST body, computed against our
-// PAYNOW_INTEGRATION_KEY (see node_modules/paynow's actual source; the
-// README documents a different, nonexistent API). parseStatusUpdate() below
-// verifies that hash and throws if it doesn't match, which is what proves
-// this request genuinely came from Paynow — reject with 401 before doing
-// any DB lookup if it fails.
-//
 // Even once authenticated, we still never trust the status field on the
 // wire: always re-poll Paynow ourselves via our own stored poll_url before
 // crediting anything. See src/lib/payments/paynow.server.ts for why.
-async function verifyPlatformPaynowWebhookBody(raw: string): Promise<string | null> {
-  const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
-  const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
-  if (!integrationId || !integrationKey) return null;
-
-  const { Paynow } = await import("paynow");
-  const paynow = new Paynow(integrationId, integrationKey);
-  try {
-    const status = paynow.parseStatusUpdate(raw);
-    return status.reference ?? null;
-  } catch (error) {
-    console.error("[paynow webhook] platform hash verification failed", error);
-    return null;
-  }
-}
-
 async function handlePaynowWebhook(request: Request): Promise<Response> {
   try {
     const ip = clientIpFromRequest(request);
@@ -138,22 +114,34 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
       return new Response("OK", { status: 200 });
     }
 
-    const platformReference = await verifyPlatformPaynowWebhookBody(raw);
-    if (!platformReference) return new Response("Unauthorized", { status: 401 });
+    // The reference prefix selects the verification key before any payment lookup; legacy refs are USD.
+    const callbackCurrency = reference.startsWith("sub-zig-")
+      ? "ZWG"
+      : reference.startsWith("sub-")
+        ? "USD"
+        : null;
+    if (!callbackCurrency) return new Response("Unauthorized", { status: 401 });
+    const { verifyPlatformPaynowWebhookBody, pollAndConfirmPayment } =
+      await import("./lib/payments/paynow.server");
+    if (!verifyPlatformPaynowWebhookBody(raw, callbackCurrency, reference)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     const { data: row, error } = await supabaseAdmin
       .from("subscription_payments")
-      .select("reference, poll_url, status")
-      .eq("reference", platformReference)
+      .select("reference, poll_url, status, currency")
+      .eq("reference", reference)
       .maybeSingle();
     if (error) {
       console.error("[paynow webhook] lookup failed", error);
       return new Response("Error", { status: 500 });
     }
     if (!row) return new Response("Unknown reference", { status: 404 });
+    if (row.currency !== callbackCurrency) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     if (row.status === "created") {
-      const { pollAndConfirmPayment } = await import("./lib/payments/paynow.server");
       await pollAndConfirmPayment(row.reference, row.poll_url);
     }
 

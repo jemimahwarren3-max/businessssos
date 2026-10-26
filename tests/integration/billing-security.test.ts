@@ -20,21 +20,42 @@ describeStaging("billing security", () => {
   let ownerId: string;
   let businessId: string;
   const reference = `sec-test-${newId()}`;
+  const zigReference = `sec-zig-test-${newId()}`;
 
   beforeAll(async () => {
     ownerId = await createTestUser(`billing-owner-${newId()}@example.com`);
     businessId = await createTestBusiness(ownerId, `Billing Security Test ${newId()}`);
     await asUser(
       ownerId,
-      `select public.record_subscription_payment('${businessId}', '${reference}', 'business', 'month', 19, 'USD', 'https://example.com/poll');`,
+      `select public.record_subscription_payment('${businessId}', '${reference}', 'pro', 'month', 7, 'USD', 'https://www.paynow.co.zw/interface/checkpayment/?guid=usd');`,
     );
   }, 30_000);
 
   afterAll(async () => {
-    await sql(`delete from public.subscription_payments where reference = '${reference}';`);
+    await sql(
+      `delete from public.subscription_payments where reference in ('${reference}', '${zigReference}');`,
+    );
     await deleteTestBusiness(businessId);
     await deleteTestUser(ownerId);
   }, 30_000);
+
+  it("records the fixed ZiG price and rejects altered prices", async () => {
+    await asUser(
+      ownerId,
+      `select public.record_subscription_payment('${businessId}', '${zigReference}', 'pro', 'month', 210, 'zwg', 'https://www.paynow.co.zw/interface/checkpayment/?guid=zig');`,
+    );
+    const [payment] = await sql<{ amount: number; currency: string }>(
+      `select amount::float8 as amount, currency from public.subscription_payments where reference = '${zigReference}';`,
+    );
+    expect(payment).toMatchObject({ amount: 210, currency: "ZWG" });
+
+    await expect(
+      asUser(
+        ownerId,
+        `select public.record_subscription_payment('${businessId}', 'bad-price-${newId()}', 'pro', 'month', 1, 'USD', 'https://www.paynow.co.zw/interface/checkpayment/?guid=bad');`,
+      ),
+    ).rejects.toThrow(/fixed plan price/i);
+  });
 
   it("paynow_confirm_payment cannot be called by an authenticated user directly (service_role only)", async () => {
     await expect(

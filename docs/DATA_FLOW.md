@@ -45,16 +45,19 @@ independently verified — see `legal/LEGAL_REVIEW_REQUIRED.md`.
 
 ## Flow 2: Subscription checkout (Paynow)
 
-1. Server sends: a reference ID, the user's email, a payment description,
-   and the amount to Paynow. For mobile-money channels (EcoCash/OneMoney),
-   also the phone number the user entered for that payment.
+1. The user chooses USD ($7) or ZiG (ZWG 210). The server selects the matching
+   platform subscription integration, then sends a reference ID, the user's
+   email, the payment description, and fixed amount to Paynow. For mobile-money
+   channels (EcoCash/OneMoney), it also sends the phone number entered for
+   that payment.
 2. Paynow returns either a redirect URL (web/card) or on-screen instructions
    (mobile money) — BusinessOS AI never receives or stores a card number or
    CVV; that's handled entirely on Paynow's side.
-3. Paynow calls back a webhook. The webhook's SHA512 signature is verified
-   against `PAYNOW_INTEGRATION_KEY` before any database lookup happens; even
-   after that, the payment status is never trusted from the webhook body —
-   the server re-polls Paynow's own servers via a stored `poll_url` before
+3. ZiG references use a `sub-zig-` prefix, so the server chooses the matching
+   integration key and verifies the callback's SHA512 signature before looking
+   up the payment. Existing USD references continue to use the USD key. The
+   payment status is never trusted from the webhook body — the server re-polls
+   Paynow using that same integration and the stored `poll_url` before
    crediting anything.
 4. On confirmed payment, the subscription row is updated and the workspace
    cache (if Redis is configured) is invalidated for every member of that

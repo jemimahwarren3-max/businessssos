@@ -1,14 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Check } from "lucide-react";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { BRAND } from "@/lib/brand";
-import { PLAN_MONTHLY_USD, planAmountZig, type PlatformFx } from "@/lib/billing-plans";
-import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
+import { PLAN_MONTHLY_USD, PLAN_MONTHLY_ZWG } from "@/lib/billing-plans";
 import { formatMoney } from "@/lib/format";
 
 const BETA_FEATURES = [
@@ -20,7 +17,7 @@ const BETA_FEATURES = [
 
 const PRO_FEATURES = [
   "Everything in the founding beta",
-  `$${PLAN_MONTHLY_USD.pro}/month only after we give notice`,
+  `${formatMoney(PLAN_MONTHLY_USD.pro, "USD")} or ${formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")} per month after notice`,
   "Same merchant OS — not a second product",
   "Platform billing uses separate Paynow keys from shop checkout",
 ];
@@ -39,28 +36,14 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
-  const loadFx = useServerFn(getPlatformFxFn);
-  const [fx, setFx] = useState<PlatformFx | null>(null);
-  useEffect(() => {
-    void loadFx().then(setFx);
-  }, [loadFx]);
-  const zig = planAmountZig(PLAN_MONTHLY_USD.pro, fx);
   return (
     <MarketingShell>
       <div className="mx-auto max-w-6xl px-4 py-16">
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Pricing</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          The product is free for founding users. If billing is turned on later, Pro is $
-          {PLAN_MONTHLY_USD.pro}/month in USD. You get notice before anything is charged.
-          {zig != null && fx ? (
-            <>
-              {" "}
-              Displayed ZiG equivalent: {formatMoney(zig, "ZWG")} using {fx.source} on{" "}
-              {fx.effectiveOn}. Billing still collects USD. {fx.notice}
-            </>
-          ) : (
-            <> There is no ZiG subscription price until an operator stores a rate and source.</>
-          )}{" "}
+          The product is free for founding users. If billing is turned on later, Pro is{" "}
+          {formatMoney(PLAN_MONTHLY_USD.pro, "USD")} or {formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")}
+          per month. You choose the payment currency, and we give notice before anything is charged.{" "}
           Merchant Paynow fees are between the shop and Paynow, not this price. Shopper payments
           never pay this bill.
         </p>
@@ -96,7 +79,8 @@ function PricingPage() {
             <CardHeader>
               <CardTitle>Pro</CardTitle>
               <p className="text-3xl font-bold tracking-tight">
-                ${PLAN_MONTHLY_USD.pro}
+                {formatMoney(PLAN_MONTHLY_USD.pro, "USD")} or{" "}
+                {formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")}
                 <span className="text-sm font-medium text-muted-foreground">
                   {" "}
                   /month after notice

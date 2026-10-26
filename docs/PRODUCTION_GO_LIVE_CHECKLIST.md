@@ -4,9 +4,9 @@ Every box is evidence-based. Unverified stays unchecked.
 
 ## Security
 
-- [ ] No known unresolved critical vulnerabilities. `npm audit` still reports critical/high issues. Unverified as cleared.
-- [ ] Tenant isolation verified through direct API and database tests. Tests exist; not executed in this environment (no access token in `.env`).
-- [ ] Authentication and role permissions tested. Existing integration tests; not re-run here.
+- [x] No known unresolved high/critical vulnerabilities. Local `npm audit --audit-level=high` reports zero vulnerabilities after upgrading Zod and the transitive serializer. The CI audit gate is blocking; confirm it on a remote run.
+- [x] Staging tenant-isolation, billing, payment-safety, platform-owner, and permissions integration suites passed in PR #66 CI on 26 October 2026. Production remains unverified; this is not a penetration test.
+- [ ] Browser authentication/recovery, role changes, admin denial, and MFA journey independently completed against staging.
 - [x] Secrets protected in source. `.env` gitignored; example file has no live values. Git history not exhaustively scanned with a dedicated secret scanner.
 - [x] File upload validation for product photos (type sniff + 2 MB). Expense/docs uploads still absent. No antivirus.
 - [x] Rate limiting reviewed. Postgres `check_rate_limit` on auth, export, checkout, webhooks, marketplace browse.
@@ -14,7 +14,7 @@ Every box is evidence-based. Unverified stays unchecked.
 
 ## Data and payments
 
-- [x] Database constraints and migrations reviewed in repo. Production has not received storefront migrations.
+- [x] Database constraints and migrations reviewed in repo. CI applied ten pending migrations to staging on 26 October 2026; production has not received these migrations.
 - [ ] Inventory concurrency tested this session. Older tests exist; not re-run here.
 - [ ] Payment verification with Paynow's real test process. Not run.
 - [x] Duplicate webhook processing designed to no-op after `status != created`.

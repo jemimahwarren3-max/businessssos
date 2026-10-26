@@ -219,7 +219,7 @@ describe("storefront templates", () => {
     expect(STORE_TEMPLATES.map((template) => template.category).length).toBe(60);
     expect(STORE_TEMPLATES.map((template) => template.id)).toContain("electronics-tech");
     const patch = defaultShopPatch({
-      businessId: "00000000-0000-0000-0000-000000000001",
+      businessId: "00000000-0000-4000-8000-000000000001",
       storeName: "Mbare Fresh",
       templateId: "grocery",
     });

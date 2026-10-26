@@ -16,11 +16,15 @@ for (const [label, cmd, args] of steps) {
   console.log(`\n=== ${label} ===`);
   const result = spawnSync(cmd, args, {
     stdio: "inherit",
+    shell: process.platform === "win32",
     env: {
       ...process.env,
       APP_URL: process.env.APP_URL || "http://localhost:8080",
     },
   });
+  if (result.error) {
+    console.error(`Could not start ${cmd}: ${result.error.message}`);
+  }
   if (result.status !== 0) {
     failed += 1;
     console.error(`\nFailed: ${label}`);

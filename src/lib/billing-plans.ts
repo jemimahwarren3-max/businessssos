@@ -8,8 +8,23 @@ export const PLAN_MONTHLY_USD: Record<PaidPlan, number> = {
   pro: 7,
 };
 
+export const PLAN_MONTHLY_ZWG: Record<PaidPlan, number> = {
+  pro: 210,
+};
+
+export const SUBSCRIPTION_CURRENCIES = ["USD", "ZWG"] as const;
+export type SubscriptionCurrency = (typeof SUBSCRIPTION_CURRENCIES)[number];
+
 export function planAmountUsd(plan: PaidPlan): number {
   return PLAN_MONTHLY_USD[plan];
+}
+
+export function planAmountForCurrency(plan: PaidPlan, currency: SubscriptionCurrency): number {
+  return currency === "USD" ? PLAN_MONTHLY_USD[plan] : PLAN_MONTHLY_ZWG[plan];
+}
+
+export function isSubscriptionCurrency(value: string): value is SubscriptionCurrency {
+  return (SUBSCRIPTION_CURRENCIES as readonly string[]).includes(value);
 }
 
 export function isPaidPlan(plan: string): plan is PaidPlan {

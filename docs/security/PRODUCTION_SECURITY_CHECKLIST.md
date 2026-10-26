@@ -29,7 +29,7 @@ Use before enabling public production traffic. Evidence-based — unchecked item
 - [ ] `SESSION_SECRET` ≥32 chars, unique per environment
 - [ ] `SHOP_PAYMENT_ENCRYPTION_KEY` set before any shop credentials stored
 - [ ] `MAIL_FLUSH_SECRET` set; flush workflow green
-- [ ] TanStack GHSA addressed or accepted risk signed by owner
+- [ ] TanStack GHSA is patched in the repository; verify the patched build is deployed or record an owner-accepted risk for the live environment.
 - [ ] Security headers verified on live URL (curl)
 
 ## Operations

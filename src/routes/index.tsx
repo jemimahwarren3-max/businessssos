@@ -15,7 +15,7 @@ import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { TemplatePreview } from "@/components/storefront/template-preview";
 import { Button } from "@/components/ui/button";
 import { BRAND, HOME_SEO } from "@/lib/brand";
-import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import { PLAN_MONTHLY_USD, PLAN_MONTHLY_ZWG } from "@/lib/billing-plans";
 import { formatMoney } from "@/lib/format";
 import { EMPTY_MARKETPLACE } from "@/lib/storefront/contract";
 import { featuredPublishedShops } from "@/lib/storefront/published-shops";
@@ -170,9 +170,8 @@ function HeroVisual({ shops }: { shops: ReturnType<typeof featuredPublishedShops
 }
 
 function Landing() {
-  const { market, fx } = Route.useLoaderData();
+  const { market } = Route.useLoaderData();
   const featuredShops = featuredPublishedShops(market.shops);
-  const zigMonthly = planAmountZig(PLAN_MONTHLY_USD.pro, fx);
   const shopHostExample = `yourbrand.${BRAND.domain}`;
 
   return (
@@ -338,7 +337,7 @@ function Landing() {
           </p>
           <span className="font-display text-2xl text-muted-foreground">or</span>
           <p className="rounded-2xl border border-border bg-card px-8 py-6 font-display text-5xl tabular-nums text-primary shadow-soft">
-            {zigMonthly != null ? formatMoney(zigMonthly, "ZWG") : "ZiG 210"}
+            {formatMoney(PLAN_MONTHLY_ZWG.pro, "ZWG")}
             <span className="text-xl text-muted-foreground"> / month</span>
           </p>
         </div>

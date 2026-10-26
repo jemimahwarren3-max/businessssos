@@ -439,6 +439,7 @@ export const importSalesDetailedSchema = z.object({
 export const subscriptionCheckoutSchema = z.object({
   businessId: z.string().uuid(),
   plan: z.enum(["pro"]),
+  currency: z.enum(["USD", "ZWG"]),
   channel: z.enum(["web", "ecocash", "onemoney"]),
   phone: z.string().trim().max(20).optional(),
 });

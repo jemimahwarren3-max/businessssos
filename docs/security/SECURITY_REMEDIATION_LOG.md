@@ -4,7 +4,7 @@ Record of verified findings. No secret values or personal data in this file.
 
 | ID | Severity | Component | Description | Fix | Verification | Residual / owner |
 |----|----------|-----------|-------------|-----|--------------|------------------|
-| KW-SEC-001 | Critical | `@tanstack/react-start` | Reflected XSS in server-function responses (GHSA-qx66-fv34-fjm8) on versions ≤1.168.59 | Documented upgrade path; lockfile still on patched line pending aligned upgrade | `npm audit` still flags until upgrade merged; build must pass | Upgrade owner; see `DEPENDENCY_SECURITY.md` |
+| KW-SEC-001 | Critical | `@tanstack/react-start` | Reflected XSS in server-function responses (GHSA-qx66-fv34-fjm8) on versions ≤1.168.59 | Patched versions installed: `@tanstack/react-start@1.168.60`, `@tanstack/start-server-core@1.169.39` | Local `npm audit` zero; type-check, tests, and build pass | Production deployment and runtime verification remain outstanding |
 | KW-SEC-002 | High | Paynow shop confirmation | Forged poll / wrong amount could mark paid | `paynow-poll.ts`, payment-safety migration, stricter confirm RPC | Unit tests pass; staging RPC tests skipped | Staging apply + provider sandbox replay |
 | KW-SEC-003 | High | Manual `mark_paid` on Paynow orders | Seller could bypass gateway | Payment-safety migration blocks or audits Paynow mark_paid path | Code + migration; staging not run | Merchant training |
 | KW-SEC-004 | High | `paynow_confirm_payment` grant leak | Any authenticated user could confirm subs | Revoke grants; `billing-security.test.ts` | Unit in repo; staging test skipped | Re-audit new SECURITY DEFINER functions |

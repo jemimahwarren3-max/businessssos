@@ -87,7 +87,7 @@ function rpcFail(context: string, error: unknown): never {
 async function parseRpc<T>(
   context: string,
   result: { data: Json | null; error: { message?: string } | null },
-  schema: { safeParse: (data: unknown) => z.SafeParseReturnType<unknown, T> },
+  schema: z.ZodType<T>,
 ): Promise<T> {
   if (result.error) rpcFail(context, result.error);
   const parsed = schema.safeParse(result.data);
