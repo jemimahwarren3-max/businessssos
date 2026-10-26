@@ -19,7 +19,7 @@ describeStaging("product opening stock", () => {
     try {
       const [created] = await asUser<{ id: string; stock: number }>(
         userId,
-        `select id, stock from public.create_product(
+        `select id, stock::float8 as stock from public.create_product(
           '${businessId}', '${productName}', '', '', 'unit', 1, 2, 5, 0, 0, '', null, null
         );`,
       );
