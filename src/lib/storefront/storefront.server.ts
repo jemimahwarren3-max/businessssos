@@ -14,7 +14,14 @@ import {
   storePaymentProofFile,
 } from "@/lib/storefront/payment-proof.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
+import {
+  AppError,
+  assertCanPublish,
+  assertCanWrite,
+  assertPermission,
+  dbFail,
+  type Db,
+} from "@/lib/business.server";
 import { attributeStoreOrderAnalytics } from "@/lib/growth.server";
 import {
   adminOrderSchema,
@@ -306,8 +313,10 @@ export async function saveStorefront(supabase: Db, businessId: string, patch: Js
 }
 
 export async function publishStorefront(supabase: Db, businessId: string, published: boolean) {
-  await assertCanWrite(supabase, businessId);
   await assertPermission(supabase, businessId, "business.settings");
+  if (published) {
+    await assertCanPublish(supabase, businessId);
+  }
   const result = await supabase.rpc("set_storefront_published", {
     _business_id: businessId,
     _published: published,

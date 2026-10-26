@@ -223,6 +223,7 @@ export function AppShell({
   // Reuses the ["workspace"] query every page already populates — no extra
   // network request in practice, just reading businessId back out of it.
   const workspace = useWorkspace();
+  const isOperateLocked = workspace.data?.isOperateLocked ?? false;
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -384,6 +385,21 @@ export function AppShell({
                 className="shrink-0 font-semibold underline underline-offset-2"
               >
                 Upgrade now
+              </Link>
+            </div>
+          </div>
+        ) : isOperateLocked && billingEnabled ? (
+          <div className="border-b border-primary/20 bg-primary/5 px-4 py-2.5 text-[13px] text-foreground">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+              <span>
+                Setup is free. Pay for Pro when you are ready to publish your shop or use the sales
+                counter.
+              </span>
+              <Link
+                to="/settings/billing"
+                className="shrink-0 font-semibold text-primary underline underline-offset-2"
+              >
+                Go to billing
               </Link>
             </div>
           </div>
