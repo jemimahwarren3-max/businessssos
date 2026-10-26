@@ -249,7 +249,9 @@ export function ProductCreateForm({
             accept="image/jpeg,image/png,image/webp"
             onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
           />
-          <p className="text-[13px] text-muted-foreground">JPEG, PNG, or WebP, up to 2 MB.</p>
+          <p className="text-[13px] text-muted-foreground">
+            JPEG, PNG, or WebP, up to 12 MB. Photos are resized on this device before upload.
+          </p>
         </div>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="ghost" onClick={onCancel}>

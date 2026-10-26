@@ -126,6 +126,8 @@ const storefrontFaqSchema = z.object({
 
 export const storefrontContentSchema = z.object({
   announcement: z.string().max(200).default(""),
+  seoTitle: z.string().max(60).default(""),
+  seoDescription: z.string().max(160).default(""),
   collections: z.array(storefrontCollectionSchema).max(6).default([]),
   promoTiles: z.array(storefrontPromoTileSchema).max(4).default([]),
   faqs: z.array(storefrontFaqSchema).max(12).default([]),

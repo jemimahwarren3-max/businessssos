@@ -20,6 +20,7 @@ Apply `20261021150000_storefront_template_library.sql` after the existing storef
 - Cancelling before that sale restores stock. After the sale exists, use Sales history refunds. Cancelling here is refused so stock is not returned twice.
 - Quote requests do not reserve stock until Accept quote.
 - If the merchant requires a delivery quote, priced delivery checkout is refused. The customer can request a quote instead.
+- Delivery checkout accepts a free-text location (up to 300 characters); customers can include their suburb or area, street/stand number, nearby landmark, and rider directions.
 - If the merchant turns on automatic acceptance, eligible non-quote orders start as `confirmed`. They stay `unpaid` until Record payment.
 - Changing delivery fees or cash rules later does not rewrite `store_orders.terms` or the stored totals.
 - Repeating checkout with the same idempotency key returns the original order and does not reserve stock again. The access code is only returned on the first response; the browser stores it for that tab.
@@ -36,6 +37,8 @@ Sixty storefront designs (six each in ten retail categories) share one renderer 
 The content editor also supports an announcement bar, category-based collections, promotional tiles, FAQs, separate delivery/returns/privacy notes, and editable contact/social links. Apply `20261022100000_storefront_content_sections.sql` after the storefront template migration to persist these sections. Shop addresses link to a map search generated from the seller-entered address; no device location is collected.
 
 Published products support up to eight additional storefront photos beside the existing inventory photo. Apply `20261022110000_storefront_product_gallery.sql` after the content sections migration. Gallery photos use the existing product-media bucket and are returned through the storefront RPCs; they do not create separate catalogue items.
+
+Product photos selected in Inventory or the storefront gallery are resized to a maximum 1200-pixel dimension and converted to WebP on the device when supported. The server still validates the final image type and enforces the 2 MB upload limit; browsers without image conversion support can upload an already-small supported image unchanged.
 
 The marketplace searches products across listed shops and lets shoppers narrow those results to a preferred shop. Checkout remains within the selected shop and does not combine orders from multiple businesses.
 

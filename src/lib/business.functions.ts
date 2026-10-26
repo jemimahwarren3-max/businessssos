@@ -10,6 +10,7 @@ import {
   customerSchema,
   expenseIdSchema,
   expenseSchema,
+  generateInvoiceDraftSchema,
   importCustomersSchema,
   importExpensesSchema,
   importProductsSchema,
@@ -65,6 +66,7 @@ import {
 } from "./business.schemas";
 import { z } from "zod";
 import { listAuditLogs } from "./audit.server";
+import { generateInvoiceDraft } from "./invoice-copilot.server";
 import {
   adjustTimeEntry,
   clockIn,
@@ -186,7 +188,7 @@ const exportRateLimit = [
   authedRateLimit({ keyPrefix: "data-export", maxRequests: 3, windowSeconds: 60 }),
 ] as const;
 
-// Every call here hits Groq — tighter than the general API limit, on top
+// Every call here hits an AI provider — tighter than the general API limit, on top
 // of the per-business daily cap enforced inside askAssistant/getWeeklyReport
 // themselves (see ai.server.ts/insights.server.ts).
 const aiRateLimit = [
@@ -199,7 +201,7 @@ const importRateLimit = [
   authedRateLimit({ keyPrefix: "csv-import", maxRequests: 10, windowSeconds: 60 }),
 ] as const;
 
-// Also hits Groq — same tier as the assistant, on top of parseQuickEntry's
+// Also hits an AI provider — same tier as the assistant, on top of parseQuickEntry's
 // own per-business daily cap (see quick-entry.server.ts).
 const quickEntryRateLimit = [
   authedRateLimit({ keyPrefix: "quick-entry", maxRequests: 20, windowSeconds: 60 }),
@@ -615,6 +617,11 @@ export const askAssistantFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     askAssistant(context.supabase as Db, data.businessId, data.messages),
   );
+
+export const generateInvoiceDraftFn = createServerFn({ method: "POST" })
+  .middleware([...authAndRateLimit, ...aiRateLimit])
+  .inputValidator((data: unknown) => parseAndSanitize(generateInvoiceDraftSchema, data))
+  .handler(async ({ data, context }) => generateInvoiceDraft(context.supabase as Db, data));
 
 /* -------------------------------- quick add -------------------------------- */
 

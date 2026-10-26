@@ -1,119 +1,41 @@
-# Cloud Run launch (Kwetuu, mykwetuu.com)
+# Cloud Run deployment status
 
-Do **not** use the GCP “Create service” screen (Developer Connect / Cloud
-Build from the console). GitHub already deploys: a merged PR on `master`
-runs CI, then `gcloud run deploy kwetuu` in europe-west1.
+## Current status: deployment paused
 
-Database for this first revision: **staging** `slajanbsfqjnuuiohbmg`.
-Production Postgres `maidxfntfpnkcqnuhozo` stays untouched until you
-explicitly apply migrations there.
+GitHub Actions does not deploy the application to Cloud Run. The prior
+workflow deployed the staging Supabase configuration to the `kwetuu` service
+and mapped the production domain `mykwetuu.com`; that mixed-environment path
+has been removed.
 
-Shops are `https://{slug}.mykwetuu.com`. The app still routes internally
-at `/store/{slug}` and 308s the old path. Cloud Run domain-mappings cannot
-bind `*`; add wildcard DNS and terminate TLS with Cloudflare on `*` or an
-HTTPS load balancer. `.run.app` cannot host shop subdomains.
+CI remains active on pull requests and pushes to `main` or `master`. It applies
+the configured additive migrations to staging, runs tests, and builds the
+application. Production Supabase is not migrated by CI. Existing Cloud Run
+revisions and DNS mappings are not changed by this repository change; this
+pause prevents future GitHub Actions deployments from updating them.
 
-## What happens on a merged PR
+Do not manually deploy this application to the production domain until the
+environment separation and release checks below are complete.
 
-1. Open a PR. `CI` runs tests and a production build. Nothing is deployed.
-2. Merge to `master`. `CI` runs again on that commit.
-3. If that job is green, the `deploy` job builds the Docker image, pushes it
-   to Artifact Registry, and updates Cloud Run service `kwetuu`.
-4. First time only, you can also **Actions → Deploy Cloud Run → Run workflow**.
+## Requirements before deployment resumes
 
-Open PRs are not given their own URLs. Only `master` is live.
+- Create distinct GitHub Actions environments for `staging` and `production`.
+- Use separate Cloud Run services and environment-scoped credentials.
+- Confirm each service's build-time `VITE_SUPABASE_*` settings and runtime
+  `SUPABASE_*` settings refer to the same environment.
+- Forward server-only provider secrets such as `GEMINI_API_KEY` only to the
+  intended runtime; never expose them as `VITE_*` build variables.
+- Give staging and production distinct `APP_URL` values; only production may
+  use `https://mykwetuu.com`.
+- Protect production deployment with a restricted branch and required
+  reviewer approval.
+- Keep production database migrations behind a separate reviewed and approved
+  operation. CI must continue targeting staging only.
+- Add post-deployment health checks and document how to roll back to a known
+  good Cloud Run revision.
+- Verify payment webhooks, authentication redirects, mail delivery, and
+  storefront domains separately for each environment.
 
-## One-time GCP setup (CLI, not console)
-
-Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install),
-log in, then:
-
-```bash
-gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
-export GCP_PROJECT_ID=YOUR_PROJECT_ID
-export GCP_REGION=europe-west1
-export SESSION_SECRET='at-least-32-characters-of-random'
-export SUPABASE_SERVICE_ROLE_KEY='staging-service-role'
-# optional mail:
-# export RESEND_API_KEY=re_...
-# export MAIL_FLUSH_SECRET='at-least-16-chars'
-chmod +x scripts/gcloud-bootstrap.sh
-./scripts/gcloud-bootstrap.sh
-```
-
-The script enables APIs, creates the `kwetuu` Artifact Registry repo, the
-GitHub deploy account, the Cloud Run runtime account, and Secret Manager
-entries. It prints the remaining GitHub secret names.
-
-Google orgs often block JSON keys (`iam.disableServiceAccountKeyCreation`).
-Use Workload Identity Federation instead — no file to download. See the
-console steps in the operator reply / GitHub secrets table below.
-
-## GitHub Actions secrets
-
-| Secret                                 | Value                                                                                                                                             |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GCP_PROJECT_ID`                       | The GCP project id                                                                                                                                |
-| `GCP_WORKLOAD_IDENTITY_PROVIDER`       | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/kwetuu/providers/github`                                                          |
-| `GCP_SERVICE_ACCOUNT`                  | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                                                                                |
-| `APP_URL`                              | Always `https://mykwetuu.com` (do not flip to `.run.app`)                                                                                         |
-| `STAGING_SUPABASE_URL`                 | Staging project URL                                                                                                                               |
-| `STAGING_SUPABASE_PUBLISHABLE_KEY`     | Staging anon/publishable key                                                                                                                      |
-| `STAGING_SUPABASE_PROJECT_ID`          | `slajanbsfqjnuuiohbmg`                                                                                                                            |
-| `RESEND_API_KEY`                       | Resend API key; required to send queued mail                                                                                                      |
-| `NOTIFY_FROM_EMAIL`                    | Defaults to `Kwetuu <noreply@mykwetuu.com>`; override only with a verified sender                                                                 |
-| `MAIL_FLUSH_SECRET`                    | Random secret of at least 16 characters; required by the scheduled mail flush workflow                                                            |
-| `SHOP_PAYMENT_ENCRYPTION_KEY`          | Server-only 32-byte base64url key for seller Paynow credential encryption; do not enable seller Paynow without written provider/platform approval |
-| `SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS` | Previous encryption key during a credential-key rotation                                                                                          |
-
-Seller Paynow checkout is disabled by default in the database. Seller credentials
-alone do not enable it. The deployed app currently uses the staging Supabase
-project; do not treat this Cloud Run deployment as production payment processing.
-
-## Domain `mykwetuu.com`
-
-Keep GitHub `APP_URL` as `https://mykwetuu.com` from now on. The deploy job
-maps `mykwetuu.com` and `www.mykwetuu.com` onto service `kwetuu` and prints
-the DNS records. Fully managed Cloud Run needs `gcloud beta run
-domain-mappings` (`--region` is not valid on the GA Anthos command).
-
-1. Run **Actions → Deploy Cloud Run** (or merge to `master`).
-2. Open the job log **Map mykwetuu.com**. Copy `TYPE` / `HOST` / `VALUE`.
-3. At the registrar (or Cloudflare **DNS only**, grey cloud — not proxied),
-   add those records for the apex and `www`.
-4. Wait until the log’s certificate condition is `True` (often 15–60 minutes,
-   sometimes longer). Then `https://mykwetuu.com` is the public URL.
-5. In **staging** Supabase → Authentication → URL Configuration:
-   Site URL `https://mykwetuu.com`. Redirect URLs: `https://mykwetuu.com/**`
-   and `https://www.mykwetuu.com/**`.
-
-Deploys set `SHOP_HOSTS=true`. Cloud Run cannot bind `*.mykwetuu.com`. Add
-`*.mykwetuu.com` at the registrar (same target as the apex mapping) and
-terminate TLS with Cloudflare on `*` (DNS only is not enough for HTTPS on
-the wildcard) or an HTTPS load balancer plus a wildcard certificate. This
-repo cannot change your registrar. In **staging** Supabase redirect URLs
-also allow `https://*.mykwetuu.com/**`. Paynow `resulturl` stays
-`https://mykwetuu.com/api/webhooks/paynow`.
-
-## After deploy
-
-- `GET https://mykwetuu.com/health` (or the `.run.app` URL before DNS)
-- Sign in, open `/stores`, open `https://{a-published-slug}.mykwetuu.com`
-- In Resend, verify `mykwetuu.com` and publish the DNS records Resend provides before sending from `noreply@mykwetuu.com`
-- Add the Resend API key as the GitHub Actions secret `RESEND_API_KEY`; set `MAIL_FLUSH_SECRET` and `APP_URL` (or `STAGING_APP_URL`) so the scheduled outbox workflow can run
-- Apply `20261019170000_notification_outbox.sql` and `20261019220000_shopper_order_emails.sql` to staging before testing email; then trigger **Actions → Flush mail outbox** and confirm sent counts and Resend delivery logs
-- Emails stay queued, not discarded, until Resend and the scheduled flush are configured
-- Auth confirm/reset still use **Supabase Auth SMTP**
-- Apply pending git migrations on **staging** only, including audit/receipts SQL if they are not there yet
-
-## Honest first launch
-
-| Included                               | Not included                             |
-| -------------------------------------- | ---------------------------------------- |
-| Merchant app, POS, stock, invoices     | Product variants                         |
-| Public shops at `{slug}.mykwetuu.com`  | Wildcard TLS until DNS/LB/Cloudflare     |
-| Guest checkout, pay on pickup/delivery | InnBucks                                 |
-| Shopper accounts                       | Production Postgres until you approve it |
-
-Paynow, Groq, Redis, Sentry, and Resend are optional for boot.
+Once these controls and the required environment-specific secrets are
+verified, reintroduce a deployment workflow that selects the GitHub
+environment explicitly. Do not reuse staging credentials or build settings
+for production.

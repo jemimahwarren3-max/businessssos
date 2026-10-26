@@ -9,7 +9,7 @@ export const Route = createFileRoute("/about")({
       { title: `About | ${BRAND.name}` },
       {
         name: "description",
-        content: `${BRAND.name} helps small businesses open an online shop and run the till on the same catalogue.`,
+        content: `BusinessOS AI by ${BRAND.name} helps Zimbabwean small businesses manage inventory, sales, customers, invoices and expenses, and sell through a branded online shop.`,
       },
     ],
   }),
@@ -22,9 +22,10 @@ function AboutPage() {
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">About {BRAND.name}</h1>
         <p className="mt-4 text-muted-foreground">
-          {BRAND.name} ({BRAND.domain}) is a merchant operating system with a public shop. It is not
-          a Next.js starter and not a second backend. Inventory, orders, and Paynow already live in
-          this app.
+          BusinessOS AI by {BRAND.name} ({BRAND.domain}) helps Zimbabwean small businesses manage
+          inventory, sales, customers, invoices and expenses in one platform, with the option to
+          create a branded online shop. Its AI tools provide business assistance and practical
+          insights based on business data.
         </p>
         <p className="mt-4 text-muted-foreground">
           We build for shops that take cash, EcoCash, and collection windows — including businesses

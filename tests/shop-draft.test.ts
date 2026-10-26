@@ -7,6 +7,8 @@ const validDraft = {
   about: "A small skincare shop.",
   heroTitle: "Care that feels like you",
   heroSubtitle: "Explore our skincare collection.",
+  seoTitle: "Green Leaf Skincare",
+  seoDescription: "Thoughtful skincare for everyday routines and thoughtful gifts.",
   templateId: "beauty-botanical",
   paletteId: "botanical",
   rationale: "The botanical design suits the calm, natural look in your brief.",

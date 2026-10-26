@@ -79,7 +79,7 @@ export function OrderReceipt({
         {order.customerPhone ? ` · ${order.customerPhone}` : ""}
         {order.customerEmail ? ` · ${order.customerEmail}` : ""}
       </p>
-      {order.customerAddress ? <p>Address: {order.customerAddress}</p> : null}
+      {order.customerAddress ? <p>Delivery location: {order.customerAddress}</p> : null}
       <ul className="divide-y border-y">
         {order.items.map((item) => (
           <li

@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Download, FileText, Loader2, Plus, Printer, Repeat, Search } from "lucide-react";
+import { Download, FileText, Loader2, Plus, Printer, Repeat, Search, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
@@ -35,6 +35,7 @@ import {
   getInvoice,
   getInvoices,
   getProducts,
+  generateInvoiceDraftFn,
   updateInvoiceStatus,
 } from "@/lib/business.functions";
 import { invoiceSchema, PAYMENT_METHODS, type LineItemInput } from "@/lib/business.schemas";
@@ -113,12 +114,23 @@ function Invoices() {
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
   const canCreate = hasPermission(workspace.data, "invoices.manage");
+  const canUseAI = hasPermission(workspace.data, "ai.use");
   const canRecordPayment = hasPermission(workspace.data, "payments.record");
 
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [items, setItems] = useState<LineItemInput[]>([{ ...EMPTY_ITEM }]);
+  const [aiRequest, setAiRequest] = useState("");
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    customerId: string;
+    customerName: string;
+    items: LineItemInput[];
+    dueDays: number | null;
+    notes: string;
+    terms: string;
+    rationale: string;
+  } | null>(null);
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   // Rotates each time the create dialog is opened; stays fixed across a
   // failed submit within the same open session so a retry can't double-book.
@@ -137,6 +149,7 @@ function Invoices() {
   const createInvoiceFn = useServerFn(addInvoice);
   const setStatusFn = useServerFn(updateInvoiceStatus);
   const recordPaymentFn = useServerFn(addPayment);
+  const generateInvoiceDraft = useServerFn(generateInvoiceDraftFn);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -190,6 +203,7 @@ function Invoices() {
         items,
         idempotencyKey: createKey,
       });
+
       return createInvoiceFn({ data: parsed });
     },
     onSuccess: async (result) => {
@@ -202,6 +216,14 @@ function Invoices() {
     },
     onError: (error: Error) =>
       toast.error(readableError(error, "We couldn't create that invoice.")),
+  });
+
+  const aiDraftMutation = useMutation({
+    mutationFn: () =>
+      generateInvoiceDraft({ data: { businessId: businessId!, request: aiRequest } }),
+    onSuccess: setAiSuggestion,
+    onError: (error: Error) =>
+      toast.error(readableError(error, "AI couldn't prepare an invoice draft.")),
   });
 
   const statusMutation = useMutation({
@@ -239,6 +261,10 @@ function Invoices() {
   const totals = useMemo(
     () => computeTotals(items, Number(form.discount) || 0),
     [items, form.discount],
+  );
+  const aiSuggestionTotals = useMemo(
+    () => (aiSuggestion ? computeTotals(aiSuggestion.items, 0) : null),
+    [aiSuggestion],
   );
 
   if (!workspace.data) {
@@ -302,6 +328,8 @@ function Invoices() {
               onClick={() => {
                 setForm(EMPTY_FORM);
                 setItems([{ ...EMPTY_ITEM }]);
+                setAiRequest("");
+                setAiSuggestion(null);
                 setCreateKey(crypto.randomUUID());
                 setCreateOpen(true);
               }}
@@ -424,6 +452,91 @@ function Invoices() {
             <DialogTitle>New invoice</DialogTitle>
             <DialogDescription>It's saved as a draft until you send it.</DialogDescription>
           </DialogHeader>
+          {canUseAI ? (
+            <section className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 text-primary" aria-hidden="true" />
+                <h3 className="text-sm font-semibold">Prepare a draft with AI</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Describe the customer and products. AI uses your existing catalogue and customer
+                list; the request and relevant names/catalogue details are sent to your configured
+                AI provider. It will not create or send anything until you review and save the
+                invoice.
+              </p>
+              <Textarea
+                value={aiRequest}
+                onChange={(event) => {
+                  setAiRequest(event.target.value);
+                  setAiSuggestion(null);
+                }}
+                maxLength={1000}
+                placeholder="For example: Draft an invoice for Moyo Cafe for 3 bags of roasted coffee, due in 14 days."
+                aria-label="Describe the invoice draft"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={aiDraftMutation.isPending || aiRequest.trim().length < 10}
+                onClick={() => aiDraftMutation.mutate()}
+              >
+                {aiDraftMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Sparkles className="size-4" aria-hidden="true" />
+                )}
+                Prepare suggestion
+              </Button>
+              {aiSuggestion ? (
+                <div className="space-y-2 rounded-md bg-muted/50 p-3 text-sm">
+                  <p className="font-medium">
+                    {aiSuggestion.customerName || "No customer selected"} ·{" "}
+                    {aiSuggestion.items.length} line item(s)
+                  </p>
+                  <ul className="space-y-1">
+                    {aiSuggestion.items.map((item, index) => (
+                      <li key={`${item.productId}-${index}`}>
+                        {item.quantity} × {item.name} —{" "}
+                        {formatMoney(item.quantity * item.unitPrice, currency)} before tax
+                      </li>
+                    ))}
+                  </ul>
+                  {aiSuggestionTotals ? (
+                    <p className="text-xs text-muted-foreground">
+                      Estimated total including catalogue tax:{" "}
+                      {formatMoney(aiSuggestionTotals.total, currency)}
+                    </p>
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">{aiSuggestion.rationale}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      const dueDate =
+                        aiSuggestion.dueDays !== null
+                          ? (() => {
+                              const date = new Date();
+                              date.setDate(date.getDate() + aiSuggestion.dueDays);
+                              return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+                            })()
+                          : "";
+                      setForm((current) => ({
+                        ...current,
+                        customerId: aiSuggestion.customerId,
+                        dueDate,
+                        notes: aiSuggestion.notes,
+                        terms: aiSuggestion.terms,
+                      }));
+                      setItems(aiSuggestion.items);
+                      setAiSuggestion(null);
+                    }}
+                  >
+                    Use suggestion in editable draft
+                  </Button>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="invoice-customer">Customer</Label>

@@ -294,13 +294,18 @@ function CheckoutPage() {
           </fieldset>
           {fulfilment === "delivery" || fulfilment === "quote" ? (
             <label className="block text-sm">
-              Delivery address
+              {fulfilment === "delivery" ? "Delivery location and directions" : "Delivery location"}
               <textarea
                 className="mt-1 w-full rounded border px-3 py-2"
+                maxLength={300}
+                placeholder="Suburb or area, street or stand number, nearby landmark, and directions"
                 required={fulfilment === "delivery"}
                 value={address}
                 onChange={(event) => setAddress(event.target.value)}
               />
+              <span className="mt-1 block text-xs text-neutral-500">
+                Include a nearby landmark or directions if your area does not use street addresses.
+              </span>
             </label>
           ) : null}
           {store.delivery.areas ? (

@@ -30,11 +30,12 @@ export const Route = createFileRoute("/store/$slug")({
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Shop" }] };
     const { store, preview } = loaderData;
-    const description = store.tagline || store.about || `Shop ${store.storeName}`;
+    const description =
+      store.content.seoDescription || store.tagline || store.about || `Shop ${store.storeName}`;
     const template = getTemplate(store.templateId);
     return {
       meta: [
-        { title: `${store.storeName}` },
+        { title: store.content.seoTitle || store.storeName },
         { name: "description", content: description.slice(0, 180) },
         { property: "og:title", content: store.storeName },
         { property: "og:description", content: description.slice(0, 180) },
