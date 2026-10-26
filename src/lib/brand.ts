@@ -2,6 +2,9 @@ export const BRAND = {
   name: "Kwetuu",
   domain: "mykwetuu.com",
   appUrl: "https://mykwetuu.com",
+  /** House mark and PWA theme — matches public/kwetuu-logo.png */
+  themeColor: "#AF513D",
+  markOn: "#FFFFFF",
 } as const;
 
 /** Document title suffix for app and legal pages. */
