@@ -378,41 +378,28 @@ export async function importProducts(
   const errors: string[] = [];
 
   for (const [index, row] of input.rows.entries()) {
-    const { data, error } = await supabase
-      .from("products")
-      .insert({
-        business_id: input.businessId,
-        name: row.name,
-        sku: row.sku || null,
-        barcode: row.barcode || null,
-        unit: row.unit,
-        cost_price: row.costPrice,
-        selling_price: row.sellingPrice,
-        stock: row.stock,
-        min_stock: row.minStock,
-        tax_rate: row.taxRate,
-      })
-      .select("id")
-      .single();
-    if (error || !data) {
+    const { data, error } = await supabase.rpc("create_product", {
+      _business_id: input.businessId,
+      _name: row.name,
+      _sku: row.sku || "",
+      _barcode: row.barcode || "",
+      _unit: row.unit,
+      _cost_price: row.costPrice,
+      _selling_price: row.sellingPrice,
+      _stock: row.stock,
+      _min_stock: row.minStock,
+      _tax_rate: row.taxRate,
+      _description: "",
+      _supplier_id: null,
+      _location_id: null,
+    });
+    if (error || !data?.length) {
       const reason =
         (error as { code?: string } | null)?.code === "23505"
           ? "duplicate SKU"
           : "couldn't be saved";
       errors.push(`Row ${index + 2}: ${row.name || "unnamed product"}, ${reason}`);
       continue;
-    }
-    if (row.stock > 0) {
-      await supabase.from("inventory_movements").insert({
-        business_id: input.businessId,
-        product_id: data.id,
-        movement_type: "stock_in",
-        quantity: row.stock,
-        stock_before: 0,
-        stock_after: row.stock,
-        reason: "Imported from spreadsheet",
-        created_by: userId,
-      });
     }
     imported++;
   }

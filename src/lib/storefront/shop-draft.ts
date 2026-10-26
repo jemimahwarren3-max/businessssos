@@ -18,6 +18,8 @@ export const shopDraftSchema = z.object({
   about: z.string().trim().max(600),
   heroTitle: z.string().trim().min(1).max(100),
   heroSubtitle: z.string().trim().max(180),
+  seoTitle: z.string().trim().max(60),
+  seoDescription: z.string().trim().max(160),
   templateId: z.enum(TEMPLATE_IDS),
   paletteId: z.enum(SHOP_DRAFT_PALETTE_IDS),
   rationale: z.string().trim().min(1).max(240),

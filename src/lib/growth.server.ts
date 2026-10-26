@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { GroqProvider } from "@/lib/ai/groq-provider";
+import { getAIProvider } from "@/lib/ai/get-provider.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
 import { formatMoney } from "@/lib/format";
 import { buildBusinessSummary } from "@/lib/ai.server";
@@ -183,7 +183,7 @@ export async function generateMarketingDraft(supabase: Db, input: MarketingDraft
 
   let response: string;
   try {
-    response = await new GroqProvider().chat([
+    response = await getAIProvider().chat([
       { role: "system", content: CAMPAIGN_SYSTEM_PROMPT },
       { role: "user", content: prompt },
     ]);
@@ -288,7 +288,7 @@ export async function getDailyBusinessBriefing(
 
   let text: string;
   try {
-    text = await new GroqProvider().chat([
+    text = await getAIProvider().chat([
       { role: "system", content: `${BRIEFING_SYSTEM_PROMPT}\n\nBusiness snapshot:\n${snapshot}` },
       { role: "user", content: "Give me today's practical business briefing." },
     ]);

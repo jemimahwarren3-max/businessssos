@@ -461,6 +461,11 @@ export const askAssistantSchema = z.object({
   messages: z.array(assistantMessageSchema).min(1).max(20),
 });
 
+export const generateInvoiceDraftSchema = z.object({
+  businessId: z.string().uuid(),
+  request: z.string().trim().min(10).max(1000),
+});
+
 /* ------------------------------- quick add -------------------------------- */
 
 export const quickEntrySchema = z.object({

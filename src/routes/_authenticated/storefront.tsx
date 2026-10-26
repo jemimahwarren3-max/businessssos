@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
+import { optimizeProductImage } from "@/lib/product-image-optimizer";
 import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
 import { shopHostsEnabled, storePublicUrl } from "@/lib/storefront/host";
 import {
@@ -188,6 +189,8 @@ function StorefrontEditor({
     () =>
       store?.content ?? {
         announcement: "",
+        seoTitle: "",
+        seoDescription: "",
         collections: [],
         promoTiles: [],
         faqs: [],
@@ -406,8 +409,9 @@ function StorefrontEditor({
           </div>
           <p className="text-sm text-muted-foreground">
             Describe your products, customers, and the look you want. AI suggests shop copy, a
-            design, and a colour palette. Review everything before applying; it will not save or
-            publish your shop.
+            design, SEO text, and a colour palette. Your brief and active product names/descriptions
+            are sent to your configured AI provider. Review everything before applying; it will not
+            save or publish your shop.
           </p>
           <Textarea
             value={shopBrief}
@@ -437,6 +441,12 @@ function StorefrontEditor({
                 <p className="mt-1 text-sm">
                   Suggested design: {getTemplate(shopDraft.templateId).name}
                 </p>
+                <p className="mt-1 text-sm">
+                  Search title: {shopDraft.seoTitle || shopDraft.storeName}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Search description: {shopDraft.seoDescription}
+                </p>
               </div>
               <p className="text-sm">
                 <span className="font-medium">{shopDraft.heroTitle}</span>
@@ -450,6 +460,11 @@ function StorefrontEditor({
                   setAbout(shopDraft.about);
                   setHeroTitle(shopDraft.heroTitle);
                   setHeroSubtitle(shopDraft.heroSubtitle);
+                  setContent((current) => ({
+                    ...current,
+                    seoTitle: shopDraft.seoTitle,
+                    seoDescription: shopDraft.seoDescription,
+                  }));
                   setTemplateId(shopDraft.templateId);
                   setTheme(
                     themeFromPalette(
@@ -755,6 +770,38 @@ function StorefrontEditor({
               Add useful shop information and merchandising. Empty sections stay hidden.
             </p>
           </div>
+          <fieldset className="space-y-2 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">Search appearance</legend>
+            <label className="block text-sm">
+              Search title
+              <Input
+                className="mt-1"
+                maxLength={60}
+                value={content.seoTitle}
+                onChange={(event) =>
+                  setContent((current) => ({ ...current, seoTitle: event.target.value }))
+                }
+                placeholder={storeName || "Your shop name"}
+              />
+            </label>
+            <label className="block text-sm">
+              Search description
+              <Textarea
+                className="mt-1"
+                rows={3}
+                maxLength={160}
+                value={content.seoDescription}
+                onChange={(event) =>
+                  setContent((current) => ({ ...current, seoDescription: event.target.value }))
+                }
+                placeholder="Briefly describe your shop and what customers can find."
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Search engines choose whether to show this text. AI suggestions are drafts; review
+              them for accuracy before saving.
+            </p>
+          </fieldset>
           <label className="block text-sm">
             Announcement bar
             <Input
@@ -1937,11 +1984,11 @@ function StorefrontProductTable({
   const uploadImage = useServerFn(uploadStorefrontProductImageFn);
   const removeImage = useServerFn(removeStorefrontProductImageFn);
   const uploadMutation = useMutation({
-    mutationFn: ({ productId, file }: { productId: string; file: File }) => {
+    mutationFn: async ({ productId, file }: { productId: string; file: File }) => {
       const data = new FormData();
       data.set("businessId", businessId);
       data.set("productId", productId);
-      data.set("file", file);
+      data.set("file", await optimizeProductImage(file));
       return uploadImage({ data });
     },
     onSuccess: () => {
@@ -2020,6 +2067,9 @@ function StorefrontProductTable({
                     event.target.value = "";
                   }}
                 />
+                <span className="block text-[11px] text-muted-foreground">
+                  Up to 12 MB; resized on this device
+                </span>
               </label>
             ) : product.published ? (
               <span className="text-xs text-muted-foreground">8 extra photos max</span>

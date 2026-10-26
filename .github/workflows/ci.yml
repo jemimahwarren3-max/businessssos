@@ -69,7 +69,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET }}
-
   e2e-smoke:
     needs: check
     runs-on: ubuntu-latest
@@ -91,15 +90,3 @@ jobs:
         env:
           E2E_BASE_URL: https://mykwetuu.com
         run: npm run test:e2e
-
-  deploy:
-    needs: check
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-    permissions:
-      contents: read
-      id-token: write
-    uses: ./.github/workflows/deploy-cloud-run.yml
-    secrets: inherit
-    with:
-      region: europe-west1
-      service: kwetuu

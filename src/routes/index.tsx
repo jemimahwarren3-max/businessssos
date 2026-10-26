@@ -159,12 +159,11 @@ function Landing() {
             Karibu · Mauya · Welcome home
           </p>
           <h1 className="text-5xl leading-[1.05] md:text-6xl">
-            Discover something you love. Or build a store of your{" "}
-            <em className="text-primary">own</em>.
+            Run your business. Sell online. <em className="text-primary">All in one place.</em>
           </h1>
           <p className="mt-6 max-w-lg text-lg text-muted-foreground">
-            Shop independent businesses, explore unique products — or create your own online store
-            with a website that feels like your brand.
+            Manage inventory, sales, customers, invoices and expenses, then create a branded online
+            shop to sell directly to your customers.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link

@@ -118,7 +118,7 @@ function Assistant() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="AI Assistant"
-      subtitle="Answers are grounded in your last 30 days of data, nothing is invented."
+      subtitle="AI helps interpret business data and prepare ideas. It never changes records, sends messages, or publishes without your approval."
       actions={
         messages.length > 0 ? (
           <Button variant="outline" size="sm" onClick={() => setMessages([])}>

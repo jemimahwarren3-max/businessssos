@@ -255,6 +255,8 @@ describe("storefront templates", () => {
       deliveryPolicy: "",
       returnsPolicy: "",
       privacyPolicy: "",
+      seoTitle: "",
+      seoDescription: "",
     });
     expect(
       storefrontContentSchema.parse({

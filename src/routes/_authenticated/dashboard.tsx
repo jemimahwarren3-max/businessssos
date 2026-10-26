@@ -200,7 +200,7 @@ function Dashboard() {
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold">
                 <Sparkles className="size-4.5 text-primary" aria-hidden="true" />
-                Your business today
+                Your AI business briefing
               </h2>
               <p className="text-[13px] text-muted-foreground">
                 A daily AI briefing based on recorded business and opted-in storefront activity.
@@ -230,6 +230,37 @@ function Dashboard() {
               </p>
             </div>
           ) : null}
+        </section>
+      ) : null}
+      {canReadBriefing && data ? (
+        <section className="surface mb-4 space-y-3 p-5">
+          <div>
+            <h2 className="text-base font-semibold">Recommended next steps</h2>
+            <p className="text-[13px] text-muted-foreground">
+              Based on your recorded business activity. Each button opens a page for you to review
+              and decide; AI does not apply changes.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.lowStockCount > 0 ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/inventory">Review {data.lowStockCount} low-stock items</Link>
+              </Button>
+            ) : null}
+            {data.outstanding > 0 ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/invoices">Review outstanding invoices</Link>
+              </Button>
+            ) : null}
+            {storefront.data && !storefront.data.checklist.published ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/storefront">Continue building your shop</Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm" variant="outline">
+              <Link to="/insights">Review sales and stock insights</Link>
+            </Button>
+          </div>
         </section>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

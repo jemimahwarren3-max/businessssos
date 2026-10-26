@@ -36,6 +36,7 @@ import {
   type ProductImportRow,
 } from "@/lib/business.schemas";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
+import { optimizeProductImage } from "@/lib/product-image-optimizer";
 import type { ImportColumn } from "@/lib/spreadsheet";
 import { downloadXlsx } from "@/lib/xlsx-export";
 
@@ -156,17 +157,18 @@ function Inventory() {
 
   const addMutation = useMutation({
     mutationFn: async (input: { fields: Record<string, unknown>; photo: File | null }) => {
+      const photo = input.photo ? await optimizeProductImage(input.photo) : null;
       const parsed = productSchema.parse({
         ...input.fields,
         businessId,
       });
       const created = await createProduct({ data: parsed });
       const productId = Array.isArray(created) ? created[0]?.id : created?.id;
-      if (input.photo && productId) {
+      if (photo && productId) {
         const form = new FormData();
         form.set("businessId", businessId!);
         form.set("productId", productId);
-        form.set("file", input.photo);
+        form.set("file", photo);
         await uploadPhoto({ data: form });
       }
       return created;
