@@ -18,6 +18,8 @@
     "verify:staging": "node scripts/verify-staging.mjs",
     "staging:readiness": "node scripts/staging-readiness-check.mjs",
     "staging:apply": "node scripts/apply-staging-sql.mjs",
+    "staging:auth-email": "node scripts/check-staging-auth-email.mjs",
+    "staging:auth-smtp": "node scripts/configure-staging-auth-smtp.mjs",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "env:staging": "node scripts/switch-env.mjs staging",
     "env:production": "node scripts/switch-env.mjs production"
