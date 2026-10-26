@@ -1,5 +1,6 @@
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "./business.server";
 import { getAIProvider } from "./ai/get-provider.server";
+import { AI_LIMITS } from "./ai/limits.server";
 import { checkRateLimit } from "./rate-limit.server";
 import { parseInvoiceDraftSuggestion } from "./invoice-copilot.contract";
 
@@ -22,8 +23,8 @@ export async function generateInvoiceDraft(
 
   const withinDailyLimit = await checkRateLimit(
     `ai-invoice-draft:business:${input.businessId}`,
-    20,
-    60 * 60 * 24,
+    AI_LIMITS.invoiceDraftDaily,
+    AI_LIMITS.dayWindowSeconds,
   );
   if (!withinDailyLimit) {
     throw new AppError("This business has reached its daily AI invoice-draft limit.");

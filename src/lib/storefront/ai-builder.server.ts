@@ -1,5 +1,6 @@
 import { AppError, assertPermission, dbFail, type Db } from "@/lib/business.server";
 import { getAIProvider } from "@/lib/ai/get-provider.server";
+import { AI_LIMITS } from "@/lib/ai/limits.server";
 import { checkRateLimit } from "@/lib/rate-limit.server";
 import { parseShopDraftResponse } from "./shop-draft";
 import { TEMPLATE_IDS } from "./templates";
@@ -25,8 +26,8 @@ export async function generateShopDraft(
 
   const withinDailyLimit = await checkRateLimit(
     `ai-shop-builder:business:${input.businessId}`,
-    20,
-    60 * 60 * 24,
+    AI_LIMITS.shopBuilderDaily,
+    AI_LIMITS.dayWindowSeconds,
   );
   if (!withinDailyLimit) {
     throw new AppError(
