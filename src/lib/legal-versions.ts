@@ -3,6 +3,6 @@
 // match — this is what gets stamped onto every new legal_acceptances row,
 // so it has to stay in sync with what a user actually saw and agreed to.
 export const LEGAL_VERSIONS = {
-  terms: "2026-10-19",
-  privacy: "2026-10-19",
+  terms: "2026-10-26",
+  privacy: "2026-10-26",
 } as const;
