@@ -43,20 +43,44 @@ export const Route = createFileRoute("/")({
     ]);
     return { market, fx };
   },
-  head: () => ({
-    meta: [
-      { title: HOME_SEO.title },
-      { name: "description", content: HOME_SEO.description },
-      { property: "og:title", content: HOME_SEO.title },
-      { property: "og:description", content: HOME_SEO.ogDescription },
-      { property: "og:url", content: BRAND.appUrl },
-      { property: "og:image", content: `${BRAND.appUrl}/kwetuu-logo.png` },
-      { name: "twitter:title", content: HOME_SEO.title },
-      { name: "twitter:description", content: HOME_SEO.description },
-      { name: "twitter:image", content: `${BRAND.appUrl}/kwetuu-logo.png` },
-    ],
-    links: [{ rel: "canonical", href: BRAND.appUrl }],
-  }),
+  head: () => {
+    const jsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": `${BRAND.appUrl}/#website`,
+          url: BRAND.appUrl,
+          name: BRAND.name,
+          description: HOME_SEO.description,
+          publisher: { "@id": `${BRAND.appUrl}/#organization` },
+        },
+        {
+          "@type": "Organization",
+          "@id": `${BRAND.appUrl}/#organization`,
+          name: BRAND.name,
+          url: BRAND.appUrl,
+          logo: `${BRAND.appUrl}/kwetuu-logo.png`,
+        },
+      ],
+    }).replace(/</g, "\\u003c");
+    return {
+      meta: [
+        { title: HOME_SEO.title },
+        { name: "description", content: HOME_SEO.description },
+        { name: "robots", content: "index,follow" },
+        { property: "og:title", content: HOME_SEO.title },
+        { property: "og:description", content: HOME_SEO.ogDescription },
+        { property: "og:url", content: BRAND.appUrl },
+        { property: "og:image", content: `${BRAND.appUrl}/kwetuu-logo.png` },
+        { name: "twitter:title", content: HOME_SEO.title },
+        { name: "twitter:description", content: HOME_SEO.description },
+        { name: "twitter:image", content: `${BRAND.appUrl}/kwetuu-logo.png` },
+      ],
+      scripts: [{ type: "application/ld+json", children: jsonLd }],
+      links: [{ rel: "canonical", href: BRAND.appUrl }],
+    };
+  },
   component: Landing,
   errorComponent: LandingError,
 });

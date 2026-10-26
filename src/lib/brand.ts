@@ -13,7 +13,7 @@ export function pageTitle(page: string): string {
 }
 
 export const HOME_SEO = {
-  title: "Kwetuu — Discover independent shops, or open your own",
+  title: "Kwetuu | Discover independent shops, or open your own",
   description:
     "Shop independent businesses across Zimbabwe, explore unique products, or create your own online store with a website that feels like your brand.",
   ogDescription:
