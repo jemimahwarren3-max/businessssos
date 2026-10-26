@@ -17,6 +17,7 @@ const FILES = [
   "20261023120000_payment_safety_foundation.sql",
   "20261023130000_platform_owner_foundation.sql",
   "20261023150000_growth_intelligence.sql",
+  "20261026180000_billing_rpc_enforcement.sql",
 ];
 
 describe("staging migration manifest", () => {

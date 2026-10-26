@@ -40,6 +40,7 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261023120000_payment_safety_foundation.sql" },
   { file: "20261023130000_platform_owner_foundation.sql" },
   { file: "20261023150000_growth_intelligence.sql" },
+  { file: "20261026180000_billing_rpc_enforcement.sql" },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

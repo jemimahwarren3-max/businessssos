@@ -49,6 +49,20 @@ describe("billing write gate", () => {
         trial_ends_at: new Date(Date.now() + 86_400_000).toISOString(),
       }),
     ).toBe(false);
+    expect(
+      canOperateForSubscription({
+        status: "past_due",
+        trial_ends_at: null,
+        current_period_end: new Date(Date.now() + 86_400_000).toISOString(),
+      }),
+    ).toBe(true);
+    expect(
+      canOperateForSubscription({
+        status: "past_due",
+        trial_ends_at: null,
+        current_period_end: "2000-01-01T00:00:00.000Z",
+      }),
+    ).toBe(false);
     expect(canOperateForSubscription(null)).toBe(false);
   });
 

@@ -83,7 +83,8 @@ Kwetuu already implements much of the Shopify-style journey (auth, onboarding, s
 - [x] Workspace `isOperateLocked` + dashboard banner
 - [ ] Operator: set **`BILLING_ENABLED=true`** on production Cloud Run / host
 - [ ] Configure **`PAYNOW_*`** for live subscription checkout
-- [ ] Postgres: optional `assert_business_can_operate()` inside critical RPCs
+- [x] Postgres: `assert_business_can_operate()` on publish, POS sales, cash drawer (`20261026180000_billing_rpc_enforcement.sql`)
+- [ ] Operator: set `platform_runtime.billing_enforced = true` when `BILLING_ENABLED=true`
 
 ### Pass 2 — Launch journey
 
