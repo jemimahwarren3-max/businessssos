@@ -19,6 +19,7 @@ import {
   Lightbulb,
   LogOut,
   Megaphone,
+  Package,
   Receipt,
   Settings,
   ShoppingCart,
@@ -49,26 +50,56 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
+import { deriveStoreLaunchDisplay } from "@/lib/storefront/launch-status";
 import { friendlyDate } from "@/lib/format";
 import { clearOfflineCacheOnLogout } from "@/lib/offline/db";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/sales", label: "Sales", icon: ShoppingCart },
-  { to: "/storefront", label: "Storefront", icon: Store },
-  { to: "/inventory", label: "Inventory", icon: Boxes },
-  { to: "/suppliers", label: "Suppliers", icon: Truck },
-  { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
-  { to: "/invoices", label: "Invoices", icon: FileText },
-  { to: "/quotes", label: "Quotes", icon: FileCheck2 },
-  { to: "/customers", label: "Customers", icon: Users },
-  { to: "/expenses", label: "Expenses", icon: Receipt },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/growth", label: "Grow", icon: Megaphone },
-  { to: "/insights", label: "Insights", icon: Lightbulb },
-  { to: "/assistant", label: "AI Assistant", icon: Sparkles },
-] as const;
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  showLaunchBadge?: boolean;
+};
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Overview",
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Business",
+    items: [
+      { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
+      { to: "/inventory", label: "Inventory", icon: Boxes },
+      { to: "/customers", label: "Customers", icon: Users },
+      { to: "/invoices", label: "Invoices", icon: FileText },
+      { to: "/quotes", label: "Quotes", icon: FileCheck2 },
+      { to: "/expenses", label: "Expenses", icon: Receipt },
+      { to: "/suppliers", label: "Suppliers", icon: Truck },
+      { to: "/purchase-orders", label: "Purchase orders", icon: ClipboardList },
+      { to: "/reports", label: "Reports", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Online shop",
+    items: [
+      { to: "/storefront", label: "My Online Store", icon: Store, showLaunchBadge: true },
+      { to: "/online-orders", label: "Online orders", icon: Package },
+    ],
+  },
+  {
+    label: "Growth & AI",
+    items: [
+      { to: "/growth", label: "Grow", icon: Megaphone },
+      { to: "/insights", label: "Insights", icon: Lightbulb },
+      { to: "/assistant", label: "AI Assistant", icon: Sparkles },
+    ],
+  },
+];
+
+const NAV = NAV_GROUPS.flatMap((group) => group.items);
 
 // Bottom nav stays to four items so it's usable on a small screen —
 // Dashboard, Sales, Inventory, Invoices are the highest-frequency actions.
@@ -224,6 +255,23 @@ export function AppShell({
   // network request in practice, just reading businessId back out of it.
   const workspace = useWorkspace();
   const isOperateLocked = workspace.data?.isOperateLocked ?? false;
+  const businessId = workspace.data?.business.id;
+  const loadStorefront = useServerFn(getStorefrontAdminFn);
+  const storefrontLaunch = useQuery({
+    queryKey: ["storefront-launch-nav", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => loadStorefront({ data: { businessId: businessId! } }),
+    staleTime: 90_000,
+  });
+  const launchBadge =
+    storefrontLaunch.data && workspace.data
+      ? deriveStoreLaunchDisplay({
+          checklist: storefrontLaunch.data.checklist,
+          storeStatus: storefrontLaunch.data.store?.status,
+          billingEnabled: workspace.data.billingEnabled,
+          isOperateLocked,
+        }).badge
+      : null;
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -245,25 +293,42 @@ export function AppShell({
         <div className="px-5 py-4">
           <Logo to="/dashboard" className="[&_img]:ml-0 [&_img]:h-10 [&_img]:my-0" />
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Main">
-          {NAV.map((item) => {
-            const active = pathname.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/60",
-                )}
-              >
-                <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-2" aria-label="Main">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active = pathname.startsWith(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/60",
+                      )}
+                    >
+                      <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {item.showLaunchBadge && launchBadge ? (
+                        <Badge
+                          variant="outline"
+                          className="max-w-[7rem] shrink-0 truncate px-1.5 py-0 text-[10px] font-medium"
+                        >
+                          {launchBadge}
+                        </Badge>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
         <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
           <Link

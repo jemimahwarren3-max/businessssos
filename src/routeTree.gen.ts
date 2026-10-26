@@ -41,6 +41,7 @@ import { Route as AuthenticatedInventoryRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedOnlineOrdersRouteImport } from './routes/_authenticated/online-orders'
 import { Route as AuthenticatedPurchaseOrdersRouteImport } from './routes/_authenticated/purchase-orders'
 import { Route as AuthenticatedQuotesRouteImport } from './routes/_authenticated/quotes'
 import { Route as AuthenticatedRecurringInvoicesRouteImport } from './routes/_authenticated/recurring-invoices'
@@ -235,6 +236,12 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnlineOrdersRoute =
+  AuthenticatedOnlineOrdersRouteImport.update({
+    id: '/online-orders',
+    path: '/online-orders',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPurchaseOrdersRoute =
   AuthenticatedPurchaseOrdersRouteImport.update({
     id: '/purchase-orders',
@@ -442,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/online-orders': typeof AuthenticatedOnlineOrdersRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -508,6 +516,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/online-orders': typeof AuthenticatedOnlineOrdersRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -575,6 +584,7 @@ export interface FileRoutesById {
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/online-orders': typeof AuthenticatedOnlineOrdersRoute
   '/_authenticated/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/_authenticated/quotes': typeof AuthenticatedQuotesRoute
   '/_authenticated/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -643,6 +653,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/notifications'
     | '/onboarding'
+    | '/online-orders'
     | '/purchase-orders'
     | '/quotes'
     | '/recurring-invoices'
@@ -709,6 +720,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/notifications'
     | '/onboarding'
+    | '/online-orders'
     | '/purchase-orders'
     | '/quotes'
     | '/recurring-invoices'
@@ -775,6 +787,7 @@ export interface FileRouteTypes {
     | '/_authenticated/invoices'
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
+    | '/_authenticated/online-orders'
     | '/_authenticated/purchase-orders'
     | '/_authenticated/quotes'
     | '/_authenticated/recurring-invoices'
@@ -1067,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/online-orders': {
+      id: '/_authenticated/online-orders'
+      path: '/online-orders'
+      fullPath: '/online-orders'
+      preLoaderRoute: typeof AuthenticatedOnlineOrdersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/purchase-orders': {
       id: '/_authenticated/purchase-orders'
       path: '/purchase-orders'
@@ -1315,6 +1335,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedOnlineOrdersRoute: typeof AuthenticatedOnlineOrdersRoute
   AuthenticatedPurchaseOrdersRoute: typeof AuthenticatedPurchaseOrdersRoute
   AuthenticatedQuotesRoute: typeof AuthenticatedQuotesRoute
   AuthenticatedRecurringInvoicesRoute: typeof AuthenticatedRecurringInvoicesRoute
@@ -1345,6 +1366,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedOnlineOrdersRoute: AuthenticatedOnlineOrdersRoute,
   AuthenticatedPurchaseOrdersRoute: AuthenticatedPurchaseOrdersRoute,
   AuthenticatedQuotesRoute: AuthenticatedQuotesRoute,
   AuthenticatedRecurringInvoicesRoute: AuthenticatedRecurringInvoicesRoute,

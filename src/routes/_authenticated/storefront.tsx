@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -71,6 +71,7 @@ import type {
   StorefrontContent,
 } from "@/lib/storefront/contract";
 import type { ShopDraft } from "@/lib/storefront/shop-draft";
+import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
@@ -78,17 +79,6 @@ export const Route = createFileRoute("/_authenticated/storefront")({
   }),
   component: StorefrontPage,
 });
-
-const STEPS = [
-  ["name", "Shop name and a phone number"],
-  ["template", "Choose a design"],
-  ["products", "Publish products from your existing catalogue"],
-  ["payments", "Turn on a payment method customers can use"],
-  ["fulfilment", "Turn on pickup, delivery, or quotes"],
-  ["policies", "Write a short policy"],
-  ["previewed", "Preview the shop"],
-  ["published", "Publish the link"],
-] as const;
 
 function StorefrontPage() {
   const workspace = useWorkspace();
@@ -116,8 +106,8 @@ function StorefrontPage() {
       plan={workspaceData.plan}
       isReadOnly={workspaceData.isReadOnly}
       billingEnabled={workspaceData.billingEnabled}
-      title="Storefront"
-      subtitle="Publish products you already sell. Customers get a receipt; you see the same one here. Manual payments stay seller-confirmed; automated seller Paynow is currently disabled."
+      title="My Online Store"
+      subtitle="Launch centre, design, payments, and online orders — separate from invoices and POS."
     >
       {admin.isLoading ? <Skeleton className="h-64" /> : null}
       {admin.isError ? (
@@ -130,6 +120,8 @@ function StorefrontPage() {
           businessId={businessId}
           initial={admin.data}
           permissions={workspaceData.permissions}
+          billingEnabled={workspaceData.billingEnabled}
+          isOperateLocked={workspaceData.isOperateLocked}
         />
       ) : null}
     </AppShell>
@@ -140,10 +132,14 @@ function StorefrontEditor({
   businessId,
   initial,
   permissions,
+  billingEnabled,
+  isOperateLocked,
 }: {
   businessId: string;
   initial: AdminStore;
   permissions: string[];
+  billingEnabled: boolean;
+  isOperateLocked: boolean;
 }) {
   const queryClient = useQueryClient();
   const save = useServerFn(saveStorefrontFn);
@@ -350,56 +346,46 @@ function StorefrontEditor({
 
   const publicUrl = store ? storePublicUrl(store.slug) : "";
 
+  useEffect(() => {
+    const id = window.location.hash.replace(/^#/, "");
+    if (!id) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div className="space-y-10">
-      <section className="surface space-y-3 p-4">
-        <h2 className="text-base font-semibold">Setup</h2>
-        <ol className="space-y-1 text-sm">
-          {STEPS.map(([key, label]) => (
-            <li key={key}>
-              {initial.checklist[key] ? "Done" : "To do"}, {label}
-            </li>
-          ))}
-        </ol>
+      <StoreLaunchCentre
+        admin={initial}
+        billingEnabled={billingEnabled}
+        isOperateLocked={isOperateLocked}
+        publicUrl={publicUrl || undefined}
+      />
+
+      {publicUrl ? (
         <p className="text-sm text-muted-foreground">
-          Cash on pickup/delivery still works without Paynow. EcoCash, InnBucks, and bank
-          instructions are only shown when you turn them on and fill in the details. Recording
-          payment creates a sale after you check your own account. Shop Paynow, if later approved,
-          uses this shop's keys, never the {BRAND.name} billing keys.
+          Public link:{" "}
+          <a className="font-medium text-foreground underline" href={publicUrl}>
+            {publicUrl}
+          </a>
+          {shopHostsEnabled() ? (
+            <span className="mt-1 block">
+              Shoppers use *.{BRAND.domain} — your dashboard stays on {BRAND.domain}.
+            </span>
+          ) : null}
+          {" · "}
+          <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: "1" }}>
+            Customer preview
+          </Link>
         </p>
-        {publicUrl ? (
-          <p className="text-sm">
-            Link: <a href={publicUrl}>{publicUrl}</a>
-            {shopHostsEnabled() ? (
-              <span className="mt-1 block text-muted-foreground">
-                Customers open this shop on its own subdomain. *.{BRAND.domain} must point at this
-                service.
-              </span>
-            ) : (
-              <span className="mt-1 block text-muted-foreground">
-                This host cannot serve shop subdomains (Cloud Run .run.app). Shops stay at
-                /store/your-slug here.
-              </span>
-            )}
-            {" · "}
-            <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: "1" }}>
-              Preview with your published products
-            </Link>
-            <button
-              className="ml-2 underline"
-              type="button"
-              onClick={() => void navigator.clipboard.writeText(publicUrl)}
-            >
-              Copy link
-            </button>
-          </p>
-        ) : null}
-        <p className="text-sm">
-          Status: {store?.status ?? "not started"} · Open orders: {initial.metrics.openOrders} ·
-          Unpaid: {initial.metrics.unpaidOrders} · Published products out of stock:{" "}
-          {initial.metrics.outOfStockPublished} · Low stock: {initial.metrics.lowStockPublished}
-        </p>
-      </section>
+      ) : null}
+
+      <p className="text-sm text-muted-foreground">
+        Open orders: {initial.metrics.openOrders} · Unpaid: {initial.metrics.unpaidOrders} ·
+        Published out of stock: {initial.metrics.outOfStockPublished}
+      </p>
 
       {permissions.includes("business.settings") && permissions.includes("ai.use") ? (
         <section className="surface space-y-3 p-4">
@@ -482,7 +468,7 @@ function StorefrontEditor({
         </section>
       ) : null}
 
-      <section className="space-y-3">
+      <section id="launch-design" className="scroll-mt-24 space-y-3">
         <h2 className="text-base font-semibold">Design</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm">
@@ -1128,7 +1114,7 @@ function StorefrontEditor({
         </p>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section id="launch-setup" className="scroll-mt-24 grid gap-4 md:grid-cols-2">
         <label className="text-sm">
           <Label>Shop name</Label>
           <Input value={storeName} onChange={(event) => setStoreName(event.target.value)} />
@@ -1233,6 +1219,9 @@ function StorefrontEditor({
           <Label>Policies</Label>
           <Textarea value={policies} onChange={(event) => setPolicies(event.target.value)} />
         </label>
+        <div id="launch-fulfilment" className="scroll-mt-24 md:col-span-2">
+          <p className="mb-2 text-sm font-medium">Delivery and collection</p>
+        </div>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -1402,7 +1391,9 @@ function StorefrontEditor({
           ))}
         </div>
         <div className="space-y-2 text-sm md:col-span-2">
-          <p className="font-medium">This shop's Paynow</p>
+          <div id="launch-payments" className="scroll-mt-24 md:col-span-2">
+            <p className="font-medium">This shop's Paynow</p>
+          </div>
           <p className="text-muted-foreground">
             Paynow keys belong to this shop and are encrypted on the server. Automated checkout
             remains unavailable until Paynow confirms in writing that this platform arrangement is
@@ -1488,7 +1479,7 @@ function StorefrontEditor({
           />{" "}
           Shop can give change
         </label>
-        <div className="flex flex-wrap gap-2 md:col-span-2">
+        <div id="launch-publish" className="scroll-mt-24 flex flex-wrap gap-2 md:col-span-2">
           <Button
             type="button"
             onClick={() => saveMutation.mutate()}
@@ -1530,7 +1521,9 @@ function StorefrontEditor({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold">Products</h2>
+        <h2 id="launch-products" className="scroll-mt-24 text-base font-semibold">
+          Products
+        </h2>
         <p className="text-sm text-muted-foreground">
           These are the same products as Inventory. Publishing one here does not copy it.
         </p>
@@ -1558,7 +1551,7 @@ function StorefrontEditor({
         />
       </section>
 
-      <section className="space-y-3">
+      <section id="online-orders" className="scroll-mt-24 space-y-3">
         <h2 className="text-base font-semibold">Online orders</h2>
         <p className="text-sm text-muted-foreground">
           Purchase history for this shop. Open an order to see the same receipt the customer gets.
