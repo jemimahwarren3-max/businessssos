@@ -1,16 +1,12 @@
-# Accessibility Statement — BusinessOS AI
+# Accessibility Statement — Kwetuu
 
-> **DRAFT — NOT LEGAL ADVICE.** The technical claims below are accurate as
-> of this writing (verified against the actual code and, for color contrast,
-> independently calculated — not estimated). The legal framing (which
-> accessibility laws apply, whether any certification claim is appropriate)
-> has not been reviewed by a professional.
+> **Published for Kwetuu at https://mykwetuu.com.** We aim for WCAG 2.2 Level AA but have not obtained third-party certification. See limitations below.
 
-_Last updated: [DATE — fill in when this is actually adopted]_
+**Last updated:** 26 October 2026
 
 ## Our commitment
 
-We want BusinessOS AI to be usable by everyone, including people using
+We want Kwetuu to be usable by everyone, including people using
 assistive technology. We're targeting the **WCAG 2.2 Level AA** guidelines
 as our standard, and treat accessibility as an ongoing responsibility, not a
 one-time checklist.
@@ -61,7 +57,7 @@ is true:
 
 ## Reporting an accessibility barrier
 
-If you run into something in BusinessOS AI that doesn't work with the
+If you run into something in Kwetuu that doesn't work with the
 assistive technology you use, `LEGAL REVIEW REQUIRED` / product gap: add a
 real contact channel here — none exists in the app yet beyond general
 support.

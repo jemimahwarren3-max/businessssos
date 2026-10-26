@@ -1,20 +1,20 @@
-# BusinessOS Privacy Policy
+# Kwetuu Privacy Policy
 
-> **Working draft. Not a guarantee of compliance.** This document describes the BusinessOS software as implemented on 19 October 2026. It has not been reviewed by a qualified lawyer. Replace the placeholders with the operator's real legal name, status, address and contact details before you treat this as published policy. Zimbabwe's Cyber and Data Protection Act and Consumer Protection Act still need professional review.
+> **Published for Kwetuu at [https://mykwetuu.com](https://mykwetuu.com).** This Policy explains how we handle personal information for the platform as implemented today. Keep the operator details in section 2 accurate. Independent legal review (including Zimbabwe's Cyber and Data Protection Act) is recommended.
 
-**Effective date:** 19 October 2026  
-**Last updated:** 19 October 2026  
-**Document version:** 2026-10-19
+**Effective date:** 26 October 2026  
+**Last updated:** 26 October 2026  
+**Document version:** 2026-10-26
 
 ## 1. Introduction
 
-BusinessOS ("BusinessOS", "we", "us" or "our") is a business management and online commerce platform. It helps merchants manage operations, sell in person and online, and connect with customers.
+Kwetuu is a Zimbabwe-first marketplace and business platform. It helps merchants manage operations, sell in person and online, and connect with customers.
 
 This Privacy Policy explains how we collect, use, store, disclose and protect personal information when you use our website, merchant tools, online storefronts, marketplace, integrations or related services (the "Services").
 
 It applies to merchants, authorised staff, shoppers, website visitors and other people who interact with the Services.
 
-BusinessOS is intended to launch first in Zimbabwe. If we process information about people in other places, extra rules may apply.
+Kwetuu is intended to launch first in Zimbabwe. If we process information about people in other places, extra rules may apply.
 
 Using the Services means you have had a chance to read this Policy. Where the law requires consent, we will ask for it separately. Using the Services is not consent to every possible use of personal information.
 
@@ -22,15 +22,14 @@ Using the Services means you have had a chance to read this Policy. Where the la
 
 **Platform name:** Kwetuu  
 **Website:** https://mykwetuu.com  
-**Operator's full legal name:** [INSERT FULL LEGAL NAME]  
 **Trading as:** Kwetuu  
-**Legal status:** [INSERT ACCURATE LEGAL STATUS. If you operate as an individual without a registered company, say so. Do not describe BusinessOS as a registered company unless that is true.]  
-**Business or service address:** [INSERT REQUIRED CONTACT ADDRESS]  
-**Privacy contact email:** [INSERT PRIVACY EMAIL]  
-**General support email:** [INSERT SUPPORT EMAIL]  
-**Telephone or other contact method:** [INSERT CONTACT DETAILS]
+**Operator's full legal name:** _Add the registered name of the individual or company that operates Kwetuu._  
+**Legal status:** _Add accurate status. Do not describe Kwetuu as a registered company unless that is true._  
+**Business or service address:** _Add a contact address in Zimbabwe._  
+**Privacy contact email:** privacy@mykwetuu.com  
+**General support email:** support@mykwetuu.com
 
-"BusinessOS" means the operator named above and the Services it runs.
+"Kwetuu", "we", "us" and "our" mean the operator named above and the Services it runs.
 
 We may process information as a controller where we decide the purposes and means. We may process merchant customer information as a processor or service provider when we handle it on the merchant's instructions. The role depends on the activity and the law.
 
@@ -46,7 +45,7 @@ Registering a shop is not the same as a verified identity. We do not award a ver
 
 ### 3.2 Business records
 
-When merchants use BusinessOS we may process product names, descriptions, image URLs, prices, SKUs, barcodes, stock, sales, online orders, returns, refunds, suppliers, purchase orders, expenses, staff and (where enabled) location data, storefront content, reports, logs, settings, payment status for recorded sales, and support messages.
+When merchants use Kwetuu we may process product names, descriptions, image URLs, prices, SKUs, barcodes, stock, sales, online orders, returns, refunds, suppliers, purchase orders, expenses, staff and (where enabled) location data, storefront content, reports, logs, settings, payment status for recorded sales, and support messages.
 
 Merchants must have a lawful basis for giving us personal information about their customers and staff.
 
@@ -60,11 +59,11 @@ Product reviews are accepted only when the shopper proves the order with that ac
 
 ### 3.4 Payment information
 
-**Merchant subscription billing.** When a merchant pays for a BusinessOS plan, Paynow may receive email, amount, description and, for EcoCash or OneMoney, a phone number. Card numbers are handled by Paynow according to that integration. Platform Paynow keys are not used to collect money for a shopper's purchase from a merchant.
+**Merchant subscription billing.** When a merchant pays for a Kwetuu plan, Paynow may receive email, amount, description and, for EcoCash or OneMoney, a phone number. Card numbers are handled by Paynow according to that integration. Platform Paynow keys are not used to collect money for a shopper's purchase from a merchant.
 
-**Shop checkout Paynow.** If a merchant pastes their own Paynow integration ID and key, shopper checkout may send that shopper's email, phone (for EcoCash), order reference and amount to Paynow using those merchant credentials. BusinessOS does not use platform billing keys for that charge.
+**Shop checkout Paynow.** If a merchant pastes their own Paynow integration ID and key, shopper checkout may send that shopper's email, phone (for EcoCash), order reference and amount to Paynow using those merchant credentials. Kwetuu does not use platform billing keys for that charge.
 
-**Shopper checkout as implemented.** Online shops offer pay on collection, pay on delivery, a quote request, and Paynow when the merchant has linked their own Paynow keys. Paynow charges that shopper against the merchant's Paynow account. Shoppers do not pay BusinessOS. Cash is recorded in the app only after the merchant has the money. Cash currency and change rules are those the merchant configured and snapshotted on the order. InnBucks and other processors are not connected.
+**Shopper checkout as implemented.** Online shops offer pay on collection, pay on delivery, a quote request, and Paynow when the merchant has linked their own Paynow keys. Paynow charges that shopper against the merchant's Paynow account. Shoppers do not pay Kwetuu. Cash is recorded in the app only after the merchant has the money. Cash currency and change rules are those the merchant configured and snapshotted on the order. InnBucks and other processors are not connected.
 
 ### 3.5 Technical and usage information
 
@@ -81,11 +80,11 @@ Depending on configuration we may process information connected with:
 - Supabase Auth emails (sign-up confirmation, password reset).
 - In-app notifications for merchants.
 - Transactional shopper emails (order receipt and later status updates) when an email was given at checkout and Resend is configured. The access code is included only on the first receipt.
-- WhatsApp click-to-chat links a merchant publishes. BusinessOS does not send WhatsApp Cloud API messages in the current build. Chat content stays on WhatsApp once the customer leaves our site.
+- WhatsApp click-to-chat links a merchant publishes. Kwetuu does not send WhatsApp Cloud API messages in the current build. Chat content stays on WhatsApp once the customer leaves our site.
 - Groq, if a merchant uses the optional AI assistant: an aggregated business summary plus the typed question. Groq does not receive raw customer emails or phone numbers from the customer list in the current implementation.
 - Hosting and database providers (see section 9).
 
-We do not access an external account just because you have a BusinessOS account.
+We do not access an external account just because you have a Kwetuu account.
 
 ### 3.7 Information you provide voluntarily
 
@@ -127,7 +126,7 @@ Merchants may publish business name, logo, description, public contact details, 
 
 Do not put private personal information in public fields.
 
-Public pages may be indexed by search engines. Removing a listing from BusinessOS does not guarantee immediate removal from other copies.
+Public pages may be indexed by search engines. Removing a listing from Kwetuu does not guarantee immediate removal from other copies.
 
 We may remove or restrict listings for security, legal compliance, moderation or enforcement of our terms.
 
@@ -139,7 +138,7 @@ Merchants must not sell or misuse customer information for unrelated purposes wi
 
 ## 8. Cookies and similar technologies
 
-BusinessOS sets an essential httpOnly session cookie so signed-in merchants stay authenticated. It is not an advertising cookie.
+Kwetuu sets an essential httpOnly session cookie so signed-in merchants stay authenticated. It is not an advertising cookie.
 
 The merchant app may register a service worker for offline POS on signed-in layouts. That is not a marketing tracker.
 
@@ -158,7 +157,7 @@ We may share relevant information with providers that actually support the deplo
 | Provider                                                                            | Role in the current product                          |
 | ----------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | Supabase                                                                            | Database, authentication, and related infrastructure |
-| Paynow                                                                              | BusinessOS subscription payments only                |
+| Paynow                                                                              | Kwetuu subscription payments only                |
 | Hosting (Cloud Run is the intended production host; Render may be used temporarily) | Running the application                              |
 | Groq                                                                                | Optional AI assistant, if configured                 |
 | Sentry                                                                              | Optional error monitoring, if configured             |
@@ -179,7 +178,7 @@ We may disclose information where reasonably necessary to comply with law, a law
 
 ### 9.4 Business transfers
 
-If the operation of BusinessOS is transferred, information may move with it, subject to privacy law.
+If the operation of Kwetuu is transferred, information may move with it, subject to privacy law.
 
 ### 9.5 With your direction
 
@@ -213,7 +212,7 @@ Depending on applicable law you may be able to request access, correction, delet
 
 Rights have legal exceptions, including other people's rights and required records.
 
-Contact [INSERT PRIVACY EMAIL] and give enough detail for us to verify who you are.
+Contact privacy@mykwetuu.com and give enough detail for us to verify who you are.
 
 If a merchant holds the information, you may need to contact that merchant. Where we act as a processor we may help that merchant respond.
 
@@ -223,13 +222,13 @@ Merchant users can export some business data from account settings where that fe
 
 We send necessary service messages (security, sign-in, billing, important account changes).
 
-Merchant shop alerts (new online orders, complaints, verified-purchase reviews, listing reports, and low-stock crossings) appear in the BusinessOS app. If the operator has configured Resend, a copy may be emailed to owners, admins and managers who have shop-alert email turned on. Shoppers who provided an email at checkout may receive a receipt and later status updates through the same provider. Those messages are operational, not marketing. WhatsApp is not used to send them.
+Merchant shop alerts (new online orders, complaints, verified-purchase reviews, listing reports, and low-stock crossings) appear in the Kwetuu app. If the operator has configured Resend, a copy may be emailed to owners, admins and managers who have shop-alert email turned on. Shoppers who provided an email at checkout may receive a receipt and later status updates through the same provider. Those messages are operational, not marketing. WhatsApp is not used to send them.
 
 We do not currently operate a promotional email or SMS campaign product. If we add one, we will obtain consent where required and offer an opt-out. Unsubscribing from marketing does not stop essential service messages. Turning off shop-alert email does not stop in-app alerts.
 
 ## 15. Children's privacy
 
-BusinessOS is intended for adults acting as business owners, staff or customers. We do not knowingly seek children's personal information where that would be unlawful. If you believe a child has given us information inappropriately, contact us.
+Kwetuu is intended for adults acting as business owners, staff or customers. We do not knowingly seek children's personal information where that would be unlawful. If you believe a child has given us information inappropriately, contact us.
 
 ## 16. Automated processing and AI
 
@@ -251,10 +250,11 @@ The current version is at `/privacy` and `/legal/privacy`. Sign-up records the v
 
 ## 19. Contact and complaints
 
-**BusinessOS privacy contact**  
-Email: [INSERT PRIVACY EMAIL]  
-Address: [INSERT REQUIRED CONTACT ADDRESS]  
-Website: [INSERT OFFICIAL BUSINESSOS DOMAIN]
+**Kwetuu privacy contact**  
+Email: privacy@mykwetuu.com  
+Support: support@mykwetuu.com  
+Website: https://mykwetuu.com  
+Address: _See section 2._
 
 You may also have the right to complain to the relevant authority.
 

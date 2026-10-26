@@ -1,50 +1,27 @@
-# Refund Policy — BusinessOS AI
+# Refund Policy — Kwetuu
 
-> **DRAFT — NOT LEGAL ADVICE.** Refund terms are a business decision you
-> need to make deliberately, not something an AI should decide for you. This
-> draft describes a reasonable, common default so there's a starting point —
-> review and adjust the actual policy, then have a lawyer confirm it's
-> consistent with Zimbabwean consumer protection law (and Paynow's own
-> merchant agreement, which may impose its own constraints).
+> **Published for Kwetuu at https://mykwetuu.com.** This policy covers **Kwetuu software subscriptions** (merchant Pro plan), not goods sold by independent shops on the marketplace. Shop purchases follow each merchant's own refund rules.
 
-_Last updated: [DATE — fill in when this is actually adopted]_
+**Last updated:** 26 October 2026
 
 ## How billing works
 
-BusinessOS AI's Pro plan is billed one period at a time through Paynow —
-there's no automatic recurring charge to a stored card. You (or whoever
-manages billing for your business) pay for each period as it comes up.
+Kwetuu's Pro plan is billed one period at a time through Paynow. There is no automatic recurring charge to a stored card. You pay for each period as it comes due.
 
 ## Trial period
 
-New businesses get a 3-day free trial with no payment required. If you don't
-pay before the trial ends, your account moves to read-only mode — your data
-stays intact and viewable, but you can't create or edit records until you
-pay. No charge happens automatically at the end of the trial.
+New businesses may receive a free trial with no payment required. If you do not pay before the trial ends, your account may move to read-only mode: your data stays viewable, but you cannot create or edit records until you pay. No charge happens automatically at the end of the trial unless you choose to subscribe.
 
 ## Refunds
 
-`LEGAL REVIEW REQUIRED` / business decision needed. A reasonable starting
-position, common for low-cost monthly SaaS:
-
-- Payments for the current billing period are generally non-refundable once
-  the period has started, since access was granted for that period.
-- If you were charged in error (e.g., a duplicate payment, or a technical
-  fault on our side), contact us and we'll investigate and refund if
-  confirmed.
-- Refunds, where granted, are issued back through Paynow to the original
-  payment method, subject to Paynow's own processing times and any fees
-  they impose that are outside our control.
+- Payments for the current billing period are generally **non-refundable** once the period has started and access was granted.
+- If you were charged in error (duplicate payment or a technical fault on our side), contact **support@mykwetuu.com** and we will investigate. Confirmed errors are refunded through Paynow to the original payment method, subject to Paynow's processing times.
+- Refunds of **shopper purchases** from an independent merchant are handled by that merchant and any payment provider they used, not by Kwetuu platform subscription billing.
 
 ## How to request a refund
 
-`LEGAL REVIEW REQUIRED`: add a real contact channel here (support email)
-before publishing this document.
+Email **support@mykwetuu.com** with your business name, the payment reference, and a short description of the issue.
 
-## Zimbabwean consumer protection
+## Consumer rights
 
-`LEGAL REVIEW REQUIRED`: this policy has not been checked against Zimbabwean
-consumer protection legislation. If BusinessOS AI ever serves customers in
-other jurisdictions with statutory cooling-off periods or mandatory refund
-rights (e.g., certain EU/UK consumer protections), this document needs
-jurisdiction-specific carve-outs added before it's accurate for those users.
+Nothing in this policy removes mandatory consumer or data protection rights that apply to you under Zimbabwean law or other applicable law.

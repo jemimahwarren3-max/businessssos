@@ -1,10 +1,8 @@
-# AI Assistant Disclaimer — BusinessOS AI
+# AI Assistant Disclaimer — Kwetuu
 
-> **DRAFT — NOT LEGAL ADVICE.** Review before publishing, particularly the
-> liability-limiting language, which needs a lawyer's input like the rest of
-> the Terms of Service it's meant to sit alongside.
+> **Published for Kwetuu at https://mykwetuu.com.** The optional AI assistant uses your business summary and Groq; it is not professional advice. See the [Terms of Service](/terms).
 
-_Last updated: [DATE — fill in when this is actually adopted]_
+**Last updated:** 26 October 2026
 
 ## What the AI Assistant is
 
