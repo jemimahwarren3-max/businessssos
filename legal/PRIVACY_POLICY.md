@@ -1,10 +1,7 @@
 # Kwetuu Privacy Policy
 
-> **Published for Kwetuu at [https://mykwetuu.com](https://mykwetuu.com).** This Policy explains how we handle personal information for the platform as implemented today. Keep the operator details in section 2 accurate. Independent legal review (including Zimbabwe's Cyber and Data Protection Act) is recommended.
-
 **Effective date:** 26 October 2026  
-**Last updated:** 26 October 2026  
-**Document version:** 2026-10-26
+**Last updated:** 26 October 2026
 
 ## 1. Introduction
 
@@ -20,16 +17,12 @@ Using the Services means you have had a chance to read this Policy. Where the la
 
 ## 2. Who we are
 
-**Platform name:** Kwetuu  
-**Website:** https://mykwetuu.com  
-**Trading as:** Kwetuu  
-**Operator's full legal name:** _Add the registered name of the individual or company that operates Kwetuu._  
-**Legal status:** _Add accurate status. Do not describe Kwetuu as a registered company unless that is true._  
-**Business or service address:** _Add a contact address in Zimbabwe._  
-**Privacy contact email:** privacy@mykwetuu.com  
-**General support email:** support@mykwetuu.com
+**Kwetuu** provides the Services at **https://mykwetuu.com**.
 
-"Kwetuu", "we", "us" and "our" mean the operator named above and the Services it runs.
+**Privacy inquiries:** privacy@mykwetuu.com  
+**Support:** support@mykwetuu.com  
+
+"Kwetuu", "we", "us" and "our" mean the operator of the Kwetuu platform and the Services.
 
 We may process information as a controller where we decide the purposes and means. We may process merchant customer information as a processor or service provider when we handle it on the merchant's instructions. The role depends on the activity and the law.
 
@@ -250,16 +243,9 @@ The current version is at `/privacy` and `/legal/privacy`. Sign-up records the v
 
 ## 19. Contact and complaints
 
-**Kwetuu privacy contact**  
-Email: privacy@mykwetuu.com  
-Support: support@mykwetuu.com  
+**Kwetuu**  
 Website: https://mykwetuu.com  
-Address: _See section 2._
+Privacy: privacy@mykwetuu.com  
+Support: support@mykwetuu.com  
 
-You may also have the right to complain to the relevant authority.
-
-Nothing in this Policy is intended to remove a right that cannot legally be removed.
-
-## 20. Final notice
-
-This Policy must match the Services that are actually running, the providers actually used, and the safeguards actually in place. If a feature is not implemented, this Policy is not evidence that it is.
+You may also have the right to complain to the relevant data protection authority in your country.

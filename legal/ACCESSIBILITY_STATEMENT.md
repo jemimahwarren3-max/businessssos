@@ -1,8 +1,8 @@
 # Accessibility Statement — Kwetuu
 
-> **Published for Kwetuu at https://mykwetuu.com.** We aim for WCAG 2.2 Level AA but have not obtained third-party certification. See limitations below.
-
 **Last updated:** 26 October 2026
+
+Kwetuu aims to meet **WCAG 2.2 Level AA** accessibility guidelines. We have not obtained independent third-party certification. Known limitations are listed below.
 
 ## Our commitment
 
@@ -57,10 +57,9 @@ is true:
 
 ## Reporting an accessibility barrier
 
-If you run into something in Kwetuu that doesn't work with the
-assistive technology you use, `LEGAL REVIEW REQUIRED` / product gap: add a
-real contact channel here — none exists in the app yet beyond general
-support.
+If you run into something in Kwetuu that does not work with the assistive
+technology you use, email **support@mykwetuu.com** with a short description
+of the page and the issue. We will work to address barriers in future updates.
 
 ## Ongoing work
 

@@ -1,8 +1,8 @@
 # Refund Policy — Kwetuu
 
-> **Published for Kwetuu at https://mykwetuu.com.** This policy covers **Kwetuu software subscriptions** (merchant Pro plan), not goods sold by independent shops on the marketplace. Shop purchases follow each merchant's own refund rules.
-
 **Last updated:** 26 October 2026
+
+This policy applies to **Kwetuu software subscriptions** (merchant Pro plan). Purchases from independent shops on the marketplace follow each merchant's own refund rules.
 
 ## How billing works
 

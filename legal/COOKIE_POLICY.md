@@ -1,8 +1,8 @@
 # Cookie Policy — Kwetuu
 
-> **Published for Kwetuu at https://mykwetuu.com.** Kwetuu currently sets one strictly necessary session cookie and no advertising or analytics cookies. If we add non-essential cookies later, we will update this page and add consent where the law requires it.
-
 **Last updated:** 26 October 2026
+
+This policy describes how Kwetuu uses cookies at https://mykwetuu.com. We use one strictly necessary session cookie and no advertising or analytics cookies. If we add non-essential cookies in the future, we will update this page and provide consent controls where required by law.
 
 ## The short version
 

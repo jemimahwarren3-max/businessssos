@@ -1,25 +1,15 @@
 # Kwetuu Terms of Service
 
-> **Published for Kwetuu at [https://mykwetuu.com](https://mykwetuu.com).** These Terms describe the platform as implemented today. Keep the operator details in sections 1 and 28 accurate. They are not a substitute for advice from a qualified lawyer (including Zimbabwe consumer, electronic transactions, and data protection law).
-
 **Effective date:** 26 October 2026  
-**Last updated:** 26 October 2026  
-**Document version:** 2026-10-26
+**Last updated:** 26 October 2026
 
 ## 1. Agreement and acceptance
 
 These Terms and Conditions ("Terms") govern access to Kwetuu, including the website, business tools, point of sale, storefronts, marketplace, integrations and related services (the "Services").
 
-Kwetuu is operated by:
+The Services are provided at **https://mykwetuu.com**. For account and platform questions, contact **support@mykwetuu.com**.
 
-**Platform:** Kwetuu  
-**Website:** https://mykwetuu.com  
-**Operator's full legal name:** _Add the registered name of the individual or company that operates Kwetuu._  
-**Legal status:** _Add accurate status (for example sole proprietor or private company). Do not describe Kwetuu as a registered company unless that is true._  
-**Business or service address:** _Add a contact address in Zimbabwe._  
-**Contact email:** support@mykwetuu.com
-
-"Kwetuu", "we", "us" and "our" mean that operator.
+"Kwetuu", "we", "us" and "our" mean the operator of the Kwetuu platform.
 
 By creating an account, accessing restricted tools or using the Services, you agree to these Terms to the extent the law allows. If you do not agree, do not use the Services.
 
@@ -244,8 +234,6 @@ To the extent legally permitted, Kwetuu is not liable for indirect or consequent
 
 This section does not exclude fraud, wilful misconduct, gross negligence, breach of mandatory consumer rights, unlawful data processing, or any other liability that cannot legally be excluded.
 
-Any future financial cap must be reasonable, clearly disclosed and consistent with law. No cap overrides a non-excludable statutory right. No numeric cap is set in this draft.
-
 ## 23. Indemnity
 
 To the extent the law allows, a merchant may be responsible for reasonable losses arising directly from its unlawful listings, infringement, misuse of customer data or material breach of these Terms.
@@ -283,14 +271,7 @@ These Terms, plan terms, transaction terms and the Privacy Policy describe the a
 ## 28. Contact
 
 **Kwetuu**  
-**Website:** https://mykwetuu.com  
-**Support:** support@mykwetuu.com  
-**Operator's full legal name:** _See section 1._  
-**Legal status:** _See section 1._  
-**Address:** _See section 1._
+Website: https://mykwetuu.com  
+Email: support@mykwetuu.com  
 
 Do not send passwords in a support request.
-
-## 29. Important notice
-
-These Terms must match the actual product, payments, merchant model and legal status of the operator. Update them when the Services or the law change. Nothing here is intended to waive a consumer right that cannot legally be waived.
