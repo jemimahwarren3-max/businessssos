@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { finishOAuthCallback } from "@/lib/auth/auth.functions";
-import { navigateAfterAuth } from "@/lib/auth/post-auth-navigate";
+import { useFinishPkceCode } from "@/lib/auth/use-finish-pkce-code";
 
 const searchSchema = z.object({
   code: z.string().optional(),
   error: z.string().optional(),
   mode: z.string().optional().catch(undefined),
 });
+
+const FINISH_TIMEOUT_MS = 25_000;
 
 export const Route = createFileRoute("/auth/confirm")({
   validateSearch: searchSchema,
@@ -21,22 +21,31 @@ export const Route = createFileRoute("/auth/confirm")({
 
 function AuthConfirmFinish() {
   const { code, error: oauthError } = Route.useSearch();
-  const finish = useServerFn(finishOAuthCallback);
+  const finishPkce = useFinishPkceCode();
   const started = useRef(false);
+  const finished = useRef(false);
   const [failed, setFailed] = useState(Boolean(oauthError || !code));
 
   useEffect(() => {
     if (!code || oauthError || started.current) return;
     started.current = true;
-    void finish({ data: { code } })
-      .then(({ path }) => {
-        navigateAfterAuth(path);
+
+    const timeout = window.setTimeout(() => {
+      if (!finished.current) setFailed(true);
+    }, FINISH_TIMEOUT_MS);
+
+    void finishPkce({ code })
+      .then(() => {
+        finished.current = true;
       })
       .catch((err) => {
         console.error("[auth] confirm exchange failed", err);
         setFailed(true);
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
       });
-  }, [code, oauthError, finish]);
+  }, [code, oauthError, finishPkce]);
 
   if (failed) {
     return (
@@ -50,8 +59,9 @@ function AuthConfirmFinish() {
         />
         <h1 className="text-lg font-semibold">Confirmation link did not work</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          The link may have expired, or you opened it in a different browser than the one you signed
-          up with. Request a new confirmation email and open it in the same browser.
+          Open the link in the same browser you used to sign up (within 24 hours), or sign up again
+          with email confirmation turned off on staging. If you still see this screen, check
+          Supabase Auth logs for your project.
         </p>
         <Link
           to="/auth"
