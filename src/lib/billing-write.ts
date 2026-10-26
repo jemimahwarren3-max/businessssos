@@ -29,3 +29,21 @@ export function canWriteWithPlatformEntitlement(
 ) {
   return hasOwnerBypass || canWriteForSubscription(subscription);
 }
+
+/** Paid operations: publish shop, POS sales, cash drawer. Requires Pro
+ * subscription status `active` when billing is on — trialing is setup-only
+ * (draft products, storefront design, preview). */
+export function canOperateForSubscription(
+  subscription: { status: string; trial_ends_at: string | null } | null,
+) {
+  if (!isBillingEnabled()) return true;
+  if (!subscription) return false;
+  return subscription.status === "active";
+}
+
+export function canOperateWithPlatformEntitlement(
+  subscription: { status: string; trial_ends_at: string | null } | null,
+  hasOwnerBypass: boolean,
+) {
+  return hasOwnerBypass || canOperateForSubscription(subscription);
+}

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dbFail, type Db } from "./business.server";
+import { assertCanOperate, dbFail, type Db } from "./business.server";
 
 const movementSchema = z.object({
   id: z.string(),
@@ -44,6 +44,7 @@ export async function openCashSession(
   openingFloat: number,
   note: string,
 ): Promise<{ id: string }> {
+  await assertCanOperate(supabase, businessId);
   const { data, error } = await supabase.rpc("open_cash_session", {
     _business_id: businessId,
     _opening_float: openingFloat,
@@ -59,6 +60,7 @@ export async function closeCashSession(
   countedCash: number,
   note: string,
 ) {
+  await assertCanOperate(supabase, businessId);
   const { data, error } = await supabase.rpc("close_cash_session", {
     _business_id: businessId,
     _counted_cash: countedCash,
@@ -75,6 +77,7 @@ export async function addCashMovement(
   amount: number,
   note: string,
 ): Promise<{ id: string }> {
+  await assertCanOperate(supabase, businessId);
   const { data, error } = await supabase.rpc("add_cash_movement", {
     _business_id: businessId,
     _kind: kind,

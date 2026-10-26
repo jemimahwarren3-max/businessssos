@@ -1,7 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
-import { canWriteForSubscription, canWriteWithPlatformEntitlement } from "@/lib/billing-write";
+import {
+  canOperateWithPlatformEntitlement,
+  canWriteForSubscription,
+  canWriteWithPlatformEntitlement,
+} from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
 import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
@@ -68,6 +72,8 @@ export type Workspace = {
   plan: string;
   planStatus: string;
   isReadOnly: boolean;
+  /** True when billing is on but subscription is not paid `active` (e.g. trialing setup). */
+  isOperateLocked: boolean;
   isPlatformOwner: boolean;
   billingEnabled: boolean;
 };
@@ -107,8 +113,10 @@ export async function assertPermission(supabase: Db, businessId: string, permiss
 const READ_ONLY_MESSAGE =
   "Your trial has ended. Upgrade to Pro to keep creating and editing, your existing data is still safe and visible.";
 
-/** Gate for every write (create/update/delete) — read paths never call this. */
-export async function assertCanWrite(supabase: Db, businessId: string) {
+const OPERATE_MESSAGE =
+  "Pay for Kwetuu Pro to publish your shop and use the sales counter. You can still finish setup, add draft products, and preview your store.";
+
+async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
   const [{ data: subscription, error }, { data: hasOwnerBypass, error: entitlementError }] =
     await Promise.all([
       supabase
@@ -120,7 +128,23 @@ export async function assertCanWrite(supabase: Db, businessId: string) {
     ]);
   if (error) dbFail("check subscription status", error);
   if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
+  return { subscription, hasOwnerBypass: Boolean(hasOwnerBypass) };
+}
+
+/** Gate for setup writes (products, drafts, storefront design) — trialing allowed. */
+export async function assertCanWrite(supabase: Db, businessId: string) {
+  const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
   if (!canWriteWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(READ_ONLY_MESSAGE);
+}
+
+/** Gate for publish, POS, and cash drawer — requires paid `active` subscription. */
+export async function assertCanOperate(supabase: Db, businessId: string) {
+  const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
+  if (!canOperateWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(OPERATE_MESSAGE);
+}
+
+export async function assertCanPublish(supabase: Db, businessId: string) {
+  await assertCanOperate(supabase, businessId);
 }
 
 export async function recordAudit(
@@ -205,6 +229,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
     isReadOnly: !canWriteWithPlatformEntitlement(subscription ?? null, hasOwnerBypass),
+    isOperateLocked: !canOperateWithPlatformEntitlement(subscription ?? null, hasOwnerBypass),
     isPlatformOwner: hasOwnerBypass,
     billingEnabled: isBillingEnabled(),
   };
@@ -254,7 +279,7 @@ export async function createBusinessRecord(
     title: "Welcome to Kwetuu",
     message: isBillingEnabled()
       ? "Your 3-day Pro trial has started. Add your first products to begin."
-      : "You're in! BusinessOS is free during our beta, add your first products to begin.",
+      : "You're in! Kwetuu is free during our beta — add your first products to begin.",
     severity: "info",
   });
   await recordAudit(supabase, {
@@ -580,7 +605,7 @@ export async function deleteSupplier(
 /* --------------------------------- sales --------------------------------- */
 
 export async function createSale(supabase: Db, input: SaleInput) {
-  await assertCanWrite(supabase, input.businessId);
+  await assertCanOperate(supabase, input.businessId);
   await assertPermission(supabase, input.businessId, "sales.create");
   const { data, error } = await supabase.rpc("create_sale", {
     _business_id: input.businessId,
