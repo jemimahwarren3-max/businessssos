@@ -77,7 +77,7 @@ export function createAnonClient() {
 // shared constant.
 const requestCookieStorage = {
   getItem(key: string): string | null {
-    return getCookie(key) ?? null;
+    return getCookie(key) ?? getCookie(encodeURIComponent(key)) ?? null;
   },
   setItem(): void {
     // The browser already wrote this cookie; the exchange client never

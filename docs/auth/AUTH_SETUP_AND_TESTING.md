@@ -160,7 +160,20 @@ npm run verify:staging
 | ------- | ----- |
 | Email signup disabled toast | GoTrue email provider off — enable in Supabase |
 | No confirmation email | Auth SMTP / Supabase mail logs; spam folder |
+| Stuck on “Confirm your email” forever | Enable **autoconfirm** on staging (see below) or fix Auth SMTP |
+| “Confirming your email…” then error | Open the link in the **same browser** as signup; link expires after 24h |
 | Google “did not finish” | Redirect URL mismatch; PKCE cookie blocked (non-HTTPS local); `APP_URL` wrong |
 | Loop auth ↔ dashboard | Deploy includes PR #50+ (`finishOAuthCallback`) |
 | Stuck “Checking your session” | `SESSION_SECRET` missing on server; cookie blocked |
 | Orders email not sent | `RESEND_*` + outbox flush — separate from Auth |
+
+### If sign-up still “goes nowhere” (operator checklist)
+
+Do these in order on project **`businessos-staging`** (`slajanbsfqjnuuiohbmg`) while `mykwetuu.com` uses staging keys:
+
+1. **Authentication → URL configuration:** Site URL = `https://mykwetuu.com` (HTTPS). Redirect URLs include `/auth/callback`, `/auth/confirm`, `/auth/recover` (see list above).
+2. **Authentication → Providers → Email:** turn **Confirm email** off and enable **autoconfirm** (or run `npm run verify:staging` / CI `apply-staging-sql` when `SUPABASE_ACCESS_TOKEN` is set). New signups should jump straight to **onboarding** with no inbox step.
+3. **Cloud Run env:** `APP_URL=https://mykwetuu.com`, `SESSION_SECRET` ≥ 32 chars, staging `SUPABASE_URL` + publishable + service role keys.
+4. **Retest in a private window:** sign up → expect onboarding. If you used email confirm instead, complete signup and click the link in the **same** browser within 24 hours.
+5. **Still broken:** Supabase **Authentication → Logs** for the attempt; DevTools → Application → Cookies on `mykwetuu.com` for `businessos_session` after a successful sign-in.
+6. **Clean slate:** run `scripts/staging-delete-auth-user.sql` in SQL Editor, wait one minute, try again (see `docs/auth/DELETE_STAGING_USERS.md`).

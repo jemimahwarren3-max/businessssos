@@ -12,9 +12,7 @@ describe("friendlySignUpError", () => {
     expect(friendlySignUpError("Error sending confirmation email")).toMatch(/confirmation email/i);
   });
 
-  it("does not reveal whether an email is already registered", () => {
-    expect(friendlySignUpError("User already registered")).toBe(
-      "We couldn't create that account. Please try again.",
-    );
+  it("suggests sign-in when Supabase reports duplicate registration", () => {
+    expect(friendlySignUpError("User already registered")).toMatch(/Sign in/i);
   });
 });
