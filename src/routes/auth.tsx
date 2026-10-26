@@ -112,6 +112,11 @@ function AuthPage() {
           setBootState("ready");
           return;
         }
+        // OAuth failed — keep the form visible so the user can retry Google.
+        if (reason === "oauth") {
+          setBootState("ready");
+          return;
+        }
         if (redirect) {
           navigateAfterAuth(redirect);
           return;
@@ -126,7 +131,7 @@ function AuthPage() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, fetchCurrentUser, fetchPostAuthDestination, redirect]);
+  }, [navigate, fetchCurrentUser, fetchPostAuthDestination, redirect, reason]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
