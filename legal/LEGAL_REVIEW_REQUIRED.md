@@ -1,4 +1,4 @@
-# Legal Review Required — BusinessOS AI
+# Legal Review Required — Kwetuu
 
 This is an index of every `LEGAL REVIEW REQUIRED` marker and open business
 decision across the five draft documents in this folder. Nothing in
@@ -11,7 +11,7 @@ tracking aid so nothing gets missed.
 
 ## Entity & jurisdiction
 
-- [ ] Confirm the actual legal entity operating BusinessOS (sole
+- [ ] Confirm the actual legal entity operating Kwetuu (sole
       trader, registered company, or other) and its registration
       details. The 19 October 2026 drafts use placeholders and warn
       against describing a registered company if none exists. _Terms §1_
@@ -58,7 +58,7 @@ tracking aid so nothing gets missed.
 - [ ] Make an actual business decision on refund eligibility/process, then
       have it checked against Zimbabwean consumer protection law and
       Paynow's merchant agreement terms. — _Refund Policy_
-- [ ] If BusinessOS AI ever serves users in jurisdictions with statutory
+- [ ] If Kwetuu ever serves users in jurisdictions with statutory
       cooling-off/refund rights (e.g. EU/UK), add jurisdiction-specific
       carve-outs. — _Refund Policy, Zimbabwean consumer protection_
 
