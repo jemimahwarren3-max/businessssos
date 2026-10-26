@@ -203,9 +203,13 @@ function AuthPage() {
           throw new Error(friendlySignUpError(`${signUpError.code ?? ""} ${signUpError.message}`));
         }
         if (signUpData.user) {
-          await recordLegalFn({
-            data: { userId: signUpData.user.id, acceptedTerms: true },
-          });
+          try {
+            await recordLegalFn({
+              data: { userId: signUpData.user.id, acceptedTerms: true },
+            });
+          } catch (legalError) {
+            console.error("[auth] record legal after signUp", legalError);
+          }
         }
         if (signUpData.session) {
           await sealSessionFn({

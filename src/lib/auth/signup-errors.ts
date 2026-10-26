@@ -24,8 +24,14 @@ export function friendlySignUpError(message: string): string {
   ) {
     return "The account was not finished because confirmation email is not sending. Continue with Google for now.";
   }
-  // Anything else — including "already registered" — gets a generic
-  // message rather than confirming or denying the email is already in use.
+  if (
+    m.includes("already registered") ||
+    m.includes("already been registered") ||
+    m.includes("user already registered")
+  ) {
+    return "That email may already have an account. Try Sign in, or reset your password if you forgot it.";
+  }
+  // Anything else gets generic copy so this cannot be used to confirm addresses.
   return "We couldn't create that account. Please try again.";
 }
 
