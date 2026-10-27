@@ -3,7 +3,11 @@
 export const MAIN_NAV_HINTS: Record<string, string> = {
   "/dashboard": "See today's sales, what's low in stock, and quick links to act.",
   "/sales": "Record in-person sales, print receipts, and sync when you're back online.",
-  "/storefront": "Design your online shop, set delivery and payments, then publish when you're ready.",
+  "/storefront":
+    "Design your online shop, set delivery and payments, then publish when you're ready.",
+  "/online-orders":
+    "Online shop orders — confirm payment, prepare, dispatch, or mark ready for collection.",
+  "/branches": "Physical locations, default POS branch, and per-location stock (where configured).",
   "/inventory": "Products, stock levels, and adjustments across your locations.",
   "/suppliers": "Who you buy from and their contact details.",
   "/purchase-orders": "Orders you place with suppliers before stock arrives.",
@@ -21,6 +25,8 @@ export const SECONDARY_NAV_HINTS: Record<string, string> = {
   "/settings/team": "Invite staff and choose who can sell, edit stock, or manage billing.",
   "/cash-drawer": "Open and close the till, pay in/out, and match counted cash.",
   "/time-clock": "Staff clock in and out for shift tracking.",
+  "/settings/payments":
+    "Two areas: Kwetuu subscription billing vs payment methods your customers use at checkout.",
   "/settings/billing": "Your Kwetuu Pro subscription — separate from customer shop payments.",
   "/settings/data": "Download a copy of your business data.",
   "/settings/audit-log": "Who changed what — useful for disputes and year-end checks.",

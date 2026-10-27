@@ -14,10 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
 import { optimizeProductImage } from "@/lib/product-image-optimizer";
-import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
 import { shopHostsEnabled, storePublicUrl } from "@/lib/storefront/host";
 import {
-  getAdminOrderFn,
   generateShopDraftFn,
   getMarketplaceListingFn,
   getStorefrontAdminFn,
@@ -34,7 +32,6 @@ import {
   setMarketplaceVisibleFn,
   saveListingFn,
   saveStorefrontFn,
-  transitionOrderFn,
   uploadStorefrontProductImageFn,
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
@@ -49,8 +46,7 @@ import {
 import { TemplatePreview } from "@/components/storefront/template-preview";
 import { LiveTemplatePreview } from "@/components/storefront/live-template-preview";
 import { BRAND } from "@/lib/brand";
-import { OrderReceipt } from "@/components/storefront/order-receipt";
-import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
+import { OnlineOrdersFulfilmentPanel } from "@/components/storefront/online-orders-fulfilment-panel";
 import {
   MANUAL_PAYMENT_LABELS,
   mergeManualMethods,
@@ -63,7 +59,6 @@ import {
 } from "@/components/storefront/hours-editor";
 import { parseHhmm, SHOP_TIMEZONE, type CollectionWindow } from "@/lib/storefront/clocks";
 import type {
-  AdminOrder,
   AdminReviewItem,
   AdminStore,
   ComplaintItem,
@@ -72,6 +67,7 @@ import type {
 } from "@/lib/storefront/contract";
 import type { ShopDraft } from "@/lib/storefront/shop-draft";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
+import { getNotifyEmailFn } from "@/lib/business.functions";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
@@ -88,6 +84,13 @@ function StorefrontPage() {
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId),
     queryFn: () => load({ data: { businessId: businessId! } }),
+  });
+  const fetchNotifyEmail = useServerFn(getNotifyEmailFn);
+  const notifyEmail = useQuery({
+    queryKey: ["notify-email", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchNotifyEmail({ data: { businessId: businessId! } }),
+    staleTime: 60_000,
   });
 
   const workspaceData = workspace.data;
@@ -122,6 +125,7 @@ function StorefrontPage() {
           permissions={workspaceData.permissions}
           billingEnabled={workspaceData.billingEnabled}
           isOperateLocked={workspaceData.isOperateLocked}
+          notificationsConfigured={notifyEmail.data === true}
         />
       ) : null}
     </AppShell>
@@ -134,12 +138,14 @@ function StorefrontEditor({
   permissions,
   billingEnabled,
   isOperateLocked,
+  notificationsConfigured,
 }: {
   businessId: string;
   initial: AdminStore;
   permissions: string[];
   billingEnabled: boolean;
   isOperateLocked: boolean;
+  notificationsConfigured: boolean;
 }) {
   const queryClient = useQueryClient();
   const save = useServerFn(saveStorefrontFn);
@@ -147,8 +153,6 @@ function StorefrontEditor({
   const loadListing = useServerFn(getMarketplaceListingFn);
   const setListed = useServerFn(setMarketplaceVisibleFn);
   const saveListing = useServerFn(saveListingFn);
-  const loadOrder = useServerFn(getAdminOrderFn);
-  const transition = useServerFn(transitionOrderFn);
   const loadComplaints = useServerFn(listComplaintsFn);
   const respondComplaint = useServerFn(respondComplaintFn);
   const loadReviews = useServerFn(listReviewsAdminFn);
@@ -247,9 +251,6 @@ function StorefrontEditor({
   );
   const [paynowId, setPaynowId] = useState("");
   const [paynowKey, setPaynowKey] = useState("");
-  const [paymentReference, setPaymentReference] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const [checkedAccount, setCheckedAccount] = useState(false);
   const savePaynow = useServerFn(saveShopPaynowFn);
   const generateShopDraft = useServerFn(generateShopDraftFn);
 
@@ -361,7 +362,8 @@ function StorefrontEditor({
         admin={initial}
         billingEnabled={billingEnabled}
         isOperateLocked={isOperateLocked}
-        publicUrl={publicUrl || undefined}
+        notificationsConfigured={notificationsConfigured}
+        {...(publicUrl ? { publicUrl } : {})}
       />
 
       {publicUrl ? (
@@ -1551,179 +1553,11 @@ function StorefrontEditor({
         />
       </section>
 
-      <section id="online-orders" className="scroll-mt-24 space-y-3">
-        <h2 className="text-base font-semibold">Online orders</h2>
-        <p className="text-sm text-muted-foreground">
-          Purchase history for this shop. Open an order to see the same receipt the customer gets.
-          Unpaid orders are not in sales reports. Record cash or a manual payment only after you
-          have the money. A customer payment note is not confirmation. Paynow marks paid after
-          Paynow confirms.
-        </p>
-        <ul className="divide-y rounded-lg border">
-          {initial.orders.length === 0 ? (
-            <li className="p-3 text-sm text-muted-foreground">No online orders yet.</li>
-          ) : null}
-          {initial.orders.map((order) => (
-            <li
-              key={order.id}
-              className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
-            >
-              <button
-                type="button"
-                className="text-left"
-                onClick={() =>
-                  void loadOrder({ data: { businessId, orderId: order.id } }).then((next) => {
-                    setSelectedOrder(next);
-                    setCheckedAccount(false);
-                    setPaymentReference("");
-                  })
-                }
-              >
-                <span className="font-medium">{order.reference}</span> · {order.customerName}
-                <span className="mt-1 block text-muted-foreground">
-                  {friendlyDateTime(order.createdAt)} · {formatMoney(order.total, order.currency)}
-                </span>
-                <span className="mt-1 block text-muted-foreground">
-                  {order.itemSummary ?? `${order.itemCount} item(s)`} ·{" "}
-                  {fulfilmentHowLabel(order.fulfilmentMethod)} ·{" "}
-                  {paymentHowLabel(order.paymentMethod, order.paymentStatus === "paid")}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        {selectedOrder ? (
-          <div className="rounded-lg border p-4 text-sm">
-            <OrderReceipt
-              audience="merchant"
-              order={{
-                ...selectedOrder,
-                storeName: store?.storeName ?? "Shop",
-                paid: selectedOrder.paymentStatus === "paid" || Boolean(selectedOrder.saleId),
-              }}
-            />
-            {selectedOrder.terms?.paymentProof?.reference || selectedOrder.proofUrl ? (
-              <div className="mt-3 rounded-md border p-3 text-sm">
-                <p className="font-medium">Customer payment proof</p>
-                <p>
-                  {formatMoney(selectedOrder.total, selectedOrder.currency)} ·{" "}
-                  {selectedOrder.paymentMethod}
-                </p>
-                {selectedOrder.proofUrl ? (
-                  selectedOrder.terms?.paymentProof?.storagePath?.endsWith(".pdf") ? (
-                    <a className="mt-2 inline-block underline" href={selectedOrder.proofUrl}>
-                      Open PDF
-                    </a>
-                  ) : (
-                    <img
-                      alt="Customer payment screenshot"
-                      className="mt-2 max-h-72 rounded border"
-                      src={selectedOrder.proofUrl}
-                    />
-                  )
-                ) : null}
-                {selectedOrder.terms?.paymentProof?.reference ? (
-                  <p className="mt-2">{selectedOrder.terms.paymentProof.reference}</p>
-                ) : null}
-                {selectedOrder.terms?.paymentProof?.note ? (
-                  <p className="mt-1">{selectedOrder.terms.paymentProof.note}</p>
-                ) : null}
-                <p className="mt-1 text-muted-foreground">
-                  Look at this file, then check the money in EcoCash, InnBucks, or the bank. The
-                  screenshot is not confirmation.
-                </p>
-                {selectedOrder.terms?.paymentProof?.rejectReason ? (
-                  <p className="mt-1">Rejection: {selectedOrder.terms.paymentProof.rejectReason}</p>
-                ) : null}
-              </div>
-            ) : null}
-            {selectedOrder.paymentStatus !== "paid" &&
-            selectedOrder.paymentMethod !== "paynow" &&
-            (selectedOrder.paymentMethod !== "quote" ||
-              selectedOrder.fulfilmentStatus !== "awaiting_confirmation") ? (
-              <div className="mt-3 space-y-2 rounded-md border p-3">
-                <label className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={checkedAccount}
-                    onChange={(event) => setCheckedAccount(event.target.checked)}
-                  />
-                  <span>
-                    I received {formatMoney(selectedOrder.total, selectedOrder.currency)} directly
-                    and checked my own account or received the cash.
-                  </span>
-                </label>
-                {selectedOrder.paymentMethod === "manual" ||
-                selectedOrder.paymentMethod === "quote" ? (
-                  <label className="block">
-                    Payment reference (optional)
-                    <Input
-                      className="mt-1"
-                      maxLength={80}
-                      value={paymentReference}
-                      onChange={(event) => setPaymentReference(event.target.value)}
-                    />
-                  </label>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {fulfilmentActions({
-                fulfilmentStatus: selectedOrder.fulfilmentStatus,
-                fulfilmentMethod: selectedOrder.fulfilmentMethod,
-                paymentMethod: selectedOrder.paymentMethod,
-                paymentStatus: selectedOrder.paymentStatus,
-                saleId: selectedOrder.saleId,
-              }).map((action) => (
-                <Button
-                  key={action}
-                  size="sm"
-                  variant={action === "cancel" || action === "reject_proof" ? "outline" : "default"}
-                  disabled={action === "mark_paid" && !checkedAccount}
-                  onClick={() =>
-                    void transition({
-                      data: {
-                        businessId,
-                        orderId: selectedOrder.id,
-                        action,
-                        paymentReference:
-                          action === "mark_paid" ? paymentReference.trim() : undefined,
-                        reason:
-                          action === "reject_proof"
-                            ? "The shop could not confirm this payment. Send a new reference."
-                            : undefined,
-                      },
-                    })
-                      .then((next) => {
-                        setSelectedOrder(next);
-                        setCheckedAccount(false);
-                        setPaymentReference("");
-                        void queryClient.invalidateQueries({
-                          queryKey: ["storefront", businessId],
-                        });
-                      })
-                      .catch((error: Error) =>
-                        toast.error(readableError(error, "Could not update the order")),
-                      )
-                  }
-                >
-                  {action === "mark_paid" &&
-                  (selectedOrder.paymentMethod === "manual" ||
-                    selectedOrder.paymentMethod === "pay_on_pickup" ||
-                    selectedOrder.paymentMethod === "pay_on_delivery")
-                    ? "Record payment after checking your account"
-                    : ACTION_LABEL[action]}
-                </Button>
-              ))}
-            </div>
-            <ul className="mt-3 space-y-1 text-muted-foreground">
-              {selectedOrder.events.map((event) => (
-                <li key={event.createdAt + event.eventType}>{event.message}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
+      <OnlineOrdersFulfilmentPanel
+        businessId={businessId}
+        orders={initial.orders}
+        storeName={store?.storeName ?? "Shop"}
+      />
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Verified purchase reviews</h2>

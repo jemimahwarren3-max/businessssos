@@ -98,14 +98,14 @@ Never mark shop orders paid from redirect alone — poll/confirm or seller verif
 
 ---
 
-## Prioritized build queue (after this PR)
+## Prioritized build queue (after stack merge)
 
-1. **Merge** launch centre + billing RPC + Paynow ZiG + theme/tooltips PRs as approved.  
-2. **Dedicated `/orders` page** (extract fulfilment UI from storefront monolith).  
-3. **Launch fee** table + UX (if product decision confirms separate from subscription).  
-4. **Branch management UI** on top of existing `locations`.  
-5. **Notification preferences** (email on/off per event; document SMS/courier as future).  
-6. **E2E Playwright** — owner publish path + guest checkout smoke on staging.
+1. ~~**Merge** launch centre + billing RPC + Paynow ZiG + theme/tooltips~~ → `cursor/kwetuu-stack-merge-dafe`.  
+2. ~~**Dedicated orders desk**~~ → `/online-orders` + `/orders` alias + shared fulfilment panel.  
+3. **Launch fee** — documented on `/settings/payments` as subscription-only until product adds a SKU.  
+4. **Branch management UI** — read-only `/branches` list; create/edit locations still operator-led.  
+5. ~~**Launch step 6**~~ → wired to `get_notify_email` (email alerts on).  
+6. **E2E** — extra public smoke; owner publish + guest checkout still needs staging credentials.
 
 ---
 

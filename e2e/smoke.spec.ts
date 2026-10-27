@@ -22,4 +22,10 @@ test.describe("public smoke", () => {
     expect(response?.status()).toBeLessThan(400);
     await expect(page.locator("body")).toContainText(/sign|google|account/i);
   });
+
+  test("staff login page loads", async ({ page }) => {
+    const response = await page.goto("/staff-login");
+    expect(response?.status()).toBeLessThan(400);
+    await expect(page.locator("body")).toBeVisible();
+  });
 });

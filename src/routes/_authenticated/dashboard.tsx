@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
-import { getDashboard, getWorkspace } from "@/lib/business.functions";
+import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
 import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
@@ -110,6 +110,13 @@ function Dashboard() {
     enabled: Boolean(businessId),
     queryFn: () => loadStore({ data: { businessId: businessId! } }),
   });
+  const fetchNotifyEmail = useServerFn(getNotifyEmailFn);
+  const notifyEmail = useQuery({
+    queryKey: ["notify-email", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchNotifyEmail({ data: { businessId: businessId! } }),
+    staleTime: 60_000,
+  });
   const briefing = useQuery({
     queryKey: ["daily-business-briefing", businessId],
     enabled: Boolean(businessId) && canReadBriefing,
@@ -155,12 +162,11 @@ function Dashboard() {
             admin={storefront.data}
             billingEnabled={workspace.data.billingEnabled}
             isOperateLocked={workspace.data.isOperateLocked}
-            publicUrl={
-              storefront.data.store?.slug
-                ? storePublicUrl(storefront.data.store.slug)
-                : undefined
-            }
+            notificationsConfigured={notifyEmail.data === true}
             compact
+            {...(storefront.data.store?.slug
+              ? { publicUrl: storePublicUrl(storefront.data.store.slug) }
+              : {})}
           />
         </div>
       ) : null}

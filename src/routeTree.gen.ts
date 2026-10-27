@@ -29,6 +29,7 @@ import { Route as StoresRouteImport } from './routes/stores'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
+import { Route as AuthenticatedBranchesRouteImport } from './routes/_authenticated/branches'
 import { Route as AuthenticatedCashDrawerRouteImport } from './routes/_authenticated/cash-drawer'
 import { Route as AuthenticatedCommissionRouteImport } from './routes/_authenticated/commission'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
@@ -42,6 +43,7 @@ import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedOnlineOrdersRouteImport } from './routes/_authenticated/online-orders'
+import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
 import { Route as AuthenticatedPurchaseOrdersRouteImport } from './routes/_authenticated/purchase-orders'
 import { Route as AuthenticatedQuotesRouteImport } from './routes/_authenticated/quotes'
 import { Route as AuthenticatedRecurringInvoicesRouteImport } from './routes/_authenticated/recurring-invoices'
@@ -66,6 +68,7 @@ import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
 import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings.billing'
 import { Route as AuthenticatedSettingsDataRouteImport } from './routes/_authenticated/settings.data'
+import { Route as AuthenticatedSettingsPaymentsRouteImport } from './routes/_authenticated/settings.payments'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
 import { Route as ApiInternalFlushMailRouteImport } from './routes/api.internal.flush-mail'
 import { Route as StoreSlugIndexRouteImport } from './routes/store.$slug.index'
@@ -175,6 +178,11 @@ const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBranchesRoute = AuthenticatedBranchesRouteImport.update({
+  id: '/branches',
+  path: '/branches',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCashDrawerRoute = AuthenticatedCashDrawerRouteImport.update({
   id: '/cash-drawer',
   path: '/cash-drawer',
@@ -242,6 +250,11 @@ const AuthenticatedOnlineOrdersRoute =
     path: '/online-orders',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOrdersRoute = AuthenticatedOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPurchaseOrdersRoute =
   AuthenticatedPurchaseOrdersRouteImport.update({
     id: '/purchase-orders',
@@ -369,6 +382,12 @@ const AuthenticatedSettingsDataRoute =
     path: '/settings/data',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsPaymentsRoute =
+  AuthenticatedSettingsPaymentsRouteImport.update({
+    id: '/settings/payments',
+    path: '/settings/payments',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsTeamRoute =
   AuthenticatedSettingsTeamRouteImport.update({
     id: '/settings/team',
@@ -437,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/branches': typeof AuthenticatedBranchesRoute
   '/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/commission': typeof AuthenticatedCommissionRoute
   '/customers': typeof AuthenticatedCustomersRoute
@@ -450,6 +470,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/online-orders': typeof AuthenticatedOnlineOrdersRoute
+  '/orders': typeof AuthenticatedOrdersRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -474,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
+  '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
@@ -504,6 +526,7 @@ export interface FileRoutesByTo {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/branches': typeof AuthenticatedBranchesRoute
   '/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/commission': typeof AuthenticatedCommissionRoute
   '/customers': typeof AuthenticatedCustomersRoute
@@ -517,6 +540,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/online-orders': typeof AuthenticatedOnlineOrdersRoute
+  '/orders': typeof AuthenticatedOrdersRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -540,6 +564,7 @@ export interface FileRoutesByTo {
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
+  '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
@@ -572,6 +597,7 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
+  '/_authenticated/branches': typeof AuthenticatedBranchesRoute
   '/_authenticated/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/_authenticated/commission': typeof AuthenticatedCommissionRoute
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
@@ -585,6 +611,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/online-orders': typeof AuthenticatedOnlineOrdersRoute
+  '/_authenticated/orders': typeof AuthenticatedOrdersRoute
   '/_authenticated/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/_authenticated/quotes': typeof AuthenticatedQuotesRoute
   '/_authenticated/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -609,6 +636,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/_authenticated/settings/data': typeof AuthenticatedSettingsDataRoute
+  '/_authenticated/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
@@ -641,6 +669,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/assistant'
+    | '/branches'
     | '/cash-drawer'
     | '/commission'
     | '/customers'
@@ -654,6 +683,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/onboarding'
     | '/online-orders'
+    | '/orders'
     | '/purchase-orders'
     | '/quotes'
     | '/recurring-invoices'
@@ -678,6 +708,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/billing'
     | '/settings/data'
+    | '/settings/payments'
     | '/settings/team'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
@@ -708,6 +739,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/assistant'
+    | '/branches'
     | '/cash-drawer'
     | '/commission'
     | '/customers'
@@ -721,6 +753,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/onboarding'
     | '/online-orders'
+    | '/orders'
     | '/purchase-orders'
     | '/quotes'
     | '/recurring-invoices'
@@ -744,6 +777,7 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/billing'
     | '/settings/data'
+    | '/settings/payments'
     | '/settings/team'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
@@ -775,6 +809,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/_authenticated/assistant'
+    | '/_authenticated/branches'
     | '/_authenticated/cash-drawer'
     | '/_authenticated/commission'
     | '/_authenticated/customers'
@@ -788,6 +823,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
     | '/_authenticated/online-orders'
+    | '/_authenticated/orders'
     | '/_authenticated/purchase-orders'
     | '/_authenticated/quotes'
     | '/_authenticated/recurring-invoices'
@@ -812,6 +848,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/billing'
     | '/_authenticated/settings/data'
+    | '/_authenticated/settings/payments'
     | '/_authenticated/settings/team'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
@@ -996,6 +1033,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssistantRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/branches': {
+      id: '/_authenticated/branches'
+      path: '/branches'
+      fullPath: '/branches'
+      preLoaderRoute: typeof AuthenticatedBranchesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cash-drawer': {
       id: '/_authenticated/cash-drawer'
       path: '/cash-drawer'
@@ -1085,6 +1129,13 @@ declare module '@tanstack/react-router' {
       path: '/online-orders'
       fullPath: '/online-orders'
       preLoaderRoute: typeof AuthenticatedOnlineOrdersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/orders': {
+      id: '/_authenticated/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof AuthenticatedOrdersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/purchase-orders': {
@@ -1255,6 +1306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsDataRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/payments': {
+      id: '/_authenticated/settings/payments'
+      path: '/settings/payments'
+      fullPath: '/settings/payments'
+      preLoaderRoute: typeof AuthenticatedSettingsPaymentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings/team': {
       id: '/_authenticated/settings/team'
       path: '/settings/team'
@@ -1323,6 +1381,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
+  AuthenticatedBranchesRoute: typeof AuthenticatedBranchesRoute
   AuthenticatedCashDrawerRoute: typeof AuthenticatedCashDrawerRoute
   AuthenticatedCommissionRoute: typeof AuthenticatedCommissionRoute
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
@@ -1336,6 +1395,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedOnlineOrdersRoute: typeof AuthenticatedOnlineOrdersRoute
+  AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRoute
   AuthenticatedPurchaseOrdersRoute: typeof AuthenticatedPurchaseOrdersRoute
   AuthenticatedQuotesRoute: typeof AuthenticatedQuotesRoute
   AuthenticatedRecurringInvoicesRoute: typeof AuthenticatedRecurringInvoicesRoute
@@ -1349,11 +1409,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
   AuthenticatedSettingsDataRoute: typeof AuthenticatedSettingsDataRoute
+  AuthenticatedSettingsPaymentsRoute: typeof AuthenticatedSettingsPaymentsRoute
   AuthenticatedSettingsTeamRoute: typeof AuthenticatedSettingsTeamRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
+  AuthenticatedBranchesRoute: AuthenticatedBranchesRoute,
   AuthenticatedCashDrawerRoute: AuthenticatedCashDrawerRoute,
   AuthenticatedCommissionRoute: AuthenticatedCommissionRoute,
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
@@ -1367,6 +1429,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedOnlineOrdersRoute: AuthenticatedOnlineOrdersRoute,
+  AuthenticatedOrdersRoute: AuthenticatedOrdersRoute,
   AuthenticatedPurchaseOrdersRoute: AuthenticatedPurchaseOrdersRoute,
   AuthenticatedQuotesRoute: AuthenticatedQuotesRoute,
   AuthenticatedRecurringInvoicesRoute: AuthenticatedRecurringInvoicesRoute,
@@ -1380,6 +1443,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsAuditLogRoute: AuthenticatedSettingsAuditLogRoute,
   AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
   AuthenticatedSettingsDataRoute: AuthenticatedSettingsDataRoute,
+  AuthenticatedSettingsPaymentsRoute: AuthenticatedSettingsPaymentsRoute,
   AuthenticatedSettingsTeamRoute: AuthenticatedSettingsTeamRoute,
 }
 

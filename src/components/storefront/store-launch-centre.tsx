@@ -23,12 +23,15 @@ export function StoreLaunchCentre({
   billingEnabled,
   isOperateLocked,
   publicUrl,
+  notificationsConfigured = false,
   compact = false,
 }: {
   admin: AdminStore;
   billingEnabled: boolean;
   isOperateLocked: boolean;
+  /** Omit when no slug yet (exactOptionalPropertyTypes). */
   publicUrl?: string;
+  notificationsConfigured?: boolean;
   compact?: boolean;
 }) {
   const display = deriveStoreLaunchDisplay({
@@ -37,7 +40,7 @@ export function StoreLaunchCentre({
     billingEnabled,
     isOperateLocked,
   });
-  const steps = buildLaunchSteps(admin.checklist, { notificationsConfigured: false });
+  const steps = buildLaunchSteps(admin.checklist, { notificationsConfigured });
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
