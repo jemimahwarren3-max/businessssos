@@ -182,6 +182,17 @@ export type AdminRuntime = {
   announcement_enabled: boolean;
   marketing_hero_title: string;
   marketing_hero_subtitle: string;
+  courier_ops_notes: string;
+  sms_ops_notes: string;
+};
+
+export type BusinessFeatureFlags = {
+  businessId: string;
+  billingExempt: boolean;
+  onlineShopEnabled: boolean;
+  smsNotifications: boolean;
+  courierManualMode: boolean;
+  notes: string;
 };
 
 export type AdminBusinessDetail = {
@@ -258,7 +269,7 @@ export type AdminHealth = {
   mailFlushSecretSet: boolean;
 };
 
-async function logPlatformAudit(
+export async function logPlatformAudit(
   actorUserId: string,
   action: string,
   reason: string,
@@ -341,6 +352,8 @@ export async function updateAdminRuntime(
     publicAnnouncement?: string;
     marketingHeroTitle?: string;
     marketingHeroSubtitle?: string;
+    courierOpsNotes?: string;
+    smsOpsNotes?: string;
     reason: string;
   },
 ) {
@@ -358,6 +371,12 @@ export async function updateAdminRuntime(
   }
   if (input.marketingHeroSubtitle !== undefined) {
     patch["marketing_hero_subtitle"] = input.marketingHeroSubtitle.slice(0, 800);
+  }
+  if (input.courierOpsNotes !== undefined) {
+    patch["courier_ops_notes"] = input.courierOpsNotes.slice(0, 8000);
+  }
+  if (input.smsOpsNotes !== undefined) {
+    patch["sms_ops_notes"] = input.smsOpsNotes.slice(0, 8000);
   }
   const { error } = await (
     supabaseAdmin as unknown as {
@@ -509,4 +528,92 @@ export async function getAdminHealth(userId: string, tokens: SupabaseTokens): Pr
     paynowZig: paynowCredentialsConfigured("ZWG"),
     mailFlushSecretSet: Boolean(process.env["MAIL_FLUSH_SECRET"]?.trim()),
   };
+}
+
+export async function exportAdminTenantsCsv(userId: string, tokens: SupabaseTokens): Promise<string> {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_export_tenants_csv", {});
+  if (result.error) dbFail("export tenants csv", result.error);
+  await logPlatformAudit(userId, "export_tenants_csv", "Operator CSV export", {});
+  return typeof result.data === "string" ? result.data : "";
+}
+
+export async function getBusinessFeatureFlagsAdmin(
+  userId: string,
+  tokens: SupabaseTokens,
+  businessId: string,
+): Promise<BusinessFeatureFlags> {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_get_business_feature_flags", { _business_id: businessId });
+  if (result.error) dbFail("load business feature flags", result.error);
+  const row = result.data as Record<string, unknown>;
+  return {
+    businessId,
+    billingExempt: row["billingExempt"] === true,
+    onlineShopEnabled: row["onlineShopEnabled"] !== false,
+    smsNotifications: row["smsNotifications"] === true,
+    courierManualMode: row["courierManualMode"] !== false,
+    notes: typeof row["notes"] === "string" ? row["notes"] : "",
+  };
+}
+
+export async function setBusinessFeatureFlagsAdmin(
+  userId: string,
+  tokens: SupabaseTokens,
+  input: {
+    businessId: string;
+    billingExempt: boolean;
+    onlineShopEnabled: boolean;
+    smsNotifications: boolean;
+    courierManualMode: boolean;
+    notes: string;
+    reason: string;
+  },
+) {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_set_business_feature_flags", {
+    _business_id: input.businessId,
+    _billing_exempt: input.billingExempt,
+    _online_shop_enabled: input.onlineShopEnabled,
+    _sms_notifications: input.smsNotifications,
+    _courier_manual_mode: input.courierManualMode,
+    _notes: input.notes.slice(0, 2000),
+  });
+  if (result.error) dbFail("save business feature flags", result.error);
+  await invalidateWorkspaceCacheForBusiness(supabaseAdmin, input.businessId);
+  await logPlatformAudit(userId, "set_business_feature_flags", input.reason, {
+    businessId: input.businessId,
+    billingExempt: input.billingExempt,
+    onlineShopEnabled: input.onlineShopEnabled,
+  });
+  return result.data as BusinessFeatureFlags;
+}
+
+export async function updateAdminOpsNotes(
+  userId: string,
+  tokens: SupabaseTokens,
+  input: { courierNotes?: string; smsNotes?: string; reason: string },
+) {
+  await requireAdmin(userId, tokens);
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.courierNotes !== undefined) {
+    patch["courier_ops_notes"] = input.courierNotes.slice(0, 8000);
+  }
+  if (input.smsNotes !== undefined) {
+    patch["sms_ops_notes"] = input.smsNotes.slice(0, 8000);
+  }
+  const { error } = await (
+    supabaseAdmin as unknown as {
+      from: (table: string) => {
+        update: (row: Record<string, unknown>) => {
+          eq: (col: string, val: number) => Promise<{ error: { message?: string } | null }>;
+        };
+      };
+    }
+  )
+    .from("platform_runtime")
+    .update(patch)
+    .eq("id", 1);
+  if (error) dbFail("update ops notes", error);
+  await logPlatformAudit(userId, "update_ops_notes", input.reason, patch);
 }

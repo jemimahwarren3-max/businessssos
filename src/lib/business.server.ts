@@ -76,6 +76,16 @@ export type Workspace = {
   isOperateLocked: boolean;
   isPlatformOwner: boolean;
   billingEnabled: boolean;
+  /** Platform admin support view — merchant data is read-only. */
+  isImpersonating?: boolean;
+  impersonationExpiresAt?: string;
+  impersonationBusinessName?: string;
+  featureFlags?: {
+    billingExempt: boolean;
+    onlineShopEnabled: boolean;
+    smsNotifications: boolean;
+    courierManualMode: boolean;
+  };
 };
 
 /** Server-side authorization: confirm the caller belongs to the business. */
@@ -117,28 +127,57 @@ const OPERATE_MESSAGE =
   "Pay for Kwetuu Pro to publish your shop and use the sales counter. You can still finish setup, add draft products, and preview your store.";
 
 async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
-  const [{ data: subscription, error }, { data: hasOwnerBypass, error: entitlementError }] =
-    await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select("status, trial_ends_at")
-        .eq("business_id", businessId)
-        .maybeSingle(),
-      supabase.rpc("has_platform_subscription_bypass"),
-    ]);
+  const [
+    { data: subscription, error },
+    { data: hasOwnerBypass, error: entitlementError },
+    { data: flagRow, error: flagError },
+  ] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("status, trial_ends_at")
+      .eq("business_id", businessId)
+      .maybeSingle(),
+    supabase.rpc("has_platform_subscription_bypass"),
+    supabase.rpc("get_business_feature_flags" as never, { _business_id: businessId } as never),
+  ]);
   if (error) dbFail("check subscription status", error);
   if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
-  return { subscription, hasOwnerBypass: Boolean(hasOwnerBypass) };
+  if (flagError) dbFail("check business feature flags", flagError);
+  const billingExempt =
+    flagRow &&
+    typeof flagRow === "object" &&
+    !Array.isArray(flagRow) &&
+    (flagRow as { billingExempt?: boolean }).billingExempt === true;
+  return {
+    subscription,
+    hasOwnerBypass: Boolean(hasOwnerBypass) || billingExempt,
+  };
 }
 
 /** Gate for setup writes (products, drafts, storefront design) — trialing allowed. */
 export async function assertCanWrite(supabase: Db, businessId: string) {
+  const { data: impersonating, error: impErr } = await supabase.rpc(
+    "is_platform_impersonating" as never,
+    { _business_id: businessId } as never,
+  );
+  if (impErr) dbFail("impersonation check", impErr);
+  if (impersonating) {
+    fail("Support view is read-only. End impersonation in the admin console to make changes.");
+  }
   const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
   if (!canWriteWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(READ_ONLY_MESSAGE);
 }
 
 /** Gate for publish, POS, and cash drawer — requires paid `active` subscription. */
 export async function assertCanOperate(supabase: Db, businessId: string) {
+  const { data: impersonating, error: impErr } = await supabase.rpc(
+    "is_platform_impersonating" as never,
+    { _business_id: businessId } as never,
+  );
+  if (impErr) dbFail("impersonation check", impErr);
+  if (impersonating) {
+    fail("Support view is read-only. End impersonation in the admin console to make changes.");
+  }
   const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
   if (!canOperateWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(OPERATE_MESSAGE);
 }
@@ -185,6 +224,21 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const cached = await cacheGet<Workspace>(cacheKey);
   if (cached) return cached;
 
+  const { getActiveImpersonation, loadWorkspaceWhileImpersonating } =
+    await import("@/lib/admin/impersonation.server");
+  const impersonation = await getActiveImpersonation(userId);
+  if (impersonation) {
+    const workspace = await loadWorkspaceWhileImpersonating(
+      supabase,
+      userId,
+      impersonation.businessId,
+    );
+    if (workspace) {
+      await cacheSet(cacheKey, workspace, 60);
+    }
+    return workspace;
+  }
+
   const { data: membership, error } = await supabase
     .from("business_members")
     .select("role, business_id")
@@ -201,6 +255,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     { data: subscription },
     { data: permissions },
     { data: hasOwnerBypass, error: entitlementError },
+    { data: featureFlags, error: featureFlagError },
   ] = await Promise.all([
     supabase
       .from("businesses")
@@ -217,10 +272,20 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     // their role, defaulted to today's behavior on first access.
     supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
     supabase.rpc("has_platform_subscription_bypass"),
+    supabase.rpc("get_business_feature_flags" as never, {
+      _business_id: membership.business_id,
+    } as never),
   ]);
   if (bizError) dbFail("load business", bizError);
   if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
+  if (featureFlagError) dbFail("load business feature flags", featureFlagError);
   if (!business) return null;
+
+  const flags =
+    featureFlags && typeof featureFlags === "object" && !Array.isArray(featureFlags)
+      ? (featureFlags as Workspace["featureFlags"])
+      : undefined;
+  const billingExempt = flags?.billingExempt === true;
 
   const workspace: Workspace = {
     business,
@@ -228,10 +293,14 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     permissions: permissions ?? [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
-    isReadOnly: !canWriteWithPlatformEntitlement(subscription ?? null, hasOwnerBypass),
-    isOperateLocked: !canOperateWithPlatformEntitlement(subscription ?? null, hasOwnerBypass),
+    isReadOnly: !canWriteWithPlatformEntitlement(subscription ?? null, hasOwnerBypass || billingExempt),
+    isOperateLocked: !canOperateWithPlatformEntitlement(
+      subscription ?? null,
+      hasOwnerBypass || billingExempt,
+    ),
     isPlatformOwner: hasOwnerBypass,
     billingEnabled: isBillingEnabled(),
+    ...(flags ? { featureFlags: flags } : {}),
   };
   await cacheSet(cacheKey, workspace, 60);
   return workspace;

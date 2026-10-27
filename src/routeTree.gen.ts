@@ -60,6 +60,7 @@ import { Route as AdminBusinessesRouteImport } from './routes/admin/businesses'
 import { Route as AdminCommunicationsRouteImport } from './routes/admin/communications'
 import { Route as AdminHealthRouteImport } from './routes/admin/health'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
+import { Route as AdminOperationsRouteImport } from './routes/admin/operations'
 import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
 import { Route as AdminPersonalizeRouteImport } from './routes/admin/personalize'
 import { Route as AdminStoresRouteImport } from './routes/admin/stores'
@@ -350,6 +351,11 @@ const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminOperationsRoute = AdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -559,6 +565,7 @@ export interface FileRoutesByFullPath {
   '/admin/communications': typeof AdminCommunicationsRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/personalize': typeof AdminPersonalizeRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -640,6 +647,7 @@ export interface FileRoutesByTo {
   '/admin/communications': typeof AdminCommunicationsRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/personalize': typeof AdminPersonalizeRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -723,6 +731,7 @@ export interface FileRoutesById {
   '/admin/communications': typeof AdminCommunicationsRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/operations': typeof AdminOperationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/personalize': typeof AdminPersonalizeRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -807,6 +816,7 @@ export interface FileRouteTypes {
     | '/admin/communications'
     | '/admin/health'
     | '/admin/integrations'
+    | '/admin/operations'
     | '/admin/orders'
     | '/admin/personalize'
     | '/admin/stores'
@@ -888,6 +898,7 @@ export interface FileRouteTypes {
     | '/admin/communications'
     | '/admin/health'
     | '/admin/integrations'
+    | '/admin/operations'
     | '/admin/orders'
     | '/admin/personalize'
     | '/admin/stores'
@@ -970,6 +981,7 @@ export interface FileRouteTypes {
     | '/admin/communications'
     | '/admin/health'
     | '/admin/integrations'
+    | '/admin/operations'
     | '/admin/orders'
     | '/admin/personalize'
     | '/admin/stores'
@@ -1393,6 +1405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntegrationsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/operations': {
+      id: '/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AdminOperationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/orders': {
       id: '/admin/orders'
       path: '/orders'
@@ -1696,6 +1715,7 @@ interface AdminRouteRouteChildren {
   AdminCommunicationsRoute: typeof AdminCommunicationsRoute
   AdminHealthRoute: typeof AdminHealthRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
+  AdminOperationsRoute: typeof AdminOperationsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPersonalizeRoute: typeof AdminPersonalizeRoute
   AdminStoresRoute: typeof AdminStoresRoute
@@ -1710,6 +1730,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCommunicationsRoute: AdminCommunicationsRoute,
   AdminHealthRoute: AdminHealthRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
+  AdminOperationsRoute: AdminOperationsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPersonalizeRoute: AdminPersonalizeRoute,
   AdminStoresRoute: AdminStoresRoute,

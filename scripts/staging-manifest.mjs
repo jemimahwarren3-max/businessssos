@@ -43,6 +43,7 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261026180000_billing_rpc_enforcement.sql" },
   { file: "20261027120000_admin_console_rpcs.sql" },
   { file: "20261027140000_admin_console_phase2.sql" },
+  { file: "20261027160000_admin_console_phase3.sql" },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

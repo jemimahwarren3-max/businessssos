@@ -33,7 +33,16 @@ import {
   setAdminPlatformFx,
   setPaymentProviderControl,
   updateAdminRuntime,
+  exportAdminTenantsCsv,
+  getBusinessFeatureFlagsAdmin,
+  setBusinessFeatureFlagsAdmin,
+  updateAdminOpsNotes,
 } from "./admin.server";
+import {
+  endPlatformImpersonation,
+  getActiveImpersonation,
+  startPlatformImpersonation,
+} from "./impersonation.server";
 
 // authedRateLimit already composes requireSupabaseAuth internally and
 // re-passes its context, so context.userId/context.tokens stay available
@@ -292,3 +301,80 @@ export const getPlatformAnnouncementFn = createServerFn({ method: "GET" }).handl
 export const getPublicMarketingCopyFn = createServerFn({ method: "GET" }).handler(async () =>
   loadPublicMarketingCopy(),
 );
+
+export const exportAdminTenantsCsvFn = createServerFn({ method: "GET" })
+  .middleware(adminRateLimit)
+  .handler(async ({ context }) => exportAdminTenantsCsv(context.userId, context.tokens));
+
+export const getActiveImpersonationFn = createServerFn({ method: "GET" })
+  .middleware(adminRateLimit)
+  .handler(async ({ context }) => getActiveImpersonation(context.userId));
+
+const impersonationStartSchema = z.object({
+  businessId: z.string().uuid(),
+  reason: z.string().trim().min(3).max(300),
+  ttlMinutes: z.coerce.number().int().min(5).max(240).optional(),
+});
+
+export const startImpersonationFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => impersonationStartSchema.parse(data))
+  .handler(async ({ data, context }) =>
+    startPlatformImpersonation(context.userId, context.tokens, {
+      businessId: data.businessId,
+      reason: data.reason,
+      ...(data.ttlMinutes !== undefined ? { ttlMinutes: data.ttlMinutes } : {}),
+    }),
+  );
+
+export const endImpersonationFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) =>
+    z.object({ reason: z.string().trim().min(3).max(300) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await endPlatformImpersonation(context.userId, context.tokens, data.reason);
+    return { ok: true as const };
+  });
+
+export const getBusinessFeatureFlagsFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => businessIdSchema.parse(data))
+  .handler(async ({ data, context }) =>
+    getBusinessFeatureFlagsAdmin(context.userId, context.tokens, data.businessId),
+  );
+
+const featureFlagsSchema = z.object({
+  businessId: z.string().uuid(),
+  billingExempt: z.boolean(),
+  onlineShopEnabled: z.boolean(),
+  smsNotifications: z.boolean(),
+  courierManualMode: z.boolean(),
+  notes: z.string().max(2000),
+  reason: z.string().trim().min(3).max(300),
+});
+
+export const setBusinessFeatureFlagsFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => featureFlagsSchema.parse(data))
+  .handler(async ({ data, context }) => setBusinessFeatureFlagsAdmin(context.userId, context.tokens, data));
+
+export const updateAdminOpsNotesFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        courierNotes: z.string().max(8000).optional(),
+        smsNotes: z.string().max(8000).optional(),
+        reason: z.string().trim().min(3).max(300),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await updateAdminOpsNotes(context.userId, context.tokens, {
+      reason: data.reason,
+      ...(data.courierNotes !== undefined ? { courierNotes: data.courierNotes } : {}),
+      ...(data.smsNotes !== undefined ? { smsNotes: data.smsNotes } : {}),
+    });
+    return { ok: true as const };
+  });

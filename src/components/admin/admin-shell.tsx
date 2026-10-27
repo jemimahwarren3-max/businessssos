@@ -10,6 +10,7 @@ import {
   ScrollText,
   Settings2,
   Store,
+  Truck,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const NAV: {
   { to: "/admin/communications", label: "Email outbox", icon: Megaphone },
   { to: "/admin/billing", label: "Billing & FX", icon: CreditCard },
   { to: "/admin/integrations", label: "Integrations", icon: Plug },
+  { to: "/admin/operations", label: "Courier & SMS", icon: Truck },
   { to: "/admin/personalize", label: "Personalize", icon: Megaphone },
   { to: "/admin/health", label: "Ops health", icon: Settings2 },
   { to: "/admin/audit", label: "Audit log", icon: ScrollText },

@@ -1,13 +1,23 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { getAdminBusinessDetailFn } from "@/lib/admin/admin.functions";
+import {
+  getAdminBusinessDetailFn,
+  getBusinessFeatureFlagsFn,
+  setBusinessFeatureFlagsFn,
+  startImpersonationFn,
+} from "@/lib/admin/admin.functions";
 import { formatMoney, friendlyDate, friendlyDateTime, readableError } from "@/lib/format";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -23,10 +33,69 @@ export const Route = createFileRoute("/admin/businesses/$businessId")({
 
 function AdminBusinessDetailPage() {
   const { businessId } = Route.useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const fetch = useServerFn(getAdminBusinessDetailFn);
+  const fetchFlags = useServerFn(getBusinessFeatureFlagsFn);
+  const saveFlags = useServerFn(setBusinessFeatureFlagsFn);
+  const startImpersonation = useServerFn(startImpersonationFn);
   const detail = useQuery({
     queryKey: ["admin-business", businessId],
     queryFn: () => fetch({ data: { businessId } }),
+  });
+  const flags = useQuery({
+    queryKey: ["admin-business-flags", businessId],
+    queryFn: () => fetchFlags({ data: { businessId } }),
+  });
+
+  const [impersonationReason, setImpersonationReason] = useState("");
+  const [flagReason, setFlagReason] = useState("");
+  const [billingExempt, setBillingExempt] = useState(false);
+  const [onlineShopEnabled, setOnlineShopEnabled] = useState(true);
+  const [smsNotifications, setSmsNotifications] = useState(false);
+  const [courierManualMode, setCourierManualMode] = useState(true);
+  const [flagNotes, setFlagNotes] = useState("");
+
+  useEffect(() => {
+    if (!flags.data) return;
+    setBillingExempt(flags.data.billingExempt);
+    setOnlineShopEnabled(flags.data.onlineShopEnabled);
+    setSmsNotifications(flags.data.smsNotifications);
+    setCourierManualMode(flags.data.courierManualMode);
+    setFlagNotes(flags.data.notes);
+  }, [flags.data]);
+
+  const impersonate = useMutation({
+    mutationFn: () =>
+      startImpersonation({
+        data: {
+          businessId,
+          reason: impersonationReason.trim(),
+        },
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      navigate({ to: "/dashboard" });
+    },
+  });
+
+  const saveFlagsMutation = useMutation({
+    mutationFn: () =>
+      saveFlags({
+        data: {
+          businessId,
+          billingExempt,
+          onlineShopEnabled,
+          smsNotifications,
+          courierManualMode,
+          notes: flagNotes,
+          reason: flagReason.trim() || "Updated tenant feature flags",
+        },
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-business-flags", businessId] });
+      setFlagReason("");
+    },
   });
 
   if (detail.isLoading) {
@@ -69,6 +138,91 @@ function AdminBusinessDetailPage() {
           </Button>
         ) : null}
       </div>
+
+      <section className="surface space-y-3 p-4">
+        <h2 className="text-sm font-semibold">Support impersonation</h2>
+        <p className="text-sm text-muted-foreground">
+          Opens the merchant dashboard as this tenant (read-only). Every start/end is written to the
+          platform audit log.
+        </p>
+        <Label htmlFor="impersonation-reason">Reason (required)</Label>
+        <Input
+          id="impersonation-reason"
+          value={impersonationReason}
+          onChange={(event) => setImpersonationReason(event.target.value)}
+          placeholder="Ticket #1234 — checkout issue"
+        />
+        {impersonate.isError ? (
+          <p className="text-sm text-destructive">
+            {readableError(impersonate.error as Error, "Could not start support view.")}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          disabled={impersonate.isPending || impersonationReason.trim().length < 3}
+          onClick={() => impersonate.mutate()}
+        >
+          Open merchant dashboard (read-only)
+        </Button>
+      </section>
+
+      <section className="surface space-y-3 p-4">
+        <h2 className="text-sm font-semibold">Tenant feature flags</h2>
+        {flags.isLoading ? <Skeleton className="h-24" /> : null}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={billingExempt} onCheckedChange={(v) => setBillingExempt(v === true)} />
+            Billing exempt (treat like platform owner for entitlements)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={onlineShopEnabled}
+              onCheckedChange={(v) => setOnlineShopEnabled(v === true)}
+            />
+            Online shop enabled
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={smsNotifications}
+              onCheckedChange={(v) => setSmsNotifications(v === true)}
+            />
+            SMS notifications (placeholder — manual ops)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={courierManualMode}
+              onCheckedChange={(v) => setCourierManualMode(v === true)}
+            />
+            Courier manual mode
+          </label>
+        </div>
+        <Label htmlFor="flag-notes">Internal notes</Label>
+        <Textarea
+          id="flag-notes"
+          rows={3}
+          value={flagNotes}
+          onChange={(event) => setFlagNotes(event.target.value)}
+        />
+        <Label htmlFor="flag-reason">Audit reason</Label>
+        <Input
+          id="flag-reason"
+          value={flagReason}
+          onChange={(event) => setFlagReason(event.target.value)}
+        />
+        {saveFlagsMutation.isError ? (
+          <p className="text-sm text-destructive">
+            {readableError(saveFlagsMutation.error as Error, "Could not save flags.")}
+          </p>
+        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          disabled={saveFlagsMutation.isPending}
+          onClick={() => saveFlagsMutation.mutate()}
+        >
+          Save feature flags
+        </Button>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[

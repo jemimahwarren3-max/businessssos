@@ -21,24 +21,48 @@ The operator console lives at **`/admin`**. It is not linked from the merchant a
 | Path | Purpose |
 | ---- | ------- |
 | `/admin` | KPIs, plan mix, runtime summary |
-| `/admin/businesses` | Search tenants, plan, shop status |
+| `/admin/businesses` | Search tenants, plan, shop status, **CSV export** |
 | `/admin/stores` | All storefronts, templates, order counts |
 | `/admin/orders` | Recent shop checkout orders (read-only) |
 | `/admin/billing` | Subscription overrides, ZiG display FX, Paynow payment log |
 | `/admin/personalize` | Merchant-wide banner message |
 | `/admin/system` | `platform_runtime.billing_enforced` toggle |
-| `/admin/businesses/{id}` | Tenant detail: team emails, orders, subscription |
+| `/admin/businesses/{id}` | Tenant detail, **support impersonation**, **feature flags** |
 | `/admin/communications` | Email outbox stats, manual flush |
 | `/admin/integrations` | Seller Paynow live gate |
+| `/admin/operations` | **Courier & SMS** manual runbooks (no API yet) |
 | `/admin/health` | Resend, Paynow keys, env flags (no secrets) |
 | `/admin/audit` | Platform + subscription override audit |
 
-## Database migration
+## Database migrations
 
-Apply `supabase/migrations/20261027120000_admin_console_rpcs.sql` for listings, announcement columns, and runtime RPCs.
+Apply migrations:
+
+- `20261027120000_admin_console_rpcs.sql`
+- `20261027140000_admin_console_phase2.sql`
+- `20261027160000_admin_console_phase3.sql` (impersonation, tenant flags, CSV export, ops notes)
+
+## Support impersonation
+
+From **Business detail → Open merchant dashboard (read-only)**:
+
+- Creates a time-boxed session (default 60 minutes, max 4 hours) audited in `platform_admin_audit`.
+- Postgres extends **read** access via `is_business_member` for that tenant only; **writes are blocked** in Node (`assertCanWrite` / `assertCanOperate`) and the UI shows a red banner with **End support view**.
+- The admin’s own workspace cache is cleared so `/dashboard` loads the impersonated tenant.
+
+## Tenant feature flags
+
+Per-business row in `business_feature_flags`:
+
+| Flag | Effect |
+| ---- | ------ |
+| `billing_exempt` | Same entitlement bypass as platform owner for that tenant (Node billing gates). |
+| `online_shop_enabled` | When false, publish storefront is rejected server-side. |
+| `sms_notifications` | Placeholder for future SMS; documented in `/admin/operations`. |
+| `courier_manual_mode` | Placeholder for manual courier workflow. |
 
 ## Security notes
 
 - Admin RPCs are **`service_role` only**; the Node layer checks `platform_admin_access` + MFA before calling them.
-- Subscription overrides write to `admin_audit_log`; runtime and banner changes write to `platform_admin_audit`.
-- This console does **not** expose full merchant PII exports — use per-business export inside the tenant app when authorized.
+- Subscription overrides write to `admin_audit_log`; runtime, banner, impersonation, flags, and CSV export write to `platform_admin_audit`.
+- Impersonation is **read-only** by design — do not disable server-side write guards.

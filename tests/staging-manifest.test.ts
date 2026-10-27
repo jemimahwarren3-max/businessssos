@@ -20,6 +20,7 @@ const FILES = [
   "20261026180000_billing_rpc_enforcement.sql",
   "20261027120000_admin_console_rpcs.sql",
   "20261027140000_admin_console_phase2.sql",
+  "20261027160000_admin_console_phase3.sql",
 ];
 
 describe("staging migration manifest", () => {
