@@ -47,6 +47,7 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261027161000_platform_runtime_admin_columns.sql" },
   { file: "20261027170000_location_management_rpcs.sql" },
   { file: "20261027180000_store_launch_eligibility.sql" },
+  { file: "20261027200000_customer_marketplace_hardening.sql" },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

@@ -194,6 +194,8 @@ export const marketplaceProductSchema = z.object({
 export const marketplaceSchema = z.object({
   query: z.string(),
   category: z.string(),
+  offset: z.coerce.number().int().min(0).catch(0),
+  hasMore: z.boolean().catch(false),
   shops: z.array(
     z.object({
       slug: z.string(),
@@ -221,6 +223,8 @@ export type Marketplace = z.infer<typeof marketplaceSchema>;
 export const EMPTY_MARKETPLACE: Marketplace = {
   query: "",
   category: "",
+  offset: 0,
+  hasMore: false,
   shops: [],
   products: [],
   categories: [],

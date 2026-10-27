@@ -75,6 +75,7 @@ import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalRefundsRouteImport } from './routes/legal.refunds'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
+import { Route as MarketCartsRouteImport } from './routes/market.carts'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
@@ -426,6 +427,11 @@ const LegalTermsRoute = LegalTermsRouteImport.update({
   path: '/legal/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketCartsRoute = MarketCartsRouteImport.update({
+  id: '/carts',
+  path: '/carts',
+  getParentRoute: () => MarketRoute,
+} as any)
 const StoreSlugRoute = StoreSlugRouteImport.update({
   id: '/store/$slug',
   path: '/store/$slug',
@@ -524,7 +530,7 @@ export interface FileRoutesByFullPath {
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
+  '/market': typeof MarketRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -580,6 +586,7 @@ export interface FileRoutesByFullPath {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/refunds': typeof LegalRefundsRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/market/carts': typeof MarketCartsRoute
   '/store/$slug': typeof StoreSlugRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
@@ -606,7 +613,7 @@ export interface FileRoutesByTo {
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
+  '/market': typeof MarketRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -662,6 +669,7 @@ export interface FileRoutesByTo {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/refunds': typeof LegalRefundsRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/market/carts': typeof MarketCartsRoute
   '/admin': typeof AdminIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
@@ -690,7 +698,7 @@ export interface FileRoutesById {
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
+  '/market': typeof MarketRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -746,6 +754,7 @@ export interface FileRoutesById {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/refunds': typeof LegalRefundsRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/market/carts': typeof MarketCartsRoute
   '/store/$slug': typeof StoreSlugRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
@@ -831,6 +840,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/refunds'
     | '/legal/terms'
+    | '/market/carts'
     | '/store/$slug'
     | '/admin/'
     | '/settings/account'
@@ -913,6 +923,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/refunds'
     | '/legal/terms'
+    | '/market/carts'
     | '/admin'
     | '/settings/account'
     | '/settings/audit-log'
@@ -996,6 +1007,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/refunds'
     | '/legal/terms'
+    | '/market/carts'
     | '/store/$slug'
     | '/admin/'
     | '/_authenticated/settings/account'
@@ -1025,7 +1037,7 @@ export interface RootRouteChildren {
   FeaturesRoute: typeof FeaturesRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
-  MarketRoute: typeof MarketRoute
+  MarketRoute: typeof MarketRouteWithChildren
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -1510,6 +1522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/market/carts': {
+      id: '/market/carts'
+      path: '/carts'
+      fullPath: '/market/carts'
+      preLoaderRoute: typeof MarketCartsRouteImport
+      parentRoute: typeof MarketRoute
+    }
     '/store/$slug': {
       id: '/store/$slug'
       path: '/store/$slug'
@@ -1756,6 +1775,17 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface MarketRouteChildren {
+  MarketCartsRoute: typeof MarketCartsRoute
+}
+
+const MarketRouteChildren: MarketRouteChildren = {
+  MarketCartsRoute: MarketCartsRoute,
+}
+
+const MarketRouteWithChildren =
+  MarketRoute._addFileChildren(MarketRouteChildren)
+
 interface StoreSlugRouteChildren {
   StoreSlugAccountRoute: typeof StoreSlugAccountRoute
   StoreSlugCartRoute: typeof StoreSlugCartRoute
@@ -1790,7 +1820,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeaturesRoute: FeaturesRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
-  MarketRoute: MarketRoute,
+  MarketRoute: MarketRouteWithChildren,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,

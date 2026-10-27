@@ -504,18 +504,29 @@ export async function submitOrderPaymentNote(input: {
   return withProofUrl(await parseRpc("submit payment note", result, customerOrderSchema));
 }
 
+const MARKETPLACE_PAGE_SIZE = 24;
+
 export async function loadMarketplace(input: {
   query?: string | undefined;
   category?: string | undefined;
+  offset?: number | undefined;
 }): Promise<Marketplace> {
+  const offset = Math.max(0, Math.min(input.offset ?? 0, 2000));
   const supabase = createAnonClient();
   const result = await supabase.rpc("browse_marketplace", {
     _query: input.query ?? "",
     _category: input.category ?? "",
-    _limit: 24,
-    _offset: 0,
+    _limit: MARKETPLACE_PAGE_SIZE,
+    _offset: offset,
   });
-  return parseRpc("browse marketplace", result, marketplaceSchema);
+  const market = await parseRpc("browse marketplace", result, marketplaceSchema);
+  const filtering = Boolean(market.query || market.category);
+  const productCount = filtering ? market.products.length : market.products.length;
+  return {
+    ...market,
+    offset,
+    hasMore: filtering && productCount >= MARKETPLACE_PAGE_SIZE,
+  };
 }
 
 export async function loadMarketplaceListing(

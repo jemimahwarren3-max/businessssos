@@ -98,6 +98,7 @@ export const getMarketplaceFn = createServerFn({ method: "POST" })
       z.object({
         query: z.string().max(80).optional(),
         category: z.string().max(80).optional(),
+        offset: z.coerce.number().int().min(0).max(2000).optional(),
       }),
       data,
     ),
