@@ -110,7 +110,15 @@ function OrderPage() {
       {order ? (
         <div className="mt-6 space-y-3 text-sm">
           <p>{STATUS_COPY[order.fulfilmentStatus] ?? order.fulfilmentStatus}</p>
+          <p>{STATUS_COPY[order.paymentStatus] ?? order.paymentStatus}</p>
           <OrderReceipt order={order} audience="customer" />
+          {order.events && order.events.length > 0 ? (
+            <ul className="space-y-1 rounded-md border p-3 text-muted-foreground">
+              {order.events.map((event) => (
+                <li key={event.createdAt + event.eventType}>{event.message}</li>
+              ))}
+            </ul>
+          ) : null}
           {order.paymentMethod === "manual" &&
           !order.paid &&
           order.paymentStatus !== "cancelled" ? (

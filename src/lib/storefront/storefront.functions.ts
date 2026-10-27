@@ -46,6 +46,7 @@ import {
   respondStoreComplaint,
   respondToStoreReview,
   saveListing,
+  saveSellerOrderNote,
   saveStorefront,
   setProductCategory,
   setMarketplaceVisible,
@@ -356,6 +357,22 @@ export const getAdminOrderFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) =>
     loadAdminOrder(context.supabase as Db, data.businessId, data.orderId),
+  );
+
+export const saveSellerOrderNoteFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        orderId: z.string().uuid(),
+        note: z.string().max(2000),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    saveSellerOrderNote(context.supabase as Db, data.businessId, data.orderId, data.note),
   );
 
 export const transitionOrderFn = createServerFn({ method: "POST" })

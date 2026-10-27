@@ -416,6 +416,21 @@ export async function loadAdminOrder(
   return withProofUrl(await parseRpc("load online order", result, adminOrderSchema));
 }
 
+export async function saveSellerOrderNote(
+  supabase: Db,
+  businessId: string,
+  orderId: string,
+  note: string,
+): Promise<AdminOrder> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "save_store_order_seller_note", {
+    _business_id: businessId,
+    _order_id: orderId,
+    _note: note,
+  });
+  return withProofUrl(await parseRpc("save seller order note", result, adminOrderSchema));
+}
+
 export async function transitionOrder(
   supabase: Db,
   businessId: string,
@@ -444,7 +459,8 @@ export async function transitionOrder(
           _business_id: businessId,
           _order_id: orderId,
           _action: action,
-        });
+          _reason: reason ?? null,
+        } as never);
   const parsed = withProofUrl(await parseRpc("update online order", result, adminOrderSchema));
   await flushNotificationOutboxForBusiness(supabase, businessId);
   return parsed;
