@@ -1,0 +1,259 @@
+name: Deploy Cloud Run
+
+# Merged PRs: CI on master must pass, then this job runs (called from ci.yml).
+# First time, or a retry: Actions → Deploy Cloud Run → Run workflow.
+# This creates/updates the Cloud Run service. Do not use the GCP "Create
+# service" console. Production Postgres is never selected here.
+
+on:
+  workflow_call:
+    inputs:
+      region:
+        type: string
+        required: false
+        default: europe-west1
+      service:
+        type: string
+        required: false
+        default: kwetuu
+  workflow_dispatch:
+    inputs:
+      region:
+        description: Cloud Run region
+        required: true
+        default: europe-west1
+      service:
+        description: Cloud Run service name
+        required: true
+        default: kwetuu
+
+concurrency:
+  group: cloud-run-kwetuu
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Google login secrets
+        env:
+          WIF: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${WIF}" ]; then
+            echo "GCP_WORKLOAD_IDENTITY_PROVIDER is empty."
+            echo "Repo Settings → Secrets and variables → Actions → Repository secrets (not Variables, not Environment secrets)."
+            echo "Name must be exactly GCP_WORKLOAD_IDENTITY_PROVIDER"
+            echo "Value: projects/790217146223/locations/global/workloadIdentityPools/kwetuu/providers/github"
+            missing=1
+          fi
+          if [ -z "${SA}" ]; then
+            echo "GCP_SERVICE_ACCOUNT is empty. Value: kwetuu@mykwetuu.iam.gserviceaccount.com"
+            missing=1
+          fi
+          if [ -z "${PROJECT}" ]; then
+            echo "GCP_PROJECT_ID is empty. Value: mykwetuu"
+            missing=1
+          fi
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Google login secrets are present."
+
+      # JSON keys are blocked on many Google orgs
+      # (iam.disableServiceAccountKeyCreation). GitHub logs in with
+      # Workload Identity Federation instead.
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          # GA `gcloud run domain-mappings` is Cloud Run for Anthos and
+          # rejects --region. Fully managed mappings are the beta command.
+          install_components: beta
+
+      - name: Configure Docker for Artifact Registry
+        env:
+          REGION: ${{ inputs.region }}
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build image
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ inputs.region }}
+          SERVICE: ${{ inputs.service }}
+          APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PROJECT:-}" ] || [ -z "${APP_URL:-}" ] || [ -z "${VITE_SUPABASE_URL:-}" ]; then
+            echo "Missing GCP_PROJECT_ID, APP_URL (or STAGING_APP_URL), or staging Supabase secrets."
+            exit 1
+          fi
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/kwetuu/${SERVICE}:${GITHUB_SHA}"
+          docker build \
+            --build-arg "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" \
+            --build-arg "VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}" \
+            --build-arg "VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}" \
+            --build-arg "APP_URL=${APP_URL}" \
+            --build-arg "SHOP_HOSTS=true" \
+            --tag "${IMAGE}" \
+            .
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+
+      - name: Push image
+        run: docker push "${IMAGE}"
+
+      # Secret Manager mounts need secretAccessor on the Cloud Run runtime
+      # SA. The GitHub deploy SA cannot grant that (setIamPolicy 403). So
+      # SESSION_SECRET and SUPABASE_SERVICE_ROLE_KEY come from GitHub
+      # Actions repository secrets and are set as Cloud Run env vars.
+      - name: Deploy Cloud Run
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ inputs.region }}
+          SERVICE: ${{ inputs.service }}
+          APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL || 'Kwetuu <noreply@mykwetuu.com>' }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FLUSH_SECRET: ${{ secrets.MAIL_FLUSH_SECRET }}
+          SHOP_PAYMENT_ENCRYPTION_KEY: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY }}
+          SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS }}
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${SESSION_SECRET:-}" ]; then
+            echo "GitHub secret SESSION_SECRET is empty."
+            echo "Repo Settings → Secrets and variables → Actions → New repository secret"
+            echo "Name: SESSION_SECRET"
+            echo "Value: at least 32 random characters (same value as Secret Manager if you already made one)."
+            missing=1
+          fi
+          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "GitHub secret SUPABASE_SERVICE_ROLE_KEY is empty."
+            echo "Name: SUPABASE_SERVICE_ROLE_KEY"
+            echo "Value: staging service_role key from Supabase → Settings → API (not the publishable key)."
+            missing=1
+          fi
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os, pathlib
+          pairs = {
+              "NODE_ENV": "production",
+              "HOST": "0.0.0.0",
+              "SHOP_HOSTS": "true",
+              "BILLING_ENABLED": "false",
+              "APP_URL": os.environ["APP_URL"],
+              "SUPABASE_URL": os.environ["STAGING_SUPABASE_URL"],
+              "SUPABASE_PUBLISHABLE_KEY": os.environ["STAGING_SUPABASE_PUBLISHABLE_KEY"],
+              "SUPABASE_PROJECT_ID": os.environ["STAGING_SUPABASE_PROJECT_ID"],
+              "SESSION_SECRET": os.environ["SESSION_SECRET"],
+              "SUPABASE_SERVICE_ROLE_KEY": os.environ["SUPABASE_SERVICE_ROLE_KEY"],
+          }
+          notify = os.environ.get("NOTIFY_FROM_EMAIL") or ""
+          if notify:
+              pairs["NOTIFY_FROM_EMAIL"] = notify
+          resend = os.environ.get("RESEND_API_KEY") or ""
+          if resend:
+              pairs["RESEND_API_KEY"] = resend
+          mail_flush = os.environ.get("MAIL_FLUSH_SECRET") or ""
+          if mail_flush:
+              pairs["MAIL_FLUSH_SECRET"] = mail_flush
+          payment_key = os.environ.get("SHOP_PAYMENT_ENCRYPTION_KEY") or ""
+          if payment_key:
+              pairs["SHOP_PAYMENT_ENCRYPTION_KEY"] = payment_key
+          payment_key_previous = os.environ.get("SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS") or ""
+          if payment_key_previous:
+              pairs["SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS"] = payment_key_previous
+          path = pathlib.Path("/tmp/kwetuu-run-env.yaml")
+          with path.open("w", encoding="utf-8") as fh:
+              for key, value in pairs.items():
+                  fh.write(f"{key}: {json.dumps(value)}\n")
+          print("Wrote Cloud Run env file (values not printed).")
+          PY
+          # Failed revisions bound SESSION_SECRET as a Secret Manager ref.
+          # gcloud cannot change that to a string literal in place. Delete
+          # only when those mounts are present (no live traffic yet).
+          if gcloud run services describe "${SERVICE}" \
+            --project "${PROJECT}" \
+            --region "${REGION}" >/dev/null 2>&1; then
+            if gcloud run services describe "${SERVICE}" \
+              --project "${PROJECT}" \
+              --region "${REGION}" \
+              --format=json | python3 -c 'import json,sys; spec=json.load(sys.stdin); env=(spec.get("spec") or {}).get("template",{}).get("spec",{}).get("containers",[{}])[0].get("env") or []; sys.exit(0 if any("valueFrom" in e for e in env) else 1)'; then
+              echo "Deleting incomplete Cloud Run service ${SERVICE} to drop secret mounts."
+              gcloud run services delete "${SERVICE}" \
+                --project "${PROJECT}" \
+                --region "${REGION}" \
+                --quiet
+            fi
+          fi
+          gcloud run deploy "${SERVICE}" \
+            --project "${PROJECT}" \
+            --region "${REGION}" \
+            --image "${IMAGE}" \
+            --allow-unauthenticated \
+            --port 8080 \
+            --cpu 1 \
+            --memory 512Mi \
+            --min-instances 0 \
+            --max-instances 3 \
+            --timeout 60 \
+            --env-vars-file /tmp/kwetuu-run-env.yaml
+          echo "Service URL printed by gcloud above. Keep GitHub APP_URL=https://mykwetuu.com."
+
+      - name: Map mykwetuu.com
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ inputs.region }}
+          SERVICE: ${{ inputs.service }}
+        run: |
+          set -euo pipefail
+          for domain in mykwetuu.com www.mykwetuu.com; do
+            if gcloud beta run domain-mappings describe --domain "${domain}" \
+              --project "${PROJECT}" --region "${REGION}" >/dev/null 2>&1; then
+              echo "Domain mapping already exists: ${domain}"
+            else
+              echo "Creating domain mapping ${domain} → ${SERVICE}"
+              if ! gcloud beta run domain-mappings create \
+                --project "${PROJECT}" \
+                --region "${REGION}" \
+                --service "${SERVICE}" \
+                --domain "${domain}" \
+                --quiet; then
+                echo "Could not map ${domain}. Apex mykwetuu.com is the public URL; www needs Search Console verification for this GCP account."
+                continue
+              fi
+            fi
+            echo "==== ${domain} ===="
+            echo "Add these DNS records (DNS-only, not Cloudflare orange-cloud proxy):"
+            gcloud beta run domain-mappings describe --domain "${domain}" \
+              --project "${PROJECT}" \
+              --region "${REGION}" \
+              --format="yaml(status.resourceRecords,status.conditions)"
+          done
+          echo "Leave GitHub secret APP_URL as https://mykwetuu.com. Do not switch it to .run.app."
+          echo "When certificate Ready is True, https://mykwetuu.com is the public URL."
+          echo "Shop URLs are https://{slug}.mykwetuu.com. Cloud Run domain-mappings cannot bind *."
+          echo "Add a wildcard DNS record for *.mykwetuu.com (same target as the apex mapping),"
+          echo "then terminate TLS with Cloudflare on * or an HTTPS load balancer + wildcard cert."
+          echo "Supabase Auth redirect URLs should include https://*.mykwetuu.com/**"
