@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
 import { getCurrentUser, requestPasswordReset, signIn, signUp } from "@/lib/auth/auth.functions";
 import { readableError } from "@/lib/format";
+import { BRAND } from "@/lib/brand";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,14 +30,13 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Sign in | BusinessOS AI" },
+      { title: `Sign in | ${BRAND.name}` },
       {
         name: "description",
-        content:
-          "Sign in or create your BusinessOS AI account to manage inventory, sales and invoices.",
+        content: `Sign in or create a ${BRAND.name} account to open a shop and run the till.`,
       },
-      { property: "og:title", content: "Sign in | BusinessOS AI" },
-      { property: "og:description", content: "Access your BusinessOS AI workspace." },
+      { property: "og:title", content: `Sign in | ${BRAND.name}` },
+      { property: "og:description", content: `Access your ${BRAND.name} workspace.` },
     ],
   }),
   component: AuthPage,
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const { mode, redirect } = Route.useSearch();
-  const destination = redirect ?? "/dashboard";
+  const destination = redirect ?? (mode === "signup" ? "/onboarding" : "/dashboard");
   const navigate = useNavigate();
   const fetchCurrentUser = useServerFn(getCurrentUser);
   const signInFn = useServerFn(signIn);
