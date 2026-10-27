@@ -307,257 +307,259 @@ export function AppShell({
 
   return (
     <TooltipProvider delayDuration={350}>
-    <div className="min-h-screen bg-background">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
-      >
-        Skip to main content
-      </a>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
-        <div className="px-5 py-4">
-          <Logo to="/dashboard" className="[&_img]:ml-0 [&_img]:h-10 [&_img]:my-0" />
-        </div>
-        <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-2" aria-label="Main">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {group.label}
-              </p>
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const active = pathname.startsWith(item.to);
-                  const hint = MAIN_NAV_HINTS[item.to] ?? "";
-                  return (
-                    <HintTooltip key={item.to} hint={hint} side="right">
-                      <Link
-                        to={item.to}
-                        title={hint}
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                          active
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/60",
-                        )}
-                      >
-                        <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
-                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                        {item.showLaunchBadge && launchBadge ? (
-                          <Badge
-                            variant="outline"
-                            className="max-w-[7rem] shrink-0 truncate px-1.5 py-0 text-[10px] font-medium"
-                          >
-                            {launchBadge}
-                          </Badge>
-                        ) : null}
-                      </Link>
-                    </HintTooltip>
-                  );
-                })}
+      <div className="min-h-screen bg-background">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+        >
+          Skip to main content
+        </a>
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+          <div className="px-5 py-4">
+            <Logo to="/dashboard" className="[&_img]:ml-0 [&_img]:h-10 [&_img]:my-0" />
+          </div>
+          <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-2" aria-label="Main">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const active = pathname.startsWith(item.to);
+                    const hint = MAIN_NAV_HINTS[item.to] ?? "";
+                    return (
+                      <HintTooltip key={item.to} hint={hint} side="right">
+                        <Link
+                          to={item.to}
+                          title={hint}
+                          className={cn(
+                            "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                            active
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent/60",
+                          )}
+                        >
+                          <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
+                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          {item.showLaunchBadge && launchBadge ? (
+                            <Badge
+                              variant="outline"
+                              className="max-w-[7rem] shrink-0 truncate px-1.5 py-0 text-[10px] font-medium"
+                            >
+                              {launchBadge}
+                            </Badge>
+                          ) : null}
+                        </Link>
+                      </HintTooltip>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </nav>
-        <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
-          {(
-            [
-              { to: "/settings/team", label: "Team", icon: Users },
-              { to: "/cash-drawer", label: "Cash drawer", icon: Wallet },
-              { to: "/time-clock", label: "Time clock", icon: Clock },
-              { to: "/settings/payments", label: "Payments", icon: CreditCard },
-              { to: "/settings/billing", label: "Billing", icon: Settings },
-              { to: "/settings/data", label: "Export data", icon: Download },
-              { to: "/settings/audit-log", label: "Audit log", icon: History },
-              { to: "/settings/account", label: "Account", icon: UserX },
-              { to: "/help", label: "Help", icon: HelpCircle },
-            ] as const
-          ).map(({ to, label, icon: Icon }) => {
-            const hint = SECONDARY_NAV_HINTS[to] ?? "";
-            return (
-              <HintTooltip key={to} hint={hint} side="right">
-                <Link
-                  to={to}
-                  title={hint}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-                >
-                  <Icon className="size-4.5" aria-hidden="true" /> {label}
-                </Link>
-              </HintTooltip>
-            );
-          })}
-          <button
-            onClick={signOut}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <LogOut className="size-4.5" aria-hidden="true" /> Sign out
-          </button>
-        </div>
-      </aside>
-
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
-          <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-            <div className="flex min-w-0 items-center gap-2 lg:hidden">
-              <Logo to="/dashboard" className="shrink-0 [&_img]:ml-0 [&_img]:h-9 [&_img]:my-0" />
-              <span className="truncate text-sm font-semibold">{businessName}</span>
-            </div>
-            <div className="hidden min-w-0 items-center gap-2 lg:flex">
-              <span className="truncate text-sm font-semibold">{businessName}</span>
-              <HintTooltip hint={HEADER_HINTS.role} side="bottom">
-                <Badge variant="secondary" className="shrink-0 cursor-default">
-                  {ROLE_LABEL[role] ?? role}
-                </Badge>
-              </HintTooltip>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => setQuickAddOpen(true)}
-                >
-                  <Wand2 className="size-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Quick add</span>
-                </Button>
-              </HintTooltip>
-              <NotificationsBell businessId={workspace.data?.business.id} />
-              {billingEnabled ? (
-                <HintTooltip hint={HEADER_HINTS.plan} side="bottom">
-                  <Link to="/settings/billing" className="hidden sm:inline-flex">
-                    <Badge variant="outline" className="cursor-default capitalize">
-                      {plan} plan
-                    </Badge>
+            ))}
+          </nav>
+          <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
+            {(
+              [
+                { to: "/settings/team", label: "Team", icon: Users },
+                { to: "/cash-drawer", label: "Cash drawer", icon: Wallet },
+                { to: "/time-clock", label: "Time clock", icon: Clock },
+                { to: "/settings/payments", label: "Payments", icon: CreditCard },
+                { to: "/settings/billing", label: "Billing", icon: Settings },
+                { to: "/settings/data", label: "Export data", icon: Download },
+                { to: "/settings/audit-log", label: "Audit log", icon: History },
+                { to: "/settings/account", label: "Account", icon: UserX },
+                { to: "/help", label: "Help", icon: HelpCircle },
+              ] as const
+            ).map(({ to, label, icon: Icon }) => {
+              const hint = SECONDARY_NAV_HINTS[to] ?? "";
+              return (
+                <HintTooltip key={to} hint={hint} side="right">
+                  <Link
+                    to={to}
+                    title={hint}
+                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+                  >
+                    <Icon className="size-4.5" aria-hidden="true" /> {label}
                   </Link>
                 </HintTooltip>
-              ) : null}
-              <DropdownMenu>
-                <HintTooltip hint={HEADER_HINTS.account} side="bottom">
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-1">
-                      Account <ChevronDown className="size-4" aria-hidden="true" />
-                    </Button>
-                  </DropdownMenuTrigger>
+              );
+            })}
+            <button
+              onClick={signOut}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+            >
+              <LogOut className="size-4.5" aria-hidden="true" /> Sign out
+            </button>
+          </div>
+        </aside>
+
+        <div className="lg:pl-60">
+          <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
+            <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2 lg:hidden">
+                <Logo to="/dashboard" className="shrink-0 [&_img]:ml-0 [&_img]:h-9 [&_img]:my-0" />
+                <span className="truncate text-sm font-semibold">{businessName}</span>
+              </div>
+              <div className="hidden min-w-0 items-center gap-2 lg:flex">
+                <span className="truncate text-sm font-semibold">{businessName}</span>
+                <HintTooltip hint={HEADER_HINTS.role} side="bottom">
+                  <Badge variant="secondary" className="shrink-0 cursor-default">
+                    {ROLE_LABEL[role] ?? role}
+                  </Badge>
                 </HintTooltip>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{ROLE_LABEL[role] ?? role}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={signOut}>
-                    <LogOut className="size-4" aria-hidden="true" /> Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setQuickAddOpen(true)}
+                  >
+                    <Wand2 className="size-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">Quick add</span>
+                  </Button>
+                </HintTooltip>
+                <NotificationsBell businessId={workspace.data?.business.id} />
+                {billingEnabled ? (
+                  <HintTooltip hint={HEADER_HINTS.plan} side="bottom">
+                    <Link to="/settings/billing" className="hidden sm:inline-flex">
+                      <Badge variant="outline" className="cursor-default capitalize">
+                        {plan} plan
+                      </Badge>
+                    </Link>
+                  </HintTooltip>
+                ) : null}
+                <DropdownMenu>
+                  <HintTooltip hint={HEADER_HINTS.account} side="bottom">
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        Account <ChevronDown className="size-4" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </HintTooltip>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{ROLE_LABEL[role] ?? role}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={signOut}>
+                      <LogOut className="size-4" aria-hidden="true" /> Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {workspace.data?.isImpersonating ? (
-          <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2.5 text-[13px] text-foreground">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
-              <span>
-                <span className="font-semibold text-destructive">Support view (read-only): </span>
-                viewing {workspace.data.impersonationBusinessName ?? workspace.data.business.name}.
-                Expires{" "}
-                {workspace.data.impersonationExpiresAt
-                  ? new Date(workspace.data.impersonationExpiresAt).toLocaleString()
-                  : "soon"}
-                .
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={stopImpersonation.isPending}
-                onClick={() => stopImpersonation.mutate()}
-              >
-                End support view
-              </Button>
+          {workspace.data?.isImpersonating ? (
+            <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2.5 text-[13px] text-foreground">
+              <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+                <span>
+                  <span className="font-semibold text-destructive">Support view (read-only): </span>
+                  viewing {workspace.data.impersonationBusinessName ?? workspace.data.business.name}
+                  . Expires{" "}
+                  {workspace.data.impersonationExpiresAt
+                    ? new Date(workspace.data.impersonationExpiresAt).toLocaleString()
+                    : "soon"}
+                  .
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={stopImpersonation.isPending}
+                  onClick={() => stopImpersonation.mutate()}
+                >
+                  End support view
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {platformAnnouncement.data?.enabled && platformAnnouncement.data.message ? (
-          <div className="border-b border-primary/25 bg-primary/10 px-4 py-2.5 text-[13px] text-foreground">
-            <div className="mx-auto max-w-6xl">
-              <span className="font-medium text-primary">Kwetuu: </span>
-              {platformAnnouncement.data.message}
+          {platformAnnouncement.data?.enabled && platformAnnouncement.data.message ? (
+            <div className="border-b border-primary/25 bg-primary/10 px-4 py-2.5 text-[13px] text-foreground">
+              <div className="mx-auto max-w-6xl">
+                <span className="font-medium text-primary">Kwetuu: </span>
+                {platformAnnouncement.data.message}
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {isReadOnly ? (
-          <div className="border-b border-warning/30 bg-warning-soft px-4 py-2.5 text-[13px] text-warning-foreground">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5">
-                <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-                Your trial has ended. You can still view everything, but upgrade to keep creating
-                and editing.
-              </span>
-              <Link
-                to="/settings/billing"
-                className="shrink-0 font-semibold underline underline-offset-2"
-              >
-                Upgrade now
-              </Link>
+          {isReadOnly ? (
+            <div className="border-b border-warning/30 bg-warning-soft px-4 py-2.5 text-[13px] text-warning-foreground">
+              <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5">
+                  <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+                  Your trial has ended. You can still view everything, but upgrade to keep creating
+                  and editing.
+                </span>
+                <Link
+                  to="/settings/billing"
+                  className="shrink-0 font-semibold underline underline-offset-2"
+                >
+                  Upgrade now
+                </Link>
+              </div>
             </div>
-          </div>
-        ) : isOperateLocked && billingEnabled ? (
-          <div className="border-b border-primary/20 bg-primary/5 px-4 py-2.5 text-[13px] text-foreground">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
-              <span>
-                Setup is free. Pay for Pro when you are ready to publish your shop or use the sales
-                counter.
-              </span>
-              <Link
-                to="/settings/billing"
-                className="shrink-0 font-semibold text-primary underline underline-offset-2"
-              >
-                Go to billing
-              </Link>
+          ) : isOperateLocked && billingEnabled ? (
+            <div className="border-b border-primary/20 bg-primary/5 px-4 py-2.5 text-[13px] text-foreground">
+              <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+                <span>
+                  Setup is free. Pay for Pro when you are ready to publish your shop or use the
+                  sales counter.
+                </span>
+                <Link
+                  to="/settings/billing"
+                  className="shrink-0 font-semibold text-primary underline underline-offset-2"
+                >
+                  Go to billing
+                </Link>
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <main id="main-content" className="mx-auto max-w-6xl px-4 pb-28 pt-6 lg:pb-12">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="truncate text-2xl font-bold tracking-tight sm:text-[28px]">{title}</h1>
-              {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+          <main id="main-content" className="mx-auto max-w-6xl px-4 pb-28 pt-6 lg:pb-12">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-bold tracking-tight sm:text-[28px]">
+                  {title}
+                </h1>
+                {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+              </div>
+              {actions ? <div className="flex shrink-0 gap-2">{actions}</div> : null}
             </div>
-            {actions ? <div className="flex shrink-0 gap-2">{actions}</div> : null}
-          </div>
-          <div className="mt-6">{children}</div>
-        </main>
-      </div>
-
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur lg:hidden"
-        aria-label="Primary"
-      >
-        <div className="grid grid-cols-4">
-          {MOBILE_NAV.map((item) => {
-            const active = pathname.startsWith(item.to);
-            const hint = MAIN_NAV_HINTS[item.to] ?? "";
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                title={hint}
-                className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
-                  active ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <item.icon className="size-5" aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
+            <div className="mt-6">{children}</div>
+          </main>
         </div>
-      </nav>
 
-      <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
-    </div>
+        <nav
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur lg:hidden"
+          aria-label="Primary"
+        >
+          <div className="grid grid-cols-4">
+            {MOBILE_NAV.map((item) => {
+              const active = pathname.startsWith(item.to);
+              const hint = MAIN_NAV_HINTS[item.to] ?? "";
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  title={hint}
+                  className={cn(
+                    "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
+                    active ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  <item.icon className="size-5" aria-hidden="true" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
+      </div>
     </TooltipProvider>
   );
 }

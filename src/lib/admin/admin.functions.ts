@@ -360,7 +360,9 @@ const featureFlagsSchema = z.object({
 export const setBusinessFeatureFlagsFn = createServerFn({ method: "POST" })
   .middleware(adminRateLimit)
   .inputValidator((data: unknown) => featureFlagsSchema.parse(data))
-  .handler(async ({ data, context }) => setBusinessFeatureFlagsAdmin(context.userId, context.tokens, data));
+  .handler(async ({ data, context }) =>
+    setBusinessFeatureFlagsAdmin(context.userId, context.tokens, data),
+  );
 
 export const waiveStoreLaunchFeeFn = createServerFn({ method: "POST" })
   .middleware(adminRateLimit)
@@ -395,9 +397,7 @@ export const setStorefrontSuspendedFn = createServerFn({ method: "POST" })
 
 export const listStorefrontLaunchPaymentsFn = createServerFn({ method: "POST" })
   .middleware(adminRateLimit)
-  .inputValidator((data: unknown) =>
-    z.object({ businessId: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ businessId: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) =>
     listStorefrontLaunchPaymentsAdmin(context.userId, context.tokens, data.businessId),
   );

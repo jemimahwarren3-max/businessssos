@@ -173,7 +173,11 @@ export function OnlineOrdersFulfilmentPanel({
             key={order.id}
             className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
           >
-            <button type="button" className="min-w-0 flex-1 text-left" onClick={() => openOrder(order.id)}>
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-left"
+              onClick={() => openOrder(order.id)}
+            >
               <span className="font-medium">{order.reference}</span> · {order.customerName}
               <span className="mt-1 block text-muted-foreground">
                 {friendlyDateTime(order.createdAt)} · {formatMoney(order.total, order.currency)}
@@ -224,8 +228,8 @@ export function OnlineOrdersFulfilmentPanel({
               <p className="whitespace-pre-wrap">Address: {selectedOrder.customerAddress}</p>
             ) : null}
             <p>
-              Delivery fee: {formatMoney(selectedOrder.deliveryFee, selectedOrder.currency)} · Total:{" "}
-              {formatMoney(selectedOrder.total, selectedOrder.currency)}
+              Delivery fee: {formatMoney(selectedOrder.deliveryFee, selectedOrder.currency)} ·
+              Total: {formatMoney(selectedOrder.total, selectedOrder.currency)}
             </p>
             {selectedOrder.collectAt ? (
               <p>Collection slot: {friendlyDateTime(selectedOrder.collectAt)}</p>
@@ -235,8 +239,8 @@ export function OnlineOrdersFulfilmentPanel({
             <div className="mt-3 space-y-2 rounded-md border p-3">
               <p className="font-medium">Courier (manual tracking)</p>
               <p className="text-xs text-muted-foreground">
-                Save provider details when you dispatch. Customers are notified when tracking changes;
-                this is not live GPS tracking.
+                Save provider details when you dispatch. Customers are notified when tracking
+                changes; this is not live GPS tracking.
               </p>
               <Input
                 placeholder="Courier or driver name"
@@ -375,8 +379,8 @@ export function OnlineOrdersFulfilmentPanel({
                   onChange={(event) => setCheckedAccount(event.target.checked)}
                 />
                 <span>
-                  I received {formatMoney(selectedOrder.total, selectedOrder.currency)} directly
-                  and checked my own account or received the cash.
+                  I received {formatMoney(selectedOrder.total, selectedOrder.currency)} directly and
+                  checked my own account or received the cash.
                 </span>
               </label>
               {selectedOrder.paymentMethod === "manual" ||

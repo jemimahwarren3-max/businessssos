@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+// @ts-expect-error staging-auth-config.mjs is plain Node ESM
 import { parseFromEmail } from "../scripts/staging-auth-config.mjs";
 
 describe("parseFromEmail", () => {

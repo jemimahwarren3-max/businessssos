@@ -116,7 +116,9 @@ export function FulfilmentSettingsFields(props: {
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => props.onCollectionPointsChange([...collectionPoints, newCollectionPoint()])}
+            onClick={() =>
+              props.onCollectionPointsChange([...collectionPoints, newCollectionPoint()])
+            }
           >
             Add location
           </Button>
@@ -215,11 +217,19 @@ export function FulfilmentSettingsFields(props: {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 Delivery fee
-                <Input className="mt-1" value={flatFee} onChange={(e) => props.onFlatFeeChange(e.target.value)} />
+                <Input
+                  className="mt-1"
+                  value={flatFee}
+                  onChange={(e) => props.onFlatFeeChange(e.target.value)}
+                />
               </label>
               <label className="block text-sm">
                 Free delivery over (optional)
-                <Input className="mt-1" value={freeOver} onChange={(e) => props.onFreeOverChange(e.target.value)} />
+                <Input
+                  className="mt-1"
+                  value={freeOver}
+                  onChange={(e) => props.onFreeOverChange(e.target.value)}
+                />
               </label>
             </div>
           ) : null}
@@ -238,11 +248,16 @@ export function FulfilmentSettingsFields(props: {
                 </Button>
               </div>
               {zones.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Add at least one enabled delivery area.</p>
+                <p className="text-xs text-muted-foreground">
+                  Add at least one enabled delivery area.
+                </p>
               ) : (
                 <ul className="space-y-3">
                   {zones.map((zone, index) => (
-                    <li key={zone.id} className="grid gap-2 rounded border p-3 text-sm sm:grid-cols-2">
+                    <li
+                      key={zone.id}
+                      className="grid gap-2 rounded border p-3 text-sm sm:grid-cols-2"
+                    >
                       <label className="flex items-center gap-2 sm:col-span-2">
                         <input
                           type="checkbox"
@@ -322,15 +337,29 @@ export function FulfilmentSettingsFields(props: {
 
           <label className="block text-sm">
             Shop-wide minimum order
-            <Input className="mt-1" value={minimum} onChange={(e) => props.onMinimumChange(e.target.value)} />
+            <Input
+              className="mt-1"
+              value={minimum}
+              onChange={(e) => props.onMinimumChange(e.target.value)}
+            />
           </label>
           <label className="block text-sm">
             Areas you serve (summary for customers)
-            <Textarea className="mt-1" maxLength={300} value={areas} onChange={(e) => props.onAreasChange(e.target.value)} />
+            <Textarea
+              className="mt-1"
+              maxLength={300}
+              value={areas}
+              onChange={(e) => props.onAreasChange(e.target.value)}
+            />
           </label>
           <label className="block text-sm">
             Default delivery estimate
-            <Input className="mt-1" maxLength={120} value={estimate} onChange={(e) => props.onEstimateChange(e.target.value)} />
+            <Input
+              className="mt-1"
+              maxLength={120}
+              value={estimate}
+              onChange={(e) => props.onEstimateChange(e.target.value)}
+            />
           </label>
           <label className="block text-sm">
             Delivery instructions

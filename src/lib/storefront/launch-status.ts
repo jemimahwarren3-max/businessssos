@@ -1,11 +1,7 @@
 import type { AdminStore } from "@/lib/storefront/contract";
 
 export type StoreLaunchPhase =
-  | "not_set_up"
-  | "draft"
-  | "payment_required"
-  | "ready_to_launch"
-  | "live";
+  "not_set_up" | "draft" | "payment_required" | "ready_to_launch" | "live";
 
 export type StoreLaunchDisplay = {
   phase: StoreLaunchPhase;

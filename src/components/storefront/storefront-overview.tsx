@@ -68,12 +68,7 @@ export function StorefrontOverview({
             </span>
           </p>
           {canManageSettings && !isReadOnly ? (
-            <Button
-              type="button"
-              className="mt-3"
-              disabled={creatingStore}
-              onClick={onCreateStore}
-            >
+            <Button type="button" className="mt-3" disabled={creatingStore} onClick={onCreateStore}>
               {creatingStore ? (
                 <>
                   <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -135,7 +130,9 @@ export function StorefrontOverview({
           <button
             type="button"
             className="font-medium text-primary underline"
-            onClick={() => document.getElementById("launch-products")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() =>
+              document.getElementById("launch-products")?.scrollIntoView({ behavior: "smooth" })
+            }
           >
             Products
           </button>{" "}
@@ -192,22 +189,12 @@ export function StorefrontOverview({
         ) : null}
       </div>
 
-      {store ? (
-        <p className="text-[13px] text-muted-foreground">{display.headline}</p>
-      ) : null}
+      {store ? <p className="text-[13px] text-muted-foreground">{display.headline}</p> : null}
     </section>
   );
 }
 
-function OverviewCard({
-  title,
-  value,
-  hint,
-}: {
-  title: string;
-  value: string;
-  hint?: string;
-}) {
+function OverviewCard({ title, value, hint }: { title: string; value: string; hint?: string }) {
   return (
     <div className="rounded-lg border border-border px-3 py-2.5">
       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -229,10 +216,7 @@ export function StorefrontLoadError({
   retrying: boolean;
 }) {
   return (
-    <div
-      className="surface flex flex-col items-start gap-3 border-destructive/30 p-5"
-      role="alert"
-    >
+    <div className="surface flex flex-col items-start gap-3 border-destructive/30 p-5" role="alert">
       <p className="flex items-center gap-2 text-sm font-medium text-destructive">
         <AlertCircle className="size-4 shrink-0" aria-hidden />
         {message}

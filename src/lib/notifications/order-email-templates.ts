@@ -44,7 +44,8 @@ function escapeHtml(value: string): string {
 function statusHeadline(ctx: OrderEmailContext, audience: "customer" | "merchant"): string {
   if (ctx.eventType === "cancelled") return "Order cancelled";
   if (ctx.eventType === "paid" || ctx.paymentStatus === "paid") return "Payment update";
-  if (ctx.eventType === "created") return audience === "merchant" ? "New online order" : "Order received";
+  if (ctx.eventType === "created")
+    return audience === "merchant" ? "New online order" : "Order received";
   if (ctx.fulfilmentStatus === "ready") return "Ready for collection";
   if (ctx.fulfilmentStatus === "out_for_delivery") return "Order dispatched";
   if (ctx.fulfilmentStatus === "completed") return "Order completed";
@@ -54,7 +55,9 @@ function statusHeadline(ctx: OrderEmailContext, audience: "customer" | "merchant
 
 function buildPlainItems(items: OrderEmailItem[], currency: string): string {
   if (items.length === 0) return "";
-  return items.map((line) => `${line.quantity} × ${line.name} — ${formatMoney(line.lineTotal, currency)}`).join("\n");
+  return items
+    .map((line) => `${line.quantity} × ${line.name} — ${formatMoney(line.lineTotal, currency)}`)
+    .join("\n");
 }
 
 export function renderOrderEmail(input: {

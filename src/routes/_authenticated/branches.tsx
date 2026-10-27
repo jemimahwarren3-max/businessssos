@@ -55,8 +55,7 @@ function BranchesPage() {
   const locations = useQuery({
     queryKey: ["locations", businessId, "all"],
     enabled: Boolean(businessId),
-    queryFn: () =>
-      fetchLocations({ data: { businessId: businessId!, includeInactive: true } }),
+    queryFn: () => fetchLocations({ data: { businessId: businessId!, includeInactive: true } }),
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);

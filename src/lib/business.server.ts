@@ -272,9 +272,12 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     // their role, defaulted to today's behavior on first access.
     supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
     supabase.rpc("has_platform_subscription_bypass"),
-    supabase.rpc("get_business_feature_flags" as never, {
-      _business_id: membership.business_id,
-    } as never),
+    supabase.rpc(
+      "get_business_feature_flags" as never,
+      {
+        _business_id: membership.business_id,
+      } as never,
+    ),
   ]);
   if (bizError) dbFail("load business", bizError);
   if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
@@ -293,7 +296,10 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     permissions: permissions ?? [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
-    isReadOnly: !canWriteWithPlatformEntitlement(subscription ?? null, hasOwnerBypass || billingExempt),
+    isReadOnly: !canWriteWithPlatformEntitlement(
+      subscription ?? null,
+      hasOwnerBypass || billingExempt,
+    ),
     isOperateLocked: !canOperateWithPlatformEntitlement(
       subscription ?? null,
       hasOwnerBypass || billingExempt,
@@ -473,13 +479,16 @@ export async function updateLocation(
 ) {
   await assertRole(supabase, input.businessId, ["owner", "admin"]);
   await assertCanWrite(supabase, input.businessId);
-  const { error } = await supabase.rpc("update_location" as never, {
-    _business_id: input.businessId,
-    _location_id: input.locationId,
-    _name: input.name,
-    _address: input.address ?? "",
-    _phone: input.phone ?? "",
-  } as never);
+  const { error } = await supabase.rpc(
+    "update_location" as never,
+    {
+      _business_id: input.businessId,
+      _location_id: input.locationId,
+      _name: input.name,
+      _address: input.address ?? "",
+      _phone: input.phone ?? "",
+    } as never,
+  );
   if (error) dbFail("update location", error);
 }
 
@@ -489,10 +498,13 @@ export async function setDefaultLocation(
 ) {
   await assertRole(supabase, input.businessId, ["owner", "admin"]);
   await assertCanWrite(supabase, input.businessId);
-  const { error } = await supabase.rpc("set_default_location" as never, {
-    _business_id: input.businessId,
-    _location_id: input.locationId,
-  } as never);
+  const { error } = await supabase.rpc(
+    "set_default_location" as never,
+    {
+      _business_id: input.businessId,
+      _location_id: input.locationId,
+    } as never,
+  );
   if (error) dbFail("set default location", error);
 }
 
@@ -502,10 +514,13 @@ export async function deactivateLocation(
 ) {
   await assertRole(supabase, input.businessId, ["owner", "admin"]);
   await assertCanWrite(supabase, input.businessId);
-  const { error } = await supabase.rpc("deactivate_location" as never, {
-    _business_id: input.businessId,
-    _location_id: input.locationId,
-  } as never);
+  const { error } = await supabase.rpc(
+    "deactivate_location" as never,
+    {
+      _business_id: input.businessId,
+      _location_id: input.locationId,
+    } as never,
+  );
   if (error) dbFail("deactivate location", error);
 }
 

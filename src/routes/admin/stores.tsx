@@ -72,9 +72,7 @@ function AdminStoresPage() {
                 <TableCell className="text-xs">{row.template_id}</TableCell>
                 <TableCell>{row.listing_count}</TableCell>
                 <TableCell>{row.order_count}</TableCell>
-                <TableCell>
-                  {row.published_at ? friendlyDate(row.published_at) : "—"}
-                </TableCell>
+                <TableCell>{row.published_at ? friendlyDate(row.published_at) : "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

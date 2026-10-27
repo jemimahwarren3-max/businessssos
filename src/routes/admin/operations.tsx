@@ -92,11 +92,7 @@ function AdminOperationsPage() {
             {readableError(mutation.error as Error, "Could not save notes.")}
           </p>
         ) : null}
-        <Button
-          type="button"
-          disabled={mutation.isPending}
-          onClick={() => mutation.mutate()}
-        >
+        <Button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
           Save operator notes
         </Button>
       </div>

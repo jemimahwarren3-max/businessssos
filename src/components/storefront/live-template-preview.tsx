@@ -123,8 +123,7 @@ export function LiveTemplatePreview({
         </div>
       )}
 
-      {(template.density === "compact" || template.layout === "dense") &&
-      (phone || address) ? (
+      {(template.density === "compact" || template.layout === "dense") && (phone || address) ? (
         <div
           className="flex flex-wrap gap-3 px-4 py-2 text-[11px] font-medium"
           style={{ backgroundColor: theme.primary, color: theme.buttonText }}

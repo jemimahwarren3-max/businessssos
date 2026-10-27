@@ -174,8 +174,7 @@ function HeroVisual({ shops }: { shops: ReturnType<typeof featuredPublishedShops
 function Landing() {
   const { market, fx, marketing } = Route.useLoaderData();
   const heroTitle =
-    marketing.heroTitle?.trim() ||
-    "Run your business. Sell online. All in one place.";
+    marketing.heroTitle?.trim() || "Run your business. Sell online. All in one place.";
   const heroSubtitle =
     marketing.heroSubtitle?.trim() ||
     "Manage inventory, sales, customers, invoices and expenses, then create a branded online shop to sell directly to your customers.";

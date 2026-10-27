@@ -41,7 +41,10 @@ function MarketCartsPage() {
       ) : (
         <ul className="mt-8 divide-y rounded-lg border">
           {carts.map((cart) => (
-            <li key={cart.slug} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <li
+              key={cart.slug}
+              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
               <div>
                 <p className="font-medium">{cart.slug}</p>
                 <p className="text-sm text-muted-foreground">
