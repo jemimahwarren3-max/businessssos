@@ -17,7 +17,13 @@ import {
   getBilling,
   startSubscriptionCheckout,
 } from "@/lib/business.functions";
-import { PLAN_MONTHLY_USD, planAmountUsd } from "@/lib/billing-plans";
+import {
+  PLAN_MONTHLY_USD,
+  planAmountUsd,
+  planAmountZig,
+  type PlatformFx,
+} from "@/lib/billing-plans";
+import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
@@ -68,6 +74,8 @@ function Billing() {
   const checkPayment = useServerFn(checkSubscriptionPaymentFn);
 
   const [channel, setChannel] = useState<"web" | "ecocash" | "onemoney">("web");
+  const loadFx = useServerFn(getPlatformFxFn);
+  const [fx, setFx] = useState<PlatformFx | null>(null);
   const [phone, setPhone] = useState("");
   const [pendingInstructions, setPendingInstructions] = useState<string | null>(null);
 
@@ -76,6 +84,10 @@ function Billing() {
       navigate({ to: "/onboarding", replace: true });
     }
   }, [workspace.isLoading, workspace.data, navigate]);
+
+  useEffect(() => {
+    void loadFx().then(setFx);
+  }, [loadFx]);
 
   const billing = useQuery({
     queryKey: ["billing", businessId],
@@ -206,7 +218,10 @@ function Billing() {
                 <div className="rounded-lg border border-primary bg-primary/5 p-3">
                   <span className="text-sm font-semibold">Pro</span>
                   <span className="ml-2 text-[13px] text-muted-foreground">
-                    ${PLAN_MONTHLY_USD.pro}/mo
+                    ${PLAN_MONTHLY_USD.pro}/mo USD
+                    {planAmountZig(PLAN_MONTHLY_USD.pro, fx) != null
+                      ? ` · about ${formatMoney(planAmountZig(PLAN_MONTHLY_USD.pro, fx)!, "ZWG")} (display only)`
+                      : ""}
                   </span>
                 </div>
               </div>

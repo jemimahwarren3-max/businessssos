@@ -1,11 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Check } from "lucide-react";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { BRAND } from "@/lib/brand";
-import { PLAN_MONTHLY_USD } from "@/lib/billing-plans";
+import { PLAN_MONTHLY_USD, planAmountZig, type PlatformFx } from "@/lib/billing-plans";
+import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
+import { formatMoney } from "@/lib/format";
 
 const BETA_FEATURES = [
   "Online shop with templates and checkout",
@@ -35,15 +39,30 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
+  const loadFx = useServerFn(getPlatformFxFn);
+  const [fx, setFx] = useState<PlatformFx | null>(null);
+  useEffect(() => {
+    void loadFx().then(setFx);
+  }, [loadFx]);
+  const zig = planAmountZig(PLAN_MONTHLY_USD.pro, fx);
   return (
     <MarketingShell>
       <div className="mx-auto max-w-6xl px-4 py-16">
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Pricing</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           The product is free for founding users. If billing is turned on later, Pro is $
-          {PLAN_MONTHLY_USD.pro}/month in USD. You get notice before anything is charged. There is
-          no ZiG subscription price until an exchange-rate source is chosen. Merchant Paynow fees
-          are between the shop and Paynow, not this price. Shopper payments never pay this bill.
+          {PLAN_MONTHLY_USD.pro}/month in USD. You get notice before anything is charged.
+          {zig != null && fx ? (
+            <>
+              {" "}
+              Displayed ZiG equivalent: {formatMoney(zig, "ZWG")} using {fx.source} on{" "}
+              {fx.effectiveOn}. Billing still collects USD. {fx.notice}
+            </>
+          ) : (
+            <> There is no ZiG subscription price until an operator stores a rate and source.</>
+          )}{" "}
+          Merchant Paynow fees are between the shop and Paynow, not this price. Shopper payments
+          never pay this bill.
         </p>
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
           <Card className="relative border-primary shadow-raised">

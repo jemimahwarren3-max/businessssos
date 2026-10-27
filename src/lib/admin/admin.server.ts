@@ -9,6 +9,8 @@
 // depth, not the only gate.
 import type { Database } from "@/integrations/supabase/types";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { loadPlatformFx } from "@/lib/platform-fx-read.server";
+import { savePlatformFx } from "@/lib/platform-fx.server";
 import { AppError, dbFail, invalidateWorkspaceCacheForBusiness } from "@/lib/business.server";
 import { getMfaStatus } from "@/lib/auth/mfa.server";
 import type { SupabaseTokens } from "@/lib/auth/session.server";
@@ -89,4 +91,18 @@ export async function overrideSubscription(
   });
   if (error) dbFail("override subscription", error);
   await invalidateWorkspaceCacheForBusiness(supabaseAdmin, input.businessId);
+}
+
+export async function getAdminPlatformFx(userId: string, tokens: SupabaseTokens) {
+  await requireAdmin(userId, tokens);
+  return loadPlatformFx();
+}
+
+export async function setAdminPlatformFx(
+  userId: string,
+  tokens: SupabaseTokens,
+  input: { usdToZwg: number; source: string; effectiveOn: string; notice: string },
+) {
+  await requireAdmin(userId, tokens);
+  await savePlatformFx(userId, input);
 }

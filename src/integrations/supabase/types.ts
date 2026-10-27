@@ -40,6 +40,36 @@ export type Database = {
           },
         ];
       };
+      platform_fx: {
+        Row: {
+          effective_on: string;
+          id: number;
+          notice: string;
+          source: string;
+          updated_at: string;
+          updated_by: string | null;
+          usd_to_zwg: number;
+        };
+        Insert: {
+          effective_on: string;
+          id?: number;
+          notice?: string;
+          source: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          usd_to_zwg: number;
+        };
+        Update: {
+          effective_on?: string;
+          id?: number;
+          notice?: string;
+          source?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          usd_to_zwg?: number;
+        };
+        Relationships: [];
+      };
       audit_logs: {
         Row: {
           action: string;
@@ -2420,6 +2450,7 @@ export type Database = {
           _token: string;
           _proof_reference: string;
           _proof_note: string;
+          _storage_path?: string;
         };
         Returns: Json;
       };

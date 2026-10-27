@@ -8,6 +8,12 @@ import {
   shopOrderId,
   shopPaynowConnected,
 } from "@/lib/payments/shop-paynow.server";
+import {
+  decodeProofBase64,
+  signedPaymentProofUrl,
+  storePaymentProofFile,
+} from "@/lib/storefront/payment-proof.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
 import {
   adminOrderSchema,
@@ -229,7 +235,7 @@ export async function loadCustomerOrder(
     _reference: reference,
     _token: token,
   });
-  const order = await parseRpc("load store order", result, customerOrderSchema);
+  let order = await parseRpc("load store order", result, customerOrderSchema);
   if (order.paymentMethod === "paynow" && !order.paid) {
     const orderId = await shopOrderId(slug, reference);
     if (orderId) {
@@ -243,10 +249,18 @@ export async function loadCustomerOrder(
         _reference: reference,
         _token: token,
       });
-      return parseRpc("reload store order", again, customerOrderSchema);
+      order = await parseRpc("reload store order", again, customerOrderSchema);
     }
   }
-  return order;
+  return withProofUrl(order);
+}
+
+async function withProofUrl<T extends object>(order: T): Promise<T> {
+  const terms =
+    "terms" in order
+      ? (order as { terms?: { paymentProof?: { storagePath?: string | null } } }).terms
+      : undefined;
+  return { ...order, proofUrl: await signedPaymentProofUrl(terms?.paymentProof?.storagePath) };
 }
 
 async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promise<AdminStore> {
@@ -334,7 +348,7 @@ export async function loadAdminOrder(
     _business_id: businessId,
     _order_id: orderId,
   });
-  return parseRpc("load online order", result, adminOrderSchema);
+  return withProofUrl(await parseRpc("load online order", result, adminOrderSchema));
 }
 
 export async function transitionOrder(
@@ -351,32 +365,68 @@ export async function transitionOrder(
       _order_id: orderId,
       _reason: reason ?? "",
     });
-    return parseRpc("reject payment note", result, adminOrderSchema);
+    return withProofUrl(await parseRpc("reject payment note", result, adminOrderSchema));
   }
   const result = await supabase.rpc("transition_store_order", {
     _business_id: businessId,
     _order_id: orderId,
     _action: action,
   });
-  return parseRpc("update online order", result, adminOrderSchema);
+  return withProofUrl(await parseRpc("update online order", result, adminOrderSchema));
 }
 
 export async function submitOrderPaymentNote(input: {
   slug: string;
   reference: string;
   token: string;
-  proofReference: string;
+  proofReference?: string | undefined;
   proofNote?: string | undefined;
+  proofBase64?: string | undefined;
 }): Promise<CustomerOrder> {
+  await loadCustomerOrder(input.slug, input.reference, input.token);
+  let storagePath = "";
+  if (input.proofBase64) {
+    const proofBytes = decodeProofBase64(input.proofBase64);
+    const orderId = await shopOrderId(input.slug, input.reference);
+    if (!orderId) throw new AppError("That order could not be found.");
+    const orders = supabaseAdmin as unknown as {
+      from: (name: string) => {
+        select: (cols: string) => {
+          eq: (
+            col: string,
+            val: string,
+          ) => {
+            maybeSingle: () => Promise<{
+              data: { id: string; business_id: string } | null;
+              error: { message?: string } | null;
+            }>;
+          };
+        };
+      };
+    };
+    const { data: row, error } = await orders
+      .from("store_orders")
+      .select("id, business_id")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (error || !row) throw new AppError("That order could not be found.");
+    const stored = await storePaymentProofFile({
+      businessId: row.business_id,
+      orderId: row.id,
+      bytes: proofBytes,
+    });
+    storagePath = stored.storagePath;
+  }
   const supabase = await storefrontClient();
   const result = await supabase.rpc("submit_store_order_proof", {
     _slug: input.slug,
     _reference: input.reference,
     _token: input.token,
-    _proof_reference: input.proofReference,
+    _proof_reference: input.proofReference ?? "",
     _proof_note: input.proofNote ?? "",
+    _storage_path: storagePath,
   });
-  return parseRpc("submit payment note", result, customerOrderSchema);
+  return withProofUrl(await parseRpc("submit payment note", result, customerOrderSchema));
 }
 
 export async function loadMarketplace(input: {

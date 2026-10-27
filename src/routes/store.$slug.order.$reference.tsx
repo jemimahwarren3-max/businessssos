@@ -54,6 +54,7 @@ function OrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [proofReference, setProofReference] = useState("");
   const [proofNote, setProofNote] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPending, setProofPending] = useState(false);
 
   useEffect(() => {
@@ -119,19 +120,32 @@ function OrderPage() {
                 event.preventDefault();
                 setProofPending(true);
                 setError(null);
-                void sendProof({
-                  data: {
-                    slug: store.slug,
-                    reference: order.reference,
-                    token,
-                    proofReference,
-                    proofNote: proofNote || undefined,
-                  },
-                })
+                const send = (proofBase64?: string) =>
+                  sendProof({
+                    data: {
+                      slug: store.slug,
+                      reference: order.reference,
+                      token,
+                      proofReference: proofReference || undefined,
+                      proofNote: proofNote || undefined,
+                      proofBase64,
+                    },
+                  });
+                const work = proofFile
+                  ? proofFile.arrayBuffer().then((buffer) => {
+                      const bytes = new Uint8Array(buffer);
+                      let binary = "";
+                      for (let i = 0; i < bytes.length; i += 1)
+                        binary += String.fromCharCode(bytes[i]!);
+                      return send(btoa(binary));
+                    })
+                  : send();
+                void work
                   .then((next) => {
                     setOrder(next);
                     setProofReference("");
                     setProofNote("");
+                    setProofFile(null);
                   })
                   .catch((reason: Error) =>
                     setError(readableError(reason, "The payment note was not saved.")),
@@ -139,10 +153,10 @@ function OrderPage() {
                   .finally(() => setProofPending(false));
               }}
             >
-              <p className="font-medium">Send a payment reference</p>
+              <p className="font-medium">Send payment proof</p>
               <p className="text-neutral-600">
-                Paste the EcoCash, InnBucks, or bank confirmation number. This does not mark the
-                order paid. The shop must check their own account.
+                Attach a screenshot or paste the EcoCash, InnBucks, or bank confirmation number.
+                This does not mark the order paid. The shop must check their own account.
               </p>
               {order.terms?.manualPayment ? (
                 <p className="whitespace-pre-wrap text-neutral-600">
@@ -155,6 +169,20 @@ function OrderPage() {
                     .join("\n")}
                 </p>
               ) : null}
+              {order.proofUrl ? (
+                order.proofUrl.includes(".pdf") ||
+                order.terms?.paymentProof?.storagePath?.endsWith(".pdf") ? (
+                  <a className="underline" href={order.proofUrl} rel="noreferrer" target="_blank">
+                    View the file you sent
+                  </a>
+                ) : (
+                  <img
+                    alt="Payment screenshot you sent"
+                    className="max-h-64 rounded border"
+                    src={order.proofUrl}
+                  />
+                )
+              ) : null}
               {order.terms?.paymentProof?.reference ? (
                 <p>
                   Last note sent: {order.terms.paymentProof.reference}
@@ -164,11 +192,19 @@ function OrderPage() {
                 </p>
               ) : null}
               <label className="block">
+                Screenshot (JPEG, PNG, WebP, or PDF, 5 MB)
+                <input
+                  className="mt-1 w-full text-sm"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              <label className="block">
                 Payment reference
                 <input
                   className="mt-1 w-full rounded border px-3 py-2"
-                  required
-                  minLength={3}
+                  minLength={proofFile ? 0 : 3}
                   value={proofReference}
                   onChange={(event) => setProofReference(event.target.value)}
                 />
@@ -187,7 +223,7 @@ function OrderPage() {
                 disabled={proofPending || (!token && !order.mine)}
                 type="submit"
               >
-                {proofPending ? "Sending…" : "Send payment note"}
+                {proofPending ? "Sending…" : "Send proof"}
               </button>
               {!token && !order.mine ? (
                 <p className="text-neutral-500">

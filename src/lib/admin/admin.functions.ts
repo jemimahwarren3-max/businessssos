@@ -11,10 +11,12 @@ import {
 import { setServerSession } from "@/lib/auth/session.server";
 import {
   getAdminStats,
+  getAdminPlatformFx,
   isPlatformAdmin,
   listAdminPayments,
   listAdminSubscriptions,
   overrideSubscription,
+  setAdminPlatformFx,
 } from "./admin.server";
 
 // authedRateLimit already composes requireSupabaseAuth internally and
@@ -101,12 +103,28 @@ export const verifyAdminMfaChallengeFn = createServerFn({ method: "POST" })
 export const getAdminOverview = createServerFn({ method: "GET" })
   .middleware(adminRateLimit)
   .handler(async ({ context }) => {
-    const [subscriptions, payments, stats] = await Promise.all([
+    const [subscriptions, payments, stats, fx] = await Promise.all([
       listAdminSubscriptions(context.userId, context.tokens),
       listAdminPayments(context.userId, context.tokens),
       getAdminStats(context.userId, context.tokens),
+      getAdminPlatformFx(context.userId, context.tokens),
     ]);
-    return { subscriptions, payments, stats };
+    return { subscriptions, payments, stats, fx };
+  });
+
+const fxSchema = z.object({
+  usdToZwg: z.coerce.number().positive().max(1_000_000),
+  source: z.string().trim().min(3).max(120),
+  effectiveOn: z.string().min(8).max(12),
+  notice: z.string().trim().max(400),
+});
+
+export const setPlatformFxFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => fxSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await setAdminPlatformFx(context.userId, context.tokens, data);
+    return { ok: true };
   });
 
 const overrideSchema = z.object({

@@ -74,6 +74,7 @@ const orderTermsSchema = z.object({
       submittedAt: z.string().optional(),
       rejectedAt: z.string().optional(),
       rejectReason: z.string().catch(""),
+      storagePath: z.string().max(200).nullable().optional(),
     })
     .optional(),
 });
@@ -357,6 +358,7 @@ export const customerOrderSchema = z.object({
   mine: z.boolean().optional(),
   paid: z.boolean(),
   revenueRecorded: z.boolean(),
+  proofUrl: z.string().nullable().optional(),
   terms: orderTermsSchema.optional(),
   items: z.array(
     z.object({
@@ -506,6 +508,7 @@ export const adminOrderSchema = z.object({
   stockReserved: z.boolean(),
   createdAt: z.string(),
   collectAt: z.string().nullable().optional(),
+  proofUrl: z.string().nullable().optional(),
   terms: orderTermsSchema.optional(),
   items: customerOrderSchema.shape.items,
   events: z.array(

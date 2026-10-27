@@ -19,7 +19,7 @@ Inspected: Vite 8 + React 19 + TanStack Start, Supabase staging `slajanbsfqjnuui
 - `{slug}.mykwetuu.com` needs wildcard DNS/TLS. Cloud Run cannot map `*`.
 - Templates are layout variants, not ten cloned apps. Size/colour is description text, not SKU stock.
 - Dashboard titles still say BusinessOS in places.
-- Payment-proof **files** are not stored (no private bucket). Customers send a text reference; that never marks paid.
+- Payment-proof files are stored in private bucket `payment-proofs` after this increment; signed URLs only. Still never auto-paid.
 - Product image upload lives in a stacked PR, not necessarily this branch.
 
 ## 3. Missing vs this master prompt
@@ -32,7 +32,7 @@ Inspected: Vite 8 + React 19 + TanStack Start, Supabase staging `slajanbsfqjnuui
 | ZiG as a first-class currency | `CURRENCIES` includes ZWG; `formatMoney` shows `ZiG`. No invented FX rate |
 | WhatsApp Business API | Not built (keep it that way). Click-to-chat + copy link exist. |
 | Automated Paynow for shops | **Already implemented** — kept, not expanded in this phase |
-| Image proof upload | Blocked: no private storage bucket |
+| Image proof upload | Private bucket + signed URLs; merchant must tick “I checked my account” |
 
 ## 4. Risks
 
