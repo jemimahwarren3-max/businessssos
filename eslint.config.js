@@ -56,6 +56,7 @@ export default tseslint.config(
       "src/lib/payments/paynow.server.ts",
       "src/lib/payments/shop-paynow.server.ts",
       "src/lib/admin/admin.server.ts",
+      "src/lib/admin/impersonation.server.ts",
       "src/lib/account-deletion.server.ts",
       "src/lib/legal-acceptance.server.ts",
       "src/lib/team.server.ts",

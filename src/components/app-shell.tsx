@@ -33,6 +33,8 @@ import {
   Users,
   Wand2,
 } from "lucide-react";
+import { endImpersonationFn, getPlatformAnnouncementFn } from "@/lib/admin/admin.functions";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { signOutFn } from "@/lib/auth/auth.functions";
 import {
   getNotificationsFn,
@@ -52,7 +54,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { deriveStoreLaunchDisplay } from "@/lib/storefront/launch-status";
 import { friendlyDate } from "@/lib/format";
@@ -262,6 +263,15 @@ export function AppShell({
   // Reuses the ["workspace"] query every page already populates — no extra
   // network request in practice, just reading businessId back out of it.
   const workspace = useWorkspace();
+  const endImpersonation = useServerFn(endImpersonationFn);
+  const stopImpersonation = useMutation({
+    mutationFn: () =>
+      endImpersonation({ data: { reason: "Ended support view from merchant banner" } }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      navigate({ to: "/admin/businesses" });
+    },
+  });
   const isOperateLocked = workspace.data?.isOperateLocked ?? false;
   const businessId = workspace.data?.business.id;
   const loadStorefront = useServerFn(getStorefrontAdminFn);
@@ -280,6 +290,12 @@ export function AppShell({
           isOperateLocked,
         }).badge
       : null;
+  const loadAnnouncement = useServerFn(getPlatformAnnouncementFn);
+  const platformAnnouncement = useQuery({
+    queryKey: ["platform-announcement"],
+    queryFn: () => loadAnnouncement(),
+    staleTime: 120_000,
+  });
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -434,6 +450,40 @@ export function AppShell({
             </div>
           </div>
         </header>
+
+        {workspace.data?.isImpersonating ? (
+          <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2.5 text-[13px] text-foreground">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+              <span>
+                <span className="font-semibold text-destructive">Support view (read-only): </span>
+                viewing {workspace.data.impersonationBusinessName ?? workspace.data.business.name}.
+                Expires{" "}
+                {workspace.data.impersonationExpiresAt
+                  ? new Date(workspace.data.impersonationExpiresAt).toLocaleString()
+                  : "soon"}
+                .
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={stopImpersonation.isPending}
+                onClick={() => stopImpersonation.mutate()}
+              >
+                End support view
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {platformAnnouncement.data?.enabled && platformAnnouncement.data.message ? (
+          <div className="border-b border-primary/25 bg-primary/10 px-4 py-2.5 text-[13px] text-foreground">
+            <div className="mx-auto max-w-6xl">
+              <span className="font-medium text-primary">Kwetuu: </span>
+              {platformAnnouncement.data.message}
+            </div>
+          </div>
+        ) : null}
 
         {isReadOnly ? (
           <div className="border-b border-warning/30 bg-warning-soft px-4 py-2.5 text-[13px] text-warning-foreground">

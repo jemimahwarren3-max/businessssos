@@ -316,6 +316,19 @@ export async function publishStorefront(supabase: Db, businessId: string, publis
   await assertPermission(supabase, businessId, "business.settings");
   if (published) {
     await assertCanPublish(supabase, businessId);
+    const { data: flags, error: flagError } = await supabase.rpc(
+      "get_business_feature_flags" as never,
+      { _business_id: businessId } as never,
+    );
+    if (flagError) dbFail("check shop feature flags", flagError);
+    const onlineShopEnabled =
+      !flags ||
+      typeof flags !== "object" ||
+      Array.isArray(flags) ||
+      (flags as { onlineShopEnabled?: boolean }).onlineShopEnabled !== false;
+    if (!onlineShopEnabled) {
+      throw new AppError("Online shop is disabled for this business. Contact Kwetuu support.");
+    }
   }
   const result = await supabase.rpc("set_storefront_published", {
     _business_id: businessId,
