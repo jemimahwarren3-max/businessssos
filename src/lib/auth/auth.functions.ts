@@ -13,7 +13,8 @@ import {
   recordLoginFailure,
 } from "@/lib/rate-limit.server";
 import { isPasswordBreached } from "./breach-check.server";
-import { friendlySignUpError } from "./signup-errors";
+import { EMAIL_PROVIDER_OFF_MESSAGE } from "./auth-providers";
+import { friendlySignUpError, isEmailProviderDisabled } from "./signup-errors";
 import {
   challengeTotp,
   enrollTotp,
@@ -117,6 +118,10 @@ export const signIn = createServerFn({ method: "POST" })
     // password is wrong — distinguishing the two tells an attacker which
     // emails have accounts.
     if (error || !result.session) {
+      const goTrue = `${error?.code ?? ""} ${error?.message ?? ""}`;
+      if (isEmailProviderDisabled(goTrue)) {
+        throw new Error(EMAIL_PROVIDER_OFF_MESSAGE);
+      }
       await recordLoginFailure(lockoutKey, ACCOUNT_LOCKOUT_WINDOW_SECONDS);
       throw new Error("Incorrect email or password.");
     }

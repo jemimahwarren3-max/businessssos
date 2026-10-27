@@ -4,7 +4,7 @@ import { friendlySignUpError } from "@/lib/auth/signup-errors";
 describe("friendlySignUpError", () => {
   it("explains when the Email provider is off", () => {
     expect(friendlySignUpError("email_provider_disabled Email signups are disabled")).toMatch(
-      /Email sign-up is turned off/i,
+      /Continue with Google/i,
     );
   });
 

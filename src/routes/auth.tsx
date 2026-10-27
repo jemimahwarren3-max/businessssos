@@ -3,13 +3,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Mail } from "lucide-react";
+import { CircleAlert, Loader2, Mail } from "lucide-react";
 import { getCurrentUser, requestPasswordReset, signIn, signUp } from "@/lib/auth/auth.functions";
+import { EMAIL_PROVIDER_OFF_MESSAGE, fetchAuthProviderStatus } from "@/lib/auth/auth-providers";
 import { googleOAuthRedirectTo } from "@/lib/auth/google-oauth";
 import { readableError } from "@/lib/format";
 import { BRAND } from "@/lib/brand";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/logo";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,13 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
+  loader: async () => {
+    try {
+      return { providers: await fetchAuthProviderStatus() };
+    } catch {
+      return { providers: { email: true, google: true } };
+    }
+  },
   head: () => ({
     meta: [
       { title: `Sign in | ${BRAND.name}` },
@@ -46,6 +55,9 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const { mode, redirect } = Route.useSearch();
+  const { providers } = Route.useLoaderData();
+  const emailEnabled = providers.email;
+  const googleEnabled = providers.google;
   const destination = redirect ?? (mode === "signup" ? "/onboarding" : "/dashboard");
   const navigate = useNavigate();
   const fetchCurrentUser = useServerFn(getCurrentUser);
@@ -74,6 +86,10 @@ function AuthPage() {
         await requestResetFn({ data: { email: email.trim() } });
         setSentTo(email.trim());
         toast.success("Password reset link sent.");
+        return;
+      }
+      if (!emailEnabled) {
+        toast.error(EMAIL_PROVIDER_OFF_MESSAGE);
         return;
       }
       if (mode === "signup") {
@@ -180,111 +196,179 @@ function AuthPage() {
                 </Tabs>
               ) : null}
 
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                {mode === "signup" ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="fullName">Your name</Label>
-                    <Input
-                      id="fullName"
-                      autoComplete="name"
-                      required
-                      maxLength={120}
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Sarah Moyo"
-                    />
-                  </div>
-                ) : null}
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    maxLength={200}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@yourbusiness.com"
-                  />
-                </div>
-                {mode !== "reset" ? (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                      {mode === "signin" ? (
-                        <Link
-                          to="/auth"
-                          search={{ mode: "reset", redirect }}
-                          className="text-[13px] text-primary hover:underline"
-                        >
-                          Forgot password?
-                        </Link>
-                      ) : null}
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                      required
-                      minLength={8}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 8 characters"
-                    />
-                  </div>
-                ) : null}
-                {mode === "signup" ? (
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="acceptedTerms"
-                      checked={acceptedTerms}
-                      onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                      className="mt-0.5"
-                    />
-                    <Label
-                      htmlFor="acceptedTerms"
-                      className="text-[13px] font-normal leading-relaxed text-muted-foreground"
-                    >
-                      I agree to the{" "}
-                      <a
-                        href="/terms"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-primary hover:underline"
-                      >
-                        Terms of Service
-                      </a>{" "}
-                      and{" "}
-                      <a
-                        href="/privacy"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-primary hover:underline"
-                      >
-                        Privacy Policy
-                      </a>
-                      .
-                    </Label>
-                  </div>
-                ) : null}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={busy !== null || needsAcceptance}
-                >
-                  {busy === "email" ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  ) : null}
-                  {mode === "signup"
-                    ? "Create account"
-                    : mode === "reset"
-                      ? "Send reset link"
-                      : "Sign in"}
-                </Button>
-              </form>
+              {!emailEnabled && mode !== "reset" ? (
+                <Alert variant="destructive" className="mt-6">
+                  <CircleAlert className="size-4" aria-hidden="true" />
+                  <AlertTitle>
+                    {mode === "signup"
+                      ? "Email accounts can't be created right now"
+                      : "Email sign-in is turned off"}
+                  </AlertTitle>
+                </Alert>
+              ) : null}
 
-              {mode !== "reset" ? (
+              {googleEnabled && mode !== "reset" && !emailEnabled ? (
+                <div className="mt-5 space-y-4">
+                  {mode === "signup" ? (
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="acceptedTermsGoogle"
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="acceptedTermsGoogle"
+                        className="text-[13px] font-normal leading-relaxed text-muted-foreground"
+                      >
+                        I agree to the{" "}
+                        <a
+                          href="/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary hover:underline"
+                        >
+                          Terms of Service
+                        </a>{" "}
+                        and{" "}
+                        <a
+                          href="/privacy"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary hover:underline"
+                        >
+                          Privacy Policy
+                        </a>
+                        .
+                      </Label>
+                    </div>
+                  ) : null}
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={busy !== null || needsAcceptance}
+                    onClick={() => void handleGoogle()}
+                  >
+                    {busy === "google" ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : null}
+                    Continue with Google
+                  </Button>
+                </div>
+              ) : null}
+
+              {emailEnabled || mode === "reset" ? (
+                <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                  {mode === "signup" ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="fullName">Your name</Label>
+                      <Input
+                        id="fullName"
+                        autoComplete="name"
+                        required
+                        maxLength={120}
+                        value={fullName}
+                        disabled={!emailEnabled}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Sarah Moyo"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      maxLength={200}
+                      value={email}
+                      disabled={mode !== "reset" && !emailEnabled}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@yourbusiness.com"
+                    />
+                  </div>
+                  {mode !== "reset" ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password">Password</Label>
+                        {mode === "signin" ? (
+                          <Link
+                            to="/auth"
+                            search={{ mode: "reset", redirect }}
+                            className="text-[13px] text-primary hover:underline"
+                          >
+                            Forgot password?
+                          </Link>
+                        ) : null}
+                      </div>
+                      <Input
+                        id="password"
+                        type="password"
+                        autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                        required
+                        minLength={8}
+                        value={password}
+                        disabled={!emailEnabled}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                      />
+                    </div>
+                  ) : null}
+                  {mode === "signup" ? (
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="acceptedTerms"
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="acceptedTerms"
+                        className="text-[13px] font-normal leading-relaxed text-muted-foreground"
+                      >
+                        I agree to the{" "}
+                        <a
+                          href="/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary hover:underline"
+                        >
+                          Terms of Service
+                        </a>{" "}
+                        and{" "}
+                        <a
+                          href="/privacy"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary hover:underline"
+                        >
+                          Privacy Policy
+                        </a>
+                        .
+                      </Label>
+                    </div>
+                  ) : null}
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      busy !== null || needsAcceptance || (mode !== "reset" && !emailEnabled)
+                    }
+                  >
+                    {busy === "email" ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    ) : null}
+                    {mode === "signup"
+                      ? "Create account"
+                      : mode === "reset"
+                        ? "Send reset link"
+                        : "Sign in"}
+                  </Button>
+                </form>
+              ) : null}
+
+              {googleEnabled && mode !== "reset" && emailEnabled ? (
                 <>
                   <div className="relative my-5">
                     <div className="absolute inset-0 flex items-center" aria-hidden="true">
