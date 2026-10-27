@@ -24,6 +24,7 @@ export function isPrivateHttpPath(pathname: string): boolean {
     path.startsWith("/suppliers") ||
     path.startsWith("/commission") ||
     path.startsWith("/time-clock") ||
+    path.startsWith("/cash-drawer") ||
     path.startsWith("/purchase-orders") ||
     path.startsWith("/recurring-invoices") ||
     path.startsWith("/sale-history") ||

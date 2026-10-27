@@ -70,7 +70,7 @@ See `docs/ROADMAP_REMAINING.md` for the remaining ~190 items in batches.
 
 1. Apply `20261019180000_locations_stock.sql` on staging if that version is not already recorded.
 2. Set `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` only if you want email copies of shop alerts.
-3. POS cash control next, or customer Paynow only after a per-merchant integration.
+3. Variants wait until location stock is used in the UI. Customer Paynow only after a per-merchant integration.
 4. Variants and branch transfers wait until location stock is used in the UI, not only in SQL.
 
 Retention features (loyalty, coupons, gift cards) wait until orders, stock, and payments stay trustworthy.

@@ -161,6 +161,12 @@ export async function createTestBusiness(ownerId: string, name: string): Promise
     values ('${id}', 'pro', 'trialing', now() + interval '3 days', now(), now() + interval '3 days');
     insert into public.locations (business_id, name, is_default, is_active)
     values ('${id}', 'Main', true, true);
+    insert into public.cash_sessions (business_id, opened_by, opening_float)
+    values ('${id}', '${ownerId}', 0);
+    insert into public.cash_movements (business_id, session_id, kind, amount, note, created_by)
+    select '${id}', s.id, 'open_float', 0, 'Test float', '${ownerId}'
+    from public.cash_sessions s
+    where s.business_id = '${id}' and s.closed_at is null;
   `);
   return id;
 }

@@ -40,6 +40,8 @@ const EXPORT_TABLES = [
   "store_listing_reports",
   "locations",
   "product_stock",
+  "cash_sessions",
+  "cash_movements",
 ] as const;
 
 describe("cross-tenant isolation", () => {
@@ -154,6 +156,12 @@ describe("cross-tenant isolation", () => {
           `select public.adjust_stock('${bizA}', '${productA}', 'stock_in', 5, 'attack');`,
         ),
       ).rejects.toThrow(/does not allow this action|could not be found|permission denied/i);
+    });
+
+    it("cannot open a cash drawer in business A", async () => {
+      await expect(
+        asUser(getAttacker(), `select public.open_cash_session('${bizA}', 10, 'attack');`),
+      ).rejects.toThrow(/does not allow this action|permission denied/i);
     });
 
     it("cannot create a location in business A", async () => {

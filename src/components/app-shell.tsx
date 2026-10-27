@@ -22,6 +22,7 @@ import {
   Settings,
   ShoppingCart,
   Store,
+  Wallet,
   Sparkles,
   Truck,
   UserX,
@@ -267,6 +268,12 @@ export function AppShell({
             className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
           >
             <Users className="size-4.5" aria-hidden="true" /> Team
+          </Link>
+          <Link
+            to="/cash-drawer"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+          >
+            <Wallet className="size-4.5" aria-hidden="true" /> Cash drawer
           </Link>
           <Link
             to="/time-clock"
