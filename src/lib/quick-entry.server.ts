@@ -2,12 +2,8 @@ import { AppError, assertMember, listCustomers, listProducts, type Db } from "./
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "./business.schemas";
 import { getAIProvider } from "./ai/get-provider.server";
 import type { ChatMessage } from "./ai/provider";
+import { AI_LIMITS } from "./ai/limits.server";
 import { checkRateLimit } from "./rate-limit.server";
-
-// Bounds cumulative AI usage per business independent of how many staff
-// share the per-minute bucket — same 24h-window primitive askAssistant uses.
-const DAILY_LIMIT = 100;
-const DAILY_WINDOW_SECONDS = 60 * 60 * 24;
 
 const CATEGORY_VALUES = EXPENSE_CATEGORIES.map((c) => c.value);
 const PAYMENT_VALUES = PAYMENT_METHODS.map((p) => p.value);
@@ -208,8 +204,8 @@ export async function parseQuickEntry(
 
   const withinDailyLimit = await checkRateLimit(
     `quick-entry-daily:business:${businessId}`,
-    DAILY_LIMIT,
-    DAILY_WINDOW_SECONDS,
+    AI_LIMITS.quickEntryDaily,
+    AI_LIMITS.dayWindowSeconds,
   );
   if (!withinDailyLimit) {
     throw new AppError("Quick Add has reached its daily usage limit. Please try again tomorrow.");

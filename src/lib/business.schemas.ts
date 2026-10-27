@@ -441,6 +441,8 @@ export const subscriptionCheckoutSchema = z.object({
   plan: z.enum(["pro"]),
   channel: z.enum(["web", "ecocash", "onemoney"]),
   phone: z.string().trim().max(20).optional(),
+  /** Omit to charge USD, or ZWG when the business currency is ZWG and ZiG Paynow keys exist. */
+  billingCurrency: z.enum(["USD", "ZWG"]).optional(),
 });
 export type SubscriptionCheckoutInput = z.infer<typeof subscriptionCheckoutSchema>;
 

@@ -43,11 +43,16 @@ describe("Gemini provider", () => {
     expect(payload.contents.map((item) => item.role)).toEqual(["user", "model"]);
   });
 
-  it("prefers Gemini when configured and preserves Groq fallback", () => {
+  it("honours AI_PROVIDER and falls back when only one key is set", () => {
     vi.stubEnv("GEMINI_API_KEY", "test-gemini-key");
     vi.stubEnv("GROQ_API_KEY", "test-groq-key");
+    vi.stubEnv("AI_PROVIDER", "");
+    expect(getAIProvider()).toBeInstanceOf(GroqProvider);
+
+    vi.stubEnv("AI_PROVIDER", "gemini");
     expect(getAIProvider()).toBeInstanceOf(GeminiProvider);
 
+    vi.stubEnv("AI_PROVIDER", "");
     vi.stubEnv("GEMINI_API_KEY", "");
     expect(getAIProvider()).toBeInstanceOf(GroqProvider);
   });

@@ -3,15 +3,11 @@ import { getAIProvider } from "./ai/get-provider.server";
 import type { ChatMessage } from "./ai/provider";
 import { formatMoney } from "./format";
 import { checkRateLimit } from "./rate-limit.server";
+import { AI_LIMITS } from "./ai/limits.server";
 
 const HISTORY_LIMIT = 12;
-// Bounds cumulative AI usage per business independent of how many staff
-// members share the per-minute bucket — a 24h window via the same
-// check_rate_limit primitive the per-minute limits use.
-const DAILY_LIMIT = 100;
-const DAILY_WINDOW_SECONDS = 60 * 60 * 24;
 
-const SYSTEM_PROMPT = `You are the BusinessOS AI assistant, built into a small-business management app.
+const SYSTEM_PROMPT = `You are the Kwetuu AI assistant, built into a small-business management app.
 Answer questions about the business using ONLY the data given to you below, never invent numbers,
 customers, or products that aren't in it. Keep answers short (2-4 sentences), in plain language a
 non-accountant would understand, no jargon like "COGS" or "accounts receivable". If the data doesn't
@@ -95,8 +91,8 @@ export async function askAssistant(
 
   const withinDailyLimit = await checkRateLimit(
     `ai-daily-assistant:business:${businessId}`,
-    DAILY_LIMIT,
-    DAILY_WINDOW_SECONDS,
+    AI_LIMITS.assistantDaily,
+    AI_LIMITS.dayWindowSeconds,
   );
   if (!withinDailyLimit) {
     throw new AppError(
