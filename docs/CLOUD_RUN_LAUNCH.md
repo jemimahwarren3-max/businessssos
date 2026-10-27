@@ -68,7 +68,8 @@ console steps in the operator reply / GitHub secrets table below.
 
 Keep GitHub `APP_URL` as `https://mykwetuu.com` from now on. The deploy job
 maps `mykwetuu.com` and `www.mykwetuu.com` onto service `kwetuu` and prints
-the DNS records.
+the DNS records. Fully managed Cloud Run needs `gcloud beta run
+domain-mappings` (`--region` is not valid on the GA Anthos command).
 
 1. Run **Actions → Deploy Cloud Run** (or merge to `master`).
 2. Open the job log **Map mykwetuu.com**. Copy `TYPE` / `HOST` / `VALUE`.
