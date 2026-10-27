@@ -30,6 +30,12 @@ Apply `20261021150000_storefront_template_library.sql` after the existing storef
 
 Platform Paynow keys (`PAYNOW_INTEGRATION_ID` / `PAYNOW_INTEGRATION_KEY`) remain for BusinessOS subscription billing only. Customer checkout cannot mark itself paid by redirect. Paynow, EcoCash, and InnBucks are not offered until each merchant connects an approved account of their own.
 
+## Launch fees and publish security (Stage 4)
+
+When `platform_runtime.billing_enforced` and `launch_fee_required` are true, merchants pay a one-time **store launch fee** (default **USD 15** from `launch_fee_usd`) via platform Paynow before `set_storefront_published` succeeds. Verified payments live in `storefront_launch_payments`; waivers and suspensions are platform-admin actions (`admin_waive_store_launch_fee`, `admin_set_storefront_suspended`). Merchants see **Launch readiness** on My Online Store; eligibility is computed by `get_store_launch_eligibility`. Public `get_public_store` hides suspended shops. Subscription (`assert_business_can_operate`) remains separate from the launch fee.
+
+Apply `20261027180000_store_launch_eligibility.sql` after prior storefront migrations.
+
 ## Store builder (Stage 3)
 
 Merchants open **My Online Store → Store builder** (`#store-builder`) for a tabbed workflow: **Design** (three layout families: Modern Minimal, Bold Commerce, Local Business), **Branding** (colours, fonts, logo/banner upload or HTTPS URLs), **Products** (Stage 2 online catalogue), **Store information** (contact, delivery, manual payment instructions), and **Preview** (desktop/mobile, live draft using published listings only). **Save draft** persists through `save_storefront`; **Discard changes** reverts unsaved edits. Logo and banner uploads use the `product-media` bucket at `{businessId}/storefront/{logo|cover}/…` with existing member RLS.

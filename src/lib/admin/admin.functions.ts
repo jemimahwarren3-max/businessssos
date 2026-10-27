@@ -36,6 +36,9 @@ import {
   exportAdminTenantsCsv,
   getBusinessFeatureFlagsAdmin,
   setBusinessFeatureFlagsAdmin,
+  setStorefrontSuspendedAdmin,
+  listStorefrontLaunchPaymentsAdmin,
+  waiveStoreLaunchFeeAdmin,
   updateAdminOpsNotes,
 } from "./admin.server";
 import {
@@ -358,6 +361,46 @@ export const setBusinessFeatureFlagsFn = createServerFn({ method: "POST" })
   .middleware(adminRateLimit)
   .inputValidator((data: unknown) => featureFlagsSchema.parse(data))
   .handler(async ({ data, context }) => setBusinessFeatureFlagsAdmin(context.userId, context.tokens, data));
+
+export const waiveStoreLaunchFeeFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        businessId: z.string().uuid(),
+        reason: z.string().trim().min(4).max(500),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await waiveStoreLaunchFeeAdmin(context.userId, context.tokens, data);
+    return { ok: true as const };
+  });
+
+export const setStorefrontSuspendedFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        businessId: z.string().uuid(),
+        suspended: z.boolean(),
+        reason: z.string().trim().min(4).max(500),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await setStorefrontSuspendedAdmin(context.userId, context.tokens, data);
+    return { ok: true as const };
+  });
+
+export const listStorefrontLaunchPaymentsFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) =>
+    z.object({ businessId: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) =>
+    listStorefrontLaunchPaymentsAdmin(context.userId, context.tokens, data.businessId),
+  );
 
 export const updateAdminOpsNotesFn = createServerFn({ method: "POST" })
   .middleware(adminRateLimit)

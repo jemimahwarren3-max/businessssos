@@ -589,6 +589,60 @@ export async function setBusinessFeatureFlagsAdmin(
   return result.data as BusinessFeatureFlags;
 }
 
+export async function waiveStoreLaunchFeeAdmin(
+  userId: string,
+  tokens: SupabaseTokens,
+  input: { businessId: string; reason: string },
+) {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_waive_store_launch_fee", {
+    _business_id: input.businessId,
+    _reason: input.reason.trim(),
+    _actor_user_id: userId,
+  });
+  if (result.error) dbFail("waive store launch fee", result.error);
+  await invalidateWorkspaceCacheForBusiness(supabaseAdmin, input.businessId);
+  await logPlatformAudit(userId, "waive_store_launch_fee", input.reason, {
+    businessId: input.businessId,
+  });
+}
+
+export async function setStorefrontSuspendedAdmin(
+  userId: string,
+  tokens: SupabaseTokens,
+  input: { businessId: string; suspended: boolean; reason: string },
+) {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_set_storefront_suspended", {
+    _business_id: input.businessId,
+    _suspended: input.suspended,
+    _reason: input.reason.trim(),
+    _actor_user_id: userId,
+  });
+  if (result.error) dbFail("set storefront suspended", result.error);
+  await invalidateWorkspaceCacheForBusiness(supabaseAdmin, input.businessId);
+  await logPlatformAudit(
+    userId,
+    input.suspended ? "suspend_storefront" : "restore_storefront",
+    input.reason,
+    { businessId: input.businessId },
+  );
+}
+
+export async function listStorefrontLaunchPaymentsAdmin(
+  userId: string,
+  tokens: SupabaseTokens,
+  businessId: string,
+) {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_list_storefront_launch_payments", {
+    _business_id: businessId,
+    _limit: 20,
+  });
+  if (result.error) dbFail("list storefront launch payments", result.error);
+  return result.data ?? [];
+}
+
 export async function updateAdminOpsNotes(
   userId: string,
   tokens: SupabaseTokens,

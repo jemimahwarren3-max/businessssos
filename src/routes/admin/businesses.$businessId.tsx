@@ -6,8 +6,11 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import {
   getAdminBusinessDetailFn,
   getBusinessFeatureFlagsFn,
+  listStorefrontLaunchPaymentsFn,
   setBusinessFeatureFlagsFn,
+  setStorefrontSuspendedFn,
   startImpersonationFn,
+  waiveStoreLaunchFeeFn,
 } from "@/lib/admin/admin.functions";
 import { formatMoney, friendlyDate, friendlyDateTime, readableError } from "@/lib/format";
 import { storePublicUrl } from "@/lib/storefront/host";
@@ -55,6 +58,31 @@ function AdminBusinessDetailPage() {
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [courierManualMode, setCourierManualMode] = useState(true);
   const [flagNotes, setFlagNotes] = useState("");
+  const [launchWaiveReason, setLaunchWaiveReason] = useState("");
+  const [suspendReason, setSuspendReason] = useState("");
+
+  const waiveLaunch = useServerFn(waiveStoreLaunchFeeFn);
+  const setSuspended = useServerFn(setStorefrontSuspendedFn);
+  const listLaunchPayments = useServerFn(listStorefrontLaunchPaymentsFn);
+  const launchPayments = useQuery({
+    queryKey: ["admin-launch-payments", businessId],
+    queryFn: () => listLaunchPayments({ data: { businessId } }),
+  });
+  const waiveMutation = useMutation({
+    mutationFn: () =>
+      waiveLaunch({ data: { businessId, reason: launchWaiveReason.trim() } }),
+    onSuccess: () => {
+      setLaunchWaiveReason("");
+      void queryClient.invalidateQueries({ queryKey: ["admin-launch-payments", businessId] });
+    },
+  });
+  const suspendMutation = useMutation({
+    mutationFn: (suspended: boolean) =>
+      setSuspended({
+        data: { businessId, suspended, reason: suspendReason.trim() || "Operator action" },
+      }),
+    onSuccess: () => setSuspendReason(""),
+  });
 
   useEffect(() => {
     if (!flags.data) return;
@@ -237,6 +265,71 @@ function AdminBusinessDetailPage() {
           </div>
         ))}
       </div>
+
+      <section className="surface space-y-3 p-4 text-sm">
+        <h2 className="font-semibold">Store launch &amp; platform fee</h2>
+        <p className="text-muted-foreground">
+          Launch-fee payments are verified via Paynow polling on the server. Waivers and suspensions
+          are audited.
+        </p>
+        {launchPayments.data && Array.isArray(launchPayments.data) && launchPayments.data.length > 0 ? (
+          <ul className="divide-y rounded-md border text-xs">
+            {(launchPayments.data as { reference: string; status: string; amount: number; currency: string }[]).map(
+              (row) => (
+                <li key={row.reference} className="flex justify-between gap-2 px-2 py-1.5">
+                  <span>{row.reference.slice(0, 20)}…</span>
+                  <span>
+                    {row.status} · {formatMoney(row.amount, row.currency)}
+                  </span>
+                </li>
+              ),
+            )}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground">No launch-fee payment attempts recorded.</p>
+        )}
+        <Label htmlFor="launch-waive-reason">Launch-fee exception reason</Label>
+        <Input
+          id="launch-waive-reason"
+          value={launchWaiveReason}
+          onChange={(event) => setLaunchWaiveReason(event.target.value)}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={waiveMutation.isPending || launchWaiveReason.trim().length < 4}
+          onClick={() => waiveMutation.mutate()}
+        >
+          Waive launch fee
+        </Button>
+        <Label htmlFor="suspend-reason">Suspend / restore reason</Label>
+        <Input
+          id="suspend-reason"
+          value={suspendReason}
+          onChange={(event) => setSuspendReason(event.target.value)}
+        />
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={suspendMutation.isPending || suspendReason.trim().length < 4}
+            onClick={() => suspendMutation.mutate(true)}
+          >
+            Suspend storefront
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={suspendMutation.isPending}
+            onClick={() => suspendMutation.mutate(false)}
+          >
+            Restore storefront
+          </Button>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="surface space-y-2 p-4 text-sm">

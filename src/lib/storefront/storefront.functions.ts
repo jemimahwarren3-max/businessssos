@@ -38,6 +38,7 @@ import {
   loadProductReviews,
   loadPublicStore,
   loadStorePreview,
+  loadStoreLaunchEligibility,
   placeOrder,
   publishStorefront,
   quoteCart,
@@ -275,6 +276,40 @@ export const publishStorefrontFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     publishStorefront(context.supabase as Db, data.businessId, data.published),
   );
+
+export const getStoreLaunchEligibilityFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    loadStoreLaunchEligibility(context.supabase as Db, data.businessId),
+  );
+
+export const startStoreLaunchCheckoutFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) => {
+    const email = (context.claims as { email?: string }).email;
+    if (!email) throw new Error("Your account needs an email address to pay with Paynow.");
+    const { initiateStoreLaunchCheckout } = await import("@/lib/payments/launch-fee.server");
+    return initiateStoreLaunchCheckout(context.supabase as Db, data.businessId, email);
+  });
+
+export const checkStoreLaunchPaymentFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({ businessId: z.string().uuid(), reference: z.string().min(8).max(120) }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    const { checkLaunchPayment } = await import("@/lib/payments/launch-fee.server");
+    return checkLaunchPayment(context.supabase as Db, data.businessId, data.reference);
+  });
 
 export const saveListingFn = createServerFn({ method: "POST" })
   .middleware(authed)

@@ -312,6 +312,15 @@ export async function saveStorefront(supabase: Db, businessId: string, patch: Js
   );
 }
 
+export async function loadStoreLaunchEligibility(supabase: Db, businessId: string) {
+  await assertPermission(supabase, businessId, "business.settings");
+  const result = await supabase.rpc("get_store_launch_eligibility" as never, {
+    _business_id: businessId,
+  } as never);
+  const { storeLaunchEligibilitySchema } = await import("./launch-eligibility");
+  return parseRpc("load store launch eligibility", result, storeLaunchEligibilitySchema);
+}
+
 export async function publishStorefront(supabase: Db, businessId: string, published: boolean) {
   await assertPermission(supabase, businessId, "business.settings");
   if (published) {
