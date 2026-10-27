@@ -57,7 +57,7 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 | 12 | Variants | M | Notes fields only. One stock row. |
 | 13 | Stock per branch | M | Single `products.stock` in git. |
 | 14 | Stock reduction after sales | IV | `create_sale` FOR UPDATE; online orders reserve on `store_order`. |
-| 15 | Low-stock alerts | P | Dashboard metrics / notifications pattern exists; not a full alert engine. |
+| 15 | Low-stock alerts | P | Crossing the product threshold writes an in-app (and optional email) alert. Not a forecast engine. |
 | 16 | Receiving, adjustments, write-offs | INV | Inventory movements and reasons. |
 | 17 | Transfers between branches | M | Needs branches. |
 | 18 | Barcode / SKU lookup | P | POS search and scanner library present; device-dependent. |
@@ -178,7 +178,7 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 | 93 | Inventory valuation | P | Depends on cost_price quality. |
 | 94 | Fulfilment reports / overdue | P | Storefront open/unpaid counts. No overdue engine. |
 | 95 | Searchable activity logs | P | |
-| 96 | Email/messaging notifications | P | In-app `notifications` rows. Email/WhatsApp send not configured. |
+| 96 | Email/messaging notifications | P | In-app plus optional Resend outbox. WhatsApp is still links only. |
 | 97 | Retry-safe jobs / webhooks | P | Subscription Paynow poll. No general job table. |
 | 98 | Cache separation | P | Documented; Redis optional for workspace. |
 | 99 | Monitoring | P | Sentry optional. |
@@ -191,7 +191,7 @@ Almost all of Part 2 is **M** (loyalty, coupons, gift cards, wishlists, custom d
 | # | Feature | Status |
 |---|---|---|
 | 16 | Shareable product/shop links | INV |
-| 21 | Order status notifications | P in-app merchant only |
+| 21 | Order status notifications | P in-app; email if Resend is configured |
 | 31 | Low-stock alerts | P |
 | 33 | Automatic confirmation | P this slice |
 | 35 | Automatic delivery fee | P flat fee |

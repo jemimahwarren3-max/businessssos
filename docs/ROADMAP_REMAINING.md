@@ -15,13 +15,13 @@ Counts are approximate. Many "features" in the original list are the same capabi
 | TanStack Table + RHF on real forms                                                | Open-source tooling PR    |
 | Privacy/Terms drafts, complaint form tied to order token                          | Legal PR                  |
 
-## Batch 1 (this PR): marketplace trust
+## Batch 1: marketplace trust
 
 Verified-purchase reviews and listing reports. Reviews require the order access code and a line that was actually ordered. No star averages with zero reviews. No identity badges.
 
-## Batch 2: merchant notifications
+## Batch 2 (this PR): merchant notifications
 
-Reliable in-app notifications for new orders, complaints, reviews, and reports. Email send only when SMTP or a provider is configured. Do not fake WhatsApp Cloud API.
+In-app alerts for new orders, complaints, reviews, listing reports, and low-stock crossings. Email copies through Resend only when `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. Outbox is retry-safe. WhatsApp Cloud is not used.
 
 ## Batch 3: staging `locations` drift
 
@@ -85,4 +85,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Batch 2 (notifications) if staging has this migration. Batch 3 if POS on staging is failing. Batch 8 only with merchant Paynow credentials.
+Batch 3 if POS on staging is failing (`locations` drift). Batch 8 only with merchant Paynow credentials.

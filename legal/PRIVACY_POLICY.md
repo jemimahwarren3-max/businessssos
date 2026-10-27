@@ -221,7 +221,9 @@ Merchant users can export some business data from account settings where that fe
 
 We send necessary service messages (security, sign-in, billing, important account changes).
 
-We do not currently operate a promotional email or SMS campaign product. If we add one, we will obtain consent where required and offer an opt-out. Unsubscribing from marketing does not stop essential service messages.
+Merchant shop alerts (new online orders, complaints, verified-purchase reviews, listing reports, and low-stock crossings) appear in the BusinessOS app. If the operator has configured Resend, a copy may be emailed to owners, admins and managers who have shop-alert email turned on. Those messages are operational, not marketing. WhatsApp is not used to send them.
+
+We do not currently operate a promotional email or SMS campaign product. If we add one, we will obtain consent where required and offer an opt-out. Unsubscribing from marketing does not stop essential service messages. Turning off shop-alert email does not stop in-app alerts.
 
 ## 15. Children's privacy
 

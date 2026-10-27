@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
 import { createAnonClient } from "@/lib/auth/session.server";
+import { flushNotificationOutboxAdmin } from "@/lib/notifications.mail.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
 import {
   adminOrderSchema,
@@ -134,7 +135,9 @@ export async function placeOrder(input: {
     _fulfilment: input.fulfilment,
     _payment_method: input.paymentMethod,
   });
-  return parseRpc("create store order", result, checkoutResultSchema);
+  const parsed = await parseRpc("create store order", result, checkoutResultSchema);
+  await flushNotificationOutboxAdmin();
+  return parsed;
 }
 
 export async function loadCustomerOrder(
@@ -303,7 +306,9 @@ export async function createStoreComplaint(input: {
     _reference: input.reference ?? "",
     _token: input.token ?? "",
   });
-  return parseRpc("create complaint", result, complaintResultSchema);
+  const parsed = await parseRpc("create complaint", result, complaintResultSchema);
+  await flushNotificationOutboxAdmin();
+  return parsed;
 }
 
 export async function listStoreComplaints(
@@ -357,7 +362,9 @@ export async function createStoreReview(input: {
     _rating: input.rating,
     _body: input.body,
   });
-  return parseRpc("create review", result, complaintResultSchema);
+  const parsed = await parseRpc("create review", result, complaintResultSchema);
+  await flushNotificationOutboxAdmin();
+  return parsed;
 }
 
 export async function listStoreReviewsAdmin(
@@ -400,7 +407,9 @@ export async function createListingReport(input: {
     _detail: input.detail,
     _contact: input.contact ?? "",
   });
-  return parseRpc("create listing report", result, complaintResultSchema);
+  const parsed = await parseRpc("create listing report", result, complaintResultSchema);
+  await flushNotificationOutboxAdmin();
+  return parsed;
 }
 
 export async function listListingReports(
