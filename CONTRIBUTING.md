@@ -27,7 +27,9 @@ Use a feature branch `cursor/<descriptive-name>-dafe` from the current integrati
 
 ## Tests
 
-Add regression tests next to the behaviour you change. Critical paths: tenant isolation, checkout totals, payment status, stock reservation, unpublished products staying private.
+Add regression tests next to the behaviour you change. Critical paths: tenant isolation, checkout totals, payment status, stock reservation, unpublished products staying private, verified-purchase reviews.
+
+Remaining product work is batched in `docs/ROADMAP_REMAINING.md`. Finish one vertical slice. Do not stub the rest of the 200-item list.
 
 ## Pull requests
 

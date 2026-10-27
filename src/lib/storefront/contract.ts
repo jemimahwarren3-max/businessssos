@@ -170,6 +170,72 @@ export const createComplaintSchema = z.object({
 
 export type ComplaintItem = z.infer<typeof complaintListSchema>[number];
 
+export const publicReviewSchema = z.object({
+  id: z.string(),
+  rating: z.coerce.number(),
+  body: z.string(),
+  displayName: z.string(),
+  createdAt: z.string(),
+  verifiedPurchase: z.boolean(),
+});
+
+export const productReviewsSchema = z.object({
+  count: z.coerce.number(),
+  average: z.coerce.number().nullable(),
+  reviews: z.array(publicReviewSchema),
+});
+
+export const createReviewSchema = z.object({
+  slug: z.string().min(3).max(40),
+  reference: z.string().min(3).max(40),
+  token: z.string().min(8).max(80),
+  productId: z.string().uuid(),
+  rating: z.coerce.number().int().min(1).max(5),
+  body: z.string().trim().min(8).max(1000),
+});
+
+export const adminReviewListSchema = z.array(
+  z.object({
+    id: z.string(),
+    createdAt: z.string(),
+    status: z.string(),
+    rating: z.coerce.number(),
+    body: z.string(),
+    displayName: z.string(),
+    productName: z.string().nullable().optional(),
+    orderReference: z.string().nullable().optional(),
+  }),
+);
+
+export const listingReportReasons = ["misleading", "prohibited", "spam", "other"] as const;
+
+export const createListingReportSchema = z.object({
+  slug: z.string().min(3).max(40),
+  productId: z.string().uuid().optional(),
+  reason: z.enum(listingReportReasons),
+  detail: z.string().trim().min(8).max(2000),
+  contact: z.string().trim().max(120).optional(),
+});
+
+export const listingReportListSchema = z.array(
+  z.object({
+    id: z.string(),
+    createdAt: z.string(),
+    status: z.string(),
+    reason: z.string(),
+    detail: z.string(),
+    reporterContact: z.string().nullable().optional(),
+    merchantNote: z.string().nullable().optional(),
+    productName: z.string().nullable().optional(),
+  }),
+);
+
+export type ProductReviews = z.infer<typeof productReviewsSchema>;
+export type AdminReviewItem = z.infer<typeof adminReviewListSchema>[number];
+export type ListingReportItem = z.infer<typeof listingReportListSchema>[number];
+
+export const emptyProductReviews: ProductReviews = { count: 0, average: null, reviews: [] };
+
 export const quoteSchema = z.object({
   currency: z.string(),
   subtotal: z.coerce.number(),
@@ -235,6 +301,9 @@ export const customerOrderSchema = z.object({
       unitPrice: z.coerce.number(),
       lineTotal: z.coerce.number(),
       note: z.string().nullable(),
+      productId: z.string().uuid().nullable().optional(),
+      canReview: z.boolean().catch(false),
+      reviewed: z.boolean().catch(false),
     }),
   ),
 });

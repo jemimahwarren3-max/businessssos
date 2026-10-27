@@ -47,7 +47,7 @@ What you see depends on plan, configuration, location and whether an external pr
 
 We may add, change or withdraw features where reasonably necessary, subject to law and any commitments we have made.
 
-We will not knowingly describe a feature as working when it is not implemented. In particular: shopper Paynow or EcoCash checkout is not connected; WhatsApp is a click-to-chat link, not an automated messaging product; product reviews are not available.
+We will not knowingly describe a feature as working when it is not implemented. In particular: shopper Paynow or EcoCash checkout is not connected; WhatsApp is a click-to-chat link, not an automated messaging product. Product reviews, where shown, are verified against an order access code. We do not sell or display invented ratings.
 
 ## 3. Eligibility and accounts
 

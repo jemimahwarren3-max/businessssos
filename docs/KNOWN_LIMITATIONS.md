@@ -4,7 +4,7 @@
 - Customer checkout: pay on pickup, pay on delivery, quote. No EcoCash, InnBucks, or merchant Paynow.
 - Platform Paynow is subscription billing only ($3/month Pro).
 - One shop per cart. No marketplace commission.
-- No product variants, no reviews, no customer accounts, no file uploads.
+- No product variants, no customer accounts, no file uploads. Reviews exist only as verified-purchase text after an order is ready or completed.
 - Shop URLs are `{slug}.{APP_URL host}`. Wildcard DNS/TLS is an operator task. Cloud Run domain mapping alone is not enough.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).

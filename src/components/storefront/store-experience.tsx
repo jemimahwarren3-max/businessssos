@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
-import type { PublicProduct, PublicStore } from "@/lib/storefront/contract";
+import { ListingReportForm } from "@/components/storefront/listing-report-form";
+import { ProductReviewsBlock } from "@/components/storefront/product-reviews";
+import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefront/contract";
 import { getTemplate } from "@/lib/storefront/templates";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { formatMoney } from "@/lib/format";
@@ -142,6 +144,7 @@ export function StoreChrome({
                 Facebook
               </a>
             ) : null}
+            {preview ? null : <ListingReportForm slug={store.slug} />}
           </div>
         </div>
       </footer>
@@ -310,7 +313,15 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
   );
 }
 
-export function ProductView({ store, product }: { store: PublicStore; product: PublicProduct }) {
+export function ProductView({
+  store,
+  product,
+  reviews,
+}: {
+  store: PublicStore;
+  product: PublicProduct;
+  reviews: ProductReviews;
+}) {
   const template = getTemplate(store.templateId);
   const accent = store.accentColor || template.defaultAccent;
   const [qty, setQty] = useState(product.minQty);
@@ -421,6 +432,10 @@ export function ProductView({ store, product }: { store: PublicStore; product: P
             Copy product link
           </button>
         ) : null}
+        <ProductReviewsBlock reviews={reviews} />
+        <div className="mt-8">
+          <ListingReportForm slug={store.slug} productId={product.id} />
+        </div>
         {related.length > 0 ? (
           <div className="mt-10">
             <h2 className="text-sm font-semibold">More in this category</h2>

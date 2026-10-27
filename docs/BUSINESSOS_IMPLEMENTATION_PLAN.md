@@ -67,11 +67,12 @@ The migration adds `store_orders.terms` (default `{}`) and replaces functions. R
 
 ## Next recommended slices (in order)
 
-1. Apply this migration on staging and smoke a real checkout.
-2. Reconcile staging `locations` into git or revert it.
-3. Merchant notification reliability (in-app first, then email when credentials exist).
-4. Complaint / support ticket tied to `store_orders` (marketplace trust).
-5. Customer Paynow only after a per-merchant integration, never with platform keys.
-6. Branches and variants only after a single-stock model is explicitly replaced.
+See `docs/ROADMAP_REMAINING.md` for the remaining ~190 items in batches.
+
+1. Apply `20261019160000_store_reviews_and_reports.sql` on staging and smoke a review plus a listing report.
+2. Merchant notification reliability (in-app first, then email when credentials exist).
+3. Reconcile staging `locations` into git or revert it.
+4. Customer Paynow only after a per-merchant integration, never with platform keys.
+5. Branches and variants only after a single-stock model is explicitly replaced.
 
 Retention features (loyalty, coupons, gift cards) wait until orders, stock, and payments stay trustworthy.
