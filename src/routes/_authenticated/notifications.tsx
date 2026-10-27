@@ -84,8 +84,8 @@ function NotificationsPage() {
     >
       <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
         {emailConfigured
-          ? "Email copies go to owners, admins, and managers who left shop alerts on. WhatsApp is not used to send these alerts."
-          : "In-app alerts are on. Email copies are off until the operator sets RESEND_API_KEY and NOTIFY_FROM_EMAIL. WhatsApp is not used to send these alerts."}
+          ? "Email copies of shop alerts go to owners, admins, and managers who left shop alerts on. Shoppers who entered an email at checkout get a receipt and status updates. WhatsApp is not used."
+          : "In-app alerts are on. Shop-alert copies and shopper receipts stay queued until RESEND_API_KEY and NOTIFY_FROM_EMAIL are set. They are not discarded. WhatsApp is not used."}
       </p>
       {notifications.isError ? (
         <p className="text-sm text-destructive">

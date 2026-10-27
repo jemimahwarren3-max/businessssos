@@ -108,6 +108,7 @@ export default defineConfig(({ command }) => {
             /^\/store/,
             /^\/legal/,
             /^\/health/,
+            /^\/api/,
             /^\/sitemap/,
             /^\/invite/,
             /^\/admin/,

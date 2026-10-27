@@ -344,8 +344,9 @@ function CheckoutPage() {
                 onChange={(event) => setMessagesConsent(event.target.checked)}
               />
               <span>
-                {store.storeName} may message me about this order and this shop. No shopper emails
-                are sent yet; this only stores consent.
+                {store.storeName} may send extra shop messages to my account. A receipt and order
+                status emails still go to the address entered at checkout. This is not a marketing
+                list.
               </span>
             </label>
           ) : null}

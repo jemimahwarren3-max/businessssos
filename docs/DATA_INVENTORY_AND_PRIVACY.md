@@ -15,7 +15,7 @@ Technical inventory. Not a finding that Zimbabwean or other law is satisfied. Se
 | Complaints | `store_complaints` | Order problems | Members; create via public RPC with optional order token | Until business delete | Supabase | Cascade |
 | Reviews | `store_reviews` | Verified purchase feedback | Public published projection; members see hidden | Until business delete | Supabase | Cascade |
 | Listing reports | `store_listing_reports` | Marketplace trust | Members; create via public RPC | Until business delete | Supabase | Cascade |
-| Notification outbox | `notification_outbox` | Email copies of shop alerts | SECURITY DEFINER / service role send | Until business delete | Resend if configured | Cascade |
+| Notification outbox | `notification_outbox` | Merchant shop-alert copies and shopper receipts/status | SECURITY DEFINER / service role send | Until business delete | Resend if configured | Cascade |
 | Shop profile | `storefronts`, listings | Public catalogue | Public projection only | Until unpublish/delete | Supabase | Cascade |
 | Marketplace browse | RPC output | Discovery | Public, rate limited | Not stored as a second catalogue | Supabase | n/a |
 | Subscription payments | `subscription_payments` | Platform billing | Owner/admin; Paynow webhook via service role | Until business delete | Paynow, Supabase | Cascade |
