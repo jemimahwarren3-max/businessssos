@@ -137,12 +137,16 @@ export async function quoteCart(
   slug: string,
   items: { productId: string; quantity: number; note?: string | undefined }[],
   fulfilment: string,
+  deliveryZoneId?: string | null,
+  collectionPointId?: string | null,
 ): Promise<CartQuote> {
   const supabase = createAnonClient();
   const result = await supabase.rpc("quote_store_cart", {
     _slug: slug,
     _items: items as unknown as Json,
     _fulfilment: fulfilment,
+    _delivery_zone_id: deliveryZoneId ?? null,
+    _collection_point_id: collectionPointId ?? null,
   });
   return parseRpc("quote cart", result, quoteSchema);
 }
@@ -164,6 +168,8 @@ export async function placeOrder(input: {
   fulfilment: string;
   paymentMethod: string;
   collectAt?: string | undefined;
+  deliveryZoneId?: string | undefined;
+  collectionPointId?: string | undefined;
   paynowChannel?: "web" | "ecocash" | undefined;
   manualMethodId?: string | undefined;
 }) {
@@ -179,6 +185,8 @@ export async function placeOrder(input: {
     _fulfilment: input.fulfilment,
     _payment_method: input.paymentMethod,
     _collect_at: input.collectAt ?? null,
+    _delivery_zone_id: input.deliveryZoneId ?? null,
+    _collection_point_id: input.collectionPointId ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
   if (parsed.orderId && input.analyticsVisitorId) {
@@ -416,6 +424,44 @@ export async function loadAdminOrder(
   return withProofUrl(await parseRpc("load online order", result, adminOrderSchema));
 }
 
+export async function saveSellerOrderNote(
+  supabase: Db,
+  businessId: string,
+  orderId: string,
+  note: string,
+): Promise<AdminOrder> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "save_store_order_seller_note", {
+    _business_id: businessId,
+    _order_id: orderId,
+    _note: note,
+  });
+  return withProofUrl(await parseRpc("save seller order note", result, adminOrderSchema));
+}
+
+export async function saveOrderCourier(
+  supabase: Db,
+  businessId: string,
+  orderId: string,
+  input: {
+    courierName: string;
+    courierReference: string;
+    courierContact: string;
+    courierTrackingUrl: string;
+  },
+): Promise<AdminOrder> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "save_store_order_courier", {
+    _business_id: businessId,
+    _order_id: orderId,
+    _courier_name: input.courierName,
+    _courier_reference: input.courierReference,
+    _courier_contact: input.courierContact,
+    _courier_tracking_url: input.courierTrackingUrl,
+  });
+  return withProofUrl(await parseRpc("save order courier", result, adminOrderSchema));
+}
+
 export async function transitionOrder(
   supabase: Db,
   businessId: string,
@@ -444,7 +490,8 @@ export async function transitionOrder(
           _business_id: businessId,
           _order_id: orderId,
           _action: action,
-        });
+          _reason: reason ?? null,
+        } as never);
   const parsed = withProofUrl(await parseRpc("update online order", result, adminOrderSchema));
   await flushNotificationOutboxForBusiness(supabase, businessId);
   return parsed;
@@ -504,18 +551,29 @@ export async function submitOrderPaymentNote(input: {
   return withProofUrl(await parseRpc("submit payment note", result, customerOrderSchema));
 }
 
+const MARKETPLACE_PAGE_SIZE = 24;
+
 export async function loadMarketplace(input: {
   query?: string | undefined;
   category?: string | undefined;
+  offset?: number | undefined;
 }): Promise<Marketplace> {
+  const offset = Math.max(0, Math.min(input.offset ?? 0, 2000));
   const supabase = createAnonClient();
   const result = await supabase.rpc("browse_marketplace", {
     _query: input.query ?? "",
     _category: input.category ?? "",
-    _limit: 24,
-    _offset: 0,
+    _limit: MARKETPLACE_PAGE_SIZE,
+    _offset: offset,
   });
-  return parseRpc("browse marketplace", result, marketplaceSchema);
+  const market = await parseRpc("browse marketplace", result, marketplaceSchema);
+  const filtering = Boolean(market.query || market.category);
+  const productCount = filtering ? market.products.length : market.products.length;
+  return {
+    ...market,
+    offset,
+    hasMore: filtering && productCount >= MARKETPLACE_PAGE_SIZE,
+  };
 }
 
 export async function loadMarketplaceListing(

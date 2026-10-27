@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
-import { Logo } from "@/components/logo";
+import { CustomerShoppingShell } from "@/components/storefront/customer-shopping-shell";
 import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
@@ -14,13 +14,25 @@ const searchSchema = z.object({
   q: z.string().max(80).optional().catch(""),
   category: z.string().max(80).optional().catch(""),
   shop: z.string().max(40).optional().catch(""),
+  page: z.coerce.number().int().min(1).optional().catch(1),
 });
+
+const PAGE_SIZE = 24;
 
 export const Route = createFileRoute("/market")({
   validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
-  loaderDeps: ({ search }) => ({ q: search.q ?? "", category: search.category ?? "" }),
-  loader: async ({ deps }): Promise<Marketplace> =>
-    getMarketplaceFn({ data: { query: deps.q, category: deps.category } }),
+  loaderDeps: ({ search }) => ({
+    q: search.q ?? "",
+    category: search.category ?? "",
+    page: search.page ?? 1,
+  }),
+  loader: async ({ deps }): Promise<Marketplace> => {
+    const page = deps.page ?? 1;
+    const offset = (page - 1) * PAGE_SIZE;
+    return getMarketplaceFn({
+      data: { query: deps.q, category: deps.category, offset },
+    });
+  },
   head: ({ loaderData }) => {
     const category = loaderData?.category ? `${loaderData.category} · ` : "";
     const title = `${category}Shops on ${BRAND.name}`;
@@ -37,14 +49,28 @@ export const Route = createFileRoute("/market")({
     };
   },
   component: MarketPage,
+  pendingComponent: MarketPending,
   errorComponent: MarketError,
 });
+
+function MarketPending() {
+  return (
+    <MarketFrame>
+      <p className="mt-6 text-sm text-muted-foreground">Loading marketplace…</p>
+    </MarketFrame>
+  );
+}
 
 function MarketError({ error }: { error: unknown }) {
   const message = error instanceof Error ? error.message : "Something unexpected happened.";
   return (
     <MarketFrame>
       <p className="text-sm text-destructive">{message}</p>
+      <Button asChild className="mt-4" variant="outline">
+        <Link to="/market" search={{ q: "", category: "" }}>
+          Try again
+        </Link>
+      </Button>
     </MarketFrame>
   );
 }
@@ -52,11 +78,14 @@ function MarketError({ error }: { error: unknown }) {
 function MarketPage() {
   const market = Route.useLoaderData();
   const search = Route.useSearch();
+  const page = search.page ?? 1;
   const selectedShop = search.shop ?? "";
   const products = selectedShop
     ? market.products.filter((product) => product.storeSlug === selectedShop)
     : market.products;
   const filtering = Boolean(market.query || market.category || selectedShop);
+  const emptyDirectory = market.shops.length === 0 && !filtering;
+
   return (
     <MarketFrame>
       <form className="mt-6 flex flex-col gap-2 sm:flex-row" method="get">
@@ -135,12 +164,29 @@ function MarketPage() {
         </div>
       ) : null}
 
+      {emptyDirectory ? (
+        <div className="mt-10 rounded-lg border border-dashed p-8 text-center">
+          <p className="font-medium">No published shops yet</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            When sellers publish and list their shops, products will appear here. Nothing is seeded
+            with demo data.
+          </p>
+          <Button asChild className="mt-4" variant="outline">
+            <Link to="/stores">Browse the shop directory</Link>
+          </Button>
+        </div>
+      ) : null}
+
       {!filtering || market.shops.length > 0 ? (
         <section className="mt-10">
           <h2 className="text-lg font-semibold">Shops</h2>
-          <div className="mt-4">
-            <PublishedShopGrid shops={market.shops} />
-          </div>
+          {market.shops.length === 0 && filtering ? (
+            <p className="mt-3 text-sm text-muted-foreground">No shops matched that search.</p>
+          ) : (
+            <div className="mt-4">
+              <PublishedShopGrid shops={market.shops} />
+            </div>
+          )}
         </section>
       ) : null}
 
@@ -158,6 +204,46 @@ function MarketPage() {
         />
       ) : products.length > 0 ? (
         <ProductSection title="Products" products={market.products} />
+      ) : null}
+
+      {filtering && (market.hasMore || page > 1) ? (
+        <nav className="mt-8 flex items-center justify-between gap-4 border-t pt-6">
+          {page > 1 ? (
+            <Button asChild variant="outline">
+              <Link
+                to="/market"
+                search={{
+                  q: search.q ?? "",
+                  category: market.category,
+                  shop: selectedShop,
+                  page: page - 1,
+                }}
+              >
+                Previous
+              </Link>
+            </Button>
+          ) : (
+            <span />
+          )}
+          <p className="text-sm text-muted-foreground">Page {page}</p>
+          {market.hasMore ? (
+            <Button asChild variant="outline">
+              <Link
+                to="/market"
+                search={{
+                  q: search.q ?? "",
+                  category: market.category,
+                  shop: selectedShop,
+                  page: page + 1,
+                }}
+              >
+                Next
+              </Link>
+            </Button>
+          ) : (
+            <span />
+          )}
+        </nav>
       ) : null}
     </MarketFrame>
   );
@@ -183,7 +269,7 @@ function ProductSection({
             <a
               key={`${product.storeSlug}-${product.slug}`}
               href={storePublicUrl(product.storeSlug, `/products/${product.slug}`)}
-              className="overflow-hidden rounded-lg border"
+              className="overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
             >
               {product.imageUrl ? (
                 <img src={product.imageUrl} alt="" className="aspect-square w-full object-cover" />
@@ -206,30 +292,14 @@ function ProductSection({
 
 function MarketFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <Logo to="/" />
-          <nav className="flex items-center gap-4 text-sm">
-            <Link to="/stores">Shops</Link>
-            <Link to="/market" search={{ q: "", category: "" }}>
-              Products
-            </Link>
-            <Link to="/auth" search={{ mode: "signin" }}>
-              Sign in
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <p className="text-sm text-muted-foreground">{BRAND.name} marketplace</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Find a local shop</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Every product belongs to one business. Checkout stays with that shop, and the stock you
-          see is the same stock the shop uses at the counter.
-        </p>
-        {children}
-      </main>
-    </div>
+    <CustomerShoppingShell>
+      <p className="text-sm text-muted-foreground">{BRAND.name} marketplace</p>
+      <h1 className="mt-1 text-3xl font-semibold tracking-tight">Find a local shop</h1>
+      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+        Every product belongs to one business. Checkout stays with that shop, and the stock you see
+        is the same stock the shop uses at the counter.
+      </p>
+      {children}
+    </CustomerShoppingShell>
   );
 }

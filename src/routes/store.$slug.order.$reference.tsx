@@ -110,7 +110,24 @@ function OrderPage() {
       {order ? (
         <div className="mt-6 space-y-3 text-sm">
           <p>{STATUS_COPY[order.fulfilmentStatus] ?? order.fulfilmentStatus}</p>
+          <p>{STATUS_COPY[order.paymentStatus] ?? order.paymentStatus}</p>
           <OrderReceipt order={order} audience="customer" />
+          {order.events && order.events.length > 0 ? (
+            <div className="space-y-2 rounded-md border p-3">
+              <p className="font-medium">Order updates</p>
+              <ul className="space-y-1 text-muted-foreground">
+                {order.events.map((event) => (
+                  <li key={event.createdAt + event.eventType}>{event.message}</li>
+                ))}
+              </ul>
+              {order.customerEmail ? (
+                <p className="text-xs text-muted-foreground">
+                  We send transactional email to {order.customerEmail} when your address was
+                  provided at checkout. Marketing messages are separate.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           {order.paymentMethod === "manual" &&
           !order.paid &&
           order.paymentStatus !== "cancelled" ? (

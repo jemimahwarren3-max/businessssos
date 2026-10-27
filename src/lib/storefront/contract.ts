@@ -2,6 +2,25 @@ import { z } from "zod";
 import { TEMPLATE_IDS } from "./templates";
 import { STOREFRONT_THEME_SCHEMA } from "./theme";
 
+const deliveryZoneSchema = z.object({
+  id: z.string().max(40),
+  name: z.string().max(80),
+  enabled: z.boolean().catch(true),
+  fee: z.coerce.number().min(0).max(100000),
+  freeOver: z.coerce.number().min(0).max(1000000).nullable().catch(null),
+  minOrder: z.coerce.number().min(0).max(1000000).catch(0),
+  estimate: z.string().max(120).catch(""),
+});
+
+const collectionPointSchema = z.object({
+  id: z.string().max(40),
+  name: z.string().max(80),
+  address: z.string().max(200).catch(""),
+  phone: z.string().max(30).catch(""),
+  instructions: z.string().max(300).catch(""),
+  enabled: z.boolean().catch(true),
+});
+
 const deliverySchema = z.object({
   pickupEnabled: z.boolean(),
   deliveryEnabled: z.boolean(),
@@ -11,6 +30,11 @@ const deliverySchema = z.object({
   areas: z.string(),
   estimate: z.string(),
   quoteRequired: z.boolean().catch(false),
+  pricingMethod: z.enum(["flat", "zone", "free", "quote"]).catch("flat"),
+  deliveryInstructions: z.string().max(500).catch(""),
+  collectionInstructions: z.string().max(500).catch(""),
+  zones: z.array(deliveryZoneSchema).max(25).catch([]),
+  collectionPoints: z.array(collectionPointSchema).max(10).catch([]),
   autoAccept: z.boolean().catch(false),
   prepMinutes: z.coerce.number().catch(0),
   cutoff: z.string().catch(""),
@@ -68,6 +92,10 @@ const orderTermsSchema = z.object({
   tax: z.coerce.number().optional(),
   total: z.coerce.number().optional(),
   collectAt: z.string().nullable().optional(),
+  deliveryZoneId: z.string().max(40).optional(),
+  deliveryZoneName: z.string().max(80).optional(),
+  collectionPointId: z.string().max(40).optional(),
+  collectionPointName: z.string().max(80).optional(),
   manualPayment: manualPaymentMethodSchema.optional(),
   paymentProof: z
     .object({
@@ -194,6 +222,8 @@ export const marketplaceProductSchema = z.object({
 export const marketplaceSchema = z.object({
   query: z.string(),
   category: z.string(),
+  offset: z.coerce.number().int().min(0).catch(0),
+  hasMore: z.boolean().catch(false),
   shops: z.array(
     z.object({
       slug: z.string(),
@@ -221,6 +251,8 @@ export type Marketplace = z.infer<typeof marketplaceSchema>;
 export const EMPTY_MARKETPLACE: Marketplace = {
   query: "",
   category: "",
+  offset: 0,
+  hasMore: false,
   shops: [],
   products: [],
   categories: [],
@@ -422,6 +454,16 @@ export const customerOrderSchema = z.object({
       reviewed: z.boolean().catch(false),
     }),
   ),
+  events: z
+    .array(
+      z.object({
+        eventType: z.string(),
+        message: z.string(),
+        createdAt: z.string(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export type CustomerOrder = z.infer<typeof customerOrderSchema>;
@@ -564,6 +606,17 @@ export const adminOrderSchema = z.object({
   stockReserved: z.boolean(),
   createdAt: z.string(),
   collectAt: z.string().nullable().optional(),
+  sellerInternalNote: z.string().catch(""),
+  deliveryZoneId: z.string().nullable().optional(),
+  deliveryZoneName: z.string().nullable().optional(),
+  collectionPointId: z.string().nullable().optional(),
+  collectionPointName: z.string().nullable().optional(),
+  courierName: z.string().nullable().optional(),
+  courierReference: z.string().nullable().optional(),
+  courierContact: z.string().nullable().optional(),
+  courierTrackingUrl: z.string().nullable().optional(),
+  dispatchedAt: z.string().nullable().optional(),
+  fulfilledAt: z.string().nullable().optional(),
   proofUrl: z.string().nullable().optional(),
   terms: orderTermsSchema.optional(),
   items: customerOrderSchema.shape.items,
@@ -605,42 +658,7 @@ export const saveStoreSchema = z.object({
       tiktok: z.string().max(500).optional(),
     })
     .optional(),
-  delivery: z.object({
-    pickupEnabled: z.boolean(),
-    deliveryEnabled: z.boolean(),
-    flatFee: z.coerce.number().min(0).max(100000),
-    freeOver: z.coerce.number().min(0).max(1000000).nullable(),
-    minimumOrder: z.coerce.number().min(0).max(1000000),
-    areas: z.string().max(300),
-    estimate: z.string().max(120),
-    quoteRequired: z.boolean(),
-    autoAccept: z.boolean(),
-    prepMinutes: z.coerce.number().int().min(0).max(10080),
-    cutoff: z.string().max(120),
-    cutoffTime: z.string().max(5).nullable().optional(),
-    collectionWindows: z.string().max(200),
-    timezone: z.string().max(40).optional(),
-    weeklyHours: z
-      .array(
-        z.object({
-          weekday: z.coerce.number().int().min(1).max(7),
-          open: z.string().max(5),
-          close: z.string().max(5),
-        }),
-      )
-      .max(7)
-      .optional(),
-    windows: z
-      .array(
-        z.object({
-          weekday: z.coerce.number().int().min(1).max(7),
-          start: z.string().max(5),
-          end: z.string().max(5),
-        }),
-      )
-      .max(21)
-      .optional(),
-  }),
+  delivery: deliverySchema,
   payments: z.object({
     payOnPickup: z.boolean(),
     payOnDelivery: z.boolean(),
@@ -690,4 +708,6 @@ export const checkoutSchema = z.object({
   }),
   items: z.array(cartItemSchema).min(1).max(50),
   collectAt: z.string().max(40).optional(),
+  deliveryZoneId: z.string().max(40).optional(),
+  collectionPointId: z.string().max(40).optional(),
 });

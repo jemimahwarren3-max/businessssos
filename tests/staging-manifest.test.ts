@@ -24,6 +24,10 @@ const FILES = [
   "20261027161000_platform_runtime_admin_columns.sql",
   "20261027170000_location_management_rpcs.sql",
   "20261027180000_store_launch_eligibility.sql",
+  "20261027200000_customer_marketplace_hardening.sql",
+  "20261027210000_order_fulfilment_stage6.sql",
+  "20261027220000_order_notification_stage7.sql",
+  "20261027230000_order_fulfilment_stage8.sql",
 ];
 
 describe("staging migration manifest", () => {

@@ -109,3 +109,52 @@ export async function setNotifyEmail(
   const parsed = z.boolean().safeParse(result.data);
   return parsed.success ? parsed.data : enabled;
 }
+
+const orderEmailDeliverySchema = z.array(
+  z.object({
+    id: z.string().uuid(),
+    recipientRole: z.string().nullable(),
+    toEmail: z.string(),
+    subject: z.string(),
+    status: z.string(),
+    attempts: z.coerce.number(),
+    lastError: z.string(),
+    emailTemplate: z.string(),
+    createdAt: z.string(),
+    sentAt: z.string().nullable(),
+  }),
+);
+
+export async function listOrderEmailDeliveries(
+  supabase: Db,
+  businessId: string,
+  orderId: string,
+) {
+  const result = await untypedRpc(supabase, "list_order_email_deliveries", {
+    _business_id: businessId,
+    _order_id: orderId,
+  });
+  if (result.error) dbFail("list order email deliveries", result.error);
+  const parsed = orderEmailDeliverySchema.safeParse(result.data);
+  if (!parsed.success) {
+    console.error("[businessos] order email deliveries payload", parsed.error.flatten());
+    return [];
+  }
+  return parsed.data;
+}
+
+export async function retryOrderEmailDelivery(
+  supabase: Db,
+  businessId: string,
+  outboxId: string,
+) {
+  const result = await untypedRpc(supabase, "retry_order_email_delivery", {
+    _business_id: businessId,
+    _outbox_id: outboxId,
+  });
+  if (result.error) dbFail("retry order email delivery", result.error);
+  await flushNotificationOutboxForBusiness(supabase, businessId);
+  const parsed = orderEmailDeliverySchema.safeParse(result.data);
+  if (!parsed.success) return [];
+  return parsed.data;
+}

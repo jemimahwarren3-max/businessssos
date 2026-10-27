@@ -46,6 +46,8 @@ import {
   respondStoreComplaint,
   respondToStoreReview,
   saveListing,
+  saveSellerOrderNote,
+  saveOrderCourier,
   saveStorefront,
   setProductCategory,
   setMarketplaceVisible,
@@ -98,6 +100,7 @@ export const getMarketplaceFn = createServerFn({ method: "POST" })
       z.object({
         query: z.string().max(80).optional(),
         category: z.string().max(80).optional(),
+        offset: z.coerce.number().int().min(0).max(2000).optional(),
       }),
       data,
     ),
@@ -157,11 +160,21 @@ export const quoteCartFn = createServerFn({ method: "POST" })
         slug: z.string().min(1).max(40),
         fulfilment: z.enum(["pickup", "delivery", "quote"]),
         items: checkoutSchema.shape.items,
+        deliveryZoneId: z.string().max(40).optional(),
+        collectionPointId: z.string().max(40).optional(),
       }),
       data,
     ),
   )
-  .handler(async ({ data }) => quoteCart(data.slug, data.items, data.fulfilment));
+  .handler(async ({ data }) =>
+    quoteCart(
+      data.slug,
+      data.items,
+      data.fulfilment,
+      data.deliveryZoneId,
+      data.collectionPointId,
+    ),
+  );
 
 export const placeOrderFn = createServerFn({ method: "POST" })
   .middleware(checkoutLimit)
@@ -355,6 +368,46 @@ export const getAdminOrderFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) =>
     loadAdminOrder(context.supabase as Db, data.businessId, data.orderId),
+  );
+
+export const saveSellerOrderNoteFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        orderId: z.string().uuid(),
+        note: z.string().max(2000),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    saveSellerOrderNote(context.supabase as Db, data.businessId, data.orderId, data.note),
+  );
+
+export const saveOrderCourierFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        orderId: z.string().uuid(),
+        courierName: z.string().max(80),
+        courierReference: z.string().max(80),
+        courierContact: z.string().max(80),
+        courierTrackingUrl: z.string().max(500),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    saveOrderCourier(context.supabase as Db, data.businessId, data.orderId, {
+      courierName: data.courierName,
+      courierReference: data.courierReference,
+      courierContact: data.courierContact,
+      courierTrackingUrl: data.courierTrackingUrl,
+    }),
   );
 
 export const transitionOrderFn = createServerFn({ method: "POST" })

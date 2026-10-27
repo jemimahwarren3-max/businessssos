@@ -24,6 +24,11 @@ import { formatMoney, readableError } from "@/lib/format";
 import { BRAND } from "@/lib/brand";
 import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { enabledManualMethods, MANUAL_PAYMENT_LABELS } from "@/lib/storefront/manual-payments";
+import {
+  deliveryPricingMethod,
+  enabledCollectionPoints,
+  enabledDeliveryZones,
+} from "@/lib/storefront/delivery-zones";
 import { Route as StoreRoute } from "./store.$slug";
 import {
   readStoreAnalyticsVisitorId,
@@ -62,7 +67,21 @@ function CheckoutPage() {
   const [manualMethodId, setManualMethodId] = useState(manuals[0]?.id ?? "");
   const [paynowChannel, setPaynowChannel] = useState<"web" | "ecocash">("web");
   const [collectAt, setCollectAt] = useState("");
+  const [deliveryZoneId, setDeliveryZoneId] = useState("");
+  const [collectionPointId, setCollectionPointId] = useState("");
   const [shopper, setShopper] = useState<{ email: string | null } | null>(null);
+  const deliveryZones = useMemo(
+    () => enabledDeliveryZones(store.delivery.zones),
+    [store.delivery.zones],
+  );
+  const collectionPoints = useMemo(
+    () => enabledCollectionPoints(store.delivery.collectionPoints),
+    [store.delivery.collectionPoints],
+  );
+  const zonePricing =
+    fulfilment === "delivery" &&
+    deliveryPricingMethod(store.delivery) === "zone" &&
+    deliveryZones.length > 0;
   const [messagesConsent, setMessagesConsent] = useState(false);
   const fetchUser = useServerFn(getCurrentUser);
   const slots = useMemo(
@@ -100,12 +119,22 @@ function CheckoutPage() {
 
   useEffect(() => {
     setCollectAt("");
+    setDeliveryZoneId("");
+    setCollectionPointId("");
   }, [fulfilment]);
 
   useEffect(() => {
     if (lines.length === 0) return;
     let cancelled = false;
-    void quote({ data: { slug: store.slug, fulfilment, items: lines } })
+    void quote({
+      data: {
+        slug: store.slug,
+        fulfilment,
+        items: lines,
+        deliveryZoneId: deliveryZoneId || undefined,
+        collectionPointId: collectionPointId || undefined,
+      },
+    })
       .then((result) => {
         if (!cancelled) setPriced(result);
       })
@@ -115,7 +144,7 @@ function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [lines, fulfilment, quote, store.slug]);
+  }, [lines, fulfilment, deliveryZoneId, collectionPointId, quote, store.slug]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -147,6 +176,8 @@ function CheckoutPage() {
           },
           items: lines,
           collectAt: collectAt || undefined,
+          deliveryZoneId: deliveryZoneId || undefined,
+          collectionPointId: collectionPointId || undefined,
           paynowChannel: paymentMethod === "paynow" ? paynowChannel : undefined,
           manualMethodId: paymentMethod === "manual" ? manualMethodId : undefined,
         },
@@ -292,6 +323,50 @@ function CheckoutPage() {
               </label>
             ) : null}
           </fieldset>
+          {zonePricing ? (
+            <label className="block text-sm">
+              Delivery area
+              <select
+                className="mt-1 w-full rounded border px-3 py-2"
+                required
+                value={deliveryZoneId}
+                onChange={(event) => setDeliveryZoneId(event.target.value)}
+              >
+                <option value="">Choose where we should deliver</option>
+                {deliveryZones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.name}
+                    {zone.fee > 0 ? ` · from ${formatMoney(zone.fee, store.currency)}` : " · free"}
+                    {zone.estimate ? ` · ${zone.estimate}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {fulfilment === "pickup" && collectionPoints.length > 0 ? (
+            <label className="block text-sm">
+              Collection location
+              <select
+                className="mt-1 w-full rounded border px-3 py-2"
+                required
+                value={collectionPointId}
+                onChange={(event) => setCollectionPointId(event.target.value)}
+              >
+                <option value="">Choose where to collect</option>
+                {collectionPoints.map((point) => (
+                  <option key={point.id} value={point.id}>
+                    {point.name}
+                    {point.address ? ` — ${point.address}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {store.delivery.collectionInstructions && fulfilment === "pickup" ? (
+            <p className="text-sm text-neutral-600 whitespace-pre-wrap">
+              {store.delivery.collectionInstructions}
+            </p>
+          ) : null}
           {fulfilment === "delivery" || fulfilment === "quote" ? (
             <label className="block text-sm">
               {fulfilment === "delivery" ? "Delivery location and directions" : "Delivery location"}

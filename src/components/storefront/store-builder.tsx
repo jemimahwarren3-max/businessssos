@@ -18,6 +18,12 @@ import {
   hoursStateFrom,
   weeklyHoursFromState,
 } from "@/components/storefront/hours-editor";
+import { FulfilmentSettingsFields } from "@/components/storefront/fulfilment-settings-fields";
+import {
+  deliveryPricingMethod,
+  type CollectionPoint,
+  type DeliveryZone,
+} from "@/lib/storefront/delivery-zones";
 import {
   BUILDER_TEMPLATE_CHOICES,
   builderChoiceForTemplateId,
@@ -79,6 +85,11 @@ function snapshotFromState(input: {
   areas: string;
   estimate: string;
   quoteRequired: boolean;
+  pricingMethod: string;
+  deliveryInstructions: string;
+  collectionInstructions: string;
+  zones: DeliveryZone[];
+  collectionPoints: CollectionPoint[];
   autoAccept: boolean;
   prepMinutes: string;
   cutoffTime: string;
@@ -169,6 +180,20 @@ export function StoreBuilder({
   const [areas, setAreas] = useState(store.delivery.areas ?? "");
   const [estimate, setEstimate] = useState(store.delivery.estimate ?? "");
   const [quoteRequired, setQuoteRequired] = useState(store.delivery.quoteRequired ?? false);
+  const [pricingMethod, setPricingMethod] = useState<string>(() => {
+    const method = deliveryPricingMethod(store.delivery);
+    return method === "quote" ? "flat" : method;
+  });
+  const [deliveryInstructions, setDeliveryInstructions] = useState(
+    store.delivery.deliveryInstructions ?? "",
+  );
+  const [collectionInstructions, setCollectionInstructions] = useState(
+    store.delivery.collectionInstructions ?? "",
+  );
+  const [zones, setZones] = useState<DeliveryZone[]>(store.delivery.zones ?? []);
+  const [collectionPoints, setCollectionPoints] = useState<CollectionPoint[]>(
+    store.delivery.collectionPoints ?? [],
+  );
   const [autoAccept, setAutoAccept] = useState(store.delivery.autoAccept ?? false);
   const [prepMinutes, setPrepMinutes] = useState(String(store.delivery.prepMinutes ?? 0));
   const [cutoffTime, setCutoffTime] = useState(
@@ -220,6 +245,11 @@ export function StoreBuilder({
       areas: store.delivery.areas ?? "",
       estimate: store.delivery.estimate ?? "",
       quoteRequired: store.delivery.quoteRequired ?? false,
+      pricingMethod: deliveryPricingMethod(store.delivery) === "quote" ? "flat" : deliveryPricingMethod(store.delivery),
+      deliveryInstructions: store.delivery.deliveryInstructions ?? "",
+      collectionInstructions: store.delivery.collectionInstructions ?? "",
+      zones: store.delivery.zones ?? [],
+      collectionPoints: store.delivery.collectionPoints ?? [],
       autoAccept: store.delivery.autoAccept ?? false,
       prepMinutes: String(store.delivery.prepMinutes ?? 0),
       cutoffTime:
@@ -266,6 +296,11 @@ export function StoreBuilder({
         areas,
         estimate,
         quoteRequired,
+        pricingMethod,
+        deliveryInstructions,
+        collectionInstructions,
+        zones,
+        collectionPoints,
         autoAccept,
         prepMinutes,
         cutoffTime,
@@ -306,6 +341,11 @@ export function StoreBuilder({
       areas,
       estimate,
       quoteRequired,
+      pricingMethod,
+      deliveryInstructions,
+      collectionInstructions,
+      zones,
+      collectionPoints,
       autoAccept,
       prepMinutes,
       cutoffTime,
@@ -352,6 +392,11 @@ export function StoreBuilder({
     setAreas(snap.areas);
     setEstimate(snap.estimate);
     setQuoteRequired(snap.quoteRequired);
+    setPricingMethod(snap.pricingMethod);
+    setDeliveryInstructions(snap.deliveryInstructions);
+    setCollectionInstructions(snap.collectionInstructions);
+    setZones(snap.zones);
+    setCollectionPoints(snap.collectionPoints);
     setAutoAccept(snap.autoAccept);
     setPrepMinutes(snap.prepMinutes);
     setCutoffTime(snap.cutoffTime);
@@ -399,6 +444,11 @@ export function StoreBuilder({
             areas,
             estimate,
             quoteRequired,
+            pricingMethod: quoteRequired ? "quote" : pricingMethod,
+            deliveryInstructions,
+            collectionInstructions,
+            zones,
+            collectionPoints,
             autoAccept,
             prepMinutes: Number(prepMinutes) || 0,
             cutoff: cutoffTime,
@@ -786,28 +836,35 @@ export function StoreBuilder({
               </label>
             ))}
           </fieldset>
+          <FulfilmentSettingsFields
+            pickup={pickup}
+            delivery={delivery}
+            pricingMethod={pricingMethod}
+            flatFee={flatFee}
+            freeOver={freeOver}
+            minimum={minimum}
+            areas={areas}
+            estimate={estimate}
+            quoteRequired={quoteRequired}
+            deliveryInstructions={deliveryInstructions}
+            collectionInstructions={collectionInstructions}
+            zones={zones}
+            collectionPoints={collectionPoints}
+            onPickupChange={setPickup}
+            onDeliveryChange={setDelivery}
+            onPricingMethodChange={setPricingMethod}
+            onFlatFeeChange={setFlatFee}
+            onFreeOverChange={setFreeOver}
+            onMinimumChange={setMinimum}
+            onAreasChange={setAreas}
+            onEstimateChange={setEstimate}
+            onQuoteRequiredChange={setQuoteRequired}
+            onDeliveryInstructionsChange={setDeliveryInstructions}
+            onCollectionInstructionsChange={setCollectionInstructions}
+            onZonesChange={setZones}
+            onCollectionPointsChange={setCollectionPoints}
+          />
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" disabled={disabled} checked={pickup} onChange={(e) => setPickup(e.target.checked)} />
-              Collection / pickup
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                disabled={disabled}
-                checked={delivery}
-                onChange={(e) => setDelivery(e.target.checked)}
-              />
-              Local delivery
-            </label>
-            <label className="text-sm">
-              <Label>Flat delivery fee</Label>
-              <Input value={flatFee} disabled={disabled} onChange={(event) => setFlatFee(event.target.value)} />
-            </label>
-            <label className="text-sm">
-              <Label>Delivery areas</Label>
-              <Input value={areas} disabled={disabled} onChange={(event) => setAreas(event.target.value)} />
-            </label>
             <label className="text-sm md:col-span-2">
               <Label>Delivery information (customer-facing)</Label>
               <Textarea

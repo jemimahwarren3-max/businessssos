@@ -52,12 +52,14 @@ export function buildResendEmail(input: {
   to: string;
   subject: string;
   body: string;
+  html?: string;
 }) {
   return {
     from: input.from,
     to: [input.to],
     subject: input.subject,
     text: input.body,
+    ...(input.html ? { html: input.html } : {}),
   };
 }
 

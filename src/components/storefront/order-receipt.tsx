@@ -39,7 +39,9 @@ export function OrderReceipt({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-lg font-semibold">{order.storeName}</p>
-          <p className="text-neutral-600">Receipt {order.reference}</p>
+          <p className="text-neutral-600">
+            {order.paid ? "Payment receipt" : "Order confirmation"} {order.reference}
+          </p>
         </div>
         <button
           className="rounded-md border px-3 py-1 text-sm print:hidden"
@@ -66,6 +68,10 @@ export function OrderReceipt({
         <div className="flex justify-between gap-4">
           <dt>How you pay</dt>
           <dd>{paymentHowLabel(order.paymentMethod, order.paid)}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt>Payment status</dt>
+          <dd>{order.paid ? "Paid (recorded by the shop or verified)" : "Not paid yet"}</dd>
         </div>
         {order.collectAt ? (
           <div className="flex justify-between gap-4">
