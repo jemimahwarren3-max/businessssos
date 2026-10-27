@@ -39,6 +39,8 @@ const EXPORT_TABLES = [
   "payments",
   "expenses",
   "inventory_movements",
+  "locations",
+  "product_stock",
 ] as const;
 
 export type BusinessExport = {

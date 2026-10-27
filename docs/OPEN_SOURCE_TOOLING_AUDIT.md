@@ -6,23 +6,23 @@ Audited 19 October 2026 on `cursor/open-source-tooling-dafe` (includes the store
 
 ## Existing tools and their purpose
 
-| Tool | Already in repo | Licence (as published) | What BusinessOS uses it for |
-|---|---|---|---|
-| TanStack Start, Router, Query | Yes | MIT | App shell, routing, server functions, merchant data fetching |
-| React 19 / Vite 8 | Yes | MIT | UI and build |
-| Tailwind CSS 4 | Yes | MIT | Merchant app and storefront layouts |
-| shadcn/ui (New York) + Radix | Yes (`components.json`, `src/components/ui`) | MIT (copy-in components) | Buttons, dialogs, forms primitives, sidebar, tables markup |
-| Lucide | Yes `lucide-react` | ISC | Icons |
-| React Hook Form + `@hookform/resolvers` | Installed; **unused in routes until this change** | MIT | Now used for Add product |
-| Zod | Yes | MIT | Server functions, SQL payload parsing, business schemas |
-| Vitest | Yes | MIT | Unit tests |
-| Supabase JS + Postgres RLS | Yes | Apache-2.0 client; hosted Postgres | Auth, tenant data, RPCs |
-| Paynow npm client | Yes | Check package; commercial API | Platform **subscription** billing only |
-| Recharts | Yes | MIT | Insights charts from real records |
-| date-fns, cmdk, vaul, embla, CVA, clsx | Yes | MIT | Dates, command palette, drawers, carousel, class names |
-| Sentry / Upstash Redis | Optional env | Proprietary hosted | Errors and workspace cache when configured |
-| zxing | Yes | MIT / Apache | Barcode camera lookup |
-| PWA (vite-plugin-pwa / Workbox) | Yes | MIT | Authenticated offline shell only |
+| Tool                                    | Already in repo                                   | Licence (as published)             | What BusinessOS uses it for                                  |
+| --------------------------------------- | ------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
+| TanStack Start, Router, Query           | Yes                                               | MIT                                | App shell, routing, server functions, merchant data fetching |
+| React 19 / Vite 8                       | Yes                                               | MIT                                | UI and build                                                 |
+| Tailwind CSS 4                          | Yes                                               | MIT                                | Merchant app and storefront layouts                          |
+| shadcn/ui (New York) + Radix            | Yes (`components.json`, `src/components/ui`)      | MIT (copy-in components)           | Buttons, dialogs, forms primitives, sidebar, tables markup   |
+| Lucide                                  | Yes `lucide-react`                                | ISC                                | Icons                                                        |
+| React Hook Form + `@hookform/resolvers` | Installed; **unused in routes until this change** | MIT                                | Now used for Add product                                     |
+| Zod                                     | Yes                                               | MIT                                | Server functions, SQL payload parsing, business schemas      |
+| Vitest                                  | Yes                                               | MIT                                | Unit tests                                                   |
+| Supabase JS + Postgres RLS              | Yes                                               | Apache-2.0 client; hosted Postgres | Auth, tenant data, RPCs                                      |
+| Paynow npm client                       | Yes                                               | Check package; commercial API      | Platform **subscription** billing only                       |
+| Recharts                                | Yes                                               | MIT                                | Insights charts from real records                            |
+| date-fns, cmdk, vaul, embla, CVA, clsx  | Yes                                               | MIT                                | Dates, command palette, drawers, carousel, class names       |
+| Sentry / Upstash Redis                  | Optional env                                      | Proprietary hosted                 | Errors and workspace cache when configured                   |
+| zxing                                   | Yes                                               | MIT / Apache                       | Barcode camera lookup                                        |
+| PWA (vite-plugin-pwa / Workbox)         | Yes                                               | MIT                                | Authenticated offline shell only                             |
 
 Marketplace search today is `ILIKE` inside `browse_marketplace` (`20261019110000_marketplace_browse.sql`). It only returns published shops with `marketplace_visible`. That is enough at current catalogue size.
 
@@ -38,28 +38,28 @@ Ten storefront templates already live in `src/lib/storefront/templates.ts` plus 
 
 ## Rejected (this pass)
 
-| Tool | Why |
-|---|---|
-| **Medusa** | Second commerce engine and usually a second database. Would fork products, carts, orders, and payments away from Supabase RLS and `create_sale` / `store_orders`. Zimbabwe cash rules and shared POS stock would have to be re-implemented as Medusa modules. Cost: hosting, sync, backups, dual auth. |
-| **Saleor** | Python/Django + GraphQL. Incompatible with this TypeScript Start app without a rewrite. |
-| **WooCommerce** | WordPress PHP store. Cannot host the existing POS, staff roles, or multi-tenant RLS. |
-| **Meilisearch** | Useful later. Needs a host, API keys, reindex jobs, and a guarantee that unpublished products never enter the index. Operating cost is not zero. |
-| **Umami** | Needs a database and a host. No first-party analytics requirement until shops have real traffic. Do not add trackers without a privacy review. |
-| **Storybook** | Duplicates template preview already on `/storefront` and `?preview=1`. Extra pipeline to keep in sync. |
-| **dnd-kit** | No drag-and-drop section editor exists yet. Adding it now is UI-only. |
-| **n8n** | Source-available (Sustainable Use), not OSI. Workflows would sit outside the order state machine. |
-| **MinIO** | No object-storage product yet (image URLs are text). Extra cluster to patch. |
+| Tool            | Why                                                                                                                                                                                                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Medusa**      | Second commerce engine and usually a second database. Would fork products, carts, orders, and payments away from Supabase RLS and `create_sale` / `store_orders`. Zimbabwe cash rules and shared POS stock would have to be re-implemented as Medusa modules. Cost: hosting, sync, backups, dual auth. |
+| **Saleor**      | Python/Django + GraphQL. Incompatible with this TypeScript Start app without a rewrite.                                                                                                                                                                                                                |
+| **WooCommerce** | WordPress PHP store. Cannot host the existing POS, staff roles, or multi-tenant RLS.                                                                                                                                                                                                                   |
+| **Meilisearch** | Useful later. Needs a host, API keys, reindex jobs, and a guarantee that unpublished products never enter the index. Operating cost is not zero.                                                                                                                                                       |
+| **Umami**       | Needs a database and a host. No first-party analytics requirement until shops have real traffic. Do not add trackers without a privacy review.                                                                                                                                                         |
+| **Storybook**   | Duplicates template preview already on `/storefront` and `?preview=1`. Extra pipeline to keep in sync.                                                                                                                                                                                                 |
+| **dnd-kit**     | No drag-and-drop section editor exists yet. Adding it now is UI-only.                                                                                                                                                                                                                                  |
+| **n8n**         | Source-available (Sustainable Use), not OSI. Workflows would sit outside the order state machine.                                                                                                                                                                                                      |
+| **MinIO**       | No object-storage product yet (image URLs are text). Extra cluster to patch.                                                                                                                                                                                                                           |
 
 ## Architecture comparison if someone still wants Medusa
 
-| Concern | Stay on Supabase (current) | Move commerce to Medusa |
-|---|---|---|
-| Source of truth | `products.stock`, `sales`, `store_orders` | Medusa DB plus a sync to POS |
-| Tenant isolation | Postgres RLS + membership RPCs | Medusa multi-tenancy plus mapping BusinessOS `business_id` |
-| Auth | Supabase Auth cookie | Duplicate customer/merchant identity or a brittle bridge |
-| Payments | Platform Paynow isolated; shop cash rules in SQL | Medusa payment provider plugins; still must write Paynow yourself |
-| Migration | None | Export catalogue, orders, rebuild checkout, dual-run, rollback dump |
-| Benefit | Already shipping | Faster generic cart only if we threw away POS |
+| Concern          | Stay on Supabase (current)                       | Move commerce to Medusa                                             |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------------------------- |
+| Source of truth  | `products.stock`, `sales`, `store_orders`        | Medusa DB plus a sync to POS                                        |
+| Tenant isolation | Postgres RLS + membership RPCs                   | Medusa multi-tenancy plus mapping BusinessOS `business_id`          |
+| Auth             | Supabase Auth cookie                             | Duplicate customer/merchant identity or a brittle bridge            |
+| Payments         | Platform Paynow isolated; shop cash rules in SQL | Medusa payment provider plugins; still must write Paynow yourself   |
+| Migration        | None                                             | Export catalogue, orders, rebuild checkout, dual-run, rollback dump |
+| Benefit          | Already shipping                                 | Faster generic cart only if we threw away POS                       |
 
 No benefit demonstrated. **Do not migrate.**
 
@@ -95,4 +95,4 @@ Recorded in the PR after commands run: `npx tsc --noEmit`, `npx vitest run tests
 
 - Playwright needs browsers, secrets, and a running app. Not added here.
 - Customer Paynow, Meilisearch hosting, and analytics hosting are operator decisions.
-- Staging `locations` schema drift is unrelated and still unresolved.
+- Locations schema is in git; POS still uses the default location.
