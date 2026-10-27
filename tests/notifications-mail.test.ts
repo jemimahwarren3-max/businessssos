@@ -42,6 +42,18 @@ describe("merchant alert email config", () => {
     expect(payload).not.toHaveProperty("html");
   });
 
+  it("includes HTML when provided for responsive templates", () => {
+    const payload = buildResendEmail({
+      from: "alerts@example.com",
+      to: "shopper@example.com",
+      subject: "Order ON-0001",
+      body: "Plain fallback",
+      html: "<p>Order</p>",
+    });
+    expect(payload.html).toBe("<p>Order</p>");
+    expect(payload.text).toBe("Plain fallback");
+  });
+
   it("sends a stable provider idempotency key for outbox retries", () => {
     const headers = buildResendHeaders("re_test", "2bc89462-1d20-4b8e-a59a-65c601a7182a");
     expect(headers.Authorization).toBe("Bearer re_test");
