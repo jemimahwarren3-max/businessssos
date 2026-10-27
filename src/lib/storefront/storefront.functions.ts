@@ -13,6 +13,7 @@ import {
   saveStoreSchema,
 } from "./contract";
 import {
+  claimShopperOrder,
   createListingReport,
   createStoreComplaint,
   createStoreReview,
@@ -23,6 +24,7 @@ import {
   loadAdminOrder,
   loadAdminStore,
   loadCustomerOrder,
+  loadShopperAccount,
   loadMarketplace,
   loadMarketplaceListing,
   loadProductReviews,
@@ -36,6 +38,7 @@ import {
   saveListing,
   saveStorefront,
   setMarketplaceVisible,
+  setShopperConsent,
   transitionOrder,
 } from "./storefront.server";
 
@@ -47,6 +50,9 @@ const checkoutLimit = [
 ] as const;
 const authed = [
   authedRateLimit({ keyPrefix: "store-admin", maxRequests: 60, windowSeconds: 60 }),
+] as const;
+const shopper = [
+  authedRateLimit({ keyPrefix: "store-shopper", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
 
 export const getMarketplaceFn = createServerFn({ method: "POST" })
@@ -128,12 +134,40 @@ export const getCustomerOrderFn = createServerFn({ method: "POST" })
       z.object({
         slug: z.string().min(1).max(40),
         reference: z.string().min(3).max(40),
+        token: z.string().max(80).optional(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data }) => loadCustomerOrder(data.slug, data.reference, data.token ?? ""));
+
+export const getShopperAccountFn = createServerFn({ method: "POST" })
+  .middleware(shopper)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ slug: z.string().min(1).max(40) }), data),
+  )
+  .handler(async ({ data }) => loadShopperAccount(data.slug));
+
+export const claimShopperOrderFn = createServerFn({ method: "POST" })
+  .middleware(shopper)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        slug: z.string().min(1).max(40),
+        reference: z.string().min(3).max(40),
         token: z.string().min(8).max(80),
       }),
       data,
     ),
   )
-  .handler(async ({ data }) => loadCustomerOrder(data.slug, data.reference, data.token));
+  .handler(async ({ data }) => claimShopperOrder(data.slug, data.reference, data.token));
+
+export const setShopperConsentFn = createServerFn({ method: "POST" })
+  .middleware(shopper)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ slug: z.string().min(1).max(40), messages: z.boolean() }), data),
+  )
+  .handler(async ({ data }) => setShopperConsent(data.slug, data.messages));
 
 export const getStorefrontAdminFn = createServerFn({ method: "POST" })
   .middleware(authed)

@@ -209,7 +209,7 @@ export const productReviewsSchema = z.object({
 export const createReviewSchema = z.object({
   slug: z.string().min(3).max(40),
   reference: z.string().min(3).max(40),
-  token: z.string().min(8).max(80),
+  token: z.string().max(80).optional().default(""),
   productId: z.string().uuid(),
   rating: z.coerce.number().int().min(1).max(5),
   body: z.string().trim().min(8).max(1000),
@@ -314,6 +314,7 @@ export const customerOrderSchema = z.object({
   currency: z.string(),
   createdAt: z.string(),
   collectAt: z.string().nullable().optional(),
+  mine: z.boolean().optional(),
   paid: z.boolean(),
   revenueRecorded: z.boolean(),
   terms: orderTermsSchema.optional(),
@@ -332,6 +333,25 @@ export const customerOrderSchema = z.object({
 });
 
 export type CustomerOrder = z.infer<typeof customerOrderSchema>;
+
+export const shopperOrderSummarySchema = z.object({
+  reference: z.string(),
+  createdAt: z.string(),
+  total: z.coerce.number(),
+  currency: z.string(),
+  fulfilmentStatus: z.string(),
+  paymentStatus: z.string(),
+  fulfilmentMethod: z.string(),
+  collectAt: z.string().nullable().optional(),
+});
+
+export const shopperAccountSchema = z.object({
+  messagesConsent: z.boolean(),
+  orders: z.array(shopperOrderSummarySchema),
+});
+
+export type ShopperAccount = z.infer<typeof shopperAccountSchema>;
+export type ShopperOrderSummary = z.infer<typeof shopperOrderSummarySchema>;
 
 const adminProductSchema = z.object({
   id: z.string(),
@@ -555,6 +575,7 @@ export const checkoutSchema = z.object({
     email: z.string().trim().max(120).optional(),
     address: z.string().trim().max(300).optional(),
     notes: z.string().trim().max(500).optional(),
+    messagesConsent: z.boolean().optional(),
   }),
   items: z.array(cartItemSchema).min(1).max(50),
   collectAt: z.string().max(40).optional(),

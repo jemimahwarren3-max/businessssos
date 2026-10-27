@@ -2317,6 +2317,12 @@ export type Database = {
         Args: { _slug: string; _reference: string; _token: string };
         Returns: Json;
       };
+      get_shopper_account: { Args: { _slug: string }; Returns: Json };
+      claim_store_order: {
+        Args: { _slug: string; _reference: string; _token: string };
+        Returns: Json;
+      };
+      set_shopper_consent: { Args: { _messages: boolean; _slug: string }; Returns: Json };
       save_storefront: { Args: { _business_id: string; _patch: Json }; Returns: Json };
       set_product_listing: {
         Args: {

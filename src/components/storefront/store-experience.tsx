@@ -90,6 +90,14 @@ export function StoreChrome({
             Search
           </Link>
           <Link
+            to="/store/$slug/account"
+            params={{ slug: store.slug }}
+            search={preview ? { preview: "1" } : {}}
+            className="text-sm font-medium"
+          >
+            Account
+          </Link>
+          <Link
             to="/store/$slug/cart"
             params={{ slug: store.slug }}
             search={preview ? { preview: "1" } : {}}

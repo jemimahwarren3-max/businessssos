@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
-import { createAnonClient } from "@/lib/auth/session.server";
+import { createAnonClient, tryGetAuthedContext } from "@/lib/auth/session.server";
 import { flushNotificationOutboxAdmin } from "@/lib/notifications.mail.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
 import {
@@ -17,6 +17,7 @@ import {
   productReviewsSchema,
   publicStoreSchema,
   quoteSchema,
+  shopperAccountSchema,
   type AdminOrder,
   type AdminReviewItem,
   type AdminStore,
@@ -28,7 +29,13 @@ import {
   type MarketplaceListing,
   type ProductReviews,
   type PublicStore,
+  type ShopperAccount,
 } from "./contract";
+
+async function storefrontClient() {
+  const ctx = await tryGetAuthedContext();
+  return ctx?.supabase ?? createAnonClient();
+}
 
 async function untypedRpc(
   client: { rpc: (...args: never[]) => unknown },
@@ -127,7 +134,7 @@ export async function placeOrder(input: {
   paymentMethod: string;
   collectAt?: string | undefined;
 }) {
-  const supabase = createAnonClient();
+  const supabase = await storefrontClient();
   const result = await supabase.rpc("create_store_order", {
     _slug: input.slug,
     _idempotency_key: input.idempotencyKey,
@@ -147,7 +154,7 @@ export async function loadCustomerOrder(
   reference: string,
   token: string,
 ): Promise<CustomerOrder> {
-  const supabase = createAnonClient();
+  const supabase = await storefrontClient();
   const result = await supabase.rpc("get_store_order", {
     _slug: slug,
     _reference: reference,
@@ -300,7 +307,7 @@ export async function createStoreComplaint(input: {
   reference?: string | undefined;
   token?: string | undefined;
 }) {
-  const supabase = createAnonClient();
+  const supabase = await storefrontClient();
   const result = await untypedRpc(supabase, "create_store_complaint", {
     _slug: input.slug,
     _customer: input.customer,
@@ -355,7 +362,7 @@ export async function createStoreReview(input: {
   rating: number;
   body: string;
 }) {
-  const supabase = createAnonClient();
+  const supabase = await storefrontClient();
   const result = await untypedRpc(supabase, "create_store_review", {
     _slug: input.slug,
     _reference: input.reference,
@@ -437,4 +444,36 @@ export async function respondListingReport(
     _note: note,
   });
   return parseRpc("respond to listing report", result, listingReportListSchema);
+}
+
+export async function loadShopperAccount(slug: string): Promise<ShopperAccount> {
+  const ctx = await tryGetAuthedContext();
+  if (!ctx) throw new AppError("Sign in to see your orders.");
+  const result = await untypedRpc(ctx.supabase, "get_shopper_account", { _slug: slug });
+  return parseRpc("load shopper account", result, shopperAccountSchema);
+}
+
+export async function claimShopperOrder(
+  slug: string,
+  reference: string,
+  token: string,
+): Promise<CustomerOrder> {
+  const ctx = await tryGetAuthedContext();
+  if (!ctx) throw new AppError("Sign in to save this order to your account.");
+  const result = await untypedRpc(ctx.supabase, "claim_store_order", {
+    _slug: slug,
+    _reference: reference,
+    _token: token,
+  });
+  return parseRpc("claim store order", result, customerOrderSchema);
+}
+
+export async function setShopperConsent(slug: string, messages: boolean): Promise<ShopperAccount> {
+  const ctx = await tryGetAuthedContext();
+  if (!ctx) throw new AppError("Sign in to update your preferences.");
+  const result = await untypedRpc(ctx.supabase, "set_shopper_consent", {
+    _slug: slug,
+    _messages: messages,
+  });
+  return parseRpc("set shopper consent", result, shopperAccountSchema);
 }

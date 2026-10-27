@@ -5,7 +5,7 @@
 - Merchant shop alerts are in-app. Email copies need `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL`. WhatsApp Cloud is not connected.
 - Platform Paynow is subscription billing only ($3/month Pro).
 - One shop per cart. No marketplace commission.
-- No product variants, no customer accounts, no file uploads. Reviews exist only as verified-purchase text after an order is ready or completed.
+- No product variants, no file uploads. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Consent is stored; shopper marketing email is not sent.
 - Shop URLs are `{slug}.{APP_URL host}`. Wildcard DNS/TLS is an operator task. Cloud Run domain mapping alone is not enough.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).

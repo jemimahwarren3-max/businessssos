@@ -31,6 +31,7 @@ export function isPrivateHttpPath(pathname: string): boolean {
     path.startsWith("/onboarding") ||
     path.startsWith("/admin") ||
     path.startsWith("/help") ||
-    path.startsWith("/billing")
+    path.startsWith("/billing") ||
+    /^\/store\/[^/]+\/account$/.test(path)
   );
 }
