@@ -41,6 +41,9 @@ Apply migrations:
 - `20261027120000_admin_console_rpcs.sql`
 - `20261027140000_admin_console_phase2.sql`
 - `20261027160000_admin_console_phase3.sql` (impersonation, tenant flags, CSV export, ops notes)
+- `20261027161000_platform_runtime_admin_columns.sql` (idempotent column repair if an earlier file was skipped)
+
+Apply **in order** when possible. If phase 2 failed with `public_announcement does not exist`, run `20261027161000_platform_runtime_admin_columns.sql` (or re-run phase 2 after pulling the fix).
 
 ## Support impersonation
 

@@ -382,7 +382,12 @@ revoke all on function public.admin_export_tenants_csv() from public, anon, auth
 grant execute on function public.admin_export_tenants_csv() to service_role;
 
 -- ============ Platform courier / SMS operator notes ============
+-- Ensure all admin runtime columns exist (phase 1–2 may not have run on this DB).
 alter table public.platform_runtime
+  add column if not exists public_announcement text,
+  add column if not exists announcement_enabled boolean not null default false,
+  add column if not exists marketing_hero_title text,
+  add column if not exists marketing_hero_subtitle text,
   add column if not exists courier_ops_notes text,
   add column if not exists sms_ops_notes text;
 

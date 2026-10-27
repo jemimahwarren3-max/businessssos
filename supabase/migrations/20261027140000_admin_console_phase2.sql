@@ -224,6 +224,11 @@ $$;
 revoke all on function public.admin_set_payment_provider_control(text, boolean, boolean, text) from public, anon, authenticated;
 grant execute on function public.admin_set_payment_provider_control(text, boolean, boolean, text) to service_role;
 
+-- Phase 1 columns (safe if 20261027120000 was skipped or not run yet).
+alter table public.platform_runtime
+  add column if not exists public_announcement text,
+  add column if not exists announcement_enabled boolean not null default false;
+
 create or replace function public.admin_get_runtime()
 returns jsonb
 language sql
