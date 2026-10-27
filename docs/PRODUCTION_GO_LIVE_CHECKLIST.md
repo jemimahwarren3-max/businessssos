@@ -8,7 +8,7 @@ Every box is evidence-based. Unverified stays unchecked.
 - [ ] Tenant isolation verified through direct API and database tests. Tests exist; not executed in this environment (no access token in `.env`).
 - [ ] Authentication and role permissions tested. Existing integration tests; not re-run here.
 - [x] Secrets protected in source. `.env` gitignored; example file has no live values. Git history not exhaustively scanned with a dedicated secret scanner.
-- [ ] File upload validation. No upload feature.
+- [x] File upload validation for product photos (type sniff + 2 MB). Expense/docs uploads still absent. No antivirus.
 - [x] Rate limiting reviewed. Postgres `check_rate_limit` on auth, export, checkout, webhooks, marketplace browse.
 - [x] Security headers present in code (`src/start.ts`). Not verified against a live Cloud Run URL.
 

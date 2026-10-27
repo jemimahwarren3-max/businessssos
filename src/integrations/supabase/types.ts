@@ -2655,6 +2655,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_product_image: {
+        Args: { _business_id: string; _product_id: string; _image_url: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       app_role: "owner" | "admin" | "manager" | "cashier" | "accountant";

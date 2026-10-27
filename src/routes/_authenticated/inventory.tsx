@@ -28,6 +28,7 @@ import {
   getSuppliers,
   importProductsFn,
   updateStock,
+  uploadProductImageFn,
 } from "@/lib/business.functions";
 import {
   productImportRowSchema,
@@ -100,6 +101,7 @@ type ProductRow = {
   selling_price: number;
   stock: number;
   min_stock: number;
+  image_url: string | null;
 };
 
 function Inventory() {
@@ -124,6 +126,7 @@ function Inventory() {
   const fetchLocations = useServerFn(getLocations);
   const fetchSuppliers = useServerFn(getSuppliers);
   const createProduct = useServerFn(addProduct);
+  const uploadPhoto = useServerFn(uploadProductImageFn);
   const adjustStock = useServerFn(updateStock);
   const importProductsRows = useServerFn(importProductsFn);
 
@@ -152,12 +155,21 @@ function Inventory() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async (fields: Record<string, unknown>) => {
+    mutationFn: async (input: { fields: Record<string, unknown>; photo: File | null }) => {
       const parsed = productSchema.parse({
-        ...fields,
+        ...input.fields,
         businessId,
       });
-      return createProduct({ data: parsed });
+      const created = await createProduct({ data: parsed });
+      const productId = Array.isArray(created) ? created[0]?.id : created?.id;
+      if (input.photo && productId) {
+        const form = new FormData();
+        form.set("businessId", businessId!);
+        form.set("productId", productId);
+        form.set("file", input.photo);
+        await uploadPhoto({ data: form });
+      }
+      return created;
     },
     onSuccess: async () => {
       setAddOpen(false);
@@ -199,11 +211,24 @@ function Inventory() {
         accessorKey: "name",
         header: "Product",
         cell: ({ row }) => (
-          <div className="max-w-[280px]">
-            <p className="truncate font-medium">{row.original.name}</p>
-            <p className="text-[13px] text-muted-foreground">
-              {row.original.sku ?? "No SKU"} · per {row.original.unit}
-            </p>
+          <div className="flex max-w-[280px] items-center gap-3">
+            {row.original.image_url ? (
+              <img
+                src={row.original.image_url}
+                alt=""
+                className="size-10 shrink-0 rounded-md object-cover"
+              />
+            ) : (
+              <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted text-[10px] text-muted-foreground">
+                No photo
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="truncate font-medium">{row.original.name}</p>
+              <p className="text-[13px] text-muted-foreground">
+                {row.original.sku ?? "No SKU"} · per {row.original.unit}
+              </p>
+            </div>
           </div>
         ),
       },
@@ -358,7 +383,7 @@ function Inventory() {
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
               {search
                 ? "Try a shorter search term."
-                : "Add your first product and BusinessOS AI will start tracking stock, profit and restock alerts for you."}
+                : "Add your first product and Kwetuu will start tracking stock, profit and restock alerts for you."}
             </p>
             {canEdit && !search ? (
               <Button className="mt-5 gap-1.5" onClick={() => setAddOpen(true)}>
@@ -371,7 +396,18 @@ function Inventory() {
             <ul className="divide-y divide-border lg:hidden">
               {rows.map((product) => (
                 <li key={product.id} className="p-4">
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt=""
+                        className="size-12 rounded-md object-cover"
+                      />
+                    ) : (
+                      <span className="grid size-12 place-items-center rounded-md bg-muted text-[10px] text-muted-foreground">
+                        No photo
+                      </span>
+                    )}
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{product.name}</p>
                       <p className="text-[13px] text-muted-foreground">
@@ -425,7 +461,9 @@ function Inventory() {
             suppliers={suppliers.data ?? []}
             pending={addMutation.isPending}
             onCancel={() => setAddOpen(false)}
-            onSubmit={(values) => addMutation.mutate(values as Record<string, unknown>)}
+            onSubmit={(values, photo) =>
+              addMutation.mutate({ fields: values as Record<string, unknown>, photo })
+            }
           />
         </DialogContent>
       </Dialog>
