@@ -67,7 +67,13 @@ import type {
 } from "@/lib/storefront/contract";
 import type { ShopDraft } from "@/lib/storefront/shop-draft";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
+import {
+  StorefrontLoadError,
+  StorefrontOverview,
+  StorefrontOverviewSkeleton,
+} from "@/components/storefront/storefront-overview";
 import { getNotifyEmailFn } from "@/lib/business.functions";
+import { defaultShopPatch } from "@/lib/storefront/onboarding-defaults";
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
@@ -80,6 +86,8 @@ function StorefrontPage() {
   const workspace = useWorkspace();
   const businessId = workspace.data?.business.id;
   const load = useServerFn(getStorefrontAdminFn);
+  const saveStore = useServerFn(saveStorefrontFn);
+  const queryClient = useQueryClient();
   const admin = useQuery({
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId),
@@ -93,14 +101,43 @@ function StorefrontPage() {
     staleTime: 60_000,
   });
 
+  const createStoreMutation = useMutation({
+    mutationFn: async () => {
+      if (!businessId || !workspace.data) throw new Error("No business");
+      const name = workspace.data.business.name.trim() || "My shop";
+      return saveStore({
+        data: defaultShopPatch({
+          businessId,
+          storeName: name,
+          templateId: "modern-minimal",
+        }),
+      });
+    },
+    onSuccess: () => {
+      toast.success("Store created — continue setup below");
+      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Could not create your store.")),
+  });
+
   const workspaceData = workspace.data;
   if (!workspaceData) {
     return (
       <AppShell businessName="" role="" plan="" title="Storefront">
-        <Skeleton className="h-64" />
+        <StorefrontOverviewSkeleton />
       </AppShell>
     );
   }
+
+  const canManageSettings = workspaceData.permissions.includes("business.settings");
+  const publicUrl =
+    admin.data?.store?.slug != null && admin.data.store.slug !== ""
+      ? storePublicUrl(admin.data.store.slug)
+      : "";
+  const showEditor = Boolean(admin.data && businessId);
+  const showEmptyPayload =
+    Boolean(businessId) && admin.isFetched && !admin.isLoading && !admin.isError && !admin.data;
 
   return (
     <AppShell
@@ -112,21 +149,57 @@ function StorefrontPage() {
       title="My Online Store"
       subtitle="Launch centre, design, payments, and online orders — separate from invoices and POS."
     >
-      {admin.isLoading ? <Skeleton className="h-64" /> : null}
-      {admin.isError ? (
-        <p className="text-sm text-destructive">
-          {readableError(admin.error as Error, "The storefront could not be loaded.")}
+      {!businessId ? (
+        <p className="text-sm text-muted-foreground">
+          Finish business onboarding first, then return here to set up your shop.
         </p>
       ) : null}
-      {admin.data && businessId ? (
-        <StorefrontEditor
-          businessId={businessId}
-          initial={admin.data}
-          permissions={workspaceData.permissions}
-          billingEnabled={workspaceData.billingEnabled}
-          isOperateLocked={workspaceData.isOperateLocked}
-          notificationsConfigured={notifyEmail.data === true}
+
+      {businessId && admin.isLoading ? <StorefrontOverviewSkeleton /> : null}
+
+      {businessId && admin.isError ? (
+        <StorefrontLoadError
+          message={readableError(admin.error as Error, "The storefront could not be loaded.")}
+          retrying={admin.isFetching}
+          onRetry={() => void admin.refetch()}
         />
+      ) : null}
+
+      {showEmptyPayload ? (
+        <StorefrontLoadError
+          message="Store data came back empty."
+          retrying={admin.isFetching}
+          onRetry={() => void admin.refetch()}
+        />
+      ) : null}
+
+      {admin.data && businessId ? (
+        <>
+          <StorefrontOverview
+            admin={admin.data}
+            businessName={workspaceData.business.name}
+            publicUrl={publicUrl}
+            billingEnabled={workspaceData.billingEnabled}
+            isOperateLocked={workspaceData.isOperateLocked}
+            isReadOnly={workspaceData.isReadOnly}
+            canManageSettings={canManageSettings}
+            creatingStore={createStoreMutation.isPending}
+            onCreateStore={() => createStoreMutation.mutate()}
+            onScrollToSetup={() =>
+              document.getElementById("launch-setup")?.scrollIntoView({ behavior: "smooth" })
+            }
+          />
+          {showEditor ? (
+            <StorefrontEditor
+              businessId={businessId}
+              initial={admin.data}
+              permissions={workspaceData.permissions}
+              billingEnabled={workspaceData.billingEnabled}
+              isOperateLocked={workspaceData.isOperateLocked}
+              notificationsConfigured={notifyEmail.data === true}
+            />
+          ) : null}
+        </>
       ) : null}
     </AppShell>
   );
