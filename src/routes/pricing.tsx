@@ -41,8 +41,9 @@ function PricingPage() {
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Pricing</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           The product is free for founding users. If billing is turned on later, Pro is $
-          {PLAN_MONTHLY_USD.pro}/month. You get notice before anything is charged. Merchant Paynow
-          fees are between the shop and Paynow, not this price.
+          {PLAN_MONTHLY_USD.pro}/month in USD. You get notice before anything is charged. There is
+          no ZiG subscription price until an exchange-rate source is chosen. Merchant Paynow fees
+          are between the shop and Paynow, not this price. Shopper payments never pay this bill.
         </p>
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
           <Card className="relative border-primary shadow-raised">

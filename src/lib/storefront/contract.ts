@@ -36,6 +36,15 @@ const deliverySchema = z.object({
     .catch([]),
 });
 
+const manualPaymentMethodSchema = z.object({
+  id: z.string().max(40),
+  kind: z.enum(["ecocash", "innbucks", "bank_transfer", "other"]),
+  enabled: z.boolean(),
+  accountName: z.string().max(80).catch(""),
+  accountDetail: z.string().max(80).catch(""),
+  instructions: z.string().max(500).catch(""),
+});
+
 const paymentsSchema = z.object({
   payOnPickup: z.boolean(),
   payOnDelivery: z.boolean(),
@@ -45,6 +54,7 @@ const paymentsSchema = z.object({
   cashCurrencies: z.string().catch(""),
   exactCash: z.boolean().catch(false),
   changeProvided: z.boolean().catch(false),
+  manualMethods: z.array(manualPaymentMethodSchema).max(8).catch([]),
 });
 
 const orderTermsSchema = z.object({
@@ -56,6 +66,16 @@ const orderTermsSchema = z.object({
   tax: z.coerce.number().optional(),
   total: z.coerce.number().optional(),
   collectAt: z.string().nullable().optional(),
+  manualPayment: manualPaymentMethodSchema.optional(),
+  paymentProof: z
+    .object({
+      reference: z.string().catch(""),
+      note: z.string().catch(""),
+      submittedAt: z.string().optional(),
+      rejectedAt: z.string().optional(),
+      rejectReason: z.string().catch(""),
+    })
+    .optional(),
 });
 
 export const publicProductSchema = z.object({
@@ -568,6 +588,7 @@ export const saveStoreSchema = z.object({
     cashCurrencies: z.string().max(40),
     exactCash: z.boolean(),
     changeProvided: z.boolean(),
+    manualMethods: z.array(manualPaymentMethodSchema).max(8).optional(),
   }),
 });
 
@@ -592,8 +613,9 @@ export const checkoutSchema = z.object({
   slug: z.string().min(3).max(40),
   idempotencyKey: z.string().min(8).max(80),
   fulfilment: z.enum(["pickup", "delivery", "quote"]),
-  paymentMethod: z.enum(["pay_on_pickup", "pay_on_delivery", "quote", "paynow"]),
+  paymentMethod: z.enum(["pay_on_pickup", "pay_on_delivery", "quote", "paynow", "manual"]),
   paynowChannel: z.enum(["web", "ecocash"]).optional(),
+  manualMethodId: z.string().max(40).optional(),
   customer: z.object({
     name: z.string().trim().min(2).max(80),
     phone: z.string().trim().min(7).max(20),

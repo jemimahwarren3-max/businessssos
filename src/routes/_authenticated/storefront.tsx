@@ -37,6 +37,11 @@ import { BRAND } from "@/lib/brand";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
 import {
+  MANUAL_PAYMENT_LABELS,
+  mergeManualMethods,
+  type ManualPaymentMethod,
+} from "@/lib/storefront/manual-payments";
+import {
   HoursEditor,
   hoursStateFrom,
   weeklyHoursFromState,
@@ -176,6 +181,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
   const [exactCash, setExactCash] = useState(store?.payments.exactCash ?? false);
   const [changeProvided, setChangeProvided] = useState(store?.payments.changeProvided ?? false);
   const [acceptPaynow, setAcceptPaynow] = useState(store?.payments.acceptPaynow ?? false);
+  const [manualMethods, setManualMethods] = useState<ManualPaymentMethod[]>(() =>
+    mergeManualMethods(store?.payments.manualMethods),
+  );
   const [paynowId, setPaynowId] = useState("");
   const [paynowKey, setPaynowKey] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
@@ -225,6 +233,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
             cashCurrencies,
             exactCash,
             changeProvided: changeProvided && !exactCash,
+            manualMethods,
           },
         },
       }),
@@ -274,8 +283,10 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           ))}
         </ol>
         <p className="text-sm text-muted-foreground">
-          Cash on pickup/delivery still works without Paynow. Recording a cash payment creates a
-          sale. Paynow uses this shop's keys, never the BusinessOS billing keys.
+          Cash on pickup/delivery still works without Paynow. EcoCash, InnBucks, and bank
+          instructions are only shown when you turn them on and fill in the details. Recording
+          payment creates a sale after you check your own account. Paynow uses this shop's keys,
+          never the {BRAND.name} billing keys.
         </p>
         {publicUrl ? (
           <p className="text-sm">
@@ -499,12 +510,78 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
           />{" "}
           Quote requests
         </label>
+        <div className="space-y-3 text-sm md:col-span-2">
+          <p className="font-medium">Payment instructions (not automatic)</p>
+          <p className="text-muted-foreground">
+            Customers see only the methods you enable. A customer payment note never marks an order
+            paid. You still check EcoCash, InnBucks, or the bank yourself, then record payment.
+          </p>
+          {manualMethods.map((method, index) => (
+            <div key={method.id} className="space-y-2 rounded-md border p-3">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={method.enabled}
+                  onChange={(event) =>
+                    setManualMethods((current) =>
+                      current.map((row, rowIndex) =>
+                        rowIndex === index ? { ...row, enabled: event.target.checked } : row,
+                      ),
+                    )
+                  }
+                />{" "}
+                {MANUAL_PAYMENT_LABELS[method.kind]}
+              </label>
+              <label className="block">
+                <Label>Account name</Label>
+                <Input
+                  value={method.accountName}
+                  onChange={(event) =>
+                    setManualMethods((current) =>
+                      current.map((row, rowIndex) =>
+                        rowIndex === index ? { ...row, accountName: event.target.value } : row,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="block">
+                <Label>
+                  {method.kind === "bank_transfer" ? "Account number" : "Number or account"}
+                </Label>
+                <Input
+                  value={method.accountDetail}
+                  onChange={(event) =>
+                    setManualMethods((current) =>
+                      current.map((row, rowIndex) =>
+                        rowIndex === index ? { ...row, accountDetail: event.target.value } : row,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="block">
+                <Label>Instructions</Label>
+                <Textarea
+                  value={method.instructions}
+                  onChange={(event) =>
+                    setManualMethods((current) =>
+                      current.map((row, rowIndex) =>
+                        rowIndex === index ? { ...row, instructions: event.target.value } : row,
+                      ),
+                    )
+                  }
+                />
+              </label>
+            </div>
+          ))}
+        </div>
         <div className="space-y-2 text-sm md:col-span-2">
           <p className="font-medium">This shop's Paynow</p>
           <p className="text-muted-foreground">
             Paste the integration ID and key from your Paynow merchant dashboard. Money goes to that
-            account, not BusinessOS. InnBucks, Stripe, and other processors are not wired — only
-            Paynow keys you paste here are used at checkout.
+            account, not {BRAND.name}. Manual EcoCash / InnBucks instructions above are not Paynow.
+            Only Paynow keys you paste here start an automated Paynow checkout.
           </p>
           <p>
             {store?.payments.paynow
@@ -653,8 +730,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
         <h2 className="text-base font-semibold">Online orders</h2>
         <p className="text-sm text-muted-foreground">
           Purchase history for this shop. Open an order to see the same receipt the customer gets.
-          Unpaid orders are not in sales reports. Record cash only when you have it. Paynow marks
-          paid after Paynow confirms.
+          Unpaid orders are not in sales reports. Record cash or a manual payment only after you
+          have the money. A customer payment note is not confirmation. Paynow marks paid after
+          Paynow confirms.
         </p>
         <ul className="divide-y rounded-lg border">
           {initial.orders.length === 0 ? (
@@ -695,6 +773,22 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                 paid: selectedOrder.paymentStatus === "paid" || Boolean(selectedOrder.saleId),
               }}
             />
+            {selectedOrder.terms?.paymentProof?.reference ? (
+              <div className="mt-3 rounded-md border p-3 text-sm">
+                <p className="font-medium">Customer payment note</p>
+                <p>{selectedOrder.terms.paymentProof.reference}</p>
+                {selectedOrder.terms.paymentProof.note ? (
+                  <p className="mt-1">{selectedOrder.terms.paymentProof.note}</p>
+                ) : null}
+                <p className="mt-1 text-muted-foreground">
+                  Check your EcoCash, InnBucks, or bank account before recording payment. This note
+                  does not prove the money arrived.
+                </p>
+                {selectedOrder.terms.paymentProof.rejectReason ? (
+                  <p className="mt-1">Rejection: {selectedOrder.terms.paymentProof.rejectReason}</p>
+                ) : null}
+              </div>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               {fulfilmentActions({
                 fulfilmentStatus: selectedOrder.fulfilmentStatus,
@@ -706,9 +800,19 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                 <Button
                   key={action}
                   size="sm"
-                  variant={action === "cancel" ? "outline" : "default"}
+                  variant={action === "cancel" || action === "reject_proof" ? "outline" : "default"}
                   onClick={() =>
-                    void transition({ data: { businessId, orderId: selectedOrder.id, action } })
+                    void transition({
+                      data: {
+                        businessId,
+                        orderId: selectedOrder.id,
+                        action,
+                        reason:
+                          action === "reject_proof"
+                            ? "The shop could not confirm this payment. Send a new reference."
+                            : undefined,
+                      },
+                    })
                       .then((next) => {
                         setSelectedOrder(next);
                         void queryClient.invalidateQueries({
@@ -720,7 +824,9 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                       )
                   }
                 >
-                  {ACTION_LABEL[action]}
+                  {action === "mark_paid" && selectedOrder.paymentMethod === "manual"
+                    ? "Record payment after checking your account"
+                    : ACTION_LABEL[action]}
                 </Button>
               ))}
             </div>

@@ -43,9 +43,10 @@ export type StoreTemplate = {
 export const STORE_TEMPLATES: readonly StoreTemplate[] = [
   {
     id: "modern-minimal",
-    name: "Modern minimal",
-    description: "Spacious grid, clear prices, and fast search for everyday products.",
-    bestFor: "General retail, electronics, homeware",
+    name: "General retail",
+    description:
+      "A flexible shop for everyday products: clear prices, a simple grid, and fast search.",
+    bestFor: "General retail and mixed catalogues",
     layout: "grid",
     fontFamily: "Inter",
     fontHref: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
@@ -56,9 +57,9 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
   },
   {
     id: "fashion-boutique",
-    name: "Fashion & boutique",
-    description: "Editorial hero and large portraits for clothing, shoes, and accessories.",
-    bestFor: "Clothing, shoes, bags, jewellery",
+    name: "Fashion & clothing",
+    description: "Editorial homepage and large portraits for clothing, shoes, and accessories.",
+    bestFor: "Clothing, shoes, and seasonal collections",
     layout: "editorial",
     fontFamily: "Fraunces",
     fontHref:
@@ -70,9 +71,10 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
   },
   {
     id: "beauty",
-    name: "Beauty & cosmetics",
-    description: "Category-led collections with room for ingredients and shade notes you supply.",
-    bestFor: "Cosmetics, skincare, hair products",
+    name: "Beauty & aesthetics",
+    description:
+      "Soft collections with room for imagery, routines, and ingredient notes you supply.",
+    bestFor: "Skincare, cosmetics, and beauty",
     layout: "soft",
     fontFamily: "Nunito",
     fontHref: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap",
@@ -97,9 +99,9 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
   },
   {
     id: "food",
-    name: "Food & restaurant",
-    description: "Menu sections, item notes, hours, and pickup or delivery.",
-    bestFor: "Restaurants, takeaways, bakeries",
+    name: "Food & bakery",
+    description: "Menu sections, availability, hours, and collection or delivery arrangements.",
+    bestFor: "Bakeries, takeaways, and food shops",
     layout: "menu",
     fontFamily: "Literata",
     fontHref:
@@ -111,9 +113,9 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
   },
   {
     id: "luxury",
-    name: "Premium luxury",
-    description: "Quiet typography, wide margins, and a single refined product story.",
-    bestFor: "Premium fashion, jewellery, gifts",
+    name: "Jewellery & accessories",
+    description: "Quiet typography, wide margins, and a refined product story.",
+    bestFor: "Jewellery, watches, and premium gifts",
     layout: "luxury",
     fontFamily: "Cormorant Garamond",
     fontHref:
@@ -125,9 +127,9 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
   },
   {
     id: "home",
-    name: "Home & lifestyle",
+    name: "Home & living",
     description: "Large photography with space for dimensions, materials, and delivery notes.",
-    bestFor: "Furniture, decor, appliances",
+    bestFor: "Furniture, decor, and household goods",
     layout: "showcase",
     fontFamily: "Manrope",
     fontHref: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap",
@@ -166,10 +168,10 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = [
   },
   {
     id: "digital",
-    name: "Digital products & services",
+    name: "Wellness & lifestyle",
     description:
-      "Service descriptions and a request flow. Nothing is marked delivered until you fulfil it.",
-    bestFor: "Downloads, classes, consultations",
+      "Collections and a request flow for classes, care, and services. Nothing is marked fulfilled until you do it.",
+    bestFor: "Wellness, personal care, and services",
     layout: "services",
     fontFamily: "Figtree",
     fontHref: "https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap",

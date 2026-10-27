@@ -22,6 +22,8 @@ import {
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
 import { configuredPlatformOrigin } from "@/lib/storefront/host";
 import { formatMoney, readableError } from "@/lib/format";
+import { BRAND } from "@/lib/brand";
+import { enabledManualMethods, MANUAL_PAYMENT_LABELS } from "@/lib/storefront/manual-payments";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/checkout")({
@@ -46,7 +48,12 @@ function CheckoutPage() {
   const fulfilments = useMemo(() => allowedFulfilments(store), [store]);
   const [fulfilment, setFulfilment] = useState<FulfilmentMethod>(fulfilments[0] ?? "quote");
   const payments = useMemo(() => allowedPayments(store, fulfilment), [store, fulfilment]);
+  const manuals = useMemo(
+    () => enabledManualMethods(store.payments.manualMethods),
+    [store.payments.manualMethods],
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(payments[0] ?? "quote");
+  const [manualMethodId, setManualMethodId] = useState(manuals[0]?.id ?? "");
   const [paynowChannel, setPaynowChannel] = useState<"web" | "ecocash">("web");
   const [collectAt, setCollectAt] = useState("");
   const [shopper, setShopper] = useState<{ email: string | null } | null>(null);
@@ -78,6 +85,12 @@ function CheckoutPage() {
       setPaymentMethod(payments[0]);
     }
   }, [payments, paymentMethod]);
+
+  useEffect(() => {
+    if (paymentMethod !== "manual") return;
+    if (manuals.some((method) => method.id === manualMethodId)) return;
+    setManualMethodId(manuals[0]?.id ?? "");
+  }, [paymentMethod, manuals, manualMethodId]);
 
   useEffect(() => {
     setCollectAt("");
@@ -127,6 +140,7 @@ function CheckoutPage() {
           items: lines,
           collectAt: collectAt || undefined,
           paynowChannel: paymentMethod === "paynow" ? paynowChannel : undefined,
+          manualMethodId: paymentMethod === "manual" ? manualMethodId : undefined,
         },
       });
       if (result.accessToken) {
@@ -345,6 +359,21 @@ function CheckoutPage() {
                 Ask the shop to quote first
               </label>
             ) : null}
+            {manuals.map((method) => (
+              <label key={method.id} className="block">
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === "manual" && manualMethodId === method.id}
+                  onChange={() => {
+                    setPaymentMethod("manual");
+                    setManualMethodId(method.id);
+                  }}
+                />{" "}
+                {MANUAL_PAYMENT_LABELS[method.kind]}
+                {method.accountName ? ` — ${method.accountName}` : ""}
+              </label>
+            ))}
           </fieldset>
           {paymentMethod === "paynow" ? (
             <fieldset className="space-y-2 text-sm">
@@ -369,20 +398,43 @@ function CheckoutPage() {
               </label>
             </fieldset>
           ) : null}
-          {cashPolicyLines(store).map((line) => (
-            <p key={line} className="text-sm text-neutral-600">
-              {line}
-            </p>
-          ))}
+          {paymentMethod === "pay_on_pickup" || paymentMethod === "pay_on_delivery"
+            ? cashPolicyLines(store).map((line) => (
+                <p key={line} className="text-sm text-neutral-600">
+                  {line}
+                </p>
+              ))
+            : null}
+          {paymentMethod === "manual"
+            ? manuals
+                .filter((method) => method.id === manualMethodId)
+                .map((method) => (
+                  <div key={method.id} className="space-y-1 rounded-md border p-3 text-sm">
+                    <p className="font-medium">
+                      Pay with {MANUAL_PAYMENT_LABELS[method.kind]} using this shop's details
+                    </p>
+                    {method.accountName ? <p>Name: {method.accountName}</p> : null}
+                    {method.accountDetail ? <p>{method.accountDetail}</p> : null}
+                    {method.instructions ? (
+                      <p className="whitespace-pre-wrap">{method.instructions}</p>
+                    ) : null}
+                    <p className="text-neutral-600">
+                      Use the order number as the payment reference. Sending a note or screenshot
+                      later does not mean the shop has received the money.
+                    </p>
+                  </div>
+                ))
+            : null}
           {store.payments.paynow ? (
             <p className="text-sm text-neutral-600">
-              Paynow money goes to this shop's own Paynow account, not BusinessOS.
+              Paynow money goes to this shop's own Paynow account, not {BRAND.name}.
             </p>
-          ) : (
+          ) : manuals.length === 0 ? (
             <p className="text-sm text-neutral-600">
-              This shop has not linked Paynow yet. Use cash on pickup or delivery if those are on.
+              This shop has not linked Paynow. Use cash or any payment instructions they have
+              enabled.
             </p>
-          )}
+          ) : null}
           {shopper ? (
             <label className="flex items-start gap-2 text-sm">
               <input
@@ -455,7 +507,7 @@ function CheckoutPage() {
             </p>
           )}
           <p className="mt-3 text-xs text-neutral-500">
-            Placing an order is an agreement with this shop, not a purchase from BusinessOS.
+            Placing an order is an agreement with this shop, not a purchase from {BRAND.name}.
             Platform{" "}
             <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/terms`}>
               terms
@@ -466,7 +518,7 @@ function CheckoutPage() {
             </a>
             , and{" "}
             <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/legal/refunds`}>
-              BusinessOS subscription refunds
+              {BRAND.name} subscription refunds
             </a>
             .
           </p>
@@ -477,6 +529,7 @@ function CheckoutPage() {
               lines.length === 0 ||
               !priced ||
               payments.length === 0 ||
+              (paymentMethod === "manual" && !manualMethodId) ||
               Boolean(clockBlock) ||
               (fulfilment === "pickup" &&
                 hasCollectionWindows(store.delivery) &&

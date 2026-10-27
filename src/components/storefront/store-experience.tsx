@@ -5,9 +5,11 @@ import { ListingReportForm } from "@/components/storefront/listing-report-form";
 import { ProductReviewsBlock } from "@/components/storefront/product-reviews";
 import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefront/contract";
 import { getTemplate } from "@/lib/storefront/templates";
+import { storeSurface } from "@/lib/storefront/store-surface";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { formatMoney } from "@/lib/format";
 import { WEEKDAYS } from "@/lib/storefront/clocks";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 const StorePreviewContext = createContext(false);
@@ -42,6 +44,7 @@ export function StoreChrome({
   children: React.ReactNode;
 }) {
   const template = getTemplate(store.templateId);
+  const surface = storeSurface(template.layout);
   const accent = store.accentColor || template.defaultAccent;
   const count = useCartCount(store.slug);
   const previewSearch = preview ? { preview: "1" as const } : {};
@@ -50,9 +53,40 @@ export function StoreChrome({
     `Hello ${store.storeName}, I have a question about your shop.`,
   );
 
+  const nav = (
+    <nav
+      className={cn(
+        "flex shrink-0 items-center gap-4 text-sm font-medium",
+        surface.centered && "justify-center",
+      )}
+    >
+      <Link
+        to="/store/$slug/search"
+        params={{ slug: store.slug }}
+        search={preview ? { q: "", preview: "1" } : { q: "" }}
+      >
+        Search
+      </Link>
+      <Link
+        to="/store/$slug/account"
+        params={{ slug: store.slug }}
+        search={preview ? { preview: "1" } : {}}
+      >
+        Orders
+      </Link>
+      <Link
+        to="/store/$slug/cart"
+        params={{ slug: store.slug }}
+        search={preview ? { preview: "1" } : {}}
+      >
+        Cart{count > 0 ? ` (${count})` : ""}
+      </Link>
+    </nav>
+  );
+
   return (
     <div
-      className="min-h-screen bg-white text-neutral-900"
+      className={cn("min-h-screen", surface.page)}
       style={{
         fontFamily: `"${template.fontFamily}", Inter, sans-serif`,
         ["--store-accent" as string]: accent,
@@ -63,52 +97,36 @@ export function StoreChrome({
           Draft preview. Customers cannot see this shop until you publish it.
         </p>
       ) : null}
-      <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+      <header className={cn("sticky top-0 z-20", surface.header)}>
+        <div className={surface.inner}>
           <Link
             to="/store/$slug"
             params={{ slug: store.slug }}
             search={previewSearch}
-            className="min-w-0 flex-1"
+            className={cn("min-w-0", surface.centered ? "w-full" : "flex-1")}
           >
-            <span className="block truncate text-lg font-semibold" style={{ color: accent }}>
-              {store.storeName}
-            </span>
-            {store.tagline ? (
-              <span className="block truncate text-xs text-neutral-500">{store.tagline}</span>
+            {store.logoUrl ? (
+              <img
+                src={store.logoUrl}
+                alt={store.storeName}
+                className={cn("h-10 w-auto object-contain", surface.centered && "mx-auto")}
+              />
+            ) : (
+              <span className={cn("block truncate", surface.name)} style={{ color: accent }}>
+                {store.storeName}
+              </span>
+            )}
+            {store.tagline && !surface.centered ? (
+              <span className="mt-0.5 block truncate text-xs text-neutral-500">
+                {store.tagline}
+              </span>
             ) : null}
           </Link>
-          <Link to="/market" search={{ q: "", category: "" }} className="text-sm font-medium">
-            Shops
-          </Link>
-          <Link
-            to="/store/$slug/search"
-            params={{ slug: store.slug }}
-            search={preview ? { q: "", preview: "1" } : { q: "" }}
-            className="text-sm font-medium"
-          >
-            Search
-          </Link>
-          <Link
-            to="/store/$slug/account"
-            params={{ slug: store.slug }}
-            search={preview ? { preview: "1" } : {}}
-            className="text-sm font-medium"
-          >
-            Your orders
-          </Link>
-          <Link
-            to="/store/$slug/cart"
-            params={{ slug: store.slug }}
-            search={preview ? { preview: "1" } : {}}
-            className="text-sm font-medium"
-          >
-            Cart{count > 0 ? ` (${count})` : ""}
-          </Link>
+          {nav}
         </div>
       </header>
       <main id="main-content">{children}</main>
-      <footer className="mt-16 border-t border-neutral-200">
+      <footer className={surface.footer}>
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 text-sm text-neutral-600 md:grid-cols-3">
           <div>
             <p className="font-medium text-neutral-900">{store.storeName}</p>
@@ -164,6 +182,12 @@ export function StoreChrome({
               </a>
             ) : null}
             {preview ? null : <ListingReportForm slug={store.slug} />}
+            <p className="pt-4 text-xs text-neutral-400">
+              Store on{" "}
+              <Link to="/" className="underline-offset-2 hover:underline">
+                {BRAND.name}
+              </Link>
+            </p>
           </div>
         </div>
       </footer>
@@ -240,34 +264,65 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         ? "grid-cols-1 sm:grid-cols-2"
         : "grid-cols-2 md:grid-cols-3";
 
+  const featured = store.products.find((product) => product.featured) ?? store.products[0];
+  const title = store.heroTitle || store.storeName;
+  const blurb = store.heroSubtitle || store.about || store.tagline;
+
   return (
     <div>
-      <section
-        className={cn("mx-auto max-w-6xl px-4", template.density === "spacious" ? "py-16" : "py-8")}
-      >
-        <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">{template.name}</p>
-        <h1
-          className="mt-2 max-w-2xl text-4xl font-semibold tracking-tight"
-          style={{ color: accent }}
+      {template.layout === "editorial" && featured?.imageUrl ? (
+        <section className="grid md:grid-cols-2">
+          <div className="min-h-72 bg-neutral-200 md:min-h-[28rem]">
+            <img src={featured.imageUrl} alt="" className="h-full w-full object-cover" />
+          </div>
+          <div className="flex flex-col justify-center px-6 py-12 md:px-12">
+            <h1
+              className="max-w-md text-4xl font-semibold tracking-tight"
+              style={{ color: accent }}
+            >
+              {title}
+            </h1>
+            {blurb ? <p className="mt-4 max-w-md text-neutral-600">{blurb}</p> : null}
+          </div>
+        </section>
+      ) : template.layout === "showcase" && featured?.imageUrl ? (
+        <section>
+          <div className="aspect-[21/9] max-h-[28rem] w-full bg-neutral-200">
+            <img src={featured.imageUrl} alt="" className="h-full w-full object-cover" />
+          </div>
+          <div className="mx-auto max-w-6xl px-4 py-10">
+            <h1 className="text-4xl font-semibold tracking-tight" style={{ color: accent }}>
+              {title}
+            </h1>
+            {blurb ? <p className="mt-3 max-w-2xl text-neutral-600">{blurb}</p> : null}
+          </div>
+        </section>
+      ) : template.layout === "luxury" ? (
+        <section className="mx-auto max-w-xl px-4 py-20 text-center">
+          <h1 className="text-4xl font-semibold tracking-tight" style={{ color: accent }}>
+            {title}
+          </h1>
+          {blurb ? <p className="mt-4 text-neutral-600">{blurb}</p> : null}
+        </section>
+      ) : (
+        <section
+          className={cn(
+            "mx-auto max-w-6xl px-4",
+            template.density === "spacious" ? "py-16" : "py-8",
+          )}
         >
-          {store.heroTitle || store.storeName}
-        </h1>
-        <p className="mt-3 max-w-xl text-neutral-600">
-          {store.heroSubtitle || store.about || store.tagline}
-        </p>
-        {template.layout === "services" ? (
-          <p className="mt-4 max-w-xl text-sm text-neutral-500">
-            Placing an order does not deliver a download or confirm a booking. The business fulfils
-            it after review.
-          </p>
-        ) : null}
-        {template.layout === "editorial" || template.layout === "luxury" ? (
-          <p className="mt-4 max-w-xl text-sm text-neutral-500">
-            Each product currently has one price and one stock count. Size or colour notes are
-            descriptions, not separate stock.
-          </p>
-        ) : null}
-      </section>
+          <h1 className="max-w-2xl text-4xl font-semibold tracking-tight" style={{ color: accent }}>
+            {title}
+          </h1>
+          {blurb ? <p className="mt-3 max-w-xl text-neutral-600">{blurb}</p> : null}
+          {template.layout === "services" ? (
+            <p className="mt-4 max-w-xl text-sm text-neutral-500">
+              Placing an order does not deliver a download or confirm a booking. The business
+              fulfils it after review.
+            </p>
+          ) : null}
+        </section>
+      )}
       {store.categories.length > 0 ? (
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-4">
           <button

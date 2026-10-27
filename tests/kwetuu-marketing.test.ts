@@ -10,7 +10,7 @@ describe("Kwetuu public site contract", () => {
     expect(BRAND.name).toBe("Kwetuu");
     expect(BRAND.domain).toBe("mykwetuu.com");
     expect(STORE_TEMPLATES).toHaveLength(10);
-    expect(PLAN_MONTHLY_USD.pro).toBe(3);
+    expect(PLAN_MONTHLY_USD.pro).toBe(7);
   });
 
   it("features a slice of real published shops, never a hardcoded demo list", () => {

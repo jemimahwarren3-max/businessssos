@@ -4,19 +4,19 @@ Stack that is already here (do not replace): **Vite 8 + React 19 + TanStack Star
 
 ## What actually works in git
 
-| Area                    | Status                                             | Routes / files                                                                                                     |
-| ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Public marketing        | Stage 2: homepage, gallery, pricing, auth aliases  | `/`, `/stores`, `/pricing`, `/signup`, `/login`, `/features`, `/templates`, `/faq`, `/about`                       |
-| Auth                    | Email + Google PKCE callback                       | `/auth`, `/auth/callback`, `/staff-login`, `/reset-password`                                                       |
-| Marketplace             | Real published shops                               | `/stores` gallery; `/market` product search                                                                        |
-| Onboarding              | Name → template → first product → pickup → publish | `/onboarding`                                                                                                      |
-| Merchant OS             | Real CRUD via server fns + RLS                     | `/dashboard`, `/inventory`, `/sales`, `/storefront`, invoices, quotes, customers, expenses, reports, billing, team |
-| Public shop             | Real catalogue listings                            | `{slug}.mykwetuu.com` (internal `/store/$slug`); product, search, cart, checkout, order status                     |
-| Cart                    | localStorage per slug until checkout               | `src/lib/storefront/cart.ts`                                                                                       |
-| Shop Paynow             | Server-side `paynow` package                       | `src/lib/payments/shop-paynow.server.ts`, webhook `POST /api/webhooks/paynow` in `src/server.ts`                   |
-| Platform billing Paynow | Separate keys                                      | `src/lib/payments/paynow.server.ts`                                                                                |
-| Ten templates           | One catalogue, ten layouts                         | `STORE_TEMPLATES` + `store-experience.tsx` + CSS sketches in `TemplatePreview`                                     |
-| Tenant isolation tests  | Staging                                            | `tests/integration/tenant-isolation.test.ts`                                                                       |
+| Area                    | Status                                             | Routes / files                                                                                                        |
+| ----------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Public marketing        | Stage 2: homepage, gallery, pricing, auth aliases  | `/`, `/stores`, `/pricing`, `/signup`, `/login`, `/features`, `/templates`, `/faq`, `/about`                          |
+| Auth                    | Email + Google PKCE callback                       | `/auth`, `/auth/callback`, `/staff-login`, `/reset-password`                                                          |
+| Marketplace             | Real published shops                               | `/stores` gallery; `/market` product search                                                                           |
+| Onboarding              | Name → template → first product → pickup → publish | `/onboarding`                                                                                                         |
+| Merchant OS             | Real CRUD via server fns + RLS                     | `/dashboard`, `/inventory`, `/sales`, `/storefront`, invoices, quotes, customers, expenses, reports, billing, team    |
+| Public shop             | Real catalogue listings                            | `{slug}.mykwetuu.com` (internal `/store/$slug`); product, search, cart, checkout, order status                        |
+| Cart                    | localStorage per slug until checkout               | `src/lib/storefront/cart.ts`                                                                                          |
+| Shop Paynow             | Server-side `paynow` package                       | `src/lib/payments/shop-paynow.server.ts`, webhook `POST /api/webhooks/paynow` in `src/server.ts`                      |
+| Platform billing Paynow | Separate keys                                      | `src/lib/payments/paynow.server.ts`                                                                                   |
+| Ten templates           | One catalogue, ten layouts                         | Distinct chrome/homepage per layout in `store-experience.tsx`. IDs unchanged. Shop header is the shop, not `/market`. |
+| Tenant isolation tests  | Staging                                            | `tests/integration/tenant-isolation.test.ts`                                                                          |
 
 Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated users to `/auth?mode=signin`.
 
@@ -43,6 +43,8 @@ Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated 
 - **Realtime new-order toast** is not wired; orders load on query.
 - **Concurrent oversell** is intended to be locked in SQL on reserve; needs a live two-buyer test (Stage 7).
 - **Images >5MB**: product media PR exists (#24); not on this branch.
+- **Manual shop payments**: EcoCash / InnBucks / bank / other instruction JSON on the shop, checkout radios, payment notes (`pending` until the merchant records payment). Screenshot files are not stored.
+- **Listed Pro price**: `PLAN_MONTHLY_USD.pro` is $7. `BILLING_ENABLED` still gates charging.
 - Merchant dashboard titles still say BusinessOS on many inner pages.
 
 ## Stage 2 (public site)

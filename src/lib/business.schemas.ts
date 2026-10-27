@@ -16,6 +16,7 @@ export const BUSINESS_TYPES = [
 
 export const CURRENCIES = [
   "USD",
+  "ZWG",
   "EUR",
   "GBP",
   "ZAR",

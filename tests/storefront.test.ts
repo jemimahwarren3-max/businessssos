@@ -17,6 +17,7 @@ import {
   isTemplateId,
   templateForBusinessType,
 } from "@/lib/storefront/templates";
+import { storeSurface } from "@/lib/storefront/store-surface";
 import { RESERVED_HOST_LABELS } from "@/lib/storefront/host";
 import { allowedFulfilments, allowedPayments, cashPolicyLines } from "@/lib/storefront/order-rules";
 import { fulfilmentActions } from "@/lib/storefront/transitions";
@@ -193,6 +194,13 @@ describe("storefront templates", () => {
     }
     expect(templateForBusinessType("boutique")).toBe("fashion-boutique");
     expect(templateForBusinessType("grocery")).toBe("grocery");
+    const names = STORE_TEMPLATES.map((template) => template.name);
+    expect(new Set(names).size).toBe(10);
+    expect(names).toContain("Fashion & clothing");
+    expect(names).toContain("Beauty & aesthetics");
+    expect(names).toContain("Jewellery & accessories");
+    const surfaces = new Set(STORE_TEMPLATES.map((template) => storeSurface(template.layout).page));
+    expect(surfaces.size).toBe(STORE_TEMPLATES.length);
     const patch = defaultShopPatch({
       businessId: "00000000-0000-0000-0000-000000000001",
       storeName: "Mbare Fresh",
@@ -200,6 +208,7 @@ describe("storefront templates", () => {
     });
     expect(patch.delivery.pickupEnabled).toBe(true);
     expect(patch.payments.acceptPaynow).toBe(false);
+    expect(patch.payments.manualMethods).toEqual([]);
     expect(RESERVED_HOST_LABELS.has("templates")).toBe(true);
     expect(RESERVED_HOST_LABELS.has("features")).toBe(true);
   });
@@ -244,6 +253,18 @@ describe("online order transitions", () => {
     expect(actions).not.toContain("mark_paid");
     expect(actions).toContain("preparing");
   });
+
+  it("lets a merchant reject a pending payment note without recording a sale", () => {
+    const actions = fulfilmentActions({
+      fulfilmentStatus: "confirmed",
+      fulfilmentMethod: "pickup",
+      paymentMethod: "manual",
+      paymentStatus: "pending",
+      saleId: null,
+    });
+    expect(actions).toContain("mark_paid");
+    expect(actions).toContain("reject_proof");
+  });
 });
 
 function sampleStore(
@@ -280,6 +301,7 @@ function sampleStore(
       cashCurrencies: "",
       exactCash: false,
       changeProvided: false,
+      manualMethods: [],
       ...payments,
     },
   };
@@ -312,6 +334,29 @@ describe("order rules", () => {
       { payOnPickup: true, payOnDelivery: true, quotes: false, paynow: true },
     );
     expect(allowedPayments(store, "pickup")).toEqual(["pay_on_pickup", "paynow"]);
+  });
+
+  it("offers enabled EcoCash instructions without treating them as paid", () => {
+    const store = sampleStore(
+      { pickupEnabled: true, deliveryEnabled: false },
+      {
+        payOnPickup: false,
+        paynow: false,
+        quotes: false,
+        manualMethods: [
+          {
+            id: "ecocash",
+            kind: "ecocash",
+            enabled: true,
+            accountName: "Ada",
+            accountDetail: "0772000000",
+            instructions: "Use the order number",
+          },
+        ],
+      },
+    );
+    expect(allowedPayments(store, "pickup")).toEqual(["manual"]);
+    expect(allowedPayments(store, "quote")).toEqual(["quote"]);
   });
 
   it("states exact cash before the customer commits", () => {
