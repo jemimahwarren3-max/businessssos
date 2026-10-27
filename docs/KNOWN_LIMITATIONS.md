@@ -16,7 +16,7 @@
 - Accessibility: code-level work exists; no screen-reader evidence this session.
 - README is not the setup guide; `ENVIRONMENT_SETUP.md` is.
 - Stock is a total on `products.stock` plus per-location rows on `product_stock`. The app still sells and adjusts the default location. There is no branch-transfer UI.
-- Order rules: cash currencies, exact-cash, quote-required delivery, and automatic acceptance are enforced in SQL. Preparation minutes, cut-off text, and collection windows are shown to customers but are not calendar-enforced.
+- Order rules: cash currencies, exact-cash, quote-required delivery, automatic acceptance, structured hours, HH:MM cut-off, and collection windows are enforced in SQL. Free-text hours or cut-off notes are display-only. There is no waitlist or overnight window.
 - Distance-based delivery fees, address geocoding, and multi-merchant carts are not implemented.
 - The 200-feature product roadmap is not built. See `BUSINESSOS_AUDIT.md`.
 - Open-source tooling: keep the Supabase commerce backend. See `OPEN_SOURCE_TOOLING_AUDIT.md`. Medusa, Meilisearch, and Umami are not installed.

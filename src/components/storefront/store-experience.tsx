@@ -7,6 +7,7 @@ import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefron
 import { getTemplate } from "@/lib/storefront/templates";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { formatMoney } from "@/lib/format";
+import { WEEKDAYS } from "@/lib/storefront/clocks";
 import { cn } from "@/lib/utils";
 
 const StorePreviewContext = createContext(false);
@@ -106,6 +107,16 @@ export function StoreChrome({
             {store.address ? <p className="mt-2">{store.address}</p> : null}
             {store.phone ? <p>{store.phone}</p> : null}
             {store.hours ? <p className="mt-2 whitespace-pre-wrap">{store.hours}</p> : null}
+            {(store.delivery.weeklyHours ?? []).length > 0 ? (
+              <ul className="mt-2 space-y-0.5">
+                {store.delivery.weeklyHours.map((row) => (
+                  <li key={row.weekday}>
+                    {WEEKDAYS.find((day) => day.weekday === row.weekday)?.short} {row.open} to{" "}
+                    {row.close}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
           <div>
             {store.policies ? (

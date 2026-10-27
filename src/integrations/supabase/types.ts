@@ -2189,6 +2189,7 @@ export type Database = {
           _items: Json;
           _fulfilment: string;
           _payment_method: string;
+          _collect_at?: string | null;
         };
         Returns: Json;
       };

@@ -26,7 +26,7 @@ Shared stock: POS `create_sale` and online `store_order` both update `products.s
 | R4  | P1  | `npm audit` reports high/critical transitive issues.                                                                                    | INV    |
 | R5  | P1  | Backup restore has not been executed here.                                                                                              | X      |
 | R6  | P1  | Order-rules migration `20261019140000_storefront_order_rules.sql` must be applied on staging before the new checkout rules take effect. | P      |
-| R7  | P2  | Cut-off, prep minutes, and collection windows are displayed, not calendar-enforced.                                                     | P      |
+| R7  | P2  | Cut-off, prep minutes, and collection windows are displayed, not calendar-enforced.                                                     | IV     |
 | R8  | P2  | Legal identity, CDPA, ZIMRA fiscalisation unanswered.                                                                                   | X      |
 | R9  | P2  | No customer accounts or verified-merchant checks. Reviews are verified-purchase only.                                                   | P      |
 
@@ -96,18 +96,18 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 
 ### E. Orders and fulfilment 41–50
 
-| #   | Feature                       | Status | Notes                                                               |
-| --- | ----------------------------- | ------ | ------------------------------------------------------------------- |
-| 41  | Order after checkout          | IV     | Idempotent `create_store_order`.                                    |
-| 42  | Order states                  | IV     | pending confirmation through completed/cancelled/refunded-via-sale. |
-| 43  | Acceptance rules              | P      | This slice: `autoAccept` for eligible non-quote orders.             |
-| 44  | Prep, hours, cut-off, limits  | P      | Hours/policies text; prep/cut-off stored and shown, not enforced.   |
-| 45  | Click and collect windows     | P      | Free-text windows, not a booking grid.                              |
-| 46  | Delivery options              | P      | Pickup, flat fee, areas text, or quote. No geo zones.               |
-| 47  | Automatic delivery fee        | P      | Flat fee and free-over. Quote-required blocks a fake fee.           |
-| 48  | Address validation            | P      | Required string for delivery. No geocoder.                          |
-| 49  | Minimum order                 | INV    | Enforced in `storefront_price_cart`.                                |
-| 50  | Cancel, substitutes, partials | P      | Cancel + stock restore before sale. No substitutions/partials.      |
+| #   | Feature                       | Status | Notes                                                                   |
+| --- | ----------------------------- | ------ | ----------------------------------------------------------------------- |
+| 41  | Order after checkout          | IV     | Idempotent `create_store_order`.                                        |
+| 42  | Order states                  | IV     | pending confirmation through completed/cancelled/refunded-via-sale.     |
+| 43  | Acceptance rules              | P      | This slice: `autoAccept` for eligible non-quote orders.                 |
+| 44  | Prep, hours, cut-off, limits  | P      | Structured hours/windows/cut-off are enforced. Free-text notes are not. |
+| 45  | Click and collect windows     | P      | Free-text windows, not a booking grid.                                  |
+| 46  | Delivery options              | P      | Pickup, flat fee, areas text, or quote. No geo zones.                   |
+| 47  | Automatic delivery fee        | P      | Flat fee and free-over. Quote-required blocks a fake fee.               |
+| 48  | Address validation            | P      | Required string for delivery. No geocoder.                              |
+| 49  | Minimum order                 | INV    | Enforced in `storefront_price_cart`.                                    |
+| 50  | Cancel, substitutes, partials | P      | Cancel + stock restore before sale. No substitutions/partials.          |
 
 ### F. Payments 51–60
 
