@@ -72,6 +72,7 @@ export const productSchema = z.object({
   supplierId: z.string().uuid().optional().or(z.literal("")),
 });
 export type ProductInput = z.infer<typeof productSchema>;
+export const productCreateFieldsSchema = productSchema.omit({ businessId: true });
 
 export const customerSchema = z.object({
   businessId: z.string().uuid(),
