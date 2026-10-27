@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth/auth.functions";
+import { BRAND } from "@/lib/brand";
 import { resolveStaffLoginFn, verifyShopLoginFn } from "@/lib/business.functions";
 
 export const Route = createFileRoute("/staff-login")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Sign in | BusinessOS AI" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: `Staff sign-in | ${BRAND.name}` }, { name: "robots", content: "noindex" }],
   }),
   component: StaffLogin,
 });

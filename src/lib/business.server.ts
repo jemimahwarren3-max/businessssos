@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
+import { canWriteForSubscription } from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
 import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
@@ -29,6 +30,8 @@ import type {
   SupplierInput,
   UpdateSupplierInput,
 } from "./business.schemas";
+
+export { canWriteForSubscription };
 
 export type Db = SupabaseClient<Database>;
 
@@ -102,26 +105,6 @@ export async function assertPermission(supabase: Db, businessId: string, permiss
 
 const READ_ONLY_MESSAGE =
   "Your trial has ended. Upgrade to Pro to keep creating and editing, your existing data is still safe and visible.";
-
-/** True if a subscription in this state is allowed to write — active, or
- * still inside an unexpired trial. Shared by assertCanWrite (server-side
- * enforcement) and loadWorkspace (so the UI can show a read-only banner).
- * Always true while BILLING_ENABLED=false (free beta) — the underlying
- * subscription/trial data keeps accumulating normally either way (see
- * create_business_with_owner), so re-enabling billing later doesn't need a
- * data migration, only flipping the flag back. */
-function canWriteForSubscription(
-  subscription: { status: string; trial_ends_at: string | null } | null,
-) {
-  if (!isBillingEnabled()) return true;
-  if (!subscription) return true; // fail open — shouldn't happen post atomic business creation
-  if (subscription.status === "active") return true;
-  return Boolean(
-    subscription.status === "trialing" &&
-    subscription.trial_ends_at &&
-    new Date(subscription.trial_ends_at) > new Date(),
-  );
-}
 
 /** Gate for every write (create/update/delete) — read paths never call this. */
 export async function assertCanWrite(supabase: Db, businessId: string) {

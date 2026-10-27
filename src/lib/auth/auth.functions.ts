@@ -13,6 +13,7 @@ import {
   recordLoginFailure,
 } from "@/lib/rate-limit.server";
 import { isPasswordBreached } from "./breach-check.server";
+import { friendlySignUpError } from "./signup-errors";
 import {
   challengeTotp,
   enrollTotp,
@@ -127,20 +128,6 @@ export const signIn = createServerFn({ method: "POST" })
 const BREACHED_PASSWORD_MESSAGE =
   "That password has appeared in known data breaches, so it's not safe to use. Please choose a different one.";
 
-function friendlySignUpError(message: string): string {
-  const m = message.toLowerCase();
-  if (m.includes("password")) return "Your password must be at least 8 characters.";
-  if (m.includes("email") && (m.includes("invalid") || m.includes("valid"))) {
-    return "Please enter a valid email address.";
-  }
-  if (m.includes("rate limit") || m.includes("too many")) {
-    return "Too many attempts. Please wait a moment and try again.";
-  }
-  // Anything else — including "already registered" — gets a generic
-  // message rather than confirming or denying the email is already in use.
-  return "We couldn't create that account. Please try again.";
-}
-
 export const signUp = createServerFn({ method: "POST" })
   .middleware(signUpLimit)
   .inputValidator((data: unknown) => signUpSchema.parse(data))
@@ -151,12 +138,22 @@ export const signUp = createServerFn({ method: "POST" })
     const { data: result, error } = await createAnonClient().auth.signUp({
       email: data.email,
       password: data.password,
-      options: { data: { full_name: data.fullName } },
+      options: {
+        data: { full_name: data.fullName },
+        emailRedirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
+      },
     });
-    if (error) throw new Error(friendlySignUpError(error.message));
+    if (error) {
+      console.error("[auth] signUp", error.message, error.code ?? "");
+      throw new Error(friendlySignUpError(`${error.code ?? ""} ${error.message}`));
+    }
 
     if (result.user) {
-      await recordLegalAcceptance(result.user.id, getRequestIP() ?? null);
+      try {
+        await recordLegalAcceptance(result.user.id, getRequestIP() ?? null);
+      } catch (legalError) {
+        console.error("[auth] legal acceptance after signUp", legalError);
+      }
     }
 
     if (result.session) {

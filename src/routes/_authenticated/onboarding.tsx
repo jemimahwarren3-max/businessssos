@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { TemplatePreview } from "@/components/storefront/template-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,17 +118,17 @@ function Onboarding() {
   });
 
   const saveShopMutation = useMutation({
-    mutationFn: async (extra?: { pickupEnabled?: boolean; deliveryEnabled?: boolean }) => {
+    mutationFn: async (extra: { pickupEnabled?: boolean; deliveryEnabled?: boolean } = {}) => {
       if (!businessId) throw new Error("Create the business first.");
       return saveShop({
         data: defaultShopPatch({
           businessId,
           storeName: form.name || workspace.data?.business.name || "Shop",
           templateId,
-          phone: form.phone,
-          address: form.address,
-          pickupEnabled: extra?.pickupEnabled ?? pickup,
-          deliveryEnabled: extra?.deliveryEnabled ?? delivery,
+          phone: form.phone ?? "",
+          address: form.address ?? "",
+          pickupEnabled: extra.pickupEnabled ?? pickup,
+          deliveryEnabled: extra.deliveryEnabled ?? delivery,
         }),
       });
     },
@@ -182,7 +183,7 @@ function Onboarding() {
   const publishMutation = useMutation({
     mutationFn: async () => {
       if (!businessId) throw new Error("Create the business first.");
-      await saveShopMutation.mutateAsync();
+      await saveShopMutation.mutateAsync({});
       return publish({ data: { businessId, published: true } });
     },
     onSuccess: () => {
@@ -241,14 +242,17 @@ function Onboarding() {
                     key={template.id}
                     type="button"
                     onClick={() => setTemplateId(template.id)}
-                    className="rounded-lg border p-3 text-left"
+                    className="flex gap-3 rounded-lg border p-2 text-left"
                     style={{
                       borderColor: templateId === template.id ? template.defaultAccent : undefined,
                     }}
                   >
-                    <span className="font-semibold">{template.name}</span>
-                    <span className="mt-1 block text-sm text-muted-foreground">
-                      {template.description}
+                    <TemplatePreview template={template} className="h-16 w-24 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="font-semibold">{template.name}</span>
+                      <span className="mt-1 block text-sm text-muted-foreground">
+                        {template.description}
+                      </span>
                     </span>
                   </button>
                 ))}
@@ -257,7 +261,7 @@ function Onboarding() {
                 className="w-full gap-1.5"
                 disabled={saveShopMutation.isPending}
                 onClick={() => {
-                  saveShopMutation.mutate(undefined, { onSuccess: () => setShopStep(1) });
+                  saveShopMutation.mutate({}, { onSuccess: () => setShopStep(1) });
                 }}
               >
                 {saveShopMutation.isPending ? (

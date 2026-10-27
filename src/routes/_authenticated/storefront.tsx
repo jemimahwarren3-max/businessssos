@@ -32,6 +32,8 @@ import {
   transitionOrderFn,
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
+import { TemplatePreview } from "@/components/storefront/template-preview";
+import { BRAND } from "@/lib/brand";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
 import {
@@ -50,7 +52,7 @@ import type {
 
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
-    meta: [{ title: "Storefront | BusinessOS AI" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: `Storefront | ${BRAND.name}` }, { name: "robots", content: "noindex" }],
   }),
   component: StorefrontPage,
 });
@@ -320,10 +322,7 @@ function StorefrontEditor({ businessId, initial }: { businessId: string; initial
                 outline: templateId === template.id ? "2px solid var(--primary)" : undefined,
               }}
             >
-              <div className="mb-3 grid grid-cols-[2fr_1fr] gap-2">
-                <div className="h-16 rounded" style={{ background: template.defaultAccent }} />
-                <div className="h-16 rounded bg-muted" />
-              </div>
+              <TemplatePreview template={template} className="mb-3 h-20" />
               <p className="text-xs text-muted-foreground">{template.sampleLabel}</p>
               <p className="font-medium">{template.name}</p>
               <p className="text-sm text-muted-foreground">{template.description}</p>
