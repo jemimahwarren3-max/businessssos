@@ -1,0 +1,300 @@
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { AdminShell } from "@/components/admin/admin-shell";
+import {
+  getAdminOverview,
+  overrideSubscriptionFn,
+  setPlatformFxFn,
+} from "@/lib/admin/admin.functions";
+import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export const Route = createFileRoute("/admin/billing")({
+  component: AdminBillingPage,
+});
+
+const PLANS = ["free", "starter", "business", "pro"] as const;
+const STATUSES = ["trialing", "active", "past_due", "canceled", "incomplete", "unpaid"] as const;
+
+type OverrideTarget = { businessId: string; businessName: string } | null;
+
+function AdminBillingPage() {
+  const queryClient = useQueryClient();
+  const fetchOverview = useServerFn(getAdminOverview);
+  const overrideFn = useServerFn(overrideSubscriptionFn);
+  const saveFx = useServerFn(setPlatformFxFn);
+  const [target, setTarget] = useState<OverrideTarget>(null);
+  const [plan, setPlan] = useState<string>("business");
+  const [status, setStatus] = useState<string>("active");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [reason, setReason] = useState("");
+  const [usdToZwg, setUsdToZwg] = useState("");
+  const [fxSource, setFxSource] = useState("");
+  const [fxOn, setFxOn] = useState("");
+  const [fxNotice, setFxNotice] = useState("");
+
+  const overview = useQuery({
+    queryKey: ["admin-overview"],
+    queryFn: () => fetchOverview(),
+  });
+  const fx = overview.data?.fx ?? null;
+  const zig = planAmountZig(PLAN_MONTHLY_USD.pro, fx);
+  const fxMutation = useMutation({
+    mutationFn: () =>
+      saveFx({
+        data: {
+          usdToZwg: Number(usdToZwg),
+          source: fxSource,
+          effectiveOn: fxOn,
+          notice: fxNotice,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("ZiG display rate saved. Subscriptions are still charged in USD.");
+      await queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Could not save the rate.")),
+  });
+
+  const overrideMutation = useMutation({
+    mutationFn: () =>
+      overrideFn({
+        data: {
+          businessId: target!.businessId,
+          plan,
+          status,
+          currentPeriodEnd: new Date(periodEnd).toISOString(),
+          reason,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("Subscription updated.");
+      setTarget(null);
+      setReason("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Couldn't update that subscription.")),
+  });
+
+  return (
+    <AdminShell title="Billing & FX">
+      <div className="surface space-y-3 p-4">
+        <h2 className="text-sm font-semibold">
+          ZiG equivalent for the ${PLAN_MONTHLY_USD.pro} USD plan
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Display-only rate for pricing pages. Paynow subscription checkout uses platform keys (USD
+          / ZiG) from environment — not edited here.
+        </p>
+        {overview.isLoading ? <Skeleton className="h-8" /> : null}
+        {fx ? (
+          <p className="text-sm">
+            Current: 1 USD = {fx.usdToZwg} ZiG ({fx.source}, {fx.effectiveOn}). Listed Pro ≈{" "}
+            {zig != null ? formatMoney(zig, "ZWG") : "—"}.
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">No rate stored.</p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm">
+            ZiG per 1 USD
+            <Input value={usdToZwg} onChange={(event) => setUsdToZwg(event.target.value)} />
+          </label>
+          <label className="text-sm">
+            Source
+            <Input value={fxSource} onChange={(event) => setFxSource(event.target.value)} />
+          </label>
+          <label className="text-sm">
+            Effective on
+            <Input type="date" value={fxOn} onChange={(event) => setFxOn(event.target.value)} />
+          </label>
+          <label className="text-sm">
+            Customer notice
+            <Input value={fxNotice} onChange={(event) => setFxNotice(event.target.value)} />
+          </label>
+        </div>
+        <Button
+          type="button"
+          disabled={fxMutation.isPending || !usdToZwg || fxSource.trim().length < 3 || !fxOn}
+          onClick={() => fxMutation.mutate()}
+        >
+          Save display rate
+        </Button>
+      </div>
+
+      <div className="surface overflow-x-auto">
+        <h2 className="p-4 text-sm font-semibold">Subscriptions</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Business</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Trial ends</TableHead>
+              <TableHead>Period ends</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(overview.data?.subscriptions ?? []).map((s) => (
+              <TableRow key={s.business_id}>
+                <TableCell className="font-medium">{s.business_name}</TableCell>
+                <TableCell className="capitalize">{s.plan ?? "-"}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{s.status ?? "-"}</Badge>
+                </TableCell>
+                <TableCell>{s.trial_ends_at ? friendlyDate(s.trial_ends_at) : "-"}</TableCell>
+                <TableCell>
+                  {s.current_period_end ? friendlyDate(s.current_period_end) : "-"}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setTarget({ businessId: s.business_id, businessName: s.business_name });
+                      setPlan(s.plan ?? "business");
+                      setStatus(s.status ?? "active");
+                      setPeriodEnd("");
+                      setReason("");
+                    }}
+                  >
+                    Override
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="surface overflow-x-auto">
+        <h2 className="p-4 text-sm font-semibold">Recent subscription payments</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Business</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(overview.data?.payments ?? []).map((p) => (
+              <TableRow key={p.reference}>
+                <TableCell className="font-medium">{p.business_name}</TableCell>
+                <TableCell className="capitalize">
+                  {p.plan} · {p.interval}ly
+                </TableCell>
+                <TableCell className="tabular-nums">
+                  {formatMoney(Number(p.amount), p.currency)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">{p.status}</Badge>
+                </TableCell>
+                <TableCell>{friendlyDate(p.created_at)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={Boolean(target)} onOpenChange={(open) => !open && setTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Override {target?.businessName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Plan</Label>
+              <Select value={plan} onValueChange={setPlan}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLANS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="period-end">Current period ends</Label>
+              <Input
+                id="period-end"
+                type="date"
+                value={periodEnd}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reason">Reason (audit)</Label>
+              <Input id="reason" value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={overrideMutation.isPending || !periodEnd || reason.trim().length < 3}
+              onClick={() => overrideMutation.mutate()}
+            >
+              {overrideMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AdminShell>
+  );
+}

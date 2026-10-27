@@ -33,6 +33,7 @@ import {
   Users,
   Wand2,
 } from "lucide-react";
+import { getPlatformAnnouncementFn } from "@/lib/admin/admin.functions";
 import { signOutFn } from "@/lib/auth/auth.functions";
 import {
   getNotificationsFn,
@@ -280,6 +281,12 @@ export function AppShell({
           isOperateLocked,
         }).badge
       : null;
+  const loadAnnouncement = useServerFn(getPlatformAnnouncementFn);
+  const platformAnnouncement = useQuery({
+    queryKey: ["platform-announcement"],
+    queryFn: () => loadAnnouncement(),
+    staleTime: 120_000,
+  });
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -434,6 +441,15 @@ export function AppShell({
             </div>
           </div>
         </header>
+
+        {platformAnnouncement.data?.enabled && platformAnnouncement.data.message ? (
+          <div className="border-b border-primary/25 bg-primary/10 px-4 py-2.5 text-[13px] text-foreground">
+            <div className="mx-auto max-w-6xl">
+              <span className="font-medium text-primary">Kwetuu: </span>
+              {platformAnnouncement.data.message}
+            </div>
+          </div>
+        ) : null}
 
         {isReadOnly ? (
           <div className="border-b border-warning/30 bg-warning-soft px-4 py-2.5 text-[13px] text-warning-foreground">

@@ -11,13 +11,20 @@ import {
 } from "@/lib/auth/mfa.server";
 import { setServerSession } from "@/lib/auth/session.server";
 import {
+  getAdminRuntime,
   getAdminStats,
   getAdminPlatformFx,
   isPlatformAdmin,
+  listAdminBusinesses,
   listAdminPayments,
+  listAdminPlatformAudit,
+  listAdminShopOrders,
+  listAdminStorefronts,
   listAdminSubscriptions,
+  loadPlatformAnnouncement,
   overrideSubscription,
   setAdminPlatformFx,
+  updateAdminRuntime,
 } from "./admin.server";
 
 // authedRateLimit already composes requireSupabaseAuth internally and
@@ -149,3 +156,63 @@ export const overrideSubscriptionFn = createServerFn({ method: "POST" })
     await overrideSubscription(context.userId, context.tokens, data);
     return { ok: true };
   });
+
+const businessSearchSchema = z.object({
+  search: z.string().max(80).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+});
+
+export const getAdminBusinessesFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => businessSearchSchema.parse(data ?? {}))
+  .handler(async ({ data, context }) =>
+    listAdminBusinesses(context.userId, context.tokens, {
+      ...(data.search ? { search: data.search } : {}),
+      ...(data.limit !== undefined ? { limit: data.limit } : {}),
+    }),
+  );
+
+export const getAdminStorefrontsFn = createServerFn({ method: "GET" })
+  .middleware(adminRateLimit)
+  .handler(async ({ context }) => listAdminStorefronts(context.userId, context.tokens));
+
+export const getAdminShopOrdersFn = createServerFn({ method: "GET" })
+  .middleware(adminRateLimit)
+  .handler(async ({ context }) => listAdminShopOrders(context.userId, context.tokens));
+
+export const getAdminAuditFn = createServerFn({ method: "GET" })
+  .middleware(adminRateLimit)
+  .handler(async ({ context }) => listAdminPlatformAudit(context.userId, context.tokens));
+
+export const getAdminRuntimeFn = createServerFn({ method: "GET" })
+  .middleware(adminRateLimit)
+  .handler(async ({ context }) => getAdminRuntime(context.userId, context.tokens));
+
+const runtimeSchema = z.object({
+  billingEnforced: z.boolean().optional(),
+  announcementEnabled: z.boolean().optional(),
+  publicAnnouncement: z.string().max(2000).optional(),
+  reason: z.string().trim().min(3).max(300),
+});
+
+export const updateAdminRuntimeFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => runtimeSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await updateAdminRuntime(context.userId, context.tokens, {
+      reason: data.reason,
+      ...(data.billingEnforced !== undefined ? { billingEnforced: data.billingEnforced } : {}),
+      ...(data.announcementEnabled !== undefined
+        ? { announcementEnabled: data.announcementEnabled }
+        : {}),
+      ...(data.publicAnnouncement !== undefined
+        ? { publicAnnouncement: data.publicAnnouncement }
+        : {}),
+    });
+    return { ok: true };
+  });
+
+/** Merchant app banner — no admin required. */
+export const getPlatformAnnouncementFn = createServerFn({ method: "GET" }).handler(async () =>
+  loadPlatformAnnouncement(),
+);
