@@ -31,6 +31,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { getDashboard, getWorkspace } from "@/lib/business.functions";
 import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
+import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { BRAND } from "@/lib/brand";
@@ -148,51 +149,20 @@ function Dashboard() {
         </Button>
       }
     >
-      {storefront.data && !storefront.data.checklist.published ? (
-        <section className="surface mb-4 p-5">
-          <h2 className="text-lg font-semibold">Finish your shop</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Unpublished shops are not visible to customers. Continue setup or preview a draft.
-          </p>
-          <ol className="mt-3 space-y-1 text-sm">
-            {(
-              [
-                ["name", "Shop name"],
-                ["template", "Template"],
-                ["products", "A published product"],
-                ["payments", "A payment method"],
-                ["fulfilment", "Pickup or delivery"],
-                ["published", "Publish"],
-              ] as const
-            ).map(([key, label]) => (
-              <li key={key}>
-                {storefront.data?.checklist[key] ? "Done" : "To do"} — {label}
-              </li>
-            ))}
-          </ol>
-          {storefront.data.store?.slug ? (
-            <p className="mt-2 text-sm">
-              Draft:{" "}
-              <Link
-                to="/store/$slug"
-                params={{ slug: storefront.data.store.slug }}
-                search={{ preview: "1" }}
-              >
-                Preview
-              </Link>
-              {" · "}
-              {storePublicUrl(storefront.data.store.slug)}
-            </p>
-          ) : null}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild>
-              <Link to="/onboarding">Continue setup</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/storefront">Storefront settings</Link>
-            </Button>
-          </div>
-        </section>
+      {storefront.data ? (
+        <div className="mb-4">
+          <StoreLaunchCentre
+            admin={storefront.data}
+            billingEnabled={workspace.data.billingEnabled}
+            isOperateLocked={workspace.data.isOperateLocked}
+            publicUrl={
+              storefront.data.store?.slug
+                ? storePublicUrl(storefront.data.store.slug)
+                : undefined
+            }
+            compact
+          />
+        </div>
       ) : null}
       {canReadBriefing ? (
         <section className="surface mb-4 p-5">
