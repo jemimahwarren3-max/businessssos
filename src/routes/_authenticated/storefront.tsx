@@ -5,7 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { DataTable, type ColumnDef } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +12,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
-import { optimizeProductImage } from "@/lib/product-image-optimizer";
 import { shopHostsEnabled, storePublicUrl } from "@/lib/storefront/host";
 import {
   generateShopDraftFn,
@@ -24,15 +22,12 @@ import {
   listListingReportsFn,
   listReviewsAdminFn,
   publishStorefrontFn,
-  removeStorefrontProductImageFn,
   respondReviewFn,
   saveShopPaynowFn,
   respondComplaintFn,
   respondListingReportFn,
   setMarketplaceVisibleFn,
-  saveListingFn,
   saveStorefrontFn,
-  uploadStorefrontProductImageFn,
 } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES, getTemplate } from "@/lib/storefront/templates";
 import { TEMPLATE_CATEGORIES } from "@/lib/storefront/templates";
@@ -67,6 +62,7 @@ import type {
 } from "@/lib/storefront/contract";
 import type { ShopDraft } from "@/lib/storefront/shop-draft";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
+import { OnlineProductsManager } from "@/components/storefront/online-products-manager";
 import {
   StorefrontLoadError,
   StorefrontOverview,
@@ -117,8 +113,7 @@ function StorefrontPage() {
       toast.success("Store created — continue setup below");
       void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
     },
-    onError: (error: Error) =>
-      toast.error(readableError(error, "Could not create your store.")),
+    onError: (error: Error) => toast.error(readableError(error, "Could not create your store.")),
   });
 
   const workspaceData = workspace.data;
@@ -225,7 +220,6 @@ function StorefrontEditor({
   const publish = useServerFn(publishStorefrontFn);
   const loadListing = useServerFn(getMarketplaceListingFn);
   const setListed = useServerFn(setMarketplaceVisibleFn);
-  const saveListing = useServerFn(saveListingFn);
   const loadComplaints = useServerFn(listComplaintsFn);
   const respondComplaint = useServerFn(respondComplaintFn);
   const loadReviews = useServerFn(listReviewsAdminFn);
@@ -1595,36 +1589,13 @@ function StorefrontEditor({
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 id="launch-products" className="scroll-mt-24 text-base font-semibold">
-          Products
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          These are the same products as Inventory. Publishing one here does not copy it.
-        </p>
-        <StorefrontProductTable
-          businessId={businessId}
-          products={initial.products}
-          onToggle={(product) =>
-            void saveListing({
-              data: {
-                businessId,
-                productId: product.id,
-                published: !product.published,
-                details: product.details,
-                sizeGuide: product.sizeGuide,
-                minQty: product.minQty,
-                maxQty: product.maxQty,
-                featured: product.featured,
-              },
-            })
-              .then(() => queryClient.invalidateQueries({ queryKey: ["storefront", businessId] }))
-              .catch((error: Error) =>
-                toast.error(readableError(error, "Could not update the product")),
-              )
-          }
-        />
-      </section>
+      <OnlineProductsManager
+        businessId={businessId}
+        currency={initial.currency}
+        categories={initial.categories}
+        products={initial.products}
+        canManage={permissions.includes("business.settings")}
+      />
 
       <OnlineOrdersFulfilmentPanel
         businessId={businessId}
@@ -1867,133 +1838,4 @@ function ReviewResponseEditor({
       </Button>
     </form>
   );
-}
-
-type StorefrontProduct = AdminStore["products"][number];
-
-function StorefrontProductTable({
-  businessId,
-  products,
-  onToggle,
-}: {
-  businessId: string;
-  products: StorefrontProduct[];
-  onToggle: (product: StorefrontProduct) => void;
-}) {
-  const queryClient = useQueryClient();
-  const uploadImage = useServerFn(uploadStorefrontProductImageFn);
-  const removeImage = useServerFn(removeStorefrontProductImageFn);
-  const uploadMutation = useMutation({
-    mutationFn: async ({ productId, file }: { productId: string; file: File }) => {
-      const data = new FormData();
-      data.set("businessId", businessId);
-      data.set("productId", productId);
-      data.set("file", await optimizeProductImage(file));
-      return uploadImage({ data });
-    },
-    onSuccess: () => {
-      toast.success("Product photo added");
-      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
-    },
-    onError: (error: Error) => toast.error(readableError(error, "Could not add the product photo")),
-  });
-  const removeMutation = useMutation({
-    mutationFn: (input: { productId: string; imageUrl: string }) =>
-      removeImage({ data: { businessId, ...input } }),
-    onSuccess: () => {
-      toast.success("Product photo removed");
-      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
-    },
-    onError: (error: Error) =>
-      toast.error(readableError(error, "Could not remove the product photo")),
-  });
-  const columns: ColumnDef<StorefrontProduct, unknown>[] = [
-    {
-      accessorKey: "name",
-      header: "Product",
-      cell: ({ row }) => (
-        <div>
-          {row.original.name}
-          <span className="block text-xs text-muted-foreground">{row.original.categoryName}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "stock",
-      header: "Stock",
-    },
-    {
-      id: "photos",
-      header: "Product photos",
-      enableSorting: false,
-      cell: ({ row }) => {
-        const product = row.original;
-        const uploading =
-          uploadMutation.isPending && uploadMutation.variables?.productId === product.id;
-        const removing =
-          removeMutation.isPending && removeMutation.variables?.productId === product.id;
-        return (
-          <div className="flex max-w-64 flex-wrap items-center gap-2">
-            {product.galleryUrls.map((imageUrl, index) => (
-              <div key={imageUrl} className="relative size-12 overflow-hidden rounded border">
-                <img
-                  src={imageUrl}
-                  alt={`${product.name} photo ${index + 2}`}
-                  className="h-full w-full object-cover"
-                />
-                <button
-                  type="button"
-                  className="absolute right-0 top-0 rounded-bl bg-background/90 px-1 text-xs"
-                  aria-label={`Remove ${product.name} photo ${index + 2}`}
-                  disabled={removing}
-                  onClick={() => removeMutation.mutate({ productId: product.id, imageUrl })}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            {product.published && product.galleryUrls.length < 8 ? (
-              <label className="cursor-pointer rounded-md border px-2 py-1 text-xs hover:bg-muted">
-                {uploading ? "Uploading…" : "Add photo"}
-                <input
-                  className="sr-only"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  aria-label={`Add a product photo for ${product.name}`}
-                  disabled={uploading}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) uploadMutation.mutate({ productId: product.id, file });
-                    event.target.value = "";
-                  }}
-                />
-                <span className="block text-[11px] text-muted-foreground">
-                  Up to 12 MB; resized on this device
-                </span>
-              </label>
-            ) : product.published ? (
-              <span className="text-xs text-muted-foreground">8 extra photos max</span>
-            ) : (
-              <span className="text-xs text-muted-foreground">Publish to add photos</span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      id: "online",
-      header: "Online",
-      enableSorting: false,
-      cell: ({ row }) => (
-        <Button
-          size="sm"
-          variant={row.original.published ? "secondary" : "outline"}
-          onClick={() => onToggle(row.original)}
-        >
-          {row.original.published ? "Unpublish" : "Publish"}
-        </Button>
-      ),
-    },
-  ];
-  return <DataTable columns={columns} data={products} caption="Storefront products" />;
 }

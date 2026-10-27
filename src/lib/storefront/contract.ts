@@ -450,6 +450,8 @@ export type ShopperOrderSummary = z.infer<typeof shopperOrderSummarySchema>;
 const adminProductSchema = z.object({
   id: z.string(),
   name: z.string(),
+  publicName: z.string().nullable(),
+  categoryId: z.string().nullable(),
   sku: z.string().nullable(),
   price: z.coerce.number(),
   stock: z.coerce.number(),
@@ -468,6 +470,7 @@ const adminProductSchema = z.object({
 
 export const adminStoreSchema = z.object({
   currency: z.string(),
+  categories: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
   store: z
     .object({
       slug: z.string(),
@@ -654,6 +657,7 @@ export const listingSchema = z.object({
   businessId: z.string().uuid(),
   productId: z.string().uuid(),
   published: z.boolean(),
+  publicName: z.string().trim().max(160).nullable().optional(),
   details: z.string().max(2000).optional(),
   sizeGuide: z.string().max(2000).optional(),
   minQty: z.coerce.number().positive().max(10000),
