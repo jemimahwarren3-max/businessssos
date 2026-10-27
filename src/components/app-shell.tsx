@@ -36,6 +36,7 @@ import {
   markAllNotificationsReadFn,
   markNotificationReadFn,
 } from "@/lib/business.functions";
+import { HintTooltip } from "@/components/hint-tooltip";
 import { Logo } from "@/components/logo";
 import { QuickEntryDialog } from "@/components/quick-entry-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +52,9 @@ import {
 import { useWorkspace } from "@/hooks/use-workspace";
 import { friendlyDate } from "@/lib/format";
 import { clearOfflineCacheOnLogout } from "@/lib/offline/db";
+import { HEADER_HINTS, MAIN_NAV_HINTS, SECONDARY_NAV_HINTS } from "@/lib/nav-hints";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -122,15 +125,17 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative gap-0 px-2">
-          <Bell className="size-4.5" aria-hidden="true" />
-          <span className="sr-only">Notifications</span>
-          {unreadCount > 0 ? (
-            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-destructive" />
-          ) : null}
-        </Button>
-      </DropdownMenuTrigger>
+      <HintTooltip hint={HEADER_HINTS.notifications} side="bottom">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="relative gap-0 px-2">
+            <Bell className="size-4.5" aria-hidden="true" />
+            <span className="sr-only">Notifications</span>
+            {unreadCount > 0 ? (
+              <span className="absolute right-1 top-1 flex size-2 rounded-full bg-destructive" />
+            ) : null}
+          </Button>
+        </DropdownMenuTrigger>
+      </HintTooltip>
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between px-2 py-1.5">
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
@@ -234,6 +239,7 @@ export function AppShell({
   }
 
   return (
+    <TooltipProvider delayDuration={350}>
     <div className="min-h-screen bg-background">
       <a
         href="#main-content"
@@ -248,72 +254,52 @@ export function AppShell({
         <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Main">
           {NAV.map((item) => {
             const active = pathname.startsWith(item.to);
+            const hint = MAIN_NAV_HINTS[item.to] ?? "";
             return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/60",
-                )}
-              >
-                <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
-                {item.label}
-              </Link>
+              <HintTooltip key={item.to} hint={hint} side="right">
+                <Link
+                  to={item.to}
+                  title={hint}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/60",
+                  )}
+                >
+                  <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
+                  {item.label}
+                </Link>
+              </HintTooltip>
             );
           })}
         </nav>
         <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
-          <Link
-            to="/settings/team"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Users className="size-4.5" aria-hidden="true" /> Team
-          </Link>
-          <Link
-            to="/cash-drawer"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Wallet className="size-4.5" aria-hidden="true" /> Cash drawer
-          </Link>
-          <Link
-            to="/time-clock"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Clock className="size-4.5" aria-hidden="true" /> Time clock
-          </Link>
-          <Link
-            to="/settings/billing"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Settings className="size-4.5" aria-hidden="true" /> Billing
-          </Link>
-          <Link
-            to="/settings/data"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Download className="size-4.5" aria-hidden="true" /> Export data
-          </Link>
-          <Link
-            to="/settings/audit-log"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <History className="size-4.5" aria-hidden="true" /> Audit log
-          </Link>
-          <Link
-            to="/settings/account"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <UserX className="size-4.5" aria-hidden="true" /> Account
-          </Link>
-          <Link
-            to="/help"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <HelpCircle className="size-4.5" aria-hidden="true" /> Help
-          </Link>
+          {(
+            [
+              { to: "/settings/team", label: "Team", icon: Users },
+              { to: "/cash-drawer", label: "Cash drawer", icon: Wallet },
+              { to: "/time-clock", label: "Time clock", icon: Clock },
+              { to: "/settings/billing", label: "Billing", icon: Settings },
+              { to: "/settings/data", label: "Export data", icon: Download },
+              { to: "/settings/audit-log", label: "Audit log", icon: History },
+              { to: "/settings/account", label: "Account", icon: UserX },
+              { to: "/help", label: "Help", icon: HelpCircle },
+            ] as const
+          ).map(({ to, label, icon: Icon }) => {
+            const hint = SECONDARY_NAV_HINTS[to] ?? "";
+            return (
+              <HintTooltip key={to} hint={hint} side="right">
+                <Link
+                  to={to}
+                  title={hint}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+                >
+                  <Icon className="size-4.5" aria-hidden="true" /> {label}
+                </Link>
+              </HintTooltip>
+            );
+          })}
           <button
             onClick={signOut}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
@@ -332,34 +318,42 @@ export function AppShell({
             </div>
             <div className="hidden min-w-0 items-center gap-2 lg:flex">
               <span className="truncate text-sm font-semibold">{businessName}</span>
-              <Badge variant="secondary" className="shrink-0">
-                {ROLE_LABEL[role] ?? role}
-              </Badge>
+              <HintTooltip hint={HEADER_HINTS.role} side="bottom">
+                <Badge variant="secondary" className="shrink-0 cursor-default">
+                  {ROLE_LABEL[role] ?? role}
+                </Badge>
+              </HintTooltip>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setQuickAddOpen(true)}
-              >
-                <Wand2 className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Quick add</span>
-              </Button>
+              <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setQuickAddOpen(true)}
+                >
+                  <Wand2 className="size-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Quick add</span>
+                </Button>
+              </HintTooltip>
               <NotificationsBell businessId={workspace.data?.business.id} />
               {billingEnabled ? (
-                <Link to="/settings/billing" className="hidden sm:inline-flex">
-                  <Badge variant="outline" className="capitalize">
-                    {plan} plan
-                  </Badge>
-                </Link>
+                <HintTooltip hint={HEADER_HINTS.plan} side="bottom">
+                  <Link to="/settings/billing" className="hidden sm:inline-flex">
+                    <Badge variant="outline" className="cursor-default capitalize">
+                      {plan} plan
+                    </Badge>
+                  </Link>
+                </HintTooltip>
               ) : null}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    Account <ChevronDown className="size-4" aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <HintTooltip hint={HEADER_HINTS.account} side="bottom">
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-1">
+                      Account <ChevronDown className="size-4" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </HintTooltip>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>{ROLE_LABEL[role] ?? role}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -424,10 +418,12 @@ export function AppShell({
         <div className="grid grid-cols-4">
           {MOBILE_NAV.map((item) => {
             const active = pathname.startsWith(item.to);
+            const hint = MAIN_NAV_HINTS[item.to] ?? "";
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                title={hint}
                 className={cn(
                   "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
                   active ? "text-primary" : "text-muted-foreground",
@@ -443,5 +439,6 @@ export function AppShell({
 
       <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
     </div>
+    </TooltipProvider>
   );
 }

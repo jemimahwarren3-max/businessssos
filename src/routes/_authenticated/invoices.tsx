@@ -3,8 +3,19 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Download, FileText, Loader2, Plus, Printer, Repeat, Search, Sparkles } from "lucide-react";
+import {
+  CircleHelp,
+  Download,
+  FileText,
+  Loader2,
+  Plus,
+  Printer,
+  Repeat,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { HintTooltip } from "@/components/hint-tooltip";
 import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
 import { Button } from "@/components/ui/button";
@@ -41,6 +52,7 @@ import {
 import { invoiceSchema, PAYMENT_METHODS, type LineItemInput } from "@/lib/business.schemas";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 import { computeTotals } from "@/lib/invoice-calc";
+import { INVOICE_HINTS } from "@/lib/nav-hints";
 import { downloadXlsx } from "@/lib/xlsx-export";
 
 export const Route = createFileRoute("/_authenticated/invoices")({
@@ -310,48 +322,66 @@ function Invoices() {
       subtitle="Bill customers and keep track of who's paid."
       actions={
         <>
-          <Button
-            variant="outline"
-            className="gap-1.5"
-            onClick={() => navigate({ to: "/recurring-invoices" })}
-          >
-            <Repeat className="size-4" aria-hidden="true" /> Recurring
-          </Button>
-          {rows.length > 0 ? (
-            <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
-              <Download className="size-4" aria-hidden="true" /> Export to Excel
+          <HintTooltip hint={INVOICE_HINTS.recurring} side="bottom">
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => navigate({ to: "/recurring-invoices" })}
+            >
+              <Repeat className="size-4" aria-hidden="true" /> Recurring
             </Button>
+          </HintTooltip>
+          {rows.length > 0 ? (
+            <HintTooltip hint={INVOICE_HINTS.export} side="bottom">
+              <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
+                <Download className="size-4" aria-hidden="true" /> Export to Excel
+              </Button>
+            </HintTooltip>
           ) : null}
           {canCreate ? (
-            <Button
-              className="gap-1.5"
-              onClick={() => {
-                setForm(EMPTY_FORM);
-                setItems([{ ...EMPTY_ITEM }]);
-                setAiRequest("");
-                setAiSuggestion(null);
-                setCreateKey(crypto.randomUUID());
-                setCreateOpen(true);
-              }}
-            >
-              <Plus className="size-4" aria-hidden="true" /> New invoice
-            </Button>
+            <HintTooltip hint={INVOICE_HINTS.newInvoice} side="bottom">
+              <Button
+                className="gap-1.5"
+                onClick={() => {
+                  setForm(EMPTY_FORM);
+                  setItems([{ ...EMPTY_ITEM }]);
+                  setAiRequest("");
+                  setAiSuggestion(null);
+                  setCreateKey(crypto.randomUUID());
+                  setCreateOpen(true);
+                }}
+              >
+                <Plus className="size-4" aria-hidden="true" /> New invoice
+              </Button>
+            </HintTooltip>
           ) : null}
         </>
       }
     >
-      <div className="relative max-w-sm">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by invoice number"
-          className="pl-9"
-          aria-label="Search invoices"
-        />
+      <div className="flex max-w-sm items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by invoice number"
+            className="pl-9"
+            aria-label="Search invoices"
+            title={INVOICE_HINTS.search}
+          />
+        </div>
+        <HintTooltip hint={INVOICE_HINTS.search} side="top">
+          <button
+            type="button"
+            className="grid size-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            aria-label="Search help"
+          >
+            <CircleHelp className="size-4" aria-hidden="true" />
+          </button>
+        </HintTooltip>
       </div>
 
       <div className="surface mt-4 overflow-hidden">
@@ -373,15 +403,17 @@ function Invoices() {
                 : "Create your first invoice to start billing customers and tracking what they owe."}
             </p>
             {canCreate && !search ? (
-              <Button
-                className="mt-5 gap-1.5"
-                onClick={() => {
-                  setCreateKey(crypto.randomUUID());
-                  setCreateOpen(true);
-                }}
-              >
-                <Plus className="size-4" aria-hidden="true" /> Create your first invoice
-              </Button>
+              <HintTooltip hint={INVOICE_HINTS.firstInvoice} side="top">
+                <Button
+                  className="mt-5 gap-1.5"
+                  onClick={() => {
+                    setCreateKey(crypto.randomUUID());
+                    setCreateOpen(true);
+                  }}
+                >
+                  <Plus className="size-4" aria-hidden="true" /> Create your first invoice
+                </Button>
+              </HintTooltip>
             ) : null}
           </div>
         ) : (
