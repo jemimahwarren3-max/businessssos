@@ -29,7 +29,7 @@ Every category above exists for one of exactly three reasons:
 1. **Operating the service** — the large majority of the inventory above.
 2. **Payment processing** — subscription/billing tables, and what's sent to
    Paynow.
-3. **AI Assistant** — the aggregated summary built and sent to Groq per
+3. **AI Assistant** — the aggregated summary built and sent to Gemini (preferred) or Groq per
    request (never stored — see `docs/DATA_FLOW.md` Flow 3).
 
 Nothing is collected "because it might be useful later" — see the

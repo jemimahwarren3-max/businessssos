@@ -6,14 +6,14 @@ import { createComplaintSchema } from "@/lib/storefront/contract";
 const privacy = readFileSync(new URL("../legal/PRIVACY_POLICY.md", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../legal/TERMS_OF_SERVICE.md", import.meta.url), "utf8");
 
-describe("platform legal drafts", () => {
-  it("keeps sign-up version stamps aligned with the published drafts", () => {
-    expect(LEGAL_VERSIONS.privacy).toBe("2026-10-19");
-    expect(LEGAL_VERSIONS.terms).toBe("2026-10-19");
-    expect(privacy).toContain("Document version:** 2026-10-19");
-    expect(terms).toContain("Document version:** 2026-10-19");
-    expect(privacy).toContain("[INSERT FULL LEGAL NAME]");
-    expect(terms).toContain("[INSERT ACCURATE LEGAL STATUS]");
+describe("platform legal documents", () => {
+  it("keeps sign-up version stamps aligned with the published policies", () => {
+    expect(LEGAL_VERSIONS.privacy).toBe("2026-10-26");
+    expect(LEGAL_VERSIONS.terms).toBe("2026-10-26");
+    expect(privacy).toContain("Last updated:** 26 October 2026");
+    expect(terms).toContain("Last updated:** 26 October 2026");
+    expect(privacy).toContain("privacy@mykwetuu.com");
+    expect(terms).toContain("support@mykwetuu.com");
     expect(privacy.toLowerCase()).not.toContain("customer paynow checkout");
   });
 

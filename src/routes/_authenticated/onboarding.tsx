@@ -37,7 +37,6 @@ import {
   getPlatformFxFn,
   getStorefrontAdminFn,
   publishStorefrontFn,
-  saveListingFn,
   saveStorefrontFn,
 } from "@/lib/storefront/storefront.functions";
 import {
@@ -80,7 +79,6 @@ function Onboarding() {
   const markComplete = useServerFn(completeOnboarding);
   const saveShop = useServerFn(saveStorefrontFn);
   const createProductFn = useServerFn(addProduct);
-  const saveListing = useServerFn(saveListingFn);
   const publish = useServerFn(publishStorefrontFn);
   const loadAdmin = useServerFn(getStorefrontAdminFn);
   const loadFx = useServerFn(getPlatformFxFn);
@@ -182,7 +180,7 @@ function Onboarding() {
   const productMutation = useMutation({
     mutationFn: async () => {
       if (!businessId) throw new Error("Create the business first.");
-      const created = await createProductFn({
+      await createProductFn({
         data: {
           businessId,
           name: productName.trim(),
@@ -198,23 +196,13 @@ function Onboarding() {
           supplierId: "",
         },
       });
-      const productId = Array.isArray(created) ? created[0]?.id : created.id;
-      if (!productId) throw new Error("The product was not created.");
-      await saveListing({
-        data: {
-          businessId,
-          productId,
-          published: true,
-          details: "",
-          sizeGuide: "",
-          minQty: 1,
-          maxQty: null,
-          featured: true,
-        },
-      });
     },
     onSuccess: () => {
-      toast.success("Product listed on the shop.");
+      toast.success(
+        "Inventory item added. Complete its online details when you are ready to list it.",
+      );
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
       setShopStep(2);
     },
@@ -381,7 +369,7 @@ function Onboarding() {
           >
             <OnboardingHeading
               title="Add your first product"
-              description="It goes live on your shop right away. You can add photos later in Inventory."
+              description="This adds the item to Inventory only. You can add customer-facing details and choose whether to list it online later."
             />
             <OnboardingCard>
               <div className="space-y-4">
@@ -430,7 +418,7 @@ function Onboarding() {
                   {productMutation.isPending ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                   ) : null}
-                  List on the shop
+                  Add to inventory
                 </Button>
                 <Button
                   type="button"
@@ -552,6 +540,9 @@ function Onboarding() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button asChild size="sm">
                     <Link to="/inventory">Add products</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <a href="/storefront#launch-products">Manage online products</a>
                   </Button>
                   <Button asChild size="sm" variant="outline">
                     <Link to="/storefront">Payment &amp; publish settings</Link>

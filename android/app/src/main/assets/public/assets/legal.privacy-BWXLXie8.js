@@ -1,0 +1,1 @@
+import{r as e}from"./useRouter-Bgqm0-yy.js";import{t}from"./legal-document-By_ejIrr.js";import{t as n}from"./PRIVACY_POLICY-CYu_OPzG.js";var r=e(),i=()=>(0,r.jsx)(t,{content:n});export{i as component};

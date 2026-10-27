@@ -14,7 +14,14 @@ import {
   storePaymentProofFile,
 } from "@/lib/storefront/payment-proof.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
+import {
+  AppError,
+  assertCanPublish,
+  assertCanWrite,
+  assertPermission,
+  dbFail,
+  type Db,
+} from "@/lib/business.server";
 import { attributeStoreOrderAnalytics } from "@/lib/growth.server";
 import {
   adminOrderSchema,
@@ -130,12 +137,16 @@ export async function quoteCart(
   slug: string,
   items: { productId: string; quantity: number; note?: string | undefined }[],
   fulfilment: string,
+  deliveryZoneId?: string | null,
+  collectionPointId?: string | null,
 ): Promise<CartQuote> {
   const supabase = createAnonClient();
   const result = await supabase.rpc("quote_store_cart", {
     _slug: slug,
     _items: items as unknown as Json,
     _fulfilment: fulfilment,
+    _delivery_zone_id: deliveryZoneId ?? null,
+    _collection_point_id: collectionPointId ?? null,
   });
   return parseRpc("quote cart", result, quoteSchema);
 }
@@ -157,6 +168,8 @@ export async function placeOrder(input: {
   fulfilment: string;
   paymentMethod: string;
   collectAt?: string | undefined;
+  deliveryZoneId?: string | undefined;
+  collectionPointId?: string | undefined;
   paynowChannel?: "web" | "ecocash" | undefined;
   manualMethodId?: string | undefined;
 }) {
@@ -172,6 +185,8 @@ export async function placeOrder(input: {
     _fulfilment: input.fulfilment,
     _payment_method: input.paymentMethod,
     _collect_at: input.collectAt ?? null,
+    _delivery_zone_id: input.deliveryZoneId ?? null,
+    _collection_point_id: input.collectionPointId ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
   if (parsed.orderId && input.analyticsVisitorId) {
@@ -305,9 +320,33 @@ export async function saveStorefront(supabase: Db, businessId: string, patch: Js
   );
 }
 
-export async function publishStorefront(supabase: Db, businessId: string, published: boolean) {
-  await assertCanWrite(supabase, businessId);
+export async function loadStoreLaunchEligibility(supabase: Db, businessId: string) {
   await assertPermission(supabase, businessId, "business.settings");
+  const result = await supabase.rpc("get_store_launch_eligibility" as never, {
+    _business_id: businessId,
+  } as never);
+  const { storeLaunchEligibilitySchema } = await import("./launch-eligibility");
+  return parseRpc("load store launch eligibility", result, storeLaunchEligibilitySchema);
+}
+
+export async function publishStorefront(supabase: Db, businessId: string, published: boolean) {
+  await assertPermission(supabase, businessId, "business.settings");
+  if (published) {
+    await assertCanPublish(supabase, businessId);
+    const { data: flags, error: flagError } = await supabase.rpc(
+      "get_business_feature_flags" as never,
+      { _business_id: businessId } as never,
+    );
+    if (flagError) dbFail("check shop feature flags", flagError);
+    const onlineShopEnabled =
+      !flags ||
+      typeof flags !== "object" ||
+      Array.isArray(flags) ||
+      (flags as { onlineShopEnabled?: boolean }).onlineShopEnabled !== false;
+    if (!onlineShopEnabled) {
+      throw new AppError("Online shop is disabled for this business. Contact Kwetuu support.");
+    }
+  }
   const result = await supabase.rpc("set_storefront_published", {
     _business_id: businessId,
     _published: published,
@@ -324,6 +363,7 @@ export async function saveListing(
     businessId: string;
     productId: string;
     published: boolean;
+    publicName: string | null;
     details: string;
     sizeGuide: string;
     minQty: number;
@@ -333,17 +373,38 @@ export async function saveListing(
 ) {
   await assertCanWrite(supabase, input.businessId);
   await assertPermission(supabase, input.businessId, "business.settings");
-  const { error } = await supabase.rpc("set_product_listing", {
-    _business_id: input.businessId,
-    _product_id: input.productId,
-    _published: input.published,
-    _details: input.details,
-    _size_guide: input.sizeGuide,
-    _min_qty: input.minQty,
-    _max_qty: input.maxQty,
-    _featured: input.featured,
-  });
+  const { error } = await supabase.rpc(
+    "set_product_listing_details" as never,
+    {
+      _business_id: input.businessId,
+      _product_id: input.productId,
+      _published: input.published,
+      _details: input.details,
+      _size_guide: input.sizeGuide,
+      _min_qty: input.minQty,
+      _max_qty: input.maxQty,
+      _featured: input.featured,
+      _public_name: input.publicName,
+    } as never,
+  );
   if (error) rpcFail("save listing", error);
+}
+
+export async function setProductCategory(
+  supabase: Db,
+  input: { businessId: string; productId: string; categoryId: string | null },
+) {
+  await assertCanWrite(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "business.settings");
+  const { error } = await supabase.rpc(
+    "set_product_category" as never,
+    {
+      _business_id: input.businessId,
+      _product_id: input.productId,
+      _category_id: input.categoryId,
+    } as never,
+  );
+  if (error) rpcFail("set product category", error);
 }
 
 export async function loadAdminOrder(
@@ -361,6 +422,44 @@ export async function loadAdminOrder(
     _order_id: orderId,
   });
   return withProofUrl(await parseRpc("load online order", result, adminOrderSchema));
+}
+
+export async function saveSellerOrderNote(
+  supabase: Db,
+  businessId: string,
+  orderId: string,
+  note: string,
+): Promise<AdminOrder> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "save_store_order_seller_note", {
+    _business_id: businessId,
+    _order_id: orderId,
+    _note: note,
+  });
+  return withProofUrl(await parseRpc("save seller order note", result, adminOrderSchema));
+}
+
+export async function saveOrderCourier(
+  supabase: Db,
+  businessId: string,
+  orderId: string,
+  input: {
+    courierName: string;
+    courierReference: string;
+    courierContact: string;
+    courierTrackingUrl: string;
+  },
+): Promise<AdminOrder> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "save_store_order_courier", {
+    _business_id: businessId,
+    _order_id: orderId,
+    _courier_name: input.courierName,
+    _courier_reference: input.courierReference,
+    _courier_contact: input.courierContact,
+    _courier_tracking_url: input.courierTrackingUrl,
+  });
+  return withProofUrl(await parseRpc("save order courier", result, adminOrderSchema));
 }
 
 export async function transitionOrder(
@@ -391,7 +490,8 @@ export async function transitionOrder(
           _business_id: businessId,
           _order_id: orderId,
           _action: action,
-        });
+          _reason: reason ?? null,
+        } as never);
   const parsed = withProofUrl(await parseRpc("update online order", result, adminOrderSchema));
   await flushNotificationOutboxForBusiness(supabase, businessId);
   return parsed;
@@ -451,18 +551,29 @@ export async function submitOrderPaymentNote(input: {
   return withProofUrl(await parseRpc("submit payment note", result, customerOrderSchema));
 }
 
+const MARKETPLACE_PAGE_SIZE = 24;
+
 export async function loadMarketplace(input: {
   query?: string | undefined;
   category?: string | undefined;
+  offset?: number | undefined;
 }): Promise<Marketplace> {
+  const offset = Math.max(0, Math.min(input.offset ?? 0, 2000));
   const supabase = createAnonClient();
   const result = await supabase.rpc("browse_marketplace", {
     _query: input.query ?? "",
     _category: input.category ?? "",
-    _limit: 24,
-    _offset: 0,
+    _limit: MARKETPLACE_PAGE_SIZE,
+    _offset: offset,
   });
-  return parseRpc("browse marketplace", result, marketplaceSchema);
+  const market = await parseRpc("browse marketplace", result, marketplaceSchema);
+  const filtering = Boolean(market.query || market.category);
+  const productCount = filtering ? market.products.length : market.products.length;
+  return {
+    ...market,
+    offset,
+    hasMore: filtering && productCount >= MARKETPLACE_PAGE_SIZE,
+  };
 }
 
 export async function loadMarketplaceListing(

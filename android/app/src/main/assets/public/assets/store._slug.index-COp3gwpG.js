@@ -1,0 +1,1 @@
+import{r as e}from"./useRouter-Bgqm0-yy.js";import{s as t}from"./index-BXSd2ter.js";import{t as n}from"./store-experience-DsaymAxT.js";var r=e();function i(){let{store:e}=t.useLoaderData();return(0,r.jsx)(n,{store:e})}export{i as component};

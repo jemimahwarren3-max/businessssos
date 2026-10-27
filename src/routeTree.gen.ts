@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
@@ -29,6 +29,7 @@ import { Route as StoresRouteImport } from './routes/stores'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
+import { Route as AuthenticatedBranchesRouteImport } from './routes/_authenticated/branches'
 import { Route as AuthenticatedCashDrawerRouteImport } from './routes/_authenticated/cash-drawer'
 import { Route as AuthenticatedCommissionRouteImport } from './routes/_authenticated/commission'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
@@ -41,6 +42,8 @@ import { Route as AuthenticatedInventoryRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedOnlineOrdersRouteImport } from './routes/_authenticated/online-orders'
+import { Route as AuthenticatedOrdersRouteImport } from './routes/_authenticated/orders'
 import { Route as AuthenticatedPurchaseOrdersRouteImport } from './routes/_authenticated/purchase-orders'
 import { Route as AuthenticatedQuotesRouteImport } from './routes/_authenticated/quotes'
 import { Route as AuthenticatedRecurringInvoicesRouteImport } from './routes/_authenticated/recurring-invoices'
@@ -50,6 +53,18 @@ import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedStorefrontRouteImport } from './routes/_authenticated/storefront'
 import { Route as AuthenticatedSuppliersRouteImport } from './routes/_authenticated/suppliers'
 import { Route as AuthenticatedTimeClockRouteImport } from './routes/_authenticated/time-clock'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAuditRouteImport } from './routes/admin/audit'
+import { Route as AdminBillingRouteImport } from './routes/admin/billing'
+import { Route as AdminBusinessesRouteImport } from './routes/admin/businesses'
+import { Route as AdminCommunicationsRouteImport } from './routes/admin/communications'
+import { Route as AdminHealthRouteImport } from './routes/admin/health'
+import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
+import { Route as AdminOperationsRouteImport } from './routes/admin/operations'
+import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
+import { Route as AdminPersonalizeRouteImport } from './routes/admin/personalize'
+import { Route as AdminStoresRouteImport } from './routes/admin/stores'
+import { Route as AdminSystemRouteImport } from './routes/admin/system'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as AuthRecoverRouteImport } from './routes/auth.recover'
@@ -60,12 +75,15 @@ import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalRefundsRouteImport } from './routes/legal.refunds'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
+import { Route as MarketCartsRouteImport } from './routes/market.carts'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
 import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings.billing'
 import { Route as AuthenticatedSettingsDataRouteImport } from './routes/_authenticated/settings.data'
+import { Route as AuthenticatedSettingsPaymentsRouteImport } from './routes/_authenticated/settings.payments'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
+import { Route as AdminBusinessesBusinessIdRouteImport } from './routes/admin/businesses.$businessId'
 import { Route as ApiInternalFlushMailRouteImport } from './routes/api.internal.flush-mail'
 import { Route as StoreSlugIndexRouteImport } from './routes/store.$slug.index'
 import { Route as StoreSlugAccountRouteImport } from './routes/store.$slug.account'
@@ -89,7 +107,7 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
+const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
@@ -174,6 +192,11 @@ const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBranchesRoute = AuthenticatedBranchesRouteImport.update({
+  id: '/branches',
+  path: '/branches',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCashDrawerRoute = AuthenticatedCashDrawerRouteImport.update({
   id: '/cash-drawer',
   path: '/cash-drawer',
@@ -235,6 +258,17 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnlineOrdersRoute =
+  AuthenticatedOnlineOrdersRouteImport.update({
+    id: '/online-orders',
+    path: '/online-orders',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOrdersRoute = AuthenticatedOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPurchaseOrdersRoute =
   AuthenticatedPurchaseOrdersRouteImport.update({
     id: '/purchase-orders',
@@ -282,6 +316,66 @@ const AuthenticatedTimeClockRoute = AuthenticatedTimeClockRouteImport.update({
   id: '/time-clock',
   path: '/time-clock',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminBillingRoute = AdminBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminBusinessesRoute = AdminBusinessesRouteImport.update({
+  id: '/businesses',
+  path: '/businesses',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminCommunicationsRoute = AdminCommunicationsRouteImport.update({
+  id: '/communications',
+  path: '/communications',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminHealthRoute = AdminHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOperationsRoute = AdminOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminPersonalizeRoute = AdminPersonalizeRouteImport.update({
+  id: '/personalize',
+  path: '/personalize',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminStoresRoute = AdminStoresRouteImport.update({
+  id: '/stores',
+  path: '/stores',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSystemRoute = AdminSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
@@ -333,6 +427,11 @@ const LegalTermsRoute = LegalTermsRouteImport.update({
   path: '/legal/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketCartsRoute = MarketCartsRouteImport.update({
+  id: '/carts',
+  path: '/carts',
+  getParentRoute: () => MarketRoute,
+} as any)
 const StoreSlugRoute = StoreSlugRouteImport.update({
   id: '/store/$slug',
   path: '/store/$slug',
@@ -362,11 +461,23 @@ const AuthenticatedSettingsDataRoute =
     path: '/settings/data',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsPaymentsRoute =
+  AuthenticatedSettingsPaymentsRouteImport.update({
+    id: '/settings/payments',
+    path: '/settings/payments',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsTeamRoute =
   AuthenticatedSettingsTeamRouteImport.update({
     id: '/settings/team',
     path: '/settings/team',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AdminBusinessesBusinessIdRoute =
+  AdminBusinessesBusinessIdRouteImport.update({
+    id: '/$businessId',
+    path: '/$businessId',
+    getParentRoute: () => AdminBusinessesRoute,
   } as any)
 const ApiInternalFlushMailRoute = ApiInternalFlushMailRouteImport.update({
   id: '/api/internal/flush-mail',
@@ -412,14 +523,14 @@ const StoreSlugProductsProductSlugRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
+  '/market': typeof MarketRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -430,6 +541,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/branches': typeof AuthenticatedBranchesRoute
   '/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/commission': typeof AuthenticatedCommissionRoute
   '/customers': typeof AuthenticatedCustomersRoute
@@ -442,6 +554,8 @@ export interface FileRoutesByFullPath {
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/online-orders': typeof AuthenticatedOnlineOrdersRoute
+  '/orders': typeof AuthenticatedOrdersRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -451,6 +565,17 @@ export interface FileRoutesByFullPath {
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/billing': typeof AdminBillingRoute
+  '/admin/businesses': typeof AdminBusinessesRouteWithChildren
+  '/admin/communications': typeof AdminCommunicationsRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/operations': typeof AdminOperationsRoute
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/personalize': typeof AdminPersonalizeRoute
+  '/admin/stores': typeof AdminStoresRoute
+  '/admin/system': typeof AdminSystemRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/recover': typeof AuthRecoverRoute
@@ -461,12 +586,16 @@ export interface FileRoutesByFullPath {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/refunds': typeof LegalRefundsRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/market/carts': typeof MarketCartsRoute
   '/store/$slug': typeof StoreSlugRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
+  '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/admin/businesses/$businessId': typeof AdminBusinessesBusinessIdRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
@@ -479,13 +608,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
+  '/market': typeof MarketRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -496,6 +624,7 @@ export interface FileRoutesByTo {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/branches': typeof AuthenticatedBranchesRoute
   '/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/commission': typeof AuthenticatedCommissionRoute
   '/customers': typeof AuthenticatedCustomersRoute
@@ -508,6 +637,8 @@ export interface FileRoutesByTo {
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/online-orders': typeof AuthenticatedOnlineOrdersRoute
+  '/orders': typeof AuthenticatedOrdersRoute
   '/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/quotes': typeof AuthenticatedQuotesRoute
   '/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -517,6 +648,17 @@ export interface FileRoutesByTo {
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/billing': typeof AdminBillingRoute
+  '/admin/businesses': typeof AdminBusinessesRouteWithChildren
+  '/admin/communications': typeof AdminCommunicationsRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/operations': typeof AdminOperationsRoute
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/personalize': typeof AdminPersonalizeRoute
+  '/admin/stores': typeof AdminStoresRoute
+  '/admin/system': typeof AdminSystemRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/recover': typeof AuthRecoverRoute
@@ -527,11 +669,15 @@ export interface FileRoutesByTo {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/refunds': typeof LegalRefundsRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/market/carts': typeof MarketCartsRoute
+  '/admin': typeof AdminIndexRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
+  '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/admin/businesses/$businessId': typeof AdminBusinessesBusinessIdRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
@@ -545,14 +691,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin': typeof AdminRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRouteWithChildren
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
+  '/market': typeof MarketRouteWithChildren
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -563,6 +709,7 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
+  '/_authenticated/branches': typeof AuthenticatedBranchesRoute
   '/_authenticated/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/_authenticated/commission': typeof AuthenticatedCommissionRoute
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
@@ -575,6 +722,8 @@ export interface FileRoutesById {
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/online-orders': typeof AuthenticatedOnlineOrdersRoute
+  '/_authenticated/orders': typeof AuthenticatedOrdersRoute
   '/_authenticated/purchase-orders': typeof AuthenticatedPurchaseOrdersRoute
   '/_authenticated/quotes': typeof AuthenticatedQuotesRoute
   '/_authenticated/recurring-invoices': typeof AuthenticatedRecurringInvoicesRoute
@@ -584,6 +733,17 @@ export interface FileRoutesById {
   '/_authenticated/storefront': typeof AuthenticatedStorefrontRoute
   '/_authenticated/suppliers': typeof AuthenticatedSuppliersRoute
   '/_authenticated/time-clock': typeof AuthenticatedTimeClockRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/billing': typeof AdminBillingRoute
+  '/admin/businesses': typeof AdminBusinessesRouteWithChildren
+  '/admin/communications': typeof AdminCommunicationsRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/operations': typeof AdminOperationsRoute
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/personalize': typeof AdminPersonalizeRoute
+  '/admin/stores': typeof AdminStoresRoute
+  '/admin/system': typeof AdminSystemRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/recover': typeof AuthRecoverRoute
@@ -594,12 +754,16 @@ export interface FileRoutesById {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/refunds': typeof LegalRefundsRoute
   '/legal/terms': typeof LegalTermsRoute
+  '/market/carts': typeof MarketCartsRoute
   '/store/$slug': typeof StoreSlugRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/_authenticated/settings/data': typeof AuthenticatedSettingsDataRoute
+  '/_authenticated/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/admin/businesses/$businessId': typeof AdminBusinessesBusinessIdRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
@@ -613,8 +777,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/about'
     | '/admin'
+    | '/about'
     | '/auth'
     | '/faq'
     | '/features'
@@ -631,6 +795,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/assistant'
+    | '/branches'
     | '/cash-drawer'
     | '/commission'
     | '/customers'
@@ -643,6 +808,8 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/notifications'
     | '/onboarding'
+    | '/online-orders'
+    | '/orders'
     | '/purchase-orders'
     | '/quotes'
     | '/recurring-invoices'
@@ -652,6 +819,17 @@ export interface FileRouteTypes {
     | '/storefront'
     | '/suppliers'
     | '/time-clock'
+    | '/admin/audit'
+    | '/admin/billing'
+    | '/admin/businesses'
+    | '/admin/communications'
+    | '/admin/health'
+    | '/admin/integrations'
+    | '/admin/operations'
+    | '/admin/orders'
+    | '/admin/personalize'
+    | '/admin/stores'
+    | '/admin/system'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/recover'
@@ -662,12 +840,16 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/refunds'
     | '/legal/terms'
+    | '/market/carts'
     | '/store/$slug'
+    | '/admin/'
     | '/settings/account'
     | '/settings/audit-log'
     | '/settings/billing'
     | '/settings/data'
+    | '/settings/payments'
     | '/settings/team'
+    | '/admin/businesses/$businessId'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
     | '/store/$slug/cart'
@@ -680,7 +862,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/admin'
     | '/auth'
     | '/faq'
     | '/features'
@@ -697,6 +878,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/assistant'
+    | '/branches'
     | '/cash-drawer'
     | '/commission'
     | '/customers'
@@ -709,6 +891,8 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/notifications'
     | '/onboarding'
+    | '/online-orders'
+    | '/orders'
     | '/purchase-orders'
     | '/quotes'
     | '/recurring-invoices'
@@ -718,6 +902,17 @@ export interface FileRouteTypes {
     | '/storefront'
     | '/suppliers'
     | '/time-clock'
+    | '/admin/audit'
+    | '/admin/billing'
+    | '/admin/businesses'
+    | '/admin/communications'
+    | '/admin/health'
+    | '/admin/integrations'
+    | '/admin/operations'
+    | '/admin/orders'
+    | '/admin/personalize'
+    | '/admin/stores'
+    | '/admin/system'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/recover'
@@ -728,11 +923,15 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/refunds'
     | '/legal/terms'
+    | '/market/carts'
+    | '/admin'
     | '/settings/account'
     | '/settings/audit-log'
     | '/settings/billing'
     | '/settings/data'
+    | '/settings/payments'
     | '/settings/team'
+    | '/admin/businesses/$businessId'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
     | '/store/$slug/cart'
@@ -745,8 +944,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/about'
     | '/admin'
+    | '/about'
     | '/auth'
     | '/faq'
     | '/features'
@@ -763,6 +962,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/_authenticated/assistant'
+    | '/_authenticated/branches'
     | '/_authenticated/cash-drawer'
     | '/_authenticated/commission'
     | '/_authenticated/customers'
@@ -775,6 +975,8 @@ export interface FileRouteTypes {
     | '/_authenticated/invoices'
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
+    | '/_authenticated/online-orders'
+    | '/_authenticated/orders'
     | '/_authenticated/purchase-orders'
     | '/_authenticated/quotes'
     | '/_authenticated/recurring-invoices'
@@ -784,6 +986,17 @@ export interface FileRouteTypes {
     | '/_authenticated/storefront'
     | '/_authenticated/suppliers'
     | '/_authenticated/time-clock'
+    | '/admin/audit'
+    | '/admin/billing'
+    | '/admin/businesses'
+    | '/admin/communications'
+    | '/admin/health'
+    | '/admin/integrations'
+    | '/admin/operations'
+    | '/admin/orders'
+    | '/admin/personalize'
+    | '/admin/stores'
+    | '/admin/system'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/recover'
@@ -794,12 +1007,16 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/refunds'
     | '/legal/terms'
+    | '/market/carts'
     | '/store/$slug'
+    | '/admin/'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/billing'
     | '/_authenticated/settings/data'
+    | '/_authenticated/settings/payments'
     | '/_authenticated/settings/team'
+    | '/admin/businesses/$businessId'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
     | '/store/$slug/cart'
@@ -813,14 +1030,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRouteWithChildren
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
-  MarketRoute: typeof MarketRoute
+  MarketRoute: typeof MarketRouteWithChildren
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -868,7 +1085,7 @@ declare module '@tanstack/react-router' {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -983,6 +1200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssistantRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/branches': {
+      id: '/_authenticated/branches'
+      path: '/branches'
+      fullPath: '/branches'
+      preLoaderRoute: typeof AuthenticatedBranchesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cash-drawer': {
       id: '/_authenticated/cash-drawer'
       path: '/cash-drawer'
@@ -1067,6 +1291,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/online-orders': {
+      id: '/_authenticated/online-orders'
+      path: '/online-orders'
+      fullPath: '/online-orders'
+      preLoaderRoute: typeof AuthenticatedOnlineOrdersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/orders': {
+      id: '/_authenticated/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof AuthenticatedOrdersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/purchase-orders': {
       id: '/_authenticated/purchase-orders'
       path: '/purchase-orders'
@@ -1129,6 +1367,90 @@ declare module '@tanstack/react-router' {
       fullPath: '/time-clock'
       preLoaderRoute: typeof AuthenticatedTimeClockRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/billing': {
+      id: '/admin/billing'
+      path: '/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AdminBillingRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/businesses': {
+      id: '/admin/businesses'
+      path: '/businesses'
+      fullPath: '/admin/businesses'
+      preLoaderRoute: typeof AdminBusinessesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/communications': {
+      id: '/admin/communications'
+      path: '/communications'
+      fullPath: '/admin/communications'
+      preLoaderRoute: typeof AdminCommunicationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/health': {
+      id: '/admin/health'
+      path: '/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AdminHealthRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/integrations': {
+      id: '/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AdminIntegrationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/operations': {
+      id: '/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AdminOperationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/personalize': {
+      id: '/admin/personalize'
+      path: '/personalize'
+      fullPath: '/admin/personalize'
+      preLoaderRoute: typeof AdminPersonalizeRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/stores': {
+      id: '/admin/stores'
+      path: '/stores'
+      fullPath: '/admin/stores'
+      preLoaderRoute: typeof AdminStoresRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/system': {
+      id: '/admin/system'
+      path: '/system'
+      fullPath: '/admin/system'
+      preLoaderRoute: typeof AdminSystemRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -1200,6 +1522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/market/carts': {
+      id: '/market/carts'
+      path: '/carts'
+      fullPath: '/market/carts'
+      preLoaderRoute: typeof MarketCartsRouteImport
+      parentRoute: typeof MarketRoute
+    }
     '/store/$slug': {
       id: '/store/$slug'
       path: '/store/$slug'
@@ -1235,12 +1564,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsDataRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/payments': {
+      id: '/_authenticated/settings/payments'
+      path: '/settings/payments'
+      fullPath: '/settings/payments'
+      preLoaderRoute: typeof AuthenticatedSettingsPaymentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings/team': {
       id: '/_authenticated/settings/team'
       path: '/settings/team'
       fullPath: '/settings/team'
       preLoaderRoute: typeof AuthenticatedSettingsTeamRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/admin/businesses/$businessId': {
+      id: '/admin/businesses/$businessId'
+      path: '/$businessId'
+      fullPath: '/admin/businesses/$businessId'
+      preLoaderRoute: typeof AdminBusinessesBusinessIdRouteImport
+      parentRoute: typeof AdminBusinessesRoute
     }
     '/api/internal/flush-mail': {
       id: '/api/internal/flush-mail'
@@ -1303,6 +1646,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
+  AuthenticatedBranchesRoute: typeof AuthenticatedBranchesRoute
   AuthenticatedCashDrawerRoute: typeof AuthenticatedCashDrawerRoute
   AuthenticatedCommissionRoute: typeof AuthenticatedCommissionRoute
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
@@ -1315,6 +1659,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedOnlineOrdersRoute: typeof AuthenticatedOnlineOrdersRoute
+  AuthenticatedOrdersRoute: typeof AuthenticatedOrdersRoute
   AuthenticatedPurchaseOrdersRoute: typeof AuthenticatedPurchaseOrdersRoute
   AuthenticatedQuotesRoute: typeof AuthenticatedQuotesRoute
   AuthenticatedRecurringInvoicesRoute: typeof AuthenticatedRecurringInvoicesRoute
@@ -1328,11 +1674,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
   AuthenticatedSettingsDataRoute: typeof AuthenticatedSettingsDataRoute
+  AuthenticatedSettingsPaymentsRoute: typeof AuthenticatedSettingsPaymentsRoute
   AuthenticatedSettingsTeamRoute: typeof AuthenticatedSettingsTeamRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
+  AuthenticatedBranchesRoute: AuthenticatedBranchesRoute,
   AuthenticatedCashDrawerRoute: AuthenticatedCashDrawerRoute,
   AuthenticatedCommissionRoute: AuthenticatedCommissionRoute,
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
@@ -1345,6 +1693,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedOnlineOrdersRoute: AuthenticatedOnlineOrdersRoute,
+  AuthenticatedOrdersRoute: AuthenticatedOrdersRoute,
   AuthenticatedPurchaseOrdersRoute: AuthenticatedPurchaseOrdersRoute,
   AuthenticatedQuotesRoute: AuthenticatedQuotesRoute,
   AuthenticatedRecurringInvoicesRoute: AuthenticatedRecurringInvoicesRoute,
@@ -1358,11 +1708,58 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsAuditLogRoute: AuthenticatedSettingsAuditLogRoute,
   AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
   AuthenticatedSettingsDataRoute: AuthenticatedSettingsDataRoute,
+  AuthenticatedSettingsPaymentsRoute: AuthenticatedSettingsPaymentsRoute,
   AuthenticatedSettingsTeamRoute: AuthenticatedSettingsTeamRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface AdminBusinessesRouteChildren {
+  AdminBusinessesBusinessIdRoute: typeof AdminBusinessesBusinessIdRoute
+}
+
+const AdminBusinessesRouteChildren: AdminBusinessesRouteChildren = {
+  AdminBusinessesBusinessIdRoute: AdminBusinessesBusinessIdRoute,
+}
+
+const AdminBusinessesRouteWithChildren = AdminBusinessesRoute._addFileChildren(
+  AdminBusinessesRouteChildren,
+)
+
+interface AdminRouteRouteChildren {
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminBillingRoute: typeof AdminBillingRoute
+  AdminBusinessesRoute: typeof AdminBusinessesRouteWithChildren
+  AdminCommunicationsRoute: typeof AdminCommunicationsRoute
+  AdminHealthRoute: typeof AdminHealthRoute
+  AdminIntegrationsRoute: typeof AdminIntegrationsRoute
+  AdminOperationsRoute: typeof AdminOperationsRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminPersonalizeRoute: typeof AdminPersonalizeRoute
+  AdminStoresRoute: typeof AdminStoresRoute
+  AdminSystemRoute: typeof AdminSystemRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAuditRoute: AdminAuditRoute,
+  AdminBillingRoute: AdminBillingRoute,
+  AdminBusinessesRoute: AdminBusinessesRouteWithChildren,
+  AdminCommunicationsRoute: AdminCommunicationsRoute,
+  AdminHealthRoute: AdminHealthRoute,
+  AdminIntegrationsRoute: AdminIntegrationsRoute,
+  AdminOperationsRoute: AdminOperationsRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
+  AdminPersonalizeRoute: AdminPersonalizeRoute,
+  AdminStoresRoute: AdminStoresRoute,
+  AdminSystemRoute: AdminSystemRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
 
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -1377,6 +1774,17 @@ const AuthRouteChildren: AuthRouteChildren = {
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface MarketRouteChildren {
+  MarketCartsRoute: typeof MarketCartsRoute
+}
+
+const MarketRouteChildren: MarketRouteChildren = {
+  MarketCartsRoute: MarketCartsRoute,
+}
+
+const MarketRouteWithChildren =
+  MarketRoute._addFileChildren(MarketRouteChildren)
 
 interface StoreSlugRouteChildren {
   StoreSlugAccountRoute: typeof StoreSlugAccountRoute
@@ -1405,14 +1813,14 @@ const StoreSlugRouteWithChildren = StoreSlugRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
   AuthRoute: AuthRouteWithChildren,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
-  MarketRoute: MarketRoute,
+  MarketRoute: MarketRouteWithChildren,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,

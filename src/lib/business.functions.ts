@@ -10,6 +10,7 @@ import {
   customerSchema,
   expenseIdSchema,
   expenseSchema,
+  generateInvoiceDraftSchema,
   importCustomersSchema,
   importExpensesSchema,
   importProductsSchema,
@@ -40,6 +41,10 @@ import {
   revokeInviteSchema,
   saleSchema,
   listSalesSchema,
+  listLocationsSchema,
+  locationInputSchema,
+  locationIdSchema,
+  updateLocationSchema,
   saleIdSchema,
   refundSaleSchema,
   setStaffPasswordSchema,
@@ -65,6 +70,7 @@ import {
 } from "./business.schemas";
 import { z } from "zod";
 import { listAuditLogs } from "./audit.server";
+import { generateInvoiceDraft } from "./invoice-copilot.server";
 import {
   adjustTimeEntry,
   clockIn,
@@ -87,6 +93,7 @@ import {
   markNotificationRead,
   setNotifyEmail,
 } from "./notifications.server";
+import { AI_LIMITS } from "./ai/limits.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
 import { getAnomalies, getInventoryForecast, getWeeklyReport } from "./insights.server";
@@ -148,6 +155,10 @@ import {
   listExpenses,
   listInvoices,
   listLocations,
+  createLocation,
+  updateLocation,
+  setDefaultLocation,
+  deactivateLocation,
   listProducts,
   listPurchaseOrders,
   listQuotes,
@@ -186,11 +197,15 @@ const exportRateLimit = [
   authedRateLimit({ keyPrefix: "data-export", maxRequests: 3, windowSeconds: 60 }),
 ] as const;
 
-// Every call here hits Groq — tighter than the general API limit, on top
+// Every call here hits an AI provider — tighter than the general API limit, on top
 // of the per-business daily cap enforced inside askAssistant/getWeeklyReport
 // themselves (see ai.server.ts/insights.server.ts).
 const aiRateLimit = [
-  authedRateLimit({ keyPrefix: "ai-assistant", maxRequests: 20, windowSeconds: 60 }),
+  authedRateLimit({
+    keyPrefix: "ai-assistant",
+    maxRequests: AI_LIMITS.assistantPerMinute,
+    windowSeconds: 60,
+  }),
 ] as const;
 
 // Each call does up to 500 sequential row inserts — its own cap keeps that
@@ -199,10 +214,14 @@ const importRateLimit = [
   authedRateLimit({ keyPrefix: "csv-import", maxRequests: 10, windowSeconds: 60 }),
 ] as const;
 
-// Also hits Groq — same tier as the assistant, on top of parseQuickEntry's
+// Also hits an AI provider — same tier as the assistant, on top of parseQuickEntry's
 // own per-business daily cap (see quick-entry.server.ts).
 const quickEntryRateLimit = [
-  authedRateLimit({ keyPrefix: "quick-entry", maxRequests: 20, windowSeconds: 60 }),
+  authedRateLimit({
+    keyPrefix: "quick-entry",
+    maxRequests: AI_LIMITS.quickEntryPerMinute,
+    windowSeconds: 60,
+  }),
 ] as const;
 
 // Keyed by IP — the one team-related endpoint a not-yet-logged-in visitor
@@ -261,8 +280,55 @@ export const getReports = createServerFn({ method: "POST" })
 
 export const getLocations = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
-  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
-  .handler(async ({ data, context }) => listLocations(context.supabase as Db, data.businessId));
+  .inputValidator((data: unknown) => parseAndSanitize(listLocationsSchema, data))
+  .handler(async ({ data, context }) =>
+    listLocations(context.supabase as Db, data.businessId, {
+      ...(data.includeInactive ? { includeInactive: true } : {}),
+    }),
+  );
+
+export const createLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationInputSchema, data))
+  .handler(async ({ data, context }) => {
+    const id = await createLocation(context.supabase as Db, {
+      businessId: data.businessId,
+      name: data.name,
+      ...(data.address !== undefined ? { address: data.address } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+    });
+    return { id };
+  });
+
+export const updateLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(updateLocationSchema, data))
+  .handler(async ({ data, context }) => {
+    await updateLocation(context.supabase as Db, {
+      businessId: data.businessId,
+      locationId: data.locationId,
+      name: data.name,
+      ...(data.address !== undefined ? { address: data.address } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+    });
+    return { ok: true as const };
+  });
+
+export const setDefaultLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationIdSchema, data))
+  .handler(async ({ data, context }) => {
+    await setDefaultLocation(context.supabase as Db, data);
+    return { ok: true as const };
+  });
+
+export const deactivateLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationIdSchema, data))
+  .handler(async ({ data, context }) => {
+    await deactivateLocation(context.supabase as Db, data);
+    return { ok: true as const };
+  });
 
 export const getProducts = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -615,6 +681,11 @@ export const askAssistantFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     askAssistant(context.supabase as Db, data.businessId, data.messages),
   );
+
+export const generateInvoiceDraftFn = createServerFn({ method: "POST" })
+  .middleware([...authAndRateLimit, ...aiRateLimit])
+  .inputValidator((data: unknown) => parseAndSanitize(generateInvoiceDraftSchema, data))
+  .handler(async ({ data, context }) => generateInvoiceDraft(context.supabase as Db, data));
 
 /* -------------------------------- quick add -------------------------------- */
 

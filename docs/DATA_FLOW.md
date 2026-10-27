@@ -73,13 +73,14 @@ business (surfaced on the Billing settings page).
    product names. Never raw database access, and never full transaction
    history or customer contact details.
 2. That summary, a fixed system prompt, and up to the last 12 messages of
-   the conversation are sent to Groq's chat completions API.
-3. Groq's response is returned to the user. Nothing from this exchange is
+   the conversation are sent to Gemini when `GEMINI_API_KEY` is configured;
+   otherwise they are sent to Groq when `GROQ_API_KEY` is configured.
+3. The provider's response is returned to the user. Nothing from this exchange is
    persisted server-side beyond the conversation shown in the browser tab
    (no chat history table).
 
-**Third-party data retention**: Groq's retention/training policy for this
-traffic has not been independently confirmed — see
+**Third-party data retention**: Gemini's and Groq's retention/training policies for this
+traffic have not been independently confirmed — see
 `legal/LEGAL_REVIEW_REQUIRED.md`.
 
 ## Flow 4: Account deletion

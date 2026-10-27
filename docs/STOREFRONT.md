@@ -20,6 +20,7 @@ Apply `20261021150000_storefront_template_library.sql` after the existing storef
 - Cancelling before that sale restores stock. After the sale exists, use Sales history refunds. Cancelling here is refused so stock is not returned twice.
 - Quote requests do not reserve stock until Accept quote.
 - If the merchant requires a delivery quote, priced delivery checkout is refused. The customer can request a quote instead.
+- Delivery checkout accepts a free-text location (up to 300 characters); customers can include their suburb or area, street/stand number, nearby landmark, and rider directions.
 - If the merchant turns on automatic acceptance, eligible non-quote orders start as `confirmed`. They stay `unpaid` until Record payment.
 - Changing delivery fees or cash rules later does not rewrite `store_orders.terms` or the stored totals.
 - Repeating checkout with the same idempotency key returns the original order and does not reserve stock again. The access code is only returned on the first response; the browser stores it for that tab.
@@ -29,6 +30,16 @@ Apply `20261021150000_storefront_template_library.sql` after the existing storef
 
 Platform Paynow keys (`PAYNOW_INTEGRATION_ID` / `PAYNOW_INTEGRATION_KEY`) remain for BusinessOS subscription billing only. Customer checkout cannot mark itself paid by redirect. Paynow, EcoCash, and InnBucks are not offered until each merchant connects an approved account of their own.
 
+## Launch fees and publish security (Stage 4)
+
+When `platform_runtime.billing_enforced` and `launch_fee_required` are true, merchants pay a one-time **store launch fee** (default **USD 15** from `launch_fee_usd`) via platform Paynow before `set_storefront_published` succeeds. Verified payments live in `storefront_launch_payments`; waivers and suspensions are platform-admin actions (`admin_waive_store_launch_fee`, `admin_set_storefront_suspended`). Merchants see **Launch readiness** on My Online Store; eligibility is computed by `get_store_launch_eligibility`. Public `get_public_store` hides suspended shops. Subscription (`assert_business_can_operate`) remains separate from the launch fee.
+
+Apply `20261027180000_store_launch_eligibility.sql` after prior storefront migrations.
+
+## Store builder (Stage 3)
+
+Merchants open **My Online Store → Store builder** (`#store-builder`) for a tabbed workflow: **Design** (three layout families: Modern Minimal, Bold Commerce, Local Business), **Branding** (colours, fonts, logo/banner upload or HTTPS URLs), **Products** (Stage 2 online catalogue), **Store information** (contact, delivery, manual payment instructions), and **Preview** (desktop/mobile, live draft using published listings only). **Save draft** persists through `save_storefront`; **Discard changes** reverts unsaved edits. Logo and banner uploads use the `product-media` bucket at `{businessId}/storefront/{logo|cover}/…` with existing member RLS.
+
 ## Templates
 
 Sixty storefront designs (six each in ten retail categories) share one renderer (`src/components/storefront/store-experience.tsx`) and one template registry (`src/lib/storefront/templates.ts`). Sellers can filter/search the gallery, preview their published products on desktop or mobile, customize palettes, color tokens, type pairing, logo, cover image, and section visibility, and save those settings to their own store. Changing template does not copy products or orders. Gallery sketches are labelled sample layouts; the seller's draft preview uses their actual published catalogue.
@@ -36,6 +47,12 @@ Sixty storefront designs (six each in ten retail categories) share one renderer 
 The content editor also supports an announcement bar, category-based collections, promotional tiles, FAQs, separate delivery/returns/privacy notes, and editable contact/social links. Apply `20261022100000_storefront_content_sections.sql` after the storefront template migration to persist these sections. Shop addresses link to a map search generated from the seller-entered address; no device location is collected.
 
 Published products support up to eight additional storefront photos beside the existing inventory photo. Apply `20261022110000_storefront_product_gallery.sql` after the content sections migration. Gallery photos use the existing product-media bucket and are returned through the storefront RPCs; they do not create separate catalogue items.
+
+Product photos selected in Inventory or the storefront gallery are resized to a maximum 1200-pixel dimension and converted to WebP on the device when supported. The server still validates the final image type and enforces the 2 MB upload limit; browsers without image conversion support can upload an already-small supported image unchanged.
+
+Inventory remains the source of product identity, stock, price, and business currency. The Storefront page manages online visibility, customer-facing name and description, existing business categories, and storefront gallery photos without creating duplicate products or changing internal inventory notes. A product is ready to list only when it has a positive selling price, a photo, and a customer-facing description. Products created during onboarding stay in Inventory until the seller completes those online details.
+
+Apply `20261027130000_storefront_product_management.sql` after the product-gallery migration, on staging first. It adds customer-facing product names, category assignment with business-ownership validation, and server-side protection against publishing inactive or zero-price products. It also updates public storefront and marketplace payloads to use the customer-facing description rather than internal inventory notes. The migration unpublishes any existing listing whose inventory selling price is zero or less; review those listings after applying it.
 
 The marketplace searches products across listed shops and lets shoppers narrow those results to a preferred shop. Checkout remains within the selected shop and does not combine orders from multiple businesses.
 

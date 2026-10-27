@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import {
   verifyMfaChallengeFn,
   verifyMfaEnrollmentFn,
 } from "@/lib/auth/auth.functions";
+import { checkPlatformAdmin } from "@/lib/admin/admin.functions";
 import { getNotifyEmailFn, setNotifyEmailFn } from "@/lib/business.functions";
 import { readableError } from "@/lib/format";
 
@@ -269,6 +270,28 @@ function ShopAlertsSection({ businessId }: { businessId: string }) {
   );
 }
 
+function PlatformAdminEntry() {
+  const check = useServerFn(checkPlatformAdmin);
+  const admin = useQuery({
+    queryKey: ["admin-mfa-status"],
+    queryFn: () => check(),
+    staleTime: 120_000,
+  });
+  if (!admin.data?.isAdmin) return null;
+  return (
+    <div className="surface mb-4 max-w-xl p-5">
+      <h2 className="text-lg font-semibold">Kwetuu platform admin</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Monitor all businesses, subscriptions, storefronts, and platform settings. Requires
+        authenticator verification.
+      </p>
+      <Button asChild className="mt-3" variant="outline" size="sm">
+        <Link to="/admin">Open admin console</Link>
+      </Button>
+    </div>
+  );
+}
+
 function AccountSettings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -330,6 +353,8 @@ function AccountSettings() {
       <div className="mb-4">
         <ShopAlertsSection businessId={workspace.data.business.id} />
       </div>
+
+      <PlatformAdminEntry />
 
       <div className="surface max-w-xl space-y-4 border-destructive/30 p-5">
         <div>

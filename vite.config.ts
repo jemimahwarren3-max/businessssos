@@ -77,8 +77,8 @@ export default defineConfig(({ command }) => {
           short_name: "Kwetuu",
           description:
             "Discover independent shops across Zimbabwe, or open your own online store on mykwetuu.com.",
-          theme_color: "#4F46E5",
-          background_color: "#F8FAFC",
+          theme_color: "#AF513D",
+          background_color: "#F9F6F1",
           display: "standalone",
           start_url: "/dashboard",
           // SVG covers browser installs; the PNGs exist for Android — the

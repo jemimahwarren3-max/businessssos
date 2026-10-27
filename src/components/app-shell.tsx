@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Clock,
   ClipboardList,
+  CreditCard,
   Download,
   FileCheck2,
   FileText,
@@ -18,7 +19,9 @@ import {
   LayoutDashboard,
   Lightbulb,
   LogOut,
+  MapPin,
   Megaphone,
+  Package,
   Receipt,
   Settings,
   ShoppingCart,
@@ -30,12 +33,15 @@ import {
   Users,
   Wand2,
 } from "lucide-react";
+import { endImpersonationFn, getPlatformAnnouncementFn } from "@/lib/admin/admin.functions";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { signOutFn } from "@/lib/auth/auth.functions";
 import {
   getNotificationsFn,
   markAllNotificationsReadFn,
   markNotificationReadFn,
 } from "@/lib/business.functions";
+import { HintTooltip } from "@/components/hint-tooltip";
 import { Logo } from "@/components/logo";
 import { QuickEntryDialog } from "@/components/quick-entry-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -48,27 +54,59 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
+import { deriveStoreLaunchDisplay } from "@/lib/storefront/launch-status";
 import { friendlyDate } from "@/lib/format";
 import { clearOfflineCacheOnLogout } from "@/lib/offline/db";
+import { HEADER_HINTS, MAIN_NAV_HINTS, SECONDARY_NAV_HINTS } from "@/lib/nav-hints";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/sales", label: "Sales", icon: ShoppingCart },
-  { to: "/storefront", label: "Storefront", icon: Store },
-  { to: "/inventory", label: "Inventory", icon: Boxes },
-  { to: "/suppliers", label: "Suppliers", icon: Truck },
-  { to: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
-  { to: "/invoices", label: "Invoices", icon: FileText },
-  { to: "/quotes", label: "Quotes", icon: FileCheck2 },
-  { to: "/customers", label: "Customers", icon: Users },
-  { to: "/expenses", label: "Expenses", icon: Receipt },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/growth", label: "Grow", icon: Megaphone },
-  { to: "/insights", label: "Insights", icon: Lightbulb },
-  { to: "/assistant", label: "AI Assistant", icon: Sparkles },
-] as const;
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  showLaunchBadge?: boolean;
+};
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Overview",
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Business",
+    items: [
+      { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
+      { to: "/inventory", label: "Inventory", icon: Boxes },
+      { to: "/customers", label: "Customers", icon: Users },
+      { to: "/invoices", label: "Invoices", icon: FileText },
+      { to: "/quotes", label: "Quotes", icon: FileCheck2 },
+      { to: "/expenses", label: "Expenses", icon: Receipt },
+      { to: "/suppliers", label: "Suppliers", icon: Truck },
+      { to: "/purchase-orders", label: "Purchase orders", icon: ClipboardList },
+      { to: "/reports", label: "Reports", icon: BarChart3 },
+      { to: "/branches", label: "Branches", icon: MapPin },
+    ],
+  },
+  {
+    label: "Online shop",
+    items: [
+      { to: "/storefront", label: "My Online Store", icon: Store, showLaunchBadge: true },
+      { to: "/online-orders", label: "Orders & fulfilment", icon: Package },
+    ],
+  },
+  {
+    label: "Growth & AI",
+    items: [
+      { to: "/growth", label: "Grow", icon: Megaphone },
+      { to: "/insights", label: "Insights", icon: Lightbulb },
+      { to: "/assistant", label: "AI Assistant", icon: Sparkles },
+    ],
+  },
+];
+
+const NAV = NAV_GROUPS.flatMap((group) => group.items);
 
 // Bottom nav stays to four items so it's usable on a small screen —
 // Dashboard, Sales, Inventory, Invoices are the highest-frequency actions.
@@ -122,15 +160,17 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative gap-0 px-2">
-          <Bell className="size-4.5" aria-hidden="true" />
-          <span className="sr-only">Notifications</span>
-          {unreadCount > 0 ? (
-            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-destructive" />
-          ) : null}
-        </Button>
-      </DropdownMenuTrigger>
+      <HintTooltip hint={HEADER_HINTS.notifications} side="bottom">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="relative gap-0 px-2">
+            <Bell className="size-4.5" aria-hidden="true" />
+            <span className="sr-only">Notifications</span>
+            {unreadCount > 0 ? (
+              <span className="absolute right-1 top-1 flex size-2 rounded-full bg-destructive" />
+            ) : null}
+          </Button>
+        </DropdownMenuTrigger>
+      </HintTooltip>
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between px-2 py-1.5">
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
@@ -223,6 +263,39 @@ export function AppShell({
   // Reuses the ["workspace"] query every page already populates — no extra
   // network request in practice, just reading businessId back out of it.
   const workspace = useWorkspace();
+  const endImpersonation = useServerFn(endImpersonationFn);
+  const stopImpersonation = useMutation({
+    mutationFn: () =>
+      endImpersonation({ data: { reason: "Ended support view from merchant banner" } }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      navigate({ to: "/admin/businesses" });
+    },
+  });
+  const isOperateLocked = workspace.data?.isOperateLocked ?? false;
+  const businessId = workspace.data?.business.id;
+  const loadStorefront = useServerFn(getStorefrontAdminFn);
+  const storefrontLaunch = useQuery({
+    queryKey: ["storefront-launch-nav", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => loadStorefront({ data: { businessId: businessId! } }),
+    staleTime: 90_000,
+  });
+  const launchBadge =
+    storefrontLaunch.data && workspace.data
+      ? deriveStoreLaunchDisplay({
+          checklist: storefrontLaunch.data.checklist,
+          storeStatus: storefrontLaunch.data.store?.status,
+          billingEnabled: workspace.data.billingEnabled,
+          isOperateLocked,
+        }).badge
+      : null;
+  const loadAnnouncement = useServerFn(getPlatformAnnouncementFn);
+  const platformAnnouncement = useQuery({
+    queryKey: ["platform-announcement"],
+    queryFn: () => loadAnnouncement(),
+    staleTime: 120_000,
+  });
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -233,6 +306,7 @@ export function AppShell({
   }
 
   return (
+    <TooltipProvider delayDuration={350}>
     <div className="min-h-screen bg-background">
       <a
         href="#main-content"
@@ -242,77 +316,75 @@ export function AppShell({
       </a>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="px-5 py-4">
-          <Logo to="/dashboard" variant="mark" />
+          <Logo to="/dashboard" className="[&_img]:ml-0 [&_img]:h-10 [&_img]:my-0" />
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Main">
-          {NAV.map((item) => {
-            const active = pathname.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/60",
-                )}
-              >
-                <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-2" aria-label="Main">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active = pathname.startsWith(item.to);
+                  const hint = MAIN_NAV_HINTS[item.to] ?? "";
+                  return (
+                    <HintTooltip key={item.to} hint={hint} side="right">
+                      <Link
+                        to={item.to}
+                        title={hint}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          active
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/60",
+                        )}
+                      >
+                        <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
+                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                        {item.showLaunchBadge && launchBadge ? (
+                          <Badge
+                            variant="outline"
+                            className="max-w-[7rem] shrink-0 truncate px-1.5 py-0 text-[10px] font-medium"
+                          >
+                            {launchBadge}
+                          </Badge>
+                        ) : null}
+                      </Link>
+                    </HintTooltip>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
         <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
-          <Link
-            to="/settings/team"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Users className="size-4.5" aria-hidden="true" /> Team
-          </Link>
-          <Link
-            to="/cash-drawer"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Wallet className="size-4.5" aria-hidden="true" /> Cash drawer
-          </Link>
-          <Link
-            to="/time-clock"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Clock className="size-4.5" aria-hidden="true" /> Time clock
-          </Link>
-          <Link
-            to="/settings/billing"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Settings className="size-4.5" aria-hidden="true" /> Billing
-          </Link>
-          <Link
-            to="/settings/data"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <Download className="size-4.5" aria-hidden="true" /> Export data
-          </Link>
-          <Link
-            to="/settings/audit-log"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <History className="size-4.5" aria-hidden="true" /> Audit log
-          </Link>
-          <Link
-            to="/settings/account"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <UserX className="size-4.5" aria-hidden="true" /> Account
-          </Link>
-          <Link
-            to="/help"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-          >
-            <HelpCircle className="size-4.5" aria-hidden="true" /> Help
-          </Link>
+          {(
+            [
+              { to: "/settings/team", label: "Team", icon: Users },
+              { to: "/cash-drawer", label: "Cash drawer", icon: Wallet },
+              { to: "/time-clock", label: "Time clock", icon: Clock },
+              { to: "/settings/payments", label: "Payments", icon: CreditCard },
+              { to: "/settings/billing", label: "Billing", icon: Settings },
+              { to: "/settings/data", label: "Export data", icon: Download },
+              { to: "/settings/audit-log", label: "Audit log", icon: History },
+              { to: "/settings/account", label: "Account", icon: UserX },
+              { to: "/help", label: "Help", icon: HelpCircle },
+            ] as const
+          ).map(({ to, label, icon: Icon }) => {
+            const hint = SECONDARY_NAV_HINTS[to] ?? "";
+            return (
+              <HintTooltip key={to} hint={hint} side="right">
+                <Link
+                  to={to}
+                  title={hint}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+                >
+                  <Icon className="size-4.5" aria-hidden="true" /> {label}
+                </Link>
+              </HintTooltip>
+            );
+          })}
           <button
             onClick={signOut}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
@@ -326,39 +398,47 @@ export function AppShell({
         <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
           <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
-              <Logo to="/dashboard" showWord={false} variant="mark" />
+              <Logo to="/dashboard" className="shrink-0 [&_img]:ml-0 [&_img]:h-9 [&_img]:my-0" />
               <span className="truncate text-sm font-semibold">{businessName}</span>
             </div>
             <div className="hidden min-w-0 items-center gap-2 lg:flex">
               <span className="truncate text-sm font-semibold">{businessName}</span>
-              <Badge variant="secondary" className="shrink-0">
-                {ROLE_LABEL[role] ?? role}
-              </Badge>
+              <HintTooltip hint={HEADER_HINTS.role} side="bottom">
+                <Badge variant="secondary" className="shrink-0 cursor-default">
+                  {ROLE_LABEL[role] ?? role}
+                </Badge>
+              </HintTooltip>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setQuickAddOpen(true)}
-              >
-                <Wand2 className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Quick add</span>
-              </Button>
+              <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setQuickAddOpen(true)}
+                >
+                  <Wand2 className="size-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Quick add</span>
+                </Button>
+              </HintTooltip>
               <NotificationsBell businessId={workspace.data?.business.id} />
               {billingEnabled ? (
-                <Link to="/settings/billing" className="hidden sm:inline-flex">
-                  <Badge variant="outline" className="capitalize">
-                    {plan} plan
-                  </Badge>
-                </Link>
+                <HintTooltip hint={HEADER_HINTS.plan} side="bottom">
+                  <Link to="/settings/billing" className="hidden sm:inline-flex">
+                    <Badge variant="outline" className="cursor-default capitalize">
+                      {plan} plan
+                    </Badge>
+                  </Link>
+                </HintTooltip>
               ) : null}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    Account <ChevronDown className="size-4" aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <HintTooltip hint={HEADER_HINTS.account} side="bottom">
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-1">
+                      Account <ChevronDown className="size-4" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </HintTooltip>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>{ROLE_LABEL[role] ?? role}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -370,6 +450,40 @@ export function AppShell({
             </div>
           </div>
         </header>
+
+        {workspace.data?.isImpersonating ? (
+          <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2.5 text-[13px] text-foreground">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+              <span>
+                <span className="font-semibold text-destructive">Support view (read-only): </span>
+                viewing {workspace.data.impersonationBusinessName ?? workspace.data.business.name}.
+                Expires{" "}
+                {workspace.data.impersonationExpiresAt
+                  ? new Date(workspace.data.impersonationExpiresAt).toLocaleString()
+                  : "soon"}
+                .
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={stopImpersonation.isPending}
+                onClick={() => stopImpersonation.mutate()}
+              >
+                End support view
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {platformAnnouncement.data?.enabled && platformAnnouncement.data.message ? (
+          <div className="border-b border-primary/25 bg-primary/10 px-4 py-2.5 text-[13px] text-foreground">
+            <div className="mx-auto max-w-6xl">
+              <span className="font-medium text-primary">Kwetuu: </span>
+              {platformAnnouncement.data.message}
+            </div>
+          </div>
+        ) : null}
 
         {isReadOnly ? (
           <div className="border-b border-warning/30 bg-warning-soft px-4 py-2.5 text-[13px] text-warning-foreground">
@@ -384,6 +498,21 @@ export function AppShell({
                 className="shrink-0 font-semibold underline underline-offset-2"
               >
                 Upgrade now
+              </Link>
+            </div>
+          </div>
+        ) : isOperateLocked && billingEnabled ? (
+          <div className="border-b border-primary/20 bg-primary/5 px-4 py-2.5 text-[13px] text-foreground">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+              <span>
+                Setup is free. Pay for Pro when you are ready to publish your shop or use the sales
+                counter.
+              </span>
+              <Link
+                to="/settings/billing"
+                className="shrink-0 font-semibold text-primary underline underline-offset-2"
+              >
+                Go to billing
               </Link>
             </div>
           </div>
@@ -408,10 +537,12 @@ export function AppShell({
         <div className="grid grid-cols-4">
           {MOBILE_NAV.map((item) => {
             const active = pathname.startsWith(item.to);
+            const hint = MAIN_NAV_HINTS[item.to] ?? "";
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                title={hint}
                 className={cn(
                   "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
                   active ? "text-primary" : "text-muted-foreground",
@@ -427,5 +558,6 @@ export function AppShell({
 
       <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
     </div>
+    </TooltipProvider>
   );
 }

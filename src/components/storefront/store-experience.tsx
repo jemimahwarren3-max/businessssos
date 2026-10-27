@@ -110,6 +110,9 @@ export function StoreChrome({
       )}
       style={{ color: theme.link }}
     >
+      <Link to="/market" search={{ q: "", category: "" }}>
+        {BRAND.name}
+      </Link>
       <Link
         to="/store/$slug/search"
         params={{ slug: store.slug }}

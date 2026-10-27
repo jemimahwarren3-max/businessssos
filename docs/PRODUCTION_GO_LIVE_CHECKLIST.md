@@ -2,6 +2,8 @@
 
 Every box is evidence-based. Unverified stays unchecked.
 
+For the full pre-launch matrix (web, POS, offline, desktop, Android, payments) with **Not verified / Built and tested / Blocked** statuses, see **`PRELAUNCH_PRODUCTION_CHECKLIST.md`**.
+
 ## Security
 
 - [ ] No known unresolved critical vulnerabilities. `npm audit` still reports critical/high issues. Unverified as cleared.

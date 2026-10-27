@@ -5,6 +5,7 @@ import {
   buildResendHeaders,
   readNotificationMailConfig,
 } from "./notifications.mail";
+import { renderOutboxOrderEmail } from "./notifications/order-email-render.server";
 
 type RpcClient = { rpc: (...args: never[]) => unknown };
 
@@ -15,6 +16,9 @@ const outboxItemSchema = z.object({
   body: z.string(),
   attempts: z.coerce.number(),
   notificationId: z.string().uuid().nullable().optional(),
+  emailTemplate: z.string().nullable().optional(),
+  orderId: z.string().uuid().nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type FlushMailResult = {
@@ -64,12 +68,18 @@ export function notificationEmailStatus(): { configured: boolean; reason: string
   return { configured: false, reason: config.reason };
 }
 
-async function sendResend(item: OutboxItem, from: string, apiKey: string): Promise<void> {
+async function sendResend(
+  item: OutboxItem,
+  from: string,
+  apiKey: string,
+  rendered: { subject: string; text: string; html: string },
+): Promise<string | null> {
   const payload = buildResendEmail({
     from,
     to: item.toEmail,
-    subject: item.subject,
-    body: item.body,
+    subject: rendered.subject,
+    body: rendered.text,
+    html: rendered.html,
   });
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -80,6 +90,8 @@ async function sendResend(item: OutboxItem, from: string, apiKey: string): Promi
     const detail = await response.text().catch(() => "");
     throw new Error(`Resend ${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
   }
+  const json = (await response.json().catch(() => null)) as { id?: string } | null;
+  return json?.id ?? null;
 }
 
 async function complete(
@@ -87,11 +99,13 @@ async function complete(
   id: string,
   status: "sent" | "failed" | "skipped",
   error?: string,
+  providerMessageId?: string | null,
 ) {
   const result = await untypedRpc(client, "complete_notification_outbox", {
     _id: id,
     _status: status,
     _error: error ?? "",
+    _provider_message_id: providerMessageId ?? "",
   });
   if (result.error) {
     console.error("[businessos] complete notification delivery", result.error);
@@ -99,8 +113,13 @@ async function complete(
   }
 }
 
+async function outboxCompletionClient(): Promise<RpcClient> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as RpcClient;
+}
+
 async function dispatch(
-  client: RpcClient,
+  _claimClient: RpcClient,
   items: OutboxItem[],
 ): Promise<{ sent: number; skipped: number; failed: number }> {
   const config = readNotificationMailConfig(process.env);
@@ -110,17 +129,32 @@ async function dispatch(
   if (!config.configured) {
     return { sent: 0, skipped: 0, failed: 0 };
   }
+  const completionClient = await outboxCompletionClient();
   for (const item of items) {
     try {
       const apiKey = process.env["RESEND_API_KEY"]?.trim() ?? "";
-      await sendResend(item, config.from, apiKey);
-      await complete(client, item.id, "sent");
+      let rendered = {
+        subject: item.subject,
+        text: item.body,
+        html: `<p>${item.body}</p>`,
+      };
+      if (item.emailTemplate && item.orderId) {
+        rendered = await renderOutboxOrderEmail(completionClient, {
+          template: item.emailTemplate,
+          orderId: item.orderId,
+          metadata: item.metadata ?? {},
+          fallbackSubject: item.subject,
+          fallbackBody: item.body,
+        });
+      }
+      const providerId = await sendResend(item, config.from, apiKey, rendered);
+      await complete(completionClient, item.id, "sent", undefined, providerId);
       sent += 1;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Email send failed.";
       console.error("[businessos] notification email", message);
       try {
-        await complete(client, item.id, "failed", message);
+        await complete(completionClient, item.id, "failed", message);
       } catch (completionError) {
         console.error("[businessos] record notification email failure", completionError);
       }

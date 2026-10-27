@@ -441,6 +441,8 @@ export const subscriptionCheckoutSchema = z.object({
   plan: z.enum(["pro"]),
   channel: z.enum(["web", "ecocash", "onemoney"]),
   phone: z.string().trim().max(20).optional(),
+  /** Omit to charge USD, or ZWG when the business currency is ZWG and ZiG Paynow keys exist. */
+  billingCurrency: z.enum(["USD", "ZWG"]).optional(),
 });
 export type SubscriptionCheckoutInput = z.infer<typeof subscriptionCheckoutSchema>;
 
@@ -459,6 +461,11 @@ export const assistantMessageSchema = z.object({
 export const askAssistantSchema = z.object({
   businessId: z.string().uuid(),
   messages: z.array(assistantMessageSchema).min(1).max(20),
+});
+
+export const generateInvoiceDraftSchema = z.object({
+  businessId: z.string().uuid(),
+  request: z.string().trim().min(10).max(1000),
 });
 
 /* ------------------------------- quick add -------------------------------- */
@@ -590,6 +597,26 @@ export const markAllNotificationsReadSchema = z.object({
 export const notifyEmailSchema = z.object({
   businessId: z.string().uuid(),
   enabled: z.boolean(),
+});
+
+export const listLocationsSchema = businessIdSchema.extend({
+  includeInactive: z.boolean().optional(),
+});
+
+export const locationInputSchema = z.object({
+  businessId: z.string().uuid(),
+  name: z.string().trim().min(1, "Name is required").max(120),
+  address: z.string().trim().max(240).optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+});
+
+export const locationIdSchema = z.object({
+  businessId: z.string().uuid(),
+  locationId: z.string().uuid(),
+});
+
+export const updateLocationSchema = locationInputSchema.extend({
+  locationId: z.string().uuid(),
 });
 
 /* ------------------------------- insights -------------------------------- */

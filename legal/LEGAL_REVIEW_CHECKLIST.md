@@ -1,4 +1,4 @@
-# Pre-Launch Checklist — BusinessOS AI
+# Pre-Launch Checklist — Kwetuu
 
 A go/no-go view, distinct from `LEGAL_REVIEW_REQUIRED.md` (which is a flat
 list of open questions). This groups the same underlying work by what it

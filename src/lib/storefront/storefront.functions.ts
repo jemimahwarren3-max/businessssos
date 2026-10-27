@@ -5,6 +5,7 @@ import { assertCanWrite, assertPermission, type Db } from "@/lib/business.server
 import { saveShopPaynowCredentials } from "@/lib/payments/shop-paynow.server";
 import { parseAndSanitize } from "@/lib/security";
 import { loadPlatformFx } from "@/lib/platform-fx-read.server";
+import { uploadStorefrontBrandingImage } from "@/lib/storefront/branding-media.server";
 import { removeProductGalleryImage, uploadProductGalleryImage } from "@/lib/product-media.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
 import { generateShopDraft } from "./ai-builder.server";
@@ -37,6 +38,7 @@ import {
   loadProductReviews,
   loadPublicStore,
   loadStorePreview,
+  loadStoreLaunchEligibility,
   placeOrder,
   publishStorefront,
   quoteCart,
@@ -44,7 +46,10 @@ import {
   respondStoreComplaint,
   respondToStoreReview,
   saveListing,
+  saveSellerOrderNote,
+  saveOrderCourier,
   saveStorefront,
+  setProductCategory,
   setMarketplaceVisible,
   setShopperConsent,
   startCustomerPaynow,
@@ -95,6 +100,7 @@ export const getMarketplaceFn = createServerFn({ method: "POST" })
       z.object({
         query: z.string().max(80).optional(),
         category: z.string().max(80).optional(),
+        offset: z.coerce.number().int().min(0).max(2000).optional(),
       }),
       data,
     ),
@@ -154,11 +160,21 @@ export const quoteCartFn = createServerFn({ method: "POST" })
         slug: z.string().min(1).max(40),
         fulfilment: z.enum(["pickup", "delivery", "quote"]),
         items: checkoutSchema.shape.items,
+        deliveryZoneId: z.string().max(40).optional(),
+        collectionPointId: z.string().max(40).optional(),
       }),
       data,
     ),
   )
-  .handler(async ({ data }) => quoteCart(data.slug, data.items, data.fulfilment));
+  .handler(async ({ data }) =>
+    quoteCart(
+      data.slug,
+      data.items,
+      data.fulfilment,
+      data.deliveryZoneId,
+      data.collectionPointId,
+    ),
+  );
 
 export const placeOrderFn = createServerFn({ method: "POST" })
   .middleware(checkoutLimit)
@@ -274,6 +290,40 @@ export const publishStorefrontFn = createServerFn({ method: "POST" })
     publishStorefront(context.supabase as Db, data.businessId, data.published),
   );
 
+export const getStoreLaunchEligibilityFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    loadStoreLaunchEligibility(context.supabase as Db, data.businessId),
+  );
+
+export const startStoreLaunchCheckoutFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) => {
+    const email = (context.claims as { email?: string }).email;
+    if (!email) throw new Error("Your account needs an email address to pay with Paynow.");
+    const { initiateStoreLaunchCheckout } = await import("@/lib/payments/launch-fee.server");
+    return initiateStoreLaunchCheckout(context.supabase as Db, data.businessId, email);
+  });
+
+export const checkStoreLaunchPaymentFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({ businessId: z.string().uuid(), reference: z.string().min(8).max(120) }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    const { checkLaunchPayment } = await import("@/lib/payments/launch-fee.server");
+    return checkLaunchPayment(context.supabase as Db, data.businessId, data.reference);
+  });
+
 export const saveListingFn = createServerFn({ method: "POST" })
   .middleware(authed)
   .inputValidator((data: unknown) => parseAndSanitize(listingSchema, data))
@@ -282,11 +332,32 @@ export const saveListingFn = createServerFn({ method: "POST" })
       businessId: data.businessId,
       productId: data.productId,
       published: data.published,
+      publicName: data.publicName ?? null,
       details: data.details ?? "",
       sizeGuide: data.sizeGuide ?? "",
       minQty: data.minQty,
       maxQty: data.maxQty,
       featured: data.featured,
+    }),
+  );
+
+export const setProductCategoryFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        productId: z.string().uuid(),
+        categoryId: z.string().uuid().nullable(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    setProductCategory(context.supabase as Db, {
+      businessId: data.businessId,
+      productId: data.productId,
+      categoryId: data.categoryId,
     }),
   );
 
@@ -297,6 +368,46 @@ export const getAdminOrderFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) =>
     loadAdminOrder(context.supabase as Db, data.businessId, data.orderId),
+  );
+
+export const saveSellerOrderNoteFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        orderId: z.string().uuid(),
+        note: z.string().max(2000),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    saveSellerOrderNote(context.supabase as Db, data.businessId, data.orderId, data.note),
+  );
+
+export const saveOrderCourierFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        orderId: z.string().uuid(),
+        courierName: z.string().max(80),
+        courierReference: z.string().max(80),
+        courierContact: z.string().max(80),
+        courierTrackingUrl: z.string().max(500),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    saveOrderCourier(context.supabase as Db, data.businessId, data.orderId, {
+      courierName: data.courierName,
+      courierReference: data.courierReference,
+      courierContact: data.courierContact,
+      courierTrackingUrl: data.courierTrackingUrl,
+    }),
   );
 
 export const transitionOrderFn = createServerFn({ method: "POST" })
@@ -386,6 +497,31 @@ export const uploadStorefrontProductImageFn = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) =>
     uploadProductGalleryImage(context.supabase as Db, data.businessId, data.productId, data.file),
+  );
+
+export const uploadStorefrontBrandingFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator(
+    (data: unknown): { businessId: string; kind: "logo" | "cover"; file: File } => {
+      if (!(data instanceof FormData)) throw new Error("Choose a photo.");
+      const businessId = String(data.get("businessId") ?? "");
+      const kind = String(data.get("kind") ?? "");
+      const file = data.get("file");
+      if (!z.string().uuid().safeParse(businessId).success) {
+        throw new Error("That shop could not be found.");
+      }
+      if (kind !== "logo" && kind !== "cover") throw new Error("Invalid image type.");
+      if (!(file instanceof File)) throw new Error("Choose a photo.");
+      return { businessId, kind, file };
+    },
+  )
+  .handler(async ({ data, context }) =>
+    uploadStorefrontBrandingImage(
+      context.supabase as Db,
+      data.businessId,
+      data.kind,
+      data.file,
+    ),
   );
 
 export const removeStorefrontProductImageFn = createServerFn({ method: "POST" })

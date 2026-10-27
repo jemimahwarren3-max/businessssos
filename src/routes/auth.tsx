@@ -112,6 +112,11 @@ function AuthPage() {
           setBootState("ready");
           return;
         }
+        // OAuth failed — keep the form visible so the user can retry Google.
+        if (reason === "oauth") {
+          setBootState("ready");
+          return;
+        }
         if (redirect) {
           navigateAfterAuth(redirect);
           return;
@@ -126,7 +131,7 @@ function AuthPage() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, fetchCurrentUser, fetchPostAuthDestination, redirect]);
+  }, [navigate, fetchCurrentUser, fetchPostAuthDestination, redirect, reason]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -203,9 +208,13 @@ function AuthPage() {
           throw new Error(friendlySignUpError(`${signUpError.code ?? ""} ${signUpError.message}`));
         }
         if (signUpData.user) {
-          await recordLegalFn({
-            data: { userId: signUpData.user.id, acceptedTerms: true },
-          });
+          try {
+            await recordLegalFn({
+              data: { userId: signUpData.user.id, acceptedTerms: true },
+            });
+          } catch (legalError) {
+            console.error("[auth] record legal after signUp", legalError);
+          }
         }
         if (signUpData.session) {
           await sealSessionFn({
@@ -258,7 +267,7 @@ function AuthPage() {
 
   if (bootState === "checking") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+      <div className="marketplace-theme flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
         <Logo to="/" />
         <Loader2 className="size-6 animate-spin text-primary" aria-hidden="true" />
         <p className="text-sm text-muted-foreground">Checking your session…</p>

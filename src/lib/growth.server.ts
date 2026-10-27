@@ -1,8 +1,9 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { GroqProvider } from "@/lib/ai/groq-provider";
+import { getAIProvider } from "@/lib/ai/get-provider.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
 import { formatMoney } from "@/lib/format";
 import { buildBusinessSummary } from "@/lib/ai.server";
+import { AI_LIMITS } from "@/lib/ai/limits.server";
 import { checkRateLimit } from "@/lib/rate-limit.server";
 import {
   growthMetricsSchema,
@@ -13,9 +14,7 @@ import {
   type StorefrontEventInput,
 } from "./growth.contract";
 
-const DAILY_BRIEFING_LIMIT = 5;
-const CAMPAIGN_DRAFT_DAILY_LIMIT = 20;
-const DAY_SECONDS = 60 * 60 * 24;
+const DAY_SECONDS = AI_LIMITS.dayWindowSeconds;
 
 const BRIEFING_SYSTEM_PROMPT = `You are Kwetuu's practical daily business adviser for small merchants.
 Use only the supplied business snapshot. Do not invent figures, causes, customer identities, or trends.
@@ -145,7 +144,7 @@ export async function generateMarketingDraft(supabase: Db, input: MarketingDraft
 
   const withinDailyLimit = await checkRateLimit(
     `marketing-draft:business:${input.businessId}`,
-    CAMPAIGN_DRAFT_DAILY_LIMIT,
+    AI_LIMITS.campaignDraftDaily,
     DAY_SECONDS,
   );
   if (!withinDailyLimit) {
@@ -183,7 +182,7 @@ export async function generateMarketingDraft(supabase: Db, input: MarketingDraft
 
   let response: string;
   try {
-    response = await new GroqProvider().chat([
+    response = await getAIProvider().chat([
       { role: "system", content: CAMPAIGN_SYSTEM_PROMPT },
       { role: "user", content: prompt },
     ]);
@@ -259,7 +258,7 @@ export async function getDailyBusinessBriefing(
 
   const withinDailyLimit = await checkRateLimit(
     `daily-business-briefing:${businessId}`,
-    DAILY_BRIEFING_LIMIT,
+    AI_LIMITS.briefingDaily,
     DAY_SECONDS,
   );
   if (!withinDailyLimit) {
@@ -288,7 +287,7 @@ export async function getDailyBusinessBriefing(
 
   let text: string;
   try {
-    text = await new GroqProvider().chat([
+    text = await getAIProvider().chat([
       { role: "system", content: `${BRIEFING_SYSTEM_PROMPT}\n\nBusiness snapshot:\n${snapshot}` },
       { role: "user", content: "Give me today's practical business briefing." },
     ]);

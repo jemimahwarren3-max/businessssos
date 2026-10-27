@@ -1,0 +1,13 @@
+{
+	"appId": "com.mykwetuu.app",
+	"appName": "Kwetuu",
+	"webDir": ".output/public",
+	"server": {
+		"url": "https://mykwetuu.com/staff-login",
+		"cleartext": false,
+		"androidScheme": "https"
+	},
+	"android": {
+		"allowMixedContent": false
+	}
+}

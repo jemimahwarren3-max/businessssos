@@ -1,10 +1,8 @@
-# AI Assistant Disclaimer — BusinessOS AI
+# AI Assistant Disclaimer — Kwetuu
 
-> **DRAFT — NOT LEGAL ADVICE.** Review before publishing, particularly the
-> liability-limiting language, which needs a lawyer's input like the rest of
-> the Terms of Service it's meant to sit alongside.
+**Last updated:** 26 October 2026
 
-_Last updated: [DATE — fill in when this is actually adopted]_
+The optional Kwetuu AI assistant uses a summary of your business data and a third-party language model. It is not financial, legal, tax, or accounting advice. See the [Terms of Service](/terms).
 
 ## What the AI Assistant is
 
@@ -42,10 +40,6 @@ customers' contact details or your payment information.
 
 ## Reporting a problem
 
-If the Assistant gives you an answer that's wrong, misleading, or otherwise
-concerning, `LEGAL REVIEW REQUIRED` / product gap: there is currently no
-in-app "report this answer" button — the only way to reach us today is
-through the general support contact once one exists (see the Privacy
-Policy). If you want a dedicated reporting mechanism in the product, that's
-a feature to build separately, not something this document can promise
-exists yet.
+If the Assistant gives you an answer that is wrong, misleading, or otherwise
+concerning, contact **support@mykwetuu.com** and include what you asked and
+what the Assistant replied.

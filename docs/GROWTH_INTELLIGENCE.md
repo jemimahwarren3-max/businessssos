@@ -46,8 +46,9 @@ members with both `reports.financial` and `ai.use`. The latest briefing is store
 service-role key is never sent to the browser. The model is instructed to distinguish recorded facts
 from recommendations and to avoid inventing figures or campaign causation.
 
-`GROQ_API_KEY` is required for campaign and briefing generation. Without it, the app reports that AI
-generation is unavailable; non-AI storefront analytics continue to work.
+When configured, `GEMINI_API_KEY` is the preferred provider for campaign and briefing generation;
+`GROQ_API_KEY` remains a fallback. If neither is configured, the app reports that AI generation is
+unavailable; non-AI storefront analytics continue to work.
 
 ## Database rollout
 

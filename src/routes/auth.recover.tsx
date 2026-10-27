@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { finishOAuthCallback } from "@/lib/auth/auth.functions";
-import { navigateAfterAuth } from "@/lib/auth/post-auth-navigate";
+import { useFinishPkceCode } from "@/lib/auth/use-finish-pkce-code";
 
 const searchSchema = z.object({
   code: z.string().optional(),
   error: z.string().optional(),
   error_description: z.string().optional(),
 });
+
+const FINISH_TIMEOUT_MS = 25_000;
 
 export const Route = createFileRoute("/auth/recover")({
   validateSearch: searchSchema,
@@ -21,22 +21,31 @@ export const Route = createFileRoute("/auth/recover")({
 
 function AuthRecoverFinish() {
   const { code, error } = Route.useSearch();
-  const finish = useServerFn(finishOAuthCallback);
+  const finishPkce = useFinishPkceCode();
   const started = useRef(false);
+  const finished = useRef(false);
   const [failed, setFailed] = useState(Boolean(error || !code));
 
   useEffect(() => {
     if (!code || error || started.current) return;
     started.current = true;
-    void finish({ data: { code } })
+
+    const timeout = window.setTimeout(() => {
+      if (!finished.current) setFailed(true);
+    }, FINISH_TIMEOUT_MS);
+
+    void finishPkce({ code, successPath: "/reset-password" })
       .then(() => {
-        navigateAfterAuth("/reset-password");
+        finished.current = true;
       })
       .catch((err) => {
         console.error("[auth] recover exchange failed", err);
         setFailed(true);
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
       });
-  }, [code, error, finish]);
+  }, [code, error, finishPkce]);
 
   if (failed) {
     return (
@@ -50,7 +59,7 @@ function AuthRecoverFinish() {
         />
         <h1 className="text-lg font-semibold">Reset link did not work</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Request a new password reset email and open the link in the same browser.
+          Request a new password reset email and open the link in the same browser within 24 hours.
         </p>
         <Link
           to="/auth"

@@ -255,6 +255,8 @@ describe("storefront templates", () => {
       deliveryPolicy: "",
       returnsPolicy: "",
       privacyPolicy: "",
+      seoTitle: "",
+      seoDescription: "",
     });
     expect(
       storefrontContentSchema.parse({
@@ -401,6 +403,11 @@ function sampleStore(
       areas: "",
       estimate: "",
       quoteRequired: false,
+      pricingMethod: "flat" as const,
+      deliveryInstructions: "",
+      collectionInstructions: "",
+      zones: [],
+      collectionPoints: [],
       autoAccept: false,
       prepMinutes: 0,
       cutoff: "",

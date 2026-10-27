@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { canWriteForSubscription, canWriteWithPlatformEntitlement } from "@/lib/billing-write";
+import {
+  canOperateForSubscription,
+  canWriteForSubscription,
+  canWriteWithPlatformEntitlement,
+} from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
 
 const original = process.env["BILLING_ENABLED"];
@@ -34,6 +38,32 @@ describe("billing write gate", () => {
         trial_ends_at: new Date(Date.now() + 86_400_000).toISOString(),
       }),
     ).toBe(true);
+  });
+
+  it("requires active subscription for paid operations when billed", () => {
+    process.env["BILLING_ENABLED"] = "true";
+    expect(canOperateForSubscription({ status: "active", trial_ends_at: null })).toBe(true);
+    expect(
+      canOperateForSubscription({
+        status: "trialing",
+        trial_ends_at: new Date(Date.now() + 86_400_000).toISOString(),
+      }),
+    ).toBe(false);
+    expect(
+      canOperateForSubscription({
+        status: "past_due",
+        trial_ends_at: null,
+        current_period_end: new Date(Date.now() + 86_400_000).toISOString(),
+      }),
+    ).toBe(true);
+    expect(
+      canOperateForSubscription({
+        status: "past_due",
+        trial_ends_at: null,
+        current_period_end: "2000-01-01T00:00:00.000Z",
+      }),
+    ).toBe(false);
+    expect(canOperateForSubscription(null)).toBe(false);
   });
 
   it("locks expired trials and unknown statuses when billed", () => {

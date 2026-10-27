@@ -29,8 +29,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
-import { getDashboard, getWorkspace } from "@/lib/business.functions";
+import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
 import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
+import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { BRAND } from "@/lib/brand";
@@ -109,6 +110,13 @@ function Dashboard() {
     enabled: Boolean(businessId),
     queryFn: () => loadStore({ data: { businessId: businessId! } }),
   });
+  const fetchNotifyEmail = useServerFn(getNotifyEmailFn);
+  const notifyEmail = useQuery({
+    queryKey: ["notify-email", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchNotifyEmail({ data: { businessId: businessId! } }),
+    staleTime: 60_000,
+  });
   const briefing = useQuery({
     queryKey: ["daily-business-briefing", businessId],
     enabled: Boolean(businessId) && canReadBriefing,
@@ -148,51 +156,19 @@ function Dashboard() {
         </Button>
       }
     >
-      {storefront.data && !storefront.data.checklist.published ? (
-        <section className="surface mb-4 p-5">
-          <h2 className="text-lg font-semibold">Finish your shop</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Unpublished shops are not visible to customers. Continue setup or preview a draft.
-          </p>
-          <ol className="mt-3 space-y-1 text-sm">
-            {(
-              [
-                ["name", "Shop name"],
-                ["template", "Template"],
-                ["products", "A published product"],
-                ["payments", "A payment method"],
-                ["fulfilment", "Pickup or delivery"],
-                ["published", "Publish"],
-              ] as const
-            ).map(([key, label]) => (
-              <li key={key}>
-                {storefront.data?.checklist[key] ? "Done" : "To do"} — {label}
-              </li>
-            ))}
-          </ol>
-          {storefront.data.store?.slug ? (
-            <p className="mt-2 text-sm">
-              Draft:{" "}
-              <Link
-                to="/store/$slug"
-                params={{ slug: storefront.data.store.slug }}
-                search={{ preview: "1" }}
-              >
-                Preview
-              </Link>
-              {" · "}
-              {storePublicUrl(storefront.data.store.slug)}
-            </p>
-          ) : null}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild>
-              <Link to="/onboarding">Continue setup</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/storefront">Storefront settings</Link>
-            </Button>
-          </div>
-        </section>
+      {storefront.data ? (
+        <div className="mb-4">
+          <StoreLaunchCentre
+            admin={storefront.data}
+            billingEnabled={workspace.data.billingEnabled}
+            isOperateLocked={workspace.data.isOperateLocked}
+            notificationsConfigured={notifyEmail.data === true}
+            compact
+            {...(storefront.data.store?.slug
+              ? { publicUrl: storePublicUrl(storefront.data.store.slug) }
+              : {})}
+          />
+        </div>
       ) : null}
       {canReadBriefing ? (
         <section className="surface mb-4 p-5">
@@ -200,7 +176,7 @@ function Dashboard() {
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold">
                 <Sparkles className="size-4.5 text-primary" aria-hidden="true" />
-                Your business today
+                Your AI business briefing
               </h2>
               <p className="text-[13px] text-muted-foreground">
                 A daily AI briefing based on recorded business and opted-in storefront activity.
@@ -230,6 +206,37 @@ function Dashboard() {
               </p>
             </div>
           ) : null}
+        </section>
+      ) : null}
+      {canReadBriefing && data ? (
+        <section className="surface mb-4 space-y-3 p-5">
+          <div>
+            <h2 className="text-base font-semibold">Recommended next steps</h2>
+            <p className="text-[13px] text-muted-foreground">
+              Based on your recorded business activity. Each button opens a page for you to review
+              and decide; AI does not apply changes.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.lowStockCount > 0 ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/inventory">Review {data.lowStockCount} low-stock items</Link>
+              </Button>
+            ) : null}
+            {data.outstanding > 0 ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/invoices">Review outstanding invoices</Link>
+              </Button>
+            ) : null}
+            {storefront.data && !storefront.data.checklist.published ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/storefront">Continue building your shop</Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm" variant="outline">
+              <Link to="/insights">Review sales and stock insights</Link>
+            </Button>
+          </div>
         </section>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -35,7 +35,8 @@ const authStorage = {
     }
     if (typeof document === "undefined") return;
     const secure = window.location.protocol === "https:" ? "; Secure" : "";
-    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; path=/; max-age=600; SameSite=Lax${secure}`;
+    // Email confirm links are often opened hours after signup — keep the verifier long enough.
+    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax${secure}`;
   },
   removeItem(key: string) {
     if (!key.endsWith("-code-verifier")) {
