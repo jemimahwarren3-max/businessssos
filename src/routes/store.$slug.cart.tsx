@@ -5,6 +5,7 @@ import { z } from "zod";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
 import { quoteCartFn } from "@/lib/storefront/storefront.functions";
 import type { CartQuote } from "@/lib/storefront/contract";
+import { allowedFulfilments } from "@/lib/storefront/order-rules";
 import { formatMoney, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
@@ -26,11 +27,7 @@ function CartPage() {
   const [priced, setPriced] = useState<CartQuote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const fulfilment = store.delivery.pickupEnabled
-    ? "pickup"
-    : store.delivery.deliveryEnabled
-      ? "delivery"
-      : "quote";
+  const fulfilment = allowedFulfilments(store)[0] ?? "quote";
 
   useEffect(() => {
     setLines(readCart(store.slug));
