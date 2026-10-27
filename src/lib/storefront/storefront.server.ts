@@ -346,6 +346,7 @@ export async function saveListing(
     businessId: string;
     productId: string;
     published: boolean;
+    publicName: string | null;
     details: string;
     sizeGuide: string;
     minQty: number;
@@ -355,17 +356,38 @@ export async function saveListing(
 ) {
   await assertCanWrite(supabase, input.businessId);
   await assertPermission(supabase, input.businessId, "business.settings");
-  const { error } = await supabase.rpc("set_product_listing", {
-    _business_id: input.businessId,
-    _product_id: input.productId,
-    _published: input.published,
-    _details: input.details,
-    _size_guide: input.sizeGuide,
-    _min_qty: input.minQty,
-    _max_qty: input.maxQty,
-    _featured: input.featured,
-  });
+  const { error } = await supabase.rpc(
+    "set_product_listing_details" as never,
+    {
+      _business_id: input.businessId,
+      _product_id: input.productId,
+      _published: input.published,
+      _details: input.details,
+      _size_guide: input.sizeGuide,
+      _min_qty: input.minQty,
+      _max_qty: input.maxQty,
+      _featured: input.featured,
+      _public_name: input.publicName,
+    } as never,
+  );
   if (error) rpcFail("save listing", error);
+}
+
+export async function setProductCategory(
+  supabase: Db,
+  input: { businessId: string; productId: string; categoryId: string | null },
+) {
+  await assertCanWrite(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "business.settings");
+  const { error } = await supabase.rpc(
+    "set_product_category" as never,
+    {
+      _business_id: input.businessId,
+      _product_id: input.productId,
+      _category_id: input.categoryId,
+    } as never,
+  );
+  if (error) rpcFail("set product category", error);
 }
 
 export async function loadAdminOrder(

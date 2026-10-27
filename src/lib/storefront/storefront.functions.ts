@@ -45,6 +45,7 @@ import {
   respondToStoreReview,
   saveListing,
   saveStorefront,
+  setProductCategory,
   setMarketplaceVisible,
   setShopperConsent,
   startCustomerPaynow,
@@ -282,11 +283,32 @@ export const saveListingFn = createServerFn({ method: "POST" })
       businessId: data.businessId,
       productId: data.productId,
       published: data.published,
+      publicName: data.publicName ?? null,
       details: data.details ?? "",
       sizeGuide: data.sizeGuide ?? "",
       minQty: data.minQty,
       maxQty: data.maxQty,
       featured: data.featured,
+    }),
+  );
+
+export const setProductCategoryFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        productId: z.string().uuid(),
+        categoryId: z.string().uuid().nullable(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    setProductCategory(context.supabase as Db, {
+      businessId: data.businessId,
+      productId: data.productId,
+      categoryId: data.categoryId,
     }),
   );
 

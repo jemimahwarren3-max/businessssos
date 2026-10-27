@@ -40,6 +40,10 @@ Published products support up to eight additional storefront photos beside the e
 
 Product photos selected in Inventory or the storefront gallery are resized to a maximum 1200-pixel dimension and converted to WebP on the device when supported. The server still validates the final image type and enforces the 2 MB upload limit; browsers without image conversion support can upload an already-small supported image unchanged.
 
+Inventory remains the source of product identity, stock, price, and business currency. The Storefront page manages online visibility, customer-facing name and description, existing business categories, and storefront gallery photos without creating duplicate products or changing internal inventory notes. A product is ready to list only when it has a positive selling price, a photo, and a customer-facing description. Products created during onboarding stay in Inventory until the seller completes those online details.
+
+Apply `20261027130000_storefront_product_management.sql` after the product-gallery migration, on staging first. It adds customer-facing product names, category assignment with business-ownership validation, and server-side protection against publishing inactive or zero-price products. It also updates public storefront and marketplace payloads to use the customer-facing description rather than internal inventory notes. The migration unpublishes any existing listing whose inventory selling price is zero or less; review those listings after applying it.
+
 The marketplace searches products across listed shops and lets shoppers narrow those results to a preferred shop. Checkout remains within the selected shop and does not combine orders from multiple businesses.
 
 There are no purchasable variants. Size, shade, and ingredient text are merchant notes on the single product stock count. Wishlists and recently viewed shelves are currently stored in the shopper's browser per shop; they are not account-synced. Newsletter signup and an interactive unsaved storefront preview are not implemented.
