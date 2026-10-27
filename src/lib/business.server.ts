@@ -356,16 +356,88 @@ export async function listProducts(
   return data ?? [];
 }
 
-export async function listLocations(supabase: Db, businessId: string) {
+export async function listLocations(
+  supabase: Db,
+  businessId: string,
+  options?: { includeInactive?: boolean },
+) {
   await assertMember(supabase, businessId);
-  const { data, error } = await supabase
+  let query = supabase
     .from("locations")
     .select("id, name, address, phone, is_active, is_default")
     .eq("business_id", businessId)
-    .eq("is_active", true)
+    .order("is_default", { ascending: false })
     .order("name");
+  if (!options?.includeInactive) {
+    query = query.eq("is_active", true);
+  }
+  const { data, error } = await query;
   if (error) dbFail("list locations", error);
   return data ?? [];
+}
+
+export async function createLocation(
+  supabase: Db,
+  input: { businessId: string; name: string; address?: string; phone?: string },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase.rpc("create_location", {
+    _business_id: input.businessId,
+    _name: input.name,
+    _address: input.address ?? "",
+    _phone: input.phone ?? "",
+  });
+  if (error) dbFail("create location", error);
+  return data as string;
+}
+
+export async function updateLocation(
+  supabase: Db,
+  input: {
+    businessId: string;
+    locationId: string;
+    name: string;
+    address?: string;
+    phone?: string;
+  },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("update_location" as never, {
+    _business_id: input.businessId,
+    _location_id: input.locationId,
+    _name: input.name,
+    _address: input.address ?? "",
+    _phone: input.phone ?? "",
+  } as never);
+  if (error) dbFail("update location", error);
+}
+
+export async function setDefaultLocation(
+  supabase: Db,
+  input: { businessId: string; locationId: string },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("set_default_location" as never, {
+    _business_id: input.businessId,
+    _location_id: input.locationId,
+  } as never);
+  if (error) dbFail("set default location", error);
+}
+
+export async function deactivateLocation(
+  supabase: Db,
+  input: { businessId: string; locationId: string },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("deactivate_location" as never, {
+    _business_id: input.businessId,
+    _location_id: input.locationId,
+  } as never);
+  if (error) dbFail("deactivate location", error);
 }
 
 export async function createProduct(supabase: Db, input: ProductInput) {

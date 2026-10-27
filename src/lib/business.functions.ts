@@ -41,6 +41,10 @@ import {
   revokeInviteSchema,
   saleSchema,
   listSalesSchema,
+  listLocationsSchema,
+  locationInputSchema,
+  locationIdSchema,
+  updateLocationSchema,
   saleIdSchema,
   refundSaleSchema,
   setStaffPasswordSchema,
@@ -151,6 +155,10 @@ import {
   listExpenses,
   listInvoices,
   listLocations,
+  createLocation,
+  updateLocation,
+  setDefaultLocation,
+  deactivateLocation,
   listProducts,
   listPurchaseOrders,
   listQuotes,
@@ -272,8 +280,55 @@ export const getReports = createServerFn({ method: "POST" })
 
 export const getLocations = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
-  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
-  .handler(async ({ data, context }) => listLocations(context.supabase as Db, data.businessId));
+  .inputValidator((data: unknown) => parseAndSanitize(listLocationsSchema, data))
+  .handler(async ({ data, context }) =>
+    listLocations(context.supabase as Db, data.businessId, {
+      ...(data.includeInactive ? { includeInactive: true } : {}),
+    }),
+  );
+
+export const createLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationInputSchema, data))
+  .handler(async ({ data, context }) => {
+    const id = await createLocation(context.supabase as Db, {
+      businessId: data.businessId,
+      name: data.name,
+      ...(data.address !== undefined ? { address: data.address } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+    });
+    return { id };
+  });
+
+export const updateLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(updateLocationSchema, data))
+  .handler(async ({ data, context }) => {
+    await updateLocation(context.supabase as Db, {
+      businessId: data.businessId,
+      locationId: data.locationId,
+      name: data.name,
+      ...(data.address !== undefined ? { address: data.address } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+    });
+    return { ok: true as const };
+  });
+
+export const setDefaultLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationIdSchema, data))
+  .handler(async ({ data, context }) => {
+    await setDefaultLocation(context.supabase as Db, data);
+    return { ok: true as const };
+  });
+
+export const deactivateLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationIdSchema, data))
+  .handler(async ({ data, context }) => {
+    await deactivateLocation(context.supabase as Db, data);
+    return { ok: true as const };
+  });
 
 export const getProducts = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
