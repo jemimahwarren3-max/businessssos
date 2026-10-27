@@ -41,6 +41,7 @@ import {
   setMarketplaceVisible,
   setShopperConsent,
   startCustomerPaynow,
+  submitOrderPaymentNote,
   transitionOrder,
 } from "./storefront.server";
 
@@ -284,13 +285,45 @@ export const transitionOrderFn = createServerFn({ method: "POST" })
           "complete",
           "cancel",
           "mark_paid",
+          "reject_proof",
         ]),
+        reason: z.string().max(400).optional(),
       }),
       data,
     ),
   )
   .handler(async ({ data, context }) =>
-    transitionOrder(context.supabase as Db, data.businessId, data.orderId, data.action),
+    transitionOrder(
+      context.supabase as Db,
+      data.businessId,
+      data.orderId,
+      data.action,
+      data.reason,
+    ),
+  );
+
+export const submitOrderPaymentNoteFn = createServerFn({ method: "POST" })
+  .middleware(checkoutLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        slug: z.string().min(3).max(40),
+        reference: z.string().min(3).max(40),
+        token: z.string().max(80).optional().default(""),
+        proofReference: z.string().trim().min(3).max(80),
+        proofNote: z.string().trim().max(400).optional(),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data }) =>
+    submitOrderPaymentNote({
+      slug: data.slug,
+      reference: data.reference,
+      token: data.token,
+      proofReference: data.proofReference,
+      proofNote: data.proofNote,
+    }),
   );
 
 export const createComplaintFn = createServerFn({ method: "POST" })

@@ -11,7 +11,15 @@ export const FULFILMENT_STATUSES = [
 export type FulfilmentStatus = (typeof FULFILMENT_STATUSES)[number];
 
 export type OrderAction =
-  "confirm" | "accept" | "preparing" | "ready" | "dispatch" | "complete" | "cancel" | "mark_paid";
+  | "confirm"
+  | "accept"
+  | "preparing"
+  | "ready"
+  | "dispatch"
+  | "complete"
+  | "cancel"
+  | "mark_paid"
+  | "reject_proof";
 
 export function fulfilmentActions(input: {
   fulfilmentStatus: string;
@@ -25,6 +33,9 @@ export function fulfilmentActions(input: {
   if (input.paymentStatus !== "paid" && input.saleId == null) {
     if (!(input.paymentMethod === "quote" && input.fulfilmentStatus === "awaiting_confirmation")) {
       actions.push("mark_paid");
+    }
+    if (input.paymentMethod === "manual" && input.paymentStatus === "pending") {
+      actions.push("reject_proof");
     }
   }
   if (input.saleId == null) actions.push("cancel");
@@ -56,4 +67,5 @@ export const ACTION_LABEL: Record<OrderAction, string> = {
   complete: "Mark completed",
   cancel: "Cancel order",
   mark_paid: "Record payment",
+  reject_proof: "Reject this payment note",
 };

@@ -10,6 +10,11 @@ export function paymentHowLabel(method: string, paid: boolean): string {
       ? "Quoted order — payment recorded."
       : "Quote request. Price is not final until the shop confirms.";
   }
+  if (method === "manual") {
+    return paid
+      ? "Manual payment recorded by the shop after they checked their account."
+      : "Pay using this shop's instructions. A payment note is not a confirmed payment.";
+  }
   return paid ? "Cash on collection recorded." : "Pay cash on collection. Not paid yet.";
 }
 

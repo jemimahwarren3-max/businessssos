@@ -140,18 +140,23 @@ export async function placeOrder(input: {
     email?: string | undefined;
     address?: string | undefined;
     notes?: string | undefined;
+    messagesConsent?: boolean | undefined;
   };
   items: { productId: string; quantity: number; note?: string | undefined }[];
   fulfilment: string;
   paymentMethod: string;
   collectAt?: string | undefined;
   paynowChannel?: "web" | "ecocash" | undefined;
+  manualMethodId?: string | undefined;
 }) {
   const supabase = await storefrontClient();
   const result = await supabase.rpc("create_store_order", {
     _slug: input.slug,
     _idempotency_key: input.idempotencyKey,
-    _customer: input.customer as unknown as Json,
+    _customer: {
+      ...input.customer,
+      ...(input.manualMethodId ? { manualMethodId: input.manualMethodId } : {}),
+    } as unknown as Json,
     _items: input.items as unknown as Json,
     _fulfilment: input.fulfilment,
     _payment_method: input.paymentMethod,
@@ -337,14 +342,41 @@ export async function transitionOrder(
   businessId: string,
   orderId: string,
   action: string,
+  reason?: string,
 ) {
   await assertCanWrite(supabase, businessId);
+  if (action === "reject_proof") {
+    const result = await supabase.rpc("reject_store_order_proof", {
+      _business_id: businessId,
+      _order_id: orderId,
+      _reason: reason ?? "",
+    });
+    return parseRpc("reject payment note", result, adminOrderSchema);
+  }
   const result = await supabase.rpc("transition_store_order", {
     _business_id: businessId,
     _order_id: orderId,
     _action: action,
   });
   return parseRpc("update online order", result, adminOrderSchema);
+}
+
+export async function submitOrderPaymentNote(input: {
+  slug: string;
+  reference: string;
+  token: string;
+  proofReference: string;
+  proofNote?: string | undefined;
+}): Promise<CustomerOrder> {
+  const supabase = await storefrontClient();
+  const result = await supabase.rpc("submit_store_order_proof", {
+    _slug: input.slug,
+    _reference: input.reference,
+    _token: input.token,
+    _proof_reference: input.proofReference,
+    _proof_note: input.proofNote ?? "",
+  });
+  return parseRpc("submit payment note", result, customerOrderSchema);
 }
 
 export async function loadMarketplace(input: {

@@ -2,7 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { orderTokenKey } from "@/lib/storefront/cart";
-import { getCustomerOrderFn } from "@/lib/storefront/storefront.functions";
+import {
+  getCustomerOrderFn,
+  submitOrderPaymentNoteFn,
+} from "@/lib/storefront/storefront.functions";
 import type { CustomerOrder } from "@/lib/storefront/contract";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
@@ -31,7 +34,10 @@ const STATUS_COPY: Record<string, string> = {
   completed: "Marked completed by the shop.",
   cancelled: "Cancelled.",
   unpaid: "Payment has not been recorded.",
+  pending: "Payment note sent. The shop still has to confirm they received the money.",
   paid: "Payment recorded by the shop.",
+  failed: "The shop could not confirm that payment. You can send a new reference.",
+  refunded: "Refunded.",
 };
 
 function OrderPage() {
@@ -39,12 +45,16 @@ function OrderPage() {
   const { reference } = Route.useParams();
   const load = useServerFn(getCustomerOrderFn);
   const startPaynow = useServerFn(startCustomerPaynowFn);
+  const sendProof = useServerFn(submitOrderPaymentNoteFn);
   const [paying, setPaying] = useState(false);
   const [paynowChannel, setPaynowChannel] = useState<"web" | "ecocash">("web");
   const [paynowHint, setPaynowHint] = useState<string | null>(null);
   const [token, setToken] = useState("");
   const [order, setOrder] = useState<CustomerOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [proofReference, setProofReference] = useState("");
+  const [proofNote, setProofNote] = useState("");
+  const [proofPending, setProofPending] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem(orderTokenKey(store.slug, reference)) ?? "";
@@ -100,6 +110,92 @@ function OrderPage() {
         <div className="mt-6 space-y-3 text-sm">
           <p>{STATUS_COPY[order.fulfilmentStatus] ?? order.fulfilmentStatus}</p>
           <OrderReceipt order={order} audience="customer" />
+          {order.paymentMethod === "manual" &&
+          !order.paid &&
+          order.paymentStatus !== "cancelled" ? (
+            <form
+              className="space-y-2 rounded-lg border p-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setProofPending(true);
+                setError(null);
+                void sendProof({
+                  data: {
+                    slug: store.slug,
+                    reference: order.reference,
+                    token,
+                    proofReference,
+                    proofNote: proofNote || undefined,
+                  },
+                })
+                  .then((next) => {
+                    setOrder(next);
+                    setProofReference("");
+                    setProofNote("");
+                  })
+                  .catch((reason: Error) =>
+                    setError(readableError(reason, "The payment note was not saved.")),
+                  )
+                  .finally(() => setProofPending(false));
+              }}
+            >
+              <p className="font-medium">Send a payment reference</p>
+              <p className="text-neutral-600">
+                Paste the EcoCash, InnBucks, or bank confirmation number. This does not mark the
+                order paid. The shop must check their own account.
+              </p>
+              {order.terms?.manualPayment ? (
+                <p className="whitespace-pre-wrap text-neutral-600">
+                  {[
+                    order.terms.manualPayment.accountName,
+                    order.terms.manualPayment.accountDetail,
+                    order.terms.manualPayment.instructions,
+                  ]
+                    .filter(Boolean)
+                    .join("\n")}
+                </p>
+              ) : null}
+              {order.terms?.paymentProof?.reference ? (
+                <p>
+                  Last note sent: {order.terms.paymentProof.reference}
+                  {order.terms.paymentProof.rejectReason
+                    ? ` — ${order.terms.paymentProof.rejectReason}`
+                    : ""}
+                </p>
+              ) : null}
+              <label className="block">
+                Payment reference
+                <input
+                  className="mt-1 w-full rounded border px-3 py-2"
+                  required
+                  minLength={3}
+                  value={proofReference}
+                  onChange={(event) => setProofReference(event.target.value)}
+                />
+              </label>
+              <label className="block">
+                Optional note
+                <textarea
+                  className="mt-1 w-full rounded border px-3 py-2"
+                  maxLength={400}
+                  value={proofNote}
+                  onChange={(event) => setProofNote(event.target.value)}
+                />
+              </label>
+              <button
+                className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                disabled={proofPending || (!token && !order.mine)}
+                type="submit"
+              >
+                {proofPending ? "Sending…" : "Send payment note"}
+              </button>
+              {!token && !order.mine ? (
+                <p className="text-neutral-500">
+                  Enter the access code above before sending a note.
+                </p>
+              ) : null}
+            </form>
+          ) : null}
           {order.paymentMethod === "paynow" && !order.paid ? (
             <div className="space-y-2 rounded-lg border p-3">
               <p className="font-medium">Finish paying this shop with Paynow</p>

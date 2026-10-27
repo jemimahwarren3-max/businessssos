@@ -43,6 +43,8 @@ Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated 
 - **Realtime new-order toast** is not wired; orders load on query.
 - **Concurrent oversell** is intended to be locked in SQL on reserve; needs a live two-buyer test (Stage 7).
 - **Images >5MB**: product media PR exists (#24); not on this branch.
+- **Manual shop payments**: EcoCash / InnBucks / bank / other instruction JSON on the shop, checkout radios, payment notes (`pending` until the merchant records payment). Screenshot files are not stored.
+- **Listed Pro price**: `PLAN_MONTHLY_USD.pro` is $7. `BILLING_ENABLED` still gates charging.
 - Merchant dashboard titles still say BusinessOS on many inner pages.
 
 ## Stage 2 (public site)
