@@ -1,0 +1,1 @@
+var e=e=>`bos-cart:${e}`;function t(t){if(typeof window>`u`)return[];try{let n=JSON.parse(localStorage.getItem(e(t))??`[]`);return Array.isArray(n)?n.filter(e=>e&&typeof e.productId==`string`&&e.quantity>0):[]}catch{return[]}}function n(t,n){localStorage.setItem(e(t),JSON.stringify(n))}function r(e,t){return`bos-order-token:${e}:${t}`}export{t as n,n as r,r as t};

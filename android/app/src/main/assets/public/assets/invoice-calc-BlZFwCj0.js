@@ -1,0 +1,1 @@
+function e(e){return Math.round((Number.isFinite(e)?e:0)*100)/100}function t(t,n){let r=0,i=0;for(let n of t){let t=e((Number(n.quantity)||0)*(Number(n.unitPrice)||0)),a=e(t*(Number(n.taxRate)||0)/100);r+=t,i+=a}let a=Math.max(e(r)-(Number(n)||0)+e(i),0);return{subtotal:e(r),tax:e(i),total:e(a)}}export{t};
