@@ -22,6 +22,7 @@ import { ACTION_LABEL, fulfilmentActions, type OrderAction } from "@/lib/storefr
 import type { AdminOrder, AdminStore } from "@/lib/storefront/contract";
 import {
   getAdminOrderFn,
+  saveOrderCourierFn,
   saveSellerOrderNoteFn,
   transitionOrderFn,
 } from "@/lib/storefront/storefront.functions";
@@ -57,6 +58,7 @@ export function OnlineOrdersFulfilmentPanel({
   const loadOrder = useServerFn(getAdminOrderFn);
   const transition = useServerFn(transitionOrderFn);
   const saveNote = useServerFn(saveSellerOrderNoteFn);
+  const saveCourier = useServerFn(saveOrderCourierFn);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [checkedAccount, setCheckedAccount] = useState(false);
   const [paymentReference, setPaymentReference] = useState("");
@@ -66,6 +68,11 @@ export function OnlineOrdersFulfilmentPanel({
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [internalNote, setInternalNote] = useState("");
   const [notePending, setNotePending] = useState(false);
+  const [courierName, setCourierName] = useState("");
+  const [courierReference, setCourierReference] = useState("");
+  const [courierContact, setCourierContact] = useState("");
+  const [courierTrackingUrl, setCourierTrackingUrl] = useState("");
+  const [courierPending, setCourierPending] = useState(false);
 
   const visibleOrders = useMemo(
     () => sortOrderDeskRows(filterOrderDeskRows(orders, { query, filter })),
@@ -80,6 +87,10 @@ export function OnlineOrdersFulfilmentPanel({
       setCancelReason("");
       setShowCancelForm(false);
       setInternalNote(next.sellerInternalNote ?? "");
+      setCourierName(next.courierName ?? "");
+      setCourierReference(next.courierReference ?? "");
+      setCourierContact(next.courierContact ?? "");
+      setCourierTrackingUrl(next.courierTrackingUrl ?? "");
     });
   }
 
@@ -196,6 +207,88 @@ export function OnlineOrdersFulfilmentPanel({
               <span className="font-medium">Customer note: </span>
               {selectedOrder.customerNotes}
             </p>
+          ) : null}
+          <div className="mt-3 space-y-1 rounded-md border p-3 text-sm">
+            <p className="font-medium">Fulfilment</p>
+            <p>
+              {fulfilmentHowLabel(selectedOrder.fulfilmentMethod)} ·{" "}
+              {fulfilmentStatusLabel(selectedOrder.fulfilmentStatus)}
+            </p>
+            {selectedOrder.deliveryZoneName ? (
+              <p>Delivery area: {selectedOrder.deliveryZoneName}</p>
+            ) : null}
+            {selectedOrder.collectionPointName ? (
+              <p>Collection at: {selectedOrder.collectionPointName}</p>
+            ) : null}
+            {selectedOrder.customerAddress ? (
+              <p className="whitespace-pre-wrap">Address: {selectedOrder.customerAddress}</p>
+            ) : null}
+            <p>
+              Delivery fee: {formatMoney(selectedOrder.deliveryFee, selectedOrder.currency)} · Total:{" "}
+              {formatMoney(selectedOrder.total, selectedOrder.currency)}
+            </p>
+            {selectedOrder.collectAt ? (
+              <p>Collection slot: {friendlyDateTime(selectedOrder.collectAt)}</p>
+            ) : null}
+          </div>
+          {selectedOrder.fulfilmentMethod === "delivery" ? (
+            <div className="mt-3 space-y-2 rounded-md border p-3">
+              <p className="font-medium">Courier (manual tracking)</p>
+              <p className="text-xs text-muted-foreground">
+                Save provider details when you dispatch. Customers are notified when tracking changes;
+                this is not live GPS tracking.
+              </p>
+              <Input
+                placeholder="Courier or driver name"
+                value={courierName}
+                onChange={(event) => setCourierName(event.target.value)}
+              />
+              <Input
+                placeholder="Tracking or reference number"
+                value={courierReference}
+                onChange={(event) => setCourierReference(event.target.value)}
+              />
+              <Input
+                placeholder="Contact phone"
+                value={courierContact}
+                onChange={(event) => setCourierContact(event.target.value)}
+              />
+              <Input
+                placeholder="Tracking URL (https://…)"
+                value={courierTrackingUrl}
+                onChange={(event) => setCourierTrackingUrl(event.target.value)}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={courierPending}
+                onClick={() => {
+                  setCourierPending(true);
+                  void saveCourier({
+                    data: {
+                      businessId,
+                      orderId: selectedOrder.id,
+                      courierName,
+                      courierReference,
+                      courierContact,
+                      courierTrackingUrl,
+                    },
+                  })
+                    .then((next) => {
+                      setSelectedOrder(next);
+                      toast.success("Courier details saved");
+                      void queryClient.invalidateQueries({ queryKey: queryKeys });
+                    })
+                    .catch((error: Error) =>
+                      toast.error(readableError(error, "Could not save courier details.")),
+                    )
+                    .finally(() => setCourierPending(false));
+                }}
+              >
+                Save courier details
+              </Button>
+            </div>
           ) : null}
           <div className="mt-3 space-y-2">
             <label className="grid gap-1 text-sm">
