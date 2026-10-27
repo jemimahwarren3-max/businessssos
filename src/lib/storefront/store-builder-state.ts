@@ -3,6 +3,7 @@ import type { StorefrontContent } from "./contract";
 import type { StorefrontTheme } from "./theme";
 import type { CollectionWindow } from "./clocks";
 import type { HoursState } from "@/components/storefront/hours-editor";
+import type { CollectionPoint, DeliveryZone } from "./delivery-zones";
 
 export type StoreBuilderSnapshot = {
   storeName: string;
@@ -30,6 +31,11 @@ export type StoreBuilderSnapshot = {
   areas: string;
   estimate: string;
   quoteRequired: boolean;
+  pricingMethod: string;
+  deliveryInstructions: string;
+  collectionInstructions: string;
+  zones: DeliveryZone[];
+  collectionPoints: CollectionPoint[];
   autoAccept: boolean;
   prepMinutes: string;
   cutoffTime: string;

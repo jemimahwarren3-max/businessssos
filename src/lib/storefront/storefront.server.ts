@@ -137,12 +137,16 @@ export async function quoteCart(
   slug: string,
   items: { productId: string; quantity: number; note?: string | undefined }[],
   fulfilment: string,
+  deliveryZoneId?: string | null,
+  collectionPointId?: string | null,
 ): Promise<CartQuote> {
   const supabase = createAnonClient();
   const result = await supabase.rpc("quote_store_cart", {
     _slug: slug,
     _items: items as unknown as Json,
     _fulfilment: fulfilment,
+    _delivery_zone_id: deliveryZoneId ?? null,
+    _collection_point_id: collectionPointId ?? null,
   });
   return parseRpc("quote cart", result, quoteSchema);
 }
@@ -164,6 +168,8 @@ export async function placeOrder(input: {
   fulfilment: string;
   paymentMethod: string;
   collectAt?: string | undefined;
+  deliveryZoneId?: string | undefined;
+  collectionPointId?: string | undefined;
   paynowChannel?: "web" | "ecocash" | undefined;
   manualMethodId?: string | undefined;
 }) {
@@ -179,6 +185,8 @@ export async function placeOrder(input: {
     _fulfilment: input.fulfilment,
     _payment_method: input.paymentMethod,
     _collect_at: input.collectAt ?? null,
+    _delivery_zone_id: input.deliveryZoneId ?? null,
+    _collection_point_id: input.collectionPointId ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
   if (parsed.orderId && input.analyticsVisitorId) {
@@ -429,6 +437,29 @@ export async function saveSellerOrderNote(
     _note: note,
   });
   return withProofUrl(await parseRpc("save seller order note", result, adminOrderSchema));
+}
+
+export async function saveOrderCourier(
+  supabase: Db,
+  businessId: string,
+  orderId: string,
+  input: {
+    courierName: string;
+    courierReference: string;
+    courierContact: string;
+    courierTrackingUrl: string;
+  },
+): Promise<AdminOrder> {
+  await assertCanWrite(supabase, businessId);
+  const result = await untypedRpc(supabase, "save_store_order_courier", {
+    _business_id: businessId,
+    _order_id: orderId,
+    _courier_name: input.courierName,
+    _courier_reference: input.courierReference,
+    _courier_contact: input.courierContact,
+    _courier_tracking_url: input.courierTrackingUrl,
+  });
+  return withProofUrl(await parseRpc("save order courier", result, adminOrderSchema));
 }
 
 export async function transitionOrder(
