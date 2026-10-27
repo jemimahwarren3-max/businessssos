@@ -194,11 +194,11 @@ crediting anything.
 Being direct about what hasn't been done, matching the same standard
 applied to `legal/ACCESSIBILITY_STATEMENT.md`:
 
-- **No documented backup/restore procedure or tested restore.** Whatever
-  Supabase does by default for this project hasn't been independently
-  verified or documented here.
-- **No automated dependency vulnerability scanning** wired into the build
-  or CI.
+- **Backup dump workflow exists; restore is still untested.** See
+  `docs/BACKUP_AND_DISASTER_RECOVERY.md`.
+- **`npm audit` is printed in CI** and still reports high/critical
+  transitive issues. `npm audit fix` currently crashes, so they are not
+  silently force-patched.
 - **No SAST/DAST tooling** run against the codebase.
 - **No penetration test or third-party security review** has been
   performed — everything in this document reflects internal code review

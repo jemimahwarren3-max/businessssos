@@ -134,3 +134,19 @@ export async function removePendingSale(localId: string) {
   const db = await getDb();
   await db.delete("pendingSales", localId);
 }
+
+/** Shared-device logout. Pending sales are not deleted until the cashier
+ * confirms, because a network blip followed by sign-out must not destroy
+ * unsynced cash sales. Product cache is always dropped. */
+export async function clearOfflineCacheOnLogout(businessId: string | null) {
+  if (typeof indexedDB === "undefined") return;
+  const db = await getDb();
+  if (!businessId) {
+    await db.clear("products");
+    return;
+  }
+  const tx = db.transaction("products", "readwrite");
+  const keys = await tx.store.index("by-business").getAllKeys(businessId);
+  await Promise.all(keys.map((key) => tx.store.delete(key)));
+  await tx.done;
+}

@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { registerAuthenticatedPwa } from "@/lib/pwa-register";
 import { MfaChallenge } from "@/components/mfa";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -25,6 +27,9 @@ export const Route = createFileRoute("/_authenticated")({
  * an aal2 challenge once per session before anything under here renders,
  * same enforcement shape as the (mandatory) admin gate in routes/admin.tsx. */
 function AuthenticatedGate() {
+  useEffect(() => {
+    registerAuthenticatedPwa();
+  }, []);
   const fetchStatus = useServerFn(getMfaStatusFn);
   const challengeFn = useServerFn(challengeMfaFn);
   const verifyChallengeFn = useServerFn(verifyMfaChallengeFn);
