@@ -1,17 +1,43 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
+import {
+  ORDER_DESK_FILTER_LABEL,
+  filterOrderDeskRows,
+  fulfilmentStatusLabel,
+  paymentStatusLabel,
+  sortOrderDeskRows,
+  type OrderDeskFilter,
+} from "@/lib/storefront/order-desk";
 import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
-import { ACTION_LABEL, fulfilmentActions } from "@/lib/storefront/transitions";
+import { ACTION_LABEL, fulfilmentActions, type OrderAction } from "@/lib/storefront/transitions";
 import type { AdminOrder, AdminStore } from "@/lib/storefront/contract";
-import { getAdminOrderFn, transitionOrderFn } from "@/lib/storefront/storefront.functions";
+import {
+  getAdminOrderFn,
+  saveSellerOrderNoteFn,
+  transitionOrderFn,
+} from "@/lib/storefront/storefront.functions";
 
 type OrderSummary = AdminStore["orders"][number];
+
+const FILTERS: OrderDeskFilter[] = [
+  "all",
+  "new",
+  "unpaid",
+  "confirmed",
+  "preparing",
+  "ready",
+  "delivery",
+  "completed",
+  "cancelled",
+];
 
 export function OnlineOrdersFulfilmentPanel({
   businessId,
@@ -29,9 +55,65 @@ export function OnlineOrdersFulfilmentPanel({
   const queryClient = useQueryClient();
   const loadOrder = useServerFn(getAdminOrderFn);
   const transition = useServerFn(transitionOrderFn);
+  const saveNote = useServerFn(saveSellerOrderNoteFn);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [checkedAccount, setCheckedAccount] = useState(false);
   const [paymentReference, setPaymentReference] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<OrderDeskFilter>("all");
+  const [cancelReason, setCancelReason] = useState("");
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [internalNote, setInternalNote] = useState("");
+  const [notePending, setNotePending] = useState(false);
+
+  const visibleOrders = useMemo(
+    () => sortOrderDeskRows(filterOrderDeskRows(orders, { query, filter })),
+    [orders, query, filter],
+  );
+
+  function openOrder(orderId: string) {
+    void loadOrder({ data: { businessId, orderId } }).then((next) => {
+      setSelectedOrder(next);
+      setCheckedAccount(false);
+      setPaymentReference("");
+      setCancelReason("");
+      setShowCancelForm(false);
+      setInternalNote(next.sellerInternalNote ?? "");
+    });
+  }
+
+  async function runTransition(action: OrderAction) {
+    if (!selectedOrder) return;
+    if (action === "cancel" && !cancelReason.trim()) {
+      setShowCancelForm(true);
+      toast.error("Enter a cancellation reason before cancelling.");
+      return;
+    }
+    try {
+      const next = await transition({
+        data: {
+          businessId,
+          orderId: selectedOrder.id,
+          action,
+          paymentReference: action === "mark_paid" ? paymentReference.trim() : undefined,
+          reason:
+            action === "cancel"
+              ? cancelReason.trim()
+              : action === "reject_proof"
+                ? "The shop could not confirm this payment. Send a new reference."
+                : undefined,
+        },
+      });
+      setSelectedOrder(next);
+      setCheckedAccount(false);
+      setPaymentReference("");
+      setCancelReason("");
+      setShowCancelForm(false);
+      void queryClient.invalidateQueries({ queryKey: queryKeys });
+    } catch (error) {
+      toast.error(readableError(error as Error, "Could not update the order"));
+    }
+  }
 
   return (
     <section id="online-orders" className="scroll-mt-24 space-y-3">
@@ -41,26 +123,45 @@ export function OnlineOrdersFulfilmentPanel({
         print the same receipt the customer sees. Unpaid orders stay out of sales reports until you
         record payment after checking your account.
       </p>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="grid flex-1 gap-1 text-sm">
+          Search
+          <Input
+            placeholder="Reference, customer, phone…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map((key) => (
+          <Button
+            key={key}
+            type="button"
+            size="sm"
+            variant={filter === key ? "default" : "outline"}
+            onClick={() => setFilter(key)}
+          >
+            {ORDER_DESK_FILTER_LABEL[key]}
+          </Button>
+        ))}
+      </div>
+
       <ul className="divide-y rounded-lg border">
-        {orders.length === 0 ? (
-          <li className="p-3 text-sm text-muted-foreground">No online orders yet.</li>
+        {visibleOrders.length === 0 ? (
+          <li className="p-3 text-sm text-muted-foreground">
+            {orders.length === 0
+              ? "No online orders yet."
+              : "No orders match this search or filter."}
+          </li>
         ) : null}
-        {orders.map((order) => (
+        {visibleOrders.map((order) => (
           <li
             key={order.id}
             className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
           >
-            <button
-              type="button"
-              className="text-left"
-              onClick={() =>
-                void loadOrder({ data: { businessId, orderId: order.id } }).then((next) => {
-                  setSelectedOrder(next);
-                  setCheckedAccount(false);
-                  setPaymentReference("");
-                })
-              }
-            >
+            <button type="button" className="min-w-0 flex-1 text-left" onClick={() => openOrder(order.id)}>
               <span className="font-medium">{order.reference}</span> · {order.customerName}
               <span className="mt-1 block text-muted-foreground">
                 {friendlyDateTime(order.createdAt)} · {formatMoney(order.total, order.currency)}
@@ -70,10 +171,15 @@ export function OnlineOrdersFulfilmentPanel({
                 {fulfilmentHowLabel(order.fulfilmentMethod)} ·{" "}
                 {paymentHowLabel(order.paymentMethod, order.paymentStatus === "paid")}
               </span>
+              <span className="mt-2 flex flex-wrap gap-1">
+                <Badge variant="secondary">{fulfilmentStatusLabel(order.fulfilmentStatus)}</Badge>
+                <Badge variant="outline">{paymentStatusLabel(order.paymentStatus)}</Badge>
+              </span>
             </button>
           </li>
         ))}
       </ul>
+
       {selectedOrder ? (
         <div className="rounded-lg border p-4 text-sm">
           <OrderReceipt
@@ -84,6 +190,50 @@ export function OnlineOrdersFulfilmentPanel({
               paid: selectedOrder.paymentStatus === "paid" || Boolean(selectedOrder.saleId),
             }}
           />
+          {selectedOrder.customerNotes ? (
+            <p className="mt-3 rounded-md border bg-muted/40 p-3">
+              <span className="font-medium">Customer note: </span>
+              {selectedOrder.customerNotes}
+            </p>
+          ) : null}
+          <div className="mt-3 space-y-2">
+            <label className="grid gap-1 text-sm">
+              Internal fulfilment note (staff only)
+              <Textarea
+                rows={3}
+                maxLength={2000}
+                value={internalNote}
+                onChange={(event) => setInternalNote(event.target.value)}
+                disabled={selectedOrder.fulfilmentStatus === "cancelled"}
+              />
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={notePending || selectedOrder.fulfilmentStatus === "cancelled"}
+              onClick={() => {
+                setNotePending(true);
+                void saveNote({
+                  data: {
+                    businessId,
+                    orderId: selectedOrder.id,
+                    note: internalNote,
+                  },
+                })
+                  .then((next) => {
+                    setSelectedOrder(next);
+                    toast.success("Internal note saved.");
+                  })
+                  .catch((error: Error) =>
+                    toast.error(readableError(error, "Could not save the note.")),
+                  )
+                  .finally(() => setNotePending(false));
+              }}
+            >
+              Save internal note
+            </Button>
+          </div>
           {selectedOrder.terms?.paymentProof?.reference || selectedOrder.proofUrl ? (
             <div className="mt-3 rounded-md border p-3 text-sm">
               <p className="font-medium">Customer payment proof</p>
@@ -149,6 +299,19 @@ export function OnlineOrdersFulfilmentPanel({
               ) : null}
             </div>
           ) : null}
+          {showCancelForm ? (
+            <div className="mt-3 space-y-2 rounded-md border border-destructive/40 p-3">
+              <label className="grid gap-1">
+                Cancellation reason (required)
+                <Textarea
+                  rows={2}
+                  maxLength={400}
+                  value={cancelReason}
+                  onChange={(event) => setCancelReason(event.target.value)}
+                />
+              </label>
+            </div>
+          ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
             {fulfilmentActions({
               fulfilmentStatus: selectedOrder.fulfilmentStatus,
@@ -162,29 +325,14 @@ export function OnlineOrdersFulfilmentPanel({
                 size="sm"
                 variant={action === "cancel" || action === "reject_proof" ? "outline" : "default"}
                 disabled={action === "mark_paid" && !checkedAccount}
-                onClick={() =>
-                  void transition({
-                    data: {
-                      businessId,
-                      orderId: selectedOrder.id,
-                      action,
-                      paymentReference: action === "mark_paid" ? paymentReference.trim() : undefined,
-                      reason:
-                        action === "reject_proof"
-                          ? "The shop could not confirm this payment. Send a new reference."
-                          : undefined,
-                    },
-                  })
-                    .then((next) => {
-                      setSelectedOrder(next);
-                      setCheckedAccount(false);
-                      setPaymentReference("");
-                      void queryClient.invalidateQueries({ queryKey: queryKeys });
-                    })
-                    .catch((error: Error) =>
-                      toast.error(readableError(error, "Could not update the order")),
-                    )
-                }
+                onClick={() => {
+                  if (action === "cancel") {
+                    setShowCancelForm(true);
+                    if (cancelReason.trim()) void runTransition(action);
+                    return;
+                  }
+                  void runTransition(action);
+                }}
               >
                 {action === "mark_paid" &&
                 (selectedOrder.paymentMethod === "manual" ||
@@ -197,7 +345,9 @@ export function OnlineOrdersFulfilmentPanel({
           </div>
           <ul className="mt-3 space-y-1 text-muted-foreground">
             {selectedOrder.events.map((event) => (
-              <li key={event.createdAt + event.eventType}>{event.message}</li>
+              <li key={event.createdAt + event.eventType}>
+                {friendlyDateTime(event.createdAt)} — {event.message}
+              </li>
             ))}
           </ul>
         </div>

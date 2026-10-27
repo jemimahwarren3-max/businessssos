@@ -426,6 +426,16 @@ export const customerOrderSchema = z.object({
       reviewed: z.boolean().catch(false),
     }),
   ),
+  events: z
+    .array(
+      z.object({
+        eventType: z.string(),
+        message: z.string(),
+        createdAt: z.string(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export type CustomerOrder = z.infer<typeof customerOrderSchema>;
@@ -568,6 +578,7 @@ export const adminOrderSchema = z.object({
   stockReserved: z.boolean(),
   createdAt: z.string(),
   collectAt: z.string().nullable().optional(),
+  sellerInternalNote: z.string().catch(""),
   proofUrl: z.string().nullable().optional(),
   terms: orderTermsSchema.optional(),
   items: customerOrderSchema.shape.items,
