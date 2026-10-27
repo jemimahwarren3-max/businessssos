@@ -125,11 +125,7 @@ const orderEmailDeliverySchema = z.array(
   }),
 );
 
-export async function listOrderEmailDeliveries(
-  supabase: Db,
-  businessId: string,
-  orderId: string,
-) {
+export async function listOrderEmailDeliveries(supabase: Db, businessId: string, orderId: string) {
   const result = await untypedRpc(supabase, "list_order_email_deliveries", {
     _business_id: businessId,
     _order_id: orderId,
@@ -143,11 +139,7 @@ export async function listOrderEmailDeliveries(
   return parsed.data;
 }
 
-export async function retryOrderEmailDelivery(
-  supabase: Db,
-  businessId: string,
-  outboxId: string,
-) {
+export async function retryOrderEmailDelivery(supabase: Db, businessId: string, outboxId: string) {
   const result = await untypedRpc(supabase, "retry_order_email_delivery", {
     _business_id: businessId,
     _outbox_id: outboxId,

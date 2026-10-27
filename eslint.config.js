@@ -6,7 +6,18 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  {
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      // Capacitor copies Vite bundles here; do not eslint minified assets.
+      "android/**",
+      "src-tauri/target/**",
+      "playwright-report/**",
+      "test-results/**",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -55,6 +66,7 @@ export default tseslint.config(
       "src/server.ts",
       "src/lib/payments/paynow.server.ts",
       "src/lib/payments/shop-paynow.server.ts",
+      "src/lib/payments/launch-fee.server.ts",
       "src/lib/admin/admin.server.ts",
       "src/lib/admin/impersonation.server.ts",
       "src/lib/account-deletion.server.ts",

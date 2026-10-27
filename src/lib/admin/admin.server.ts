@@ -311,7 +311,9 @@ export async function listAdminStorefronts(userId: string, tokens: SupabaseToken
   await requireAdmin(userId, tokens);
   const result = await untypedRpc("admin_list_storefronts", { _limit: limit });
   if (result.error) dbFail("load admin storefronts", result.error);
-  return z.array(z.record(z.string(), z.unknown())).parse(result.data ?? []) as AdminStorefrontRow[];
+  return z
+    .array(z.record(z.string(), z.unknown()))
+    .parse(result.data ?? []) as AdminStorefrontRow[];
 }
 
 export async function listAdminShopOrders(userId: string, tokens: SupabaseTokens, limit = 100) {
@@ -325,18 +327,21 @@ export async function listAdminPlatformAudit(userId: string, tokens: SupabaseTok
   await requireAdmin(userId, tokens);
   const result = await untypedRpc("admin_list_platform_audit", { _limit: limit });
   if (result.error) dbFail("load admin audit", result.error);
-  return (z.array(z.record(z.string(), z.unknown())).parse(result.data ?? []) as AdminAuditRow[]).map(
-    (row) => ({
-      ...row,
-      detail:
-        row.detail && typeof row.detail === "object" && !Array.isArray(row.detail)
-          ? (row.detail as Record<string, string | number | boolean | null>)
-          : null,
-    }),
-  );
+  return (
+    z.array(z.record(z.string(), z.unknown())).parse(result.data ?? []) as AdminAuditRow[]
+  ).map((row) => ({
+    ...row,
+    detail:
+      row.detail && typeof row.detail === "object" && !Array.isArray(row.detail)
+        ? (row.detail as Record<string, string | number | boolean | null>)
+        : null,
+  }));
 }
 
-export async function getAdminRuntime(userId: string, tokens: SupabaseTokens): Promise<AdminRuntime> {
+export async function getAdminRuntime(
+  userId: string,
+  tokens: SupabaseTokens,
+): Promise<AdminRuntime> {
   await requireAdmin(userId, tokens);
   const result = await untypedRpc("admin_get_runtime", {});
   if (result.error) dbFail("load platform runtime", result.error);
@@ -469,11 +474,7 @@ export async function listAdminOutbox(
   return z.array(z.record(z.string(), z.unknown())).parse(result.data ?? []) as AdminOutboxRow[];
 }
 
-export async function flushAdminOutbox(
-  userId: string,
-  tokens: SupabaseTokens,
-  reason: string,
-) {
+export async function flushAdminOutbox(userId: string, tokens: SupabaseTokens, reason: string) {
   await requireAdmin(userId, tokens);
   const result = await flushNotificationOutboxAdmin();
   await logPlatformAudit(userId, "flush_notification_outbox", reason, {
@@ -488,7 +489,9 @@ export async function listPaymentProviderControls(userId: string, tokens: Supaba
   await requireAdmin(userId, tokens);
   const result = await untypedRpc("admin_get_payment_provider_controls", {});
   if (result.error) dbFail("load payment provider controls", result.error);
-  return z.array(z.record(z.string(), z.unknown())).parse(result.data ?? []) as PaymentProviderControl[];
+  return z
+    .array(z.record(z.string(), z.unknown()))
+    .parse(result.data ?? []) as PaymentProviderControl[];
 }
 
 export async function setPaymentProviderControl(
@@ -530,7 +533,10 @@ export async function getAdminHealth(userId: string, tokens: SupabaseTokens): Pr
   };
 }
 
-export async function exportAdminTenantsCsv(userId: string, tokens: SupabaseTokens): Promise<string> {
+export async function exportAdminTenantsCsv(
+  userId: string,
+  tokens: SupabaseTokens,
+): Promise<string> {
   await requireAdmin(userId, tokens);
   const result = await untypedRpc("admin_export_tenants_csv", {});
   if (result.error) dbFail("export tenants csv", result.error);

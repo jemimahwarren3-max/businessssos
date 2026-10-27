@@ -23,10 +23,7 @@ export function HintTooltip({
       <TooltipContent
         side={side}
         sideOffset={6}
-        className={cn(
-          "max-w-[260px] text-left text-[13px] font-normal leading-snug",
-          className,
-        )}
+        className={cn("max-w-[260px] text-left text-[13px] font-normal leading-snug", className)}
       >
         {hint}
       </TooltipContent>

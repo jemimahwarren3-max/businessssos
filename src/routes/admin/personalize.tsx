@@ -78,8 +78,8 @@ function AdminPersonalizePage() {
   return (
     <AdminShell title="Personalize">
       <p className="text-sm text-muted-foreground">
-        Brand colours and logos live in code (`src/lib/brand.ts` and `src/styles.css`). Here you
-        can broadcast a short message to every signed-in merchant.
+        Brand colours and logos live in code (`src/lib/brand.ts` and `src/styles.css`). Here you can
+        broadcast a short message to every signed-in merchant.
       </p>
       {runtime.isLoading ? <Skeleton className="h-32" /> : null}
       <div className="surface max-w-xl space-y-4 p-5">

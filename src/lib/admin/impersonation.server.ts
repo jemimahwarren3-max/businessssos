@@ -1,9 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import {
-  dbFail,
-  invalidateWorkspaceCacheForBusiness,
-  type Workspace,
-} from "@/lib/business.server";
+import { dbFail, invalidateWorkspaceCacheForBusiness, type Workspace } from "@/lib/business.server";
 import { cacheDel, workspaceCacheKey } from "@/lib/cache/redis.server";
 import {
   canOperateWithPlatformEntitlement,
@@ -33,8 +29,12 @@ async function untypedRpc(
   return rpc(fn, args);
 }
 
-export async function getActiveImpersonation(adminUserId: string): Promise<ActiveImpersonation | null> {
-  const result = await untypedRpc("admin_get_active_impersonation", { _admin_user_id: adminUserId });
+export async function getActiveImpersonation(
+  adminUserId: string,
+): Promise<ActiveImpersonation | null> {
+  const result = await untypedRpc("admin_get_active_impersonation", {
+    _admin_user_id: adminUserId,
+  });
   if (result.error) dbFail("load impersonation session", result.error);
   const row = result.data as Record<string, unknown> | null;
   if (!row || typeof row["businessId"] !== "string") return null;
@@ -111,7 +111,11 @@ export async function loadWorkspaceWhileImpersonating(
       .select("id, name, business_type, currency, onboarding_completed, logo_url")
       .eq("id", businessId)
       .maybeSingle(),
-    supabase.from("subscriptions").select("plan, status, trial_ends_at").eq("business_id", businessId).maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan, status, trial_ends_at")
+      .eq("business_id", businessId)
+      .maybeSingle(),
     supabase.rpc("get_my_permissions", { _business_id: businessId }),
     untypedRpc("get_business_feature_flags", { _business_id: businessId }),
   ]);
@@ -143,9 +147,12 @@ export async function loadWorkspaceWhileImpersonating(
 }
 
 export async function assertNotImpersonating(supabase: Db, businessId: string) {
-  const { data, error } = await supabase.rpc("is_platform_impersonating" as never, {
-    _business_id: businessId,
-  } as never);
+  const { data, error } = await supabase.rpc(
+    "is_platform_impersonating" as never,
+    {
+      _business_id: businessId,
+    } as never,
+  );
   if (error) dbFail("impersonation check", error);
   if (data) {
     throw new Error(

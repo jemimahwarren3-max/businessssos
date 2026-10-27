@@ -35,13 +35,7 @@ const NAV: {
   { to: "/admin/system", label: "System", icon: Settings2 },
 ];
 
-export function AdminShell({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
+export function AdminShell({ title, children }: { title: string; children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (

@@ -2,7 +2,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { friendlyDateTime, readableError } from "@/lib/format";
-import { listOrderEmailDeliveriesFn, retryOrderEmailDeliveryFn } from "@/lib/notifications.functions";
+import {
+  listOrderEmailDeliveriesFn,
+  retryOrderEmailDeliveryFn,
+} from "@/lib/notifications.functions";
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Queued",

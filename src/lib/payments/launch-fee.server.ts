@@ -44,7 +44,10 @@ function createPaynowClient(currency: SubscriptionBillingCurrency): Paynow {
   );
 }
 
-async function resolveLaunchCurrency(supabase: Db, businessId: string): Promise<SubscriptionBillingCurrency> {
+async function resolveLaunchCurrency(
+  supabase: Db,
+  businessId: string,
+): Promise<SubscriptionBillingCurrency> {
   const { data: business, error } = await supabase
     .from("businesses")
     .select("currency")
@@ -113,13 +116,16 @@ export async function initiateStoreLaunchCheckout(
     throw new AppError("Paynow couldn't start this payment. Please try again in a moment.");
   }
 
-  const { error: rpcError } = await supabase.rpc("record_storefront_launch_payment" as never, {
-    _business_id: businessId,
-    _reference: reference,
-    _amount: amount,
-    _currency: currency,
-    _poll_url: response.pollUrl,
-  } as never);
+  const { error: rpcError } = await supabase.rpc(
+    "record_storefront_launch_payment" as never,
+    {
+      _business_id: businessId,
+      _reference: reference,
+      _amount: amount,
+      _currency: currency,
+      _poll_url: response.pollUrl,
+    } as never,
+  );
   if (rpcError) dbFail("record storefront launch payment", rpcError);
 
   return {
@@ -200,12 +206,15 @@ export async function pollAndConfirmLaunchPayment(
   const paynowReference = statusResponse.paynowReference ?? null;
 
   if (status === "paid") {
-    const { error } = await supabaseAdmin.rpc("paynow_confirm_launch_payment" as never, {
-      _reference: reference,
-      _provider_reference: paynowReference,
-      _raw_status: statusResponse.status ?? null,
-      _paid: true,
-    } as never);
+    const { error } = await supabaseAdmin.rpc(
+      "paynow_confirm_launch_payment" as never,
+      {
+        _reference: reference,
+        _provider_reference: paynowReference,
+        _raw_status: statusResponse.status ?? null,
+        _paid: true,
+      } as never,
+    );
     if (error) {
       console.error("[paynow] confirm launch payment", error);
       return "pending";
@@ -217,12 +226,15 @@ export async function pollAndConfirmLaunchPayment(
   }
 
   if (FAILURE_STATUSES.has(status)) {
-    const { error } = await supabaseAdmin.rpc("paynow_confirm_launch_payment" as never, {
-      _reference: reference,
-      _provider_reference: paynowReference,
-      _raw_status: statusResponse.status ?? null,
-      _paid: false,
-    } as never);
+    const { error } = await supabaseAdmin.rpc(
+      "paynow_confirm_launch_payment" as never,
+      {
+        _reference: reference,
+        _provider_reference: paynowReference,
+        _raw_status: statusResponse.status ?? null,
+        _paid: false,
+      } as never,
+    );
     if (error) {
       console.error("[paynow] record failed launch payment", error);
       return "pending";

@@ -53,9 +53,9 @@ function AdminSystemPage() {
       <div className="surface max-w-xl space-y-4 p-5">
         <h2 className="text-sm font-semibold">Paid operate enforcement (database)</h2>
         <p className="text-sm text-muted-foreground">
-          Works together with Cloud Run <code className="text-xs">BILLING_ENABLED=true</code>.
-          When both are on, Postgres RPCs block publish, POS, and cash drawer without an active
-          Pro subscription. Keep off on staging during free beta.
+          Works together with Cloud Run <code className="text-xs">BILLING_ENABLED=true</code>. When
+          both are on, Postgres RPCs block publish, POS, and cash drawer without an active Pro
+          subscription. Keep off on staging during free beta.
         </p>
         {runtime.data ? (
           <p className="text-xs text-muted-foreground">
@@ -77,7 +77,11 @@ function AdminSystemPage() {
         </label>
         <div className="space-y-1.5">
           <Label htmlFor="sys-reason">Reason (audit)</Label>
-          <Input id="sys-reason" value={reason} onChange={(event) => setReason(event.target.value)} />
+          <Input
+            id="sys-reason"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
         </div>
         <Button
           type="button"

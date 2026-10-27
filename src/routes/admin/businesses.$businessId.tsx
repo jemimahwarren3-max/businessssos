@@ -69,8 +69,7 @@ function AdminBusinessDetailPage() {
     queryFn: () => listLaunchPayments({ data: { businessId } }),
   });
   const waiveMutation = useMutation({
-    mutationFn: () =>
-      waiveLaunch({ data: { businessId, reason: launchWaiveReason.trim() } }),
+    mutationFn: () => waiveLaunch({ data: { businessId, reason: launchWaiveReason.trim() } }),
     onSuccess: () => {
       setLaunchWaiveReason("");
       void queryClient.invalidateQueries({ queryKey: ["admin-launch-payments", businessId] });
@@ -199,7 +198,10 @@ function AdminBusinessDetailPage() {
         {flags.isLoading ? <Skeleton className="h-24" /> : null}
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={billingExempt} onCheckedChange={(v) => setBillingExempt(v === true)} />
+            <Checkbox
+              checked={billingExempt}
+              onCheckedChange={(v) => setBillingExempt(v === true)}
+            />
             Billing exempt (treat like platform owner for entitlements)
           </label>
           <label className="flex items-center gap-2 text-sm">
@@ -272,18 +274,25 @@ function AdminBusinessDetailPage() {
           Launch-fee payments are verified via Paynow polling on the server. Waivers and suspensions
           are audited.
         </p>
-        {launchPayments.data && Array.isArray(launchPayments.data) && launchPayments.data.length > 0 ? (
+        {launchPayments.data &&
+        Array.isArray(launchPayments.data) &&
+        launchPayments.data.length > 0 ? (
           <ul className="divide-y rounded-md border text-xs">
-            {(launchPayments.data as { reference: string; status: string; amount: number; currency: string }[]).map(
-              (row) => (
-                <li key={row.reference} className="flex justify-between gap-2 px-2 py-1.5">
-                  <span>{row.reference.slice(0, 20)}…</span>
-                  <span>
-                    {row.status} · {formatMoney(row.amount, row.currency)}
-                  </span>
-                </li>
-              ),
-            )}
+            {(
+              launchPayments.data as {
+                reference: string;
+                status: string;
+                amount: number;
+                currency: string;
+              }[]
+            ).map((row) => (
+              <li key={row.reference} className="flex justify-between gap-2 px-2 py-1.5">
+                <span>{row.reference.slice(0, 20)}…</span>
+                <span>
+                  {row.status} · {formatMoney(row.amount, row.currency)}
+                </span>
+              </li>
+            ))}
           </ul>
         ) : (
           <p className="text-muted-foreground">No launch-fee payment attempts recorded.</p>

@@ -54,10 +54,7 @@ import {
   themeFromPalette,
   type StorefrontTheme,
 } from "@/lib/storefront/theme";
-import {
-  snapshotsEqual,
-  type StoreBuilderSnapshot,
-} from "@/lib/storefront/store-builder-state";
+import { snapshotsEqual, type StoreBuilderSnapshot } from "@/lib/storefront/store-builder-state";
 
 function snapshotFromState(input: {
   storeName: string;
@@ -245,7 +242,10 @@ export function StoreBuilder({
       areas: store.delivery.areas ?? "",
       estimate: store.delivery.estimate ?? "",
       quoteRequired: store.delivery.quoteRequired ?? false,
-      pricingMethod: deliveryPricingMethod(store.delivery) === "quote" ? "flat" : deliveryPricingMethod(store.delivery),
+      pricingMethod:
+        deliveryPricingMethod(store.delivery) === "quote"
+          ? "flat"
+          : deliveryPricingMethod(store.delivery),
       deliveryInstructions: store.delivery.deliveryInstructions ?? "",
       collectionInstructions: store.delivery.collectionInstructions ?? "",
       zones: store.delivery.zones ?? [],
@@ -362,9 +362,7 @@ export function StoreBuilder({
     ],
   );
 
-  const isDirty = savedRef.current
-    ? !snapshotsEqual(currentSnapshot, savedRef.current)
-    : false;
+  const isDirty = savedRef.current ? !snapshotsEqual(currentSnapshot, savedRef.current) : false;
 
   const applySnapshot = useCallback((snap: StoreBuilderSnapshot) => {
     setStoreName(snap.storeName);
@@ -557,7 +555,8 @@ export function StoreBuilder({
 
         <TabsContent value="design" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Choose a layout. Each theme changes hero, navigation, and product grid on your live shop.
+            Choose a layout. Each theme changes hero, navigation, and product grid on your live
+            shop.
           </p>
           <div className="grid gap-4 lg:grid-cols-3">
             {BUILDER_TEMPLATE_CHOICES.map((choice) => {
@@ -571,7 +570,10 @@ export function StoreBuilder({
                   onClick={() => {
                     setTemplateId(choice.templateId);
                     setTheme((current) =>
-                      themeFromPalette(previewTemplate.defaultPalette, previewTemplate.defaultAccent),
+                      themeFromPalette(
+                        previewTemplate.defaultPalette,
+                        previewTemplate.defaultAccent,
+                      ),
                     );
                   }}
                   className="rounded-xl border p-3 text-left transition-shadow hover:shadow-sm disabled:opacity-60"
@@ -629,15 +631,27 @@ export function StoreBuilder({
             </label>
             <label className="text-sm">
               <Label>Tagline</Label>
-              <Input value={tagline} disabled={disabled} onChange={(event) => setTagline(event.target.value)} />
+              <Input
+                value={tagline}
+                disabled={disabled}
+                onChange={(event) => setTagline(event.target.value)}
+              />
             </label>
             <label className="text-sm sm:col-span-2">
               <Label>Store description</Label>
-              <Textarea value={about} disabled={disabled} onChange={(event) => setAbout(event.target.value)} />
+              <Textarea
+                value={about}
+                disabled={disabled}
+                onChange={(event) => setAbout(event.target.value)}
+              />
             </label>
             <label className="text-sm">
               <Label>Hero title</Label>
-              <Input value={heroTitle} disabled={disabled} onChange={(event) => setHeroTitle(event.target.value)} />
+              <Input
+                value={heroTitle}
+                disabled={disabled}
+                onChange={(event) => setHeroTitle(event.target.value)}
+              />
             </label>
             <label className="text-sm">
               <Label>Hero subtitle</Label>
@@ -670,14 +684,20 @@ export function StoreBuilder({
           </div>
           <label className="text-sm">
             <Label>Logo URL (optional HTTPS)</Label>
-            <Input value={logoUrl} disabled={disabled} onChange={(event) => setLogoUrl(event.target.value)} />
+            <Input
+              value={logoUrl}
+              disabled={disabled}
+              onChange={(event) => setLogoUrl(event.target.value)}
+            />
           </label>
           <label className="text-sm">
             <Label>Banner URL (optional HTTPS)</Label>
             <Input
               value={theme.coverUrl}
               disabled={disabled}
-              onChange={(event) => setTheme((current) => ({ ...current, coverUrl: event.target.value }))}
+              onChange={(event) =>
+                setTheme((current) => ({ ...current, coverUrl: event.target.value }))
+              }
             />
           </label>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -793,27 +813,52 @@ export function StoreBuilder({
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm">
               <Label>Shop link (slug)</Label>
-              <Input value={slug} disabled={disabled} onChange={(event) => setSlug(event.target.value)} />
+              <Input
+                value={slug}
+                disabled={disabled}
+                onChange={(event) => setSlug(event.target.value)}
+              />
             </label>
             <label className="text-sm">
               <Label>Phone</Label>
-              <Input value={phone} disabled={disabled} onChange={(event) => setPhone(event.target.value)} />
+              <Input
+                value={phone}
+                disabled={disabled}
+                onChange={(event) => setPhone(event.target.value)}
+              />
             </label>
             <label className="text-sm">
               <Label>WhatsApp</Label>
-              <Input value={whatsapp} disabled={disabled} onChange={(event) => setWhatsapp(event.target.value)} />
+              <Input
+                value={whatsapp}
+                disabled={disabled}
+                onChange={(event) => setWhatsapp(event.target.value)}
+              />
             </label>
             <label className="text-sm">
               <Label>Support email</Label>
-              <Input type="email" value={email} disabled={disabled} onChange={(event) => setEmail(event.target.value)} />
+              <Input
+                type="email"
+                value={email}
+                disabled={disabled}
+                onChange={(event) => setEmail(event.target.value)}
+              />
             </label>
             <label className="text-sm md:col-span-2">
               <Label>Address / service area</Label>
-              <Input value={address} disabled={disabled} onChange={(event) => setAddress(event.target.value)} />
+              <Input
+                value={address}
+                disabled={disabled}
+                onChange={(event) => setAddress(event.target.value)}
+              />
             </label>
             <label className="text-sm md:col-span-2">
               <Label>Opening hours note</Label>
-              <Textarea value={hours} disabled={disabled} onChange={(event) => setHours(event.target.value)} />
+              <Textarea
+                value={hours}
+                disabled={disabled}
+                onChange={(event) => setHours(event.target.value)}
+              />
             </label>
           </div>
           <fieldset className="grid gap-3 md:grid-cols-2">
@@ -831,7 +876,9 @@ export function StoreBuilder({
                 <Input
                   value={socials[key]}
                   disabled={disabled}
-                  onChange={(event) => setSocials((current) => ({ ...current, [key]: event.target.value }))}
+                  onChange={(event) =>
+                    setSocials((current) => ({ ...current, [key]: event.target.value }))
+                  }
                 />
               </label>
             ))}
@@ -889,7 +936,11 @@ export function StoreBuilder({
             </label>
             <label className="text-sm md:col-span-2">
               <Label>Other policies</Label>
-              <Textarea value={policies} disabled={disabled} onChange={(event) => setPolicies(event.target.value)} />
+              <Textarea
+                value={policies}
+                disabled={disabled}
+                onChange={(event) => setPolicies(event.target.value)}
+              />
             </label>
           </div>
           <HoursEditor
@@ -967,7 +1018,9 @@ export function StoreBuilder({
               Pay cash on delivery
             </label>
             {!store.payments.paynowAvailable ? (
-              <p className="text-amber-700">Automated Paynow checkout is disabled on this platform.</p>
+              <p className="text-amber-700">
+                Automated Paynow checkout is disabled on this platform.
+              </p>
             ) : null}
             <label className="flex items-center gap-2">
               <input
@@ -1028,7 +1081,11 @@ export function StoreBuilder({
       </Tabs>
 
       <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t bg-background/95 py-3 backdrop-blur">
-        <Button type="button" disabled={disabled || saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+        <Button
+          type="button"
+          disabled={disabled || saveMutation.isPending}
+          onClick={() => saveMutation.mutate()}
+        >
           {saveMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
           Save draft
         </Button>

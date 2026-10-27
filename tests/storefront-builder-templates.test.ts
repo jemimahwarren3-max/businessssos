@@ -9,7 +9,9 @@ import { getTemplate } from "@/lib/storefront/templates";
 describe("store builder templates", () => {
   it("exposes three distinct layout families", () => {
     expect(BUILDER_TEMPLATE_CHOICES).toHaveLength(3);
-    const layouts = BUILDER_TEMPLATE_CHOICES.map((choice) => getTemplate(choice.templateId).heroStyle);
+    const layouts = BUILDER_TEMPLATE_CHOICES.map(
+      (choice) => getTemplate(choice.templateId).heroStyle,
+    );
     expect(new Set(layouts).size).toBeGreaterThanOrEqual(2);
   });
 

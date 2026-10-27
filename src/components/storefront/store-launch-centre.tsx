@@ -64,8 +64,8 @@ export function StoreLaunchCentre({
       {!compact ? (
         <p className="rounded-lg bg-muted/50 px-3 py-2 text-[13px] text-muted-foreground">
           <strong className="font-medium text-foreground">Business tools vs online shop:</strong>{" "}
-          Invoices, inventory, and POS work without a public storefront. Online selling is optional —
-          turn it on here when you are ready.
+          Invoices, inventory, and POS work without a public storefront. Online selling is optional
+          — turn it on here when you are ready.
         </p>
       ) : null}
 
@@ -83,7 +83,10 @@ export function StoreLaunchCentre({
               >
                 <StepIcon done={step.done} />
                 <StepBody step={step} />
-                <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <ExternalLink
+                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
               </Link>
             ) : (
               <a
@@ -130,7 +133,11 @@ function StepIcon({ done }: { done: boolean }) {
   );
 }
 
-function StepBody({ step }: { step: { step: number; title: string; description: string; done: boolean } }) {
+function StepBody({
+  step,
+}: {
+  step: { step: number; title: string; description: string; done: boolean };
+}) {
   return (
     <div className="min-w-0 flex-1">
       <p className="text-sm font-medium">

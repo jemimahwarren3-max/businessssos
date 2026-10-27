@@ -67,8 +67,7 @@ export function StoreLaunchReadiness({
       void queryClient.invalidateQueries({ queryKey: ["store-launch-eligibility", businessId] });
       void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
     },
-    onError: (error: Error) =>
-      toast.error(readableError(error, "Could not check payment status.")),
+    onError: (error: Error) => toast.error(readableError(error, "Could not check payment status.")),
   });
 
   const publishMutation = useMutation({
@@ -212,11 +211,11 @@ export function StoreLaunchReadiness({
               publish({ data: { businessId, published: false } })
                 .then(() => {
                   toast.success("Shop unpublished");
-                  void queryClient.invalidateQueries({ queryKey: ["store-launch-eligibility", businessId] });
+                  void queryClient.invalidateQueries({
+                    queryKey: ["store-launch-eligibility", businessId],
+                  });
                 })
-                .catch((error: Error) =>
-                  toast.error(readableError(error, "Could not unpublish.")),
-                )
+                .catch((error: Error) => toast.error(readableError(error, "Could not unpublish.")))
             }
           >
             Unpublish

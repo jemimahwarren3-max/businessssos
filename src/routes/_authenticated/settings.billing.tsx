@@ -170,8 +170,7 @@ function Billing() {
   const billingEnabled = workspace.data.billingEnabled;
   const proUsd = planAmountUsd("pro");
   const proZig = planAmountZig(proUsd, fx);
-  const checkoutAmount =
-    billingCurrency === "ZWG" && proZig != null ? proZig : proUsd;
+  const checkoutAmount = billingCurrency === "ZWG" && proZig != null ? proZig : proUsd;
   const checkoutCurrency = billingCurrency === "ZWG" && proZig != null ? "ZWG" : "USD";
 
   return (

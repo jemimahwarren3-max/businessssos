@@ -19,7 +19,9 @@ console.log(JSON.stringify(summary, null, 2));
 console.log("");
 
 if (!summary.external_email_enabled) {
-  console.warn("Email sign-in is OFF in GoTrue — enable Authentication → Email or run staging:apply.");
+  console.warn(
+    "Email sign-in is OFF in GoTrue — enable Authentication → Email or run staging:apply.",
+  );
 }
 if (!summary.mailer_autoconfirm && !summary.smtpConfigured) {
   console.warn(
@@ -28,5 +30,7 @@ if (!summary.mailer_autoconfirm && !summary.smtpConfigured) {
   console.warn("Fix: docs/auth/SUPABASE_AUTH_EMAIL.md (Resend SMTP or enable autoconfirm).");
 }
 if (summary.site_url && !String(summary.site_url).startsWith("https://")) {
-  console.warn("Site URL should be https://mykwetuu.com (not http) for production cookies and links.");
+  console.warn(
+    "Site URL should be https://mykwetuu.com (not http) for production cookies and links.",
+  );
 }

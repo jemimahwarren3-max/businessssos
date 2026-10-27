@@ -167,13 +167,7 @@ export const quoteCartFn = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data }) =>
-    quoteCart(
-      data.slug,
-      data.items,
-      data.fulfilment,
-      data.deliveryZoneId,
-      data.collectionPointId,
-    ),
+    quoteCart(data.slug, data.items, data.fulfilment, data.deliveryZoneId, data.collectionPointId),
   );
 
 export const placeOrderFn = createServerFn({ method: "POST" })
@@ -501,27 +495,20 @@ export const uploadStorefrontProductImageFn = createServerFn({ method: "POST" })
 
 export const uploadStorefrontBrandingFn = createServerFn({ method: "POST" })
   .middleware(authed)
-  .inputValidator(
-    (data: unknown): { businessId: string; kind: "logo" | "cover"; file: File } => {
-      if (!(data instanceof FormData)) throw new Error("Choose a photo.");
-      const businessId = String(data.get("businessId") ?? "");
-      const kind = String(data.get("kind") ?? "");
-      const file = data.get("file");
-      if (!z.string().uuid().safeParse(businessId).success) {
-        throw new Error("That shop could not be found.");
-      }
-      if (kind !== "logo" && kind !== "cover") throw new Error("Invalid image type.");
-      if (!(file instanceof File)) throw new Error("Choose a photo.");
-      return { businessId, kind, file };
-    },
-  )
+  .inputValidator((data: unknown): { businessId: string; kind: "logo" | "cover"; file: File } => {
+    if (!(data instanceof FormData)) throw new Error("Choose a photo.");
+    const businessId = String(data.get("businessId") ?? "");
+    const kind = String(data.get("kind") ?? "");
+    const file = data.get("file");
+    if (!z.string().uuid().safeParse(businessId).success) {
+      throw new Error("That shop could not be found.");
+    }
+    if (kind !== "logo" && kind !== "cover") throw new Error("Invalid image type.");
+    if (!(file instanceof File)) throw new Error("Choose a photo.");
+    return { businessId, kind, file };
+  })
   .handler(async ({ data, context }) =>
-    uploadStorefrontBrandingImage(
-      context.supabase as Db,
-      data.businessId,
-      data.kind,
-      data.file,
-    ),
+    uploadStorefrontBrandingImage(context.supabase as Db, data.businessId, data.kind, data.file),
   );
 
 export const removeStorefrontProductImageFn = createServerFn({ method: "POST" })
