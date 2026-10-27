@@ -204,7 +204,9 @@ function MarketFrame({ children }: { children: ReactNode }) {
             <Link to="/market" search={{ q: "", category: "" }}>
               Shops
             </Link>
-            <Link to="/staff-login">Sign in</Link>
+            <Link to="/auth" search={{ mode: "signin" }}>
+              Sign in
+            </Link>
           </nav>
         </div>
       </header>

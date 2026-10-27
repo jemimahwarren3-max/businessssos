@@ -7,9 +7,9 @@ node_modules
 .env
 .env.*
 !.env.example
-*.md
+# Vite imports legal/*.md as ?raw. Do not ignore markdown — README in the
+# image is cheap; missing legal files fail the Cloud Run build.
 docs
-legal
 tests
 coverage
 .vscode

@@ -255,7 +255,7 @@ export async function createBusinessRecord(
     business_id: businessId,
     user_id: userId,
     type: "welcome",
-    title: "Welcome to BusinessOS AI",
+    title: "Welcome to Kwetuu",
     message: isBillingEnabled()
       ? "Your 3-day Pro trial has started. Add your first products to begin."
       : "You're in! BusinessOS is free during our beta, add your first products to begin.",

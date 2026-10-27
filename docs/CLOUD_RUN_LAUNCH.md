@@ -55,7 +55,7 @@ console steps in the operator reply / GitHub secrets table below.
 | `GCP_PROJECT_ID`                   | The GCP project id                                                                     |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER`   | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/kwetuu/providers/github` |
 | `GCP_SERVICE_ACCOUNT`              | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                     |
-| `APP_URL`                          | First: the `https://….run.app` URL Cloud Run prints. After DNS: `https://mykwetuu.com` |
+| `APP_URL`                          | Always `https://mykwetuu.com` (do not flip to `.run.app`)                              |
 | `STAGING_SUPABASE_URL`             | Staging project URL                                                                    |
 | `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging anon/publishable key                                                           |
 | `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                 |
@@ -64,18 +64,20 @@ console steps in the operator reply / GitHub secrets table below.
 
 ## Domain `mykwetuu.com`
 
-1. Merge this PR (or run **Deploy Cloud Run** once) so service `kwetuu` exists.
-2. Map the hostname (Cloud Run prints the DNS records):
+Keep GitHub `APP_URL` as `https://mykwetuu.com` from now on. The deploy job
+maps `mykwetuu.com` and `www.mykwetuu.com` onto service `kwetuu` and prints
+the DNS records. Fully managed Cloud Run needs `gcloud beta run
+domain-mappings` (`--region` is not valid on the GA Anthos command).
 
-```bash
-gcloud run domain-mappings create --service=kwetuu --domain=mykwetuu.com --region=europe-west1
-gcloud run domain-mappings create --service=kwetuu --domain=www.mykwetuu.com --region=europe-west1
-```
-
-3. At the registrar for `mykwetuu.com`, add those A/AAAA or CNAME records.
-4. Wait until `gcloud run domain-mappings describe --domain=mykwetuu.com --region=europe-west1` shows a Ready certificate.
-5. Set GitHub secret `APP_URL` to `https://mykwetuu.com` and run **Deploy Cloud Run** once more (or merge any follow-up) so cookies and Paynow callbacks use the apex.
-6. In the **staging** Supabase Auth URL settings, add `https://mykwetuu.com` and `https://www.mykwetuu.com` as site/redirect URLs.
+1. Run **Actions → Deploy Cloud Run** (or merge to `master`).
+2. Open the job log **Map mykwetuu.com**. Copy `TYPE` / `HOST` / `VALUE`.
+3. At the registrar (or Cloudflare **DNS only**, grey cloud — not proxied),
+   add those records for the apex and `www`.
+4. Wait until the log’s certificate condition is `True` (often 15–60 minutes,
+   sometimes longer). Then `https://mykwetuu.com` is the public URL.
+5. In **staging** Supabase → Authentication → URL Configuration:
+   Site URL `https://mykwetuu.com`. Redirect URLs: `https://mykwetuu.com/**`
+   and `https://www.mykwetuu.com/**`.
 
 Keep `SHOP_HOSTS=false` until you have a wildcard certificate. Paynow
 `resulturl` is `https://mykwetuu.com/api/webhooks/paynow`.

@@ -14,6 +14,7 @@ export type PlatformRoot = {
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
 export const RESERVED_HOST_LABELS = new Set([
+  "about",
   "account",
   "admin",
   "api",
@@ -29,6 +30,8 @@ export const RESERVED_HOST_LABELS = new Set([
   "customers",
   "dashboard",
   "expenses",
+  "faq",
+  "features",
   "health",
   "help",
   "insights",
@@ -41,6 +44,7 @@ export const RESERVED_HOST_LABELS = new Set([
   "market",
   "onboarding",
   "order",
+  "pricing",
   "privacy",
   "products",
   "public",
@@ -60,11 +64,13 @@ export const RESERVED_HOST_LABELS = new Set([
   "storefront",
   "stores",
   "suppliers",
+  "templates",
   "terms",
   "www",
 ]);
 
 const APP_PATH_PREFIXES = [
+  "/about",
   "/admin",
   "/api",
   "/assistant",
@@ -75,6 +81,8 @@ const APP_PATH_PREFIXES = [
   "/customers",
   "/dashboard",
   "/expenses",
+  "/faq",
+  "/features",
   "/health",
   "/help",
   "/insights",
@@ -84,6 +92,7 @@ const APP_PATH_PREFIXES = [
   "/legal",
   "/market",
   "/onboarding",
+  "/pricing",
   "/privacy",
   "/purchase-orders",
   "/quotes",
@@ -98,6 +107,7 @@ const APP_PATH_PREFIXES = [
   "/staff-login",
   "/storefront",
   "/suppliers",
+  "/templates",
   "/terms",
   "/time-clock",
 ];
