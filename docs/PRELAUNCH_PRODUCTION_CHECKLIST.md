@@ -25,7 +25,7 @@ Manual gates — tick only with attached evidence. **Current count: 0 / 21 passi
 | 1 | No unresolved critical/high security without accepted exception | **Not verified** | `npm audit` in CI (continue-on-error); no launch sign-off |
 | 2 | Tenant isolation + roles + server auth pass tests | **Not verified** | `tests/integration/*` skipped without `SUPABASE_ACCESS_TOKEN` |
 | 3 | No production secrets in client/repo | **Built and tested** | `.env` gitignored; server-only keys; review in `PRODUCTION_SECURITY_CHECKLIST.md` |
-| 4 | Unpaid publish / paid-feature bypass rejected server-side | **Blocked or needs fixing** | Node `assertCanOperate` on master (#64); **RPC bypass open**; **`BILLING_ENABLED` must be true in prod** |
+| 4 | Unpaid publish / paid-feature bypass rejected server-side | **Not verified** | Node `assertCanOperate` (#64); Postgres `assert_business_can_operate` on publish/POS/cash (migration `20261026180000`); flip **`BILLING_ENABLED` + `platform_runtime.billing_enforced`** together in prod; staging integration test when token set |
 | 5 | Payment verify + idempotent callbacks + entitlements | **Not verified** | Unit tests; Paynow sandbox/live not signed off |
 | 6 | USD/ZiG calculations and records reconcile | **Not verified** | Checkout in SQL; ZiG display via `platform_fx`; no reconciliation worker |
 | 7 | Seller setup → publish → manage under payment rules | **Not verified** | Flow exists; end-to-end not verified on staging |
@@ -97,8 +97,8 @@ Manual gates — tick only with attached evidence. **Current count: 0 / 21 passi
 | Reserved slugs / validation | **Built and tested** | `RESERVED_HOST_LABELS`, SQL |
 | Fulfilment + payment options for publish | **Built and tested** | `set_storefront_published` checks |
 | Launch checklist visible | **Not verified** | Partial UI checklist |
-| **Server-side publish authorization** | **Blocked or needs fixing** | `assertCanPublish` (Node); **RPC has no subscription check** |
-| **Unpaid API bypass** | **Blocked or needs fixing** | Direct `set_storefront_published` as `authenticated` |
+| **Server-side publish authorization** | **Not verified** | `assertCanPublish` (Node) + `set_storefront_published` RPC guard when `billing_enforced` |
+| **Unpaid API bypass** | **Not verified** | RPC guard added; run `billing-rpc-enforcement` integration test on staging |
 | Separate launch fee vs subscription | **Blocked or needs fixing** | **Subscription only**; no launch-fee table |
 | Failed payment must not publish | **Not verified** | Paynow confirm is server-side; publish not tied to payment row |
 | Idempotent payment entitlements | **Built and tested** | `paynow_confirm_payment` pattern |

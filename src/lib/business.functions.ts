@@ -89,6 +89,7 @@ import {
   markNotificationRead,
   setNotifyEmail,
 } from "./notifications.server";
+import { AI_LIMITS } from "./ai/limits.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
 import { getAnomalies, getInventoryForecast, getWeeklyReport } from "./insights.server";
@@ -192,7 +193,11 @@ const exportRateLimit = [
 // of the per-business daily cap enforced inside askAssistant/getWeeklyReport
 // themselves (see ai.server.ts/insights.server.ts).
 const aiRateLimit = [
-  authedRateLimit({ keyPrefix: "ai-assistant", maxRequests: 20, windowSeconds: 60 }),
+  authedRateLimit({
+    keyPrefix: "ai-assistant",
+    maxRequests: AI_LIMITS.assistantPerMinute,
+    windowSeconds: 60,
+  }),
 ] as const;
 
 // Each call does up to 500 sequential row inserts — its own cap keeps that
@@ -204,7 +209,11 @@ const importRateLimit = [
 // Also hits an AI provider — same tier as the assistant, on top of parseQuickEntry's
 // own per-business daily cap (see quick-entry.server.ts).
 const quickEntryRateLimit = [
-  authedRateLimit({ keyPrefix: "quick-entry", maxRequests: 20, windowSeconds: 60 }),
+  authedRateLimit({
+    keyPrefix: "quick-entry",
+    maxRequests: AI_LIMITS.quickEntryPerMinute,
+    windowSeconds: 60,
+  }),
 ] as const;
 
 // Keyed by IP — the one team-related endpoint a not-yet-logged-in visitor

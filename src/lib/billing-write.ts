@@ -34,11 +34,23 @@ export function canWriteWithPlatformEntitlement(
  * subscription status `active` when billing is on — trialing is setup-only
  * (draft products, storefront design, preview). */
 export function canOperateForSubscription(
-  subscription: { status: string; trial_ends_at: string | null } | null,
+  subscription: {
+    status: string;
+    trial_ends_at: string | null;
+    current_period_end?: string | null;
+  } | null,
 ) {
   if (!isBillingEnabled()) return true;
   if (!subscription) return false;
-  return subscription.status === "active";
+  if (subscription.status === "active") return true;
+  if (
+    subscription.status === "past_due" &&
+    subscription.current_period_end &&
+    new Date(subscription.current_period_end) > new Date()
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function canOperateWithPlatformEntitlement(

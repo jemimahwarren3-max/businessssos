@@ -12,7 +12,15 @@ Copy `.env.example` to `.env`. Use `npm run env:staging` or `env:production` to 
 
 Required: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, matching `VITE_*`, `SESSION_SECRET`, `APP_URL`.
 
-Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (preferred AI provider; falls back to `GROQ_API_KEY` when absent), `PAYNOW_*`, `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`.
+Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `AI_PROVIDER` (`gemini` or `groq`; when both API keys exist the app defaults to Groq unless set), `GEMINI_API_KEY`, `GROQ_API_KEY`, optional `AI_DAILY_LIMIT_*` caps, `PAYNOW_INTEGRATION_*` (USD) and `PAYNOW_INTEGRATION_*_ZIG` (ZiG/ZWG subscription checkout), `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`.
+
+When turning on paid enforcement, set **`BILLING_ENABLED=true`** on Cloud Run **and** run once on the production database:
+
+```sql
+update public.platform_runtime set billing_enforced = true, updated_at = now() where id = 1;
+```
+
+Keep `billing_enforced = false` on staging while the free beta continues there.
 AI assistance is review-first: it can suggest changes and prepare drafts, but the user must apply,
 save, send, or publish them. See `AI_BUSINESS_COPILOT.md` for workflows and data sharing.
 
