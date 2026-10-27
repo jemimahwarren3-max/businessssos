@@ -105,10 +105,34 @@ export function LiveTemplatePreview({
         </div>
         <nav aria-label="Store preview navigation" className="flex shrink-0 gap-3 text-xs">
           <span>Shop</span>
-          <span>Search</span>
+          {(template.catalogStyle === "standard" || template.heroStyle === "compact") && (
+            <span className="font-semibold">Search</span>
+          )}
           <span>Cart</span>
         </nav>
       </header>
+
+      {(template.catalogStyle === "standard" || template.navigationStyle === "compact") && (
+        <div className="px-4 py-2" style={{ backgroundColor: theme.surface }}>
+          <div
+            className="rounded-md border px-3 py-2 text-xs opacity-70"
+            style={{ borderColor: theme.accent + "40" }}
+          >
+            Search products…
+          </div>
+        </div>
+      )}
+
+      {(template.density === "compact" || template.layout === "dense") &&
+      (phone || address) ? (
+        <div
+          className="flex flex-wrap gap-3 px-4 py-2 text-[11px] font-medium"
+          style={{ backgroundColor: theme.primary, color: theme.buttonText }}
+        >
+          {phone ? <span>Call {phone}</span> : null}
+          {address ? <span>Collect: {address}</span> : null}
+        </div>
+      ) : null}
 
       {theme.sections.hero ? (
         <section
