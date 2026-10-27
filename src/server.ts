@@ -2,10 +2,22 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { configuredPlatformRoot, publicStoreRedirect } from "./lib/storefront/host";
+import {
+  configuredPlatformRoot,
+  publicStoreRedirect,
+  shopHostsEnabled,
+} from "./lib/storefront/host";
+import { assertProductionRuntimeEnv } from "./lib/runtime-env.server";
 import { initSentry } from "./lib/monitoring/sentry";
 
 void initSentry();
+
+let productionEnvChecked = false;
+function ensureProductionRuntimeEnv() {
+  if (productionEnvChecked) return;
+  productionEnvChecked = true;
+  assertProductionRuntimeEnv();
+}
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -120,6 +132,7 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    ensureProductionRuntimeEnv();
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/webhooks/paynow") {
       return handlePaynowWebhook(request);
@@ -127,7 +140,7 @@ export default {
 
     const platform = configuredPlatformRoot();
     if (platform && (request.method === "GET" || request.method === "HEAD")) {
-      const target = publicStoreRedirect(url, platform);
+      const target = publicStoreRedirect(url, platform, shopHostsEnabled());
       if (target) return Response.redirect(target, 308);
     }
 

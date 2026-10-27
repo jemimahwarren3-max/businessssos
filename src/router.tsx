@@ -5,6 +5,7 @@ import {
   configuredPlatformRoot,
   rewriteStoreInputUrl,
   rewriteStoreOutputUrl,
+  shopHostsEnabled,
 } from "./lib/storefront/host";
 import { captureError, initSentry } from "./lib/monitoring/sentry";
 
@@ -36,7 +37,7 @@ export const getRouter = () => {
       ? {
           rewrite: {
             input: ({ url }) => rewriteStoreInputUrl(url, platform.hostname),
-            output: ({ url }) => rewriteStoreOutputUrl(url, platform.hostname),
+            output: ({ url }) => rewriteStoreOutputUrl(url, platform.hostname, shopHostsEnabled()),
           },
         }
       : {}),

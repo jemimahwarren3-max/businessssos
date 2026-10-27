@@ -5,6 +5,7 @@ import {
   publicStoreRedirect,
   rewriteStoreInputUrl,
   rewriteStoreOutputUrl,
+  shopHostsEnabledFromOrigin,
   storePublicUrlOn,
   storeSlugFromHostname,
 } from "@/lib/storefront/host";
@@ -66,6 +67,9 @@ describe("store subdomains", () => {
     expect(storePublicUrlOn(root, "harare-cloth", "/products/dress")).toBe(
       "http://harare-cloth.localhost:8080/products/dress",
     );
+    expect(storePublicUrlOn(root, "harare-cloth", "/products/dress", false)).toBe(
+      "http://localhost:8080/store/harare-cloth/products/dress",
+    );
   });
 
   it("redirects the old shop path and keeps the merchant app on the platform host", () => {
@@ -87,6 +91,23 @@ describe("store subdomains", () => {
     expect(
       publicStoreRedirect(new URL("http://harare-cloth.localhost:8080/@vite/client"), root),
     ).toBeNull();
+    expect(
+      publicStoreRedirect(
+        new URL("http://localhost:8080/store/harare-cloth/cart?x=1"),
+        root,
+        false,
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("shop host flag", () => {
+  it("defaults to path URLs except on localhost", () => {
+    expect(shopHostsEnabledFromOrigin("https://svc-abc.a.run.app", undefined)).toBe(false);
+    expect(shopHostsEnabledFromOrigin("https://app.example.com", undefined)).toBe(false);
+    expect(shopHostsEnabledFromOrigin("http://localhost:8080", undefined)).toBe(true);
+    expect(shopHostsEnabledFromOrigin("http://localhost:8080", "false")).toBe(false);
+    expect(shopHostsEnabledFromOrigin("https://svc-abc.a.run.app", "true")).toBe(true);
   });
 });
 

@@ -1,0 +1,81 @@
+name: Deploy Cloud Run
+
+# Manual only. Production Postgres is never selected here. Point the service
+# at staging until a human explicitly applies production migrations.
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: Cloud Run region
+        required: true
+        default: us-central1
+      service:
+        description: Cloud Run service name
+        required: true
+        default: businessos
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ inputs.region }}-docker.pkg.dev" --quiet
+
+      - name: Build image
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ inputs.region }}
+          SERVICE: ${{ inputs.service }}
+          APP_URL: ${{ secrets.STAGING_APP_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PROJECT:-}" ] || [ -z "${APP_URL:-}" ] || [ -z "${VITE_SUPABASE_URL:-}" ]; then
+            echo "Missing GCP_PROJECT_ID or staging Supabase/APP_URL secrets."
+            exit 1
+          fi
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/businessos/${SERVICE}:${GITHUB_SHA}"
+          docker build \
+            --build-arg "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" \
+            --build-arg "VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}" \
+            --build-arg "VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}" \
+            --build-arg "APP_URL=${APP_URL}" \
+            --build-arg "SHOP_HOSTS=false" \
+            --tag "${IMAGE}" \
+            .
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+
+      - name: Push image
+        run: docker push "${IMAGE}"
+
+      - name: Deploy Cloud Run
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ inputs.region }}
+          SERVICE: ${{ inputs.service }}
+        run: |
+          set -euo pipefail
+          gcloud run deploy "${SERVICE}" \
+            --project "${PROJECT}" \
+            --region "${REGION}" \
+            --image "${IMAGE}" \
+            --allow-unauthenticated \
+            --port 8080 \
+            --cpu 1 \
+            --memory 512Mi \
+            --min-instances 0 \
+            --max-instances 3 \
+            --timeout 60 \
+            --set-env-vars "NODE_ENV=production,HOST=0.0.0.0,SHOP_HOSTS=false,APP_URL=${{ secrets.STAGING_APP_URL }},SUPABASE_URL=${{ secrets.STAGING_SUPABASE_URL }},SUPABASE_PUBLISHABLE_KEY=${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }},SUPABASE_PROJECT_ID=${{ secrets.STAGING_SUPABASE_PROJECT_ID }},BILLING_ENABLED=true" \
+            --set-secrets "SESSION_SECRET=SESSION_SECRET:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest"

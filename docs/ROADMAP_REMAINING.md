@@ -81,9 +81,9 @@ Loyalty points, coupons, gift cards, store credit, wishlists, referral credit. N
 
 Sponsored listings, popularity ranks, verified-merchant badges, usage-based billing dashboards, n8n automations. Badges only after a real check. Sponsored slots only after a payment path.
 
-## Batch 16: production go-live (operator)
+## Batch 16: production go-live
 
-Wildcard DNS/TLS, Cloud Run cutover, backup restore drill, `npm audit` with a tested upgrade, legal entity name, CDPA review. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
+Path-based shops and a Cloud Run workflow are in git (`CLOUD_RUN_LAUNCH.md`). Operator still must create the GCP project, secrets, and (later) wildcard DNS. Backup restore, `npm audit` upgrades, legal entity name, and CDPA review stay human gates. Production Postgres is not applied from this agent. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
 
 ## Explicitly out of scope until a human asks
 
@@ -91,4 +91,4 @@ Medusa, Saleor, WooCommerce, Umami, Storybook, dnd-kit as a second inventory UX,
 
 ## Next after this PR
 
-Batch 6 is still blocked on variants (stock is still sold from the default location). Batch 8 only with merchant Paynow credentials.
+Operator: GitHub/GCP secrets and a staging Cloud Run revision. Do not wait on variants or shopper Paynow to do that. Production database cutover still needs an explicit human.

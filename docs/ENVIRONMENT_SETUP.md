@@ -28,7 +28,7 @@ Migrations live in `supabase/migrations/`. Staging already has storefront, marke
 
 ## Cloud Run
 
-See `DEPLOYMENT_AND_ROLLBACK.md` and `Dockerfile`. Build args must include the VITE Supabase values.
+See `CLOUD_RUN_LAUNCH.md`, `DEPLOYMENT_AND_ROLLBACK.md`, and `Dockerfile`. Build args must include the VITE Supabase values. First deploy uses staging and path-based shops (`SHOP_HOSTS=false`).
 
 ## Tests
 
