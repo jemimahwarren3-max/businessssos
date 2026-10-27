@@ -6,8 +6,13 @@
 import type { Database, Json } from "@/integrations/supabase/types";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { z } from "zod";
+import { paynowCredentialsConfigured } from "@/lib/payments/paynow-credentials.server";
 import { loadPlatformFx } from "@/lib/platform-fx-read.server";
 import { savePlatformFx } from "@/lib/platform-fx.server";
+import {
+  flushNotificationOutboxAdmin,
+  notificationEmailStatus,
+} from "@/lib/notifications.mail.server";
 import { AppError, dbFail, invalidateWorkspaceCacheForBusiness } from "@/lib/business.server";
 import { getMfaStatus } from "@/lib/auth/mfa.server";
 import type { SupabaseTokens } from "@/lib/auth/session.server";
@@ -175,6 +180,82 @@ export type AdminRuntime = {
   updated_at: string;
   public_announcement: string;
   announcement_enabled: boolean;
+  marketing_hero_title: string;
+  marketing_hero_subtitle: string;
+};
+
+export type AdminBusinessDetail = {
+  business: {
+    id: string;
+    name: string;
+    created_at: string;
+    currency: string;
+    business_type: string;
+  };
+  subscription: {
+    plan: string;
+    status: string;
+    trial_ends_at: string | null;
+    current_period_end: string | null;
+  } | null;
+  storefront: {
+    slug: string;
+    status: string;
+    store_name: string;
+    template_id: string;
+    published_at: string | null;
+  } | null;
+  counts: {
+    products: number;
+    store_orders: number;
+    sales: number;
+    members: number;
+  };
+  members: {
+    user_id: string;
+    role: string;
+    email: string | null;
+    notify_email: boolean;
+  }[];
+  recent_orders: {
+    id: string;
+    reference: string;
+    customer_name: string;
+    total: number;
+    currency: string;
+    payment_status: string;
+    fulfilment_status: string;
+    created_at: string;
+  }[];
+};
+
+export type AdminOutboxRow = {
+  id: string;
+  business_name: string;
+  to_email: string;
+  subject: string;
+  status: string;
+  attempts: number;
+  last_error: string | null;
+  created_at: string;
+  sent_at: string | null;
+};
+
+export type PaymentProviderControl = {
+  provider: string;
+  enabled: boolean;
+  live_approved: boolean;
+  approval_reference: string | null;
+  updated_at: string;
+};
+
+export type AdminHealth = {
+  appUrlSet: boolean;
+  billingEnabledEnv: boolean;
+  resend: { configured: boolean; reason: string };
+  paynowUsd: boolean;
+  paynowZig: boolean;
+  mailFlushSecretSet: boolean;
 };
 
 async function logPlatformAudit(
@@ -258,6 +339,8 @@ export async function updateAdminRuntime(
     billingEnforced?: boolean;
     announcementEnabled?: boolean;
     publicAnnouncement?: string;
+    marketingHeroTitle?: string;
+    marketingHeroSubtitle?: string;
     reason: string;
   },
 ) {
@@ -269,6 +352,12 @@ export async function updateAdminRuntime(
   }
   if (input.publicAnnouncement !== undefined) {
     patch["public_announcement"] = input.publicAnnouncement.slice(0, 2000);
+  }
+  if (input.marketingHeroTitle !== undefined) {
+    patch["marketing_hero_title"] = input.marketingHeroTitle.slice(0, 500);
+  }
+  if (input.marketingHeroSubtitle !== undefined) {
+    patch["marketing_hero_subtitle"] = input.marketingHeroSubtitle.slice(0, 800);
   }
   const { error } = await (
     supabaseAdmin as unknown as {
@@ -294,5 +383,130 @@ export async function loadPlatformAnnouncement(): Promise<{ enabled: boolean; me
   return {
     enabled: row?.enabled === true,
     message: typeof row?.message === "string" ? row.message : "",
+  };
+}
+
+export async function loadPublicMarketingCopy(): Promise<{
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+}> {
+  const result = await untypedRpc("get_public_marketing_copy", {});
+  if (result.error) dbFail("load public marketing copy", result.error);
+  const row = result.data as { heroTitle?: string | null; heroSubtitle?: string | null } | null;
+  return {
+    heroTitle: row?.heroTitle ?? null,
+    heroSubtitle: row?.heroSubtitle ?? null,
+  };
+}
+
+export async function getAdminBusinessDetail(
+  userId: string,
+  tokens: SupabaseTokens,
+  businessId: string,
+): Promise<AdminBusinessDetail | null> {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_get_business_detail", { _business_id: businessId });
+  if (result.error) dbFail("load business detail", result.error);
+  if (!result.data) return null;
+  return result.data as unknown as AdminBusinessDetail;
+}
+
+export type AdminOutboxStats = {
+  pending: number;
+  sending: number;
+  failed: number;
+  sent_24h: number;
+  failed_24h: number;
+};
+
+export async function getAdminOutboxStats(
+  userId: string,
+  tokens: SupabaseTokens,
+): Promise<AdminOutboxStats> {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_notification_outbox_stats", {});
+  if (result.error) dbFail("load outbox stats", result.error);
+  const row = result.data as Record<string, number> | null;
+  return {
+    pending: row?.["pending"] ?? 0,
+    sending: row?.["sending"] ?? 0,
+    failed: row?.["failed"] ?? 0,
+    sent_24h: row?.["sent_24h"] ?? 0,
+    failed_24h: row?.["failed_24h"] ?? 0,
+  };
+}
+
+export async function listAdminOutbox(
+  userId: string,
+  tokens: SupabaseTokens,
+  input: { limit?: number; status?: string },
+) {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_list_notification_outbox", {
+    _limit: input.limit ?? 50,
+    _status: input.status ?? null,
+  });
+  if (result.error) dbFail("load notification outbox", result.error);
+  return z.array(z.record(z.string(), z.unknown())).parse(result.data ?? []) as AdminOutboxRow[];
+}
+
+export async function flushAdminOutbox(
+  userId: string,
+  tokens: SupabaseTokens,
+  reason: string,
+) {
+  await requireAdmin(userId, tokens);
+  const result = await flushNotificationOutboxAdmin();
+  await logPlatformAudit(userId, "flush_notification_outbox", reason, {
+    sent: result.sent,
+    failed: result.failed,
+    skipped: result.skipped,
+  });
+  return result;
+}
+
+export async function listPaymentProviderControls(userId: string, tokens: SupabaseTokens) {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_get_payment_provider_controls", {});
+  if (result.error) dbFail("load payment provider controls", result.error);
+  return z.array(z.record(z.string(), z.unknown())).parse(result.data ?? []) as PaymentProviderControl[];
+}
+
+export async function setPaymentProviderControl(
+  userId: string,
+  tokens: SupabaseTokens,
+  input: {
+    provider: string;
+    enabled: boolean;
+    liveApproved: boolean;
+    approvalReference: string;
+    reason: string;
+  },
+) {
+  await requireAdmin(userId, tokens);
+  const result = await untypedRpc("admin_set_payment_provider_control", {
+    _provider: input.provider,
+    _enabled: input.enabled,
+    _live_approved: input.liveApproved,
+    _approval_reference: input.approvalReference,
+  });
+  if (result.error) dbFail("update payment provider control", result.error);
+  await logPlatformAudit(userId, "set_payment_provider_control", input.reason, {
+    provider: input.provider,
+    enabled: input.enabled,
+    liveApproved: input.liveApproved,
+  });
+  return result.data as PaymentProviderControl;
+}
+
+export async function getAdminHealth(userId: string, tokens: SupabaseTokens): Promise<AdminHealth> {
+  await requireAdmin(userId, tokens);
+  return {
+    appUrlSet: Boolean(process.env["APP_URL"]?.trim()),
+    billingEnabledEnv: process.env["BILLING_ENABLED"] === "true",
+    resend: notificationEmailStatus(),
+    paynowUsd: paynowCredentialsConfigured("USD"),
+    paynowZig: paynowCredentialsConfigured("ZWG"),
+    mailFlushSecretSet: Boolean(process.env["MAIL_FLUSH_SECRET"]?.trim()),
   };
 }

@@ -19,6 +19,7 @@ import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
 import { formatMoney } from "@/lib/format";
 import { EMPTY_MARKETPLACE } from "@/lib/storefront/contract";
 import { featuredPublishedShops } from "@/lib/storefront/published-shops";
+import { getPublicMarketingCopyFn } from "@/lib/admin/admin.functions";
 import { getMarketplaceFn, getPlatformFxFn } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES } from "@/lib/storefront/templates";
 import { storePublicUrl } from "@/lib/storefront/host";
@@ -37,11 +38,12 @@ export const Route = createFileRoute("/")({
     }
   },
   loader: async () => {
-    const [market, fx] = await Promise.all([
+    const [market, fx, marketing] = await Promise.all([
       getMarketplaceFn({ data: {} }).catch(() => EMPTY_MARKETPLACE),
       getPlatformFxFn().catch(() => null),
+      getPublicMarketingCopyFn().catch(() => ({ heroTitle: null, heroSubtitle: null })),
     ]);
-    return { market, fx };
+    return { market, fx, marketing };
   },
   head: () => {
     const jsonLd = JSON.stringify({
@@ -170,7 +172,13 @@ function HeroVisual({ shops }: { shops: ReturnType<typeof featuredPublishedShops
 }
 
 function Landing() {
-  const { market, fx } = Route.useLoaderData();
+  const { market, fx, marketing } = Route.useLoaderData();
+  const heroTitle =
+    marketing.heroTitle?.trim() ||
+    "Run your business. Sell online. All in one place.";
+  const heroSubtitle =
+    marketing.heroSubtitle?.trim() ||
+    "Manage inventory, sales, customers, invoices and expenses, then create a branded online shop to sell directly to your customers.";
   const featuredShops = featuredPublishedShops(market.shops);
   const zigMonthly = planAmountZig(PLAN_MONTHLY_USD.pro, fx);
   const shopHostExample = `yourbrand.${BRAND.domain}`;
@@ -182,13 +190,8 @@ function Landing() {
           <p className="mb-5 inline-block rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground">
             Karibu · Mauya · Welcome home
           </p>
-          <h1 className="text-5xl leading-[1.05] md:text-6xl">
-            Run your business. Sell online. <em className="text-primary">All in one place.</em>
-          </h1>
-          <p className="mt-6 max-w-lg text-lg text-muted-foreground">
-            Manage inventory, sales, customers, invoices and expenses, then create a branded online
-            shop to sell directly to your customers.
-          </p>
+          <h1 className="text-5xl leading-[1.05] md:text-6xl">{heroTitle}</h1>
+          <p className="mt-6 max-w-lg text-lg text-muted-foreground">{heroSubtitle}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               to="/stores"

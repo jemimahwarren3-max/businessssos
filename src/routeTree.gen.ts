@@ -57,6 +57,9 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminAuditRouteImport } from './routes/admin/audit'
 import { Route as AdminBillingRouteImport } from './routes/admin/billing'
 import { Route as AdminBusinessesRouteImport } from './routes/admin/businesses'
+import { Route as AdminCommunicationsRouteImport } from './routes/admin/communications'
+import { Route as AdminHealthRouteImport } from './routes/admin/health'
+import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
 import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
 import { Route as AdminPersonalizeRouteImport } from './routes/admin/personalize'
 import { Route as AdminStoresRouteImport } from './routes/admin/stores'
@@ -78,6 +81,7 @@ import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsDataRouteImport } from './routes/_authenticated/settings.data'
 import { Route as AuthenticatedSettingsPaymentsRouteImport } from './routes/_authenticated/settings.payments'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
+import { Route as AdminBusinessesBusinessIdRouteImport } from './routes/admin/businesses.$businessId'
 import { Route as ApiInternalFlushMailRouteImport } from './routes/api.internal.flush-mail'
 import { Route as StoreSlugIndexRouteImport } from './routes/store.$slug.index'
 import { Route as StoreSlugAccountRouteImport } from './routes/store.$slug.account'
@@ -331,6 +335,21 @@ const AdminBusinessesRoute = AdminBusinessesRouteImport.update({
   path: '/businesses',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminCommunicationsRoute = AdminCommunicationsRouteImport.update({
+  id: '/communications',
+  path: '/communications',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminHealthRoute = AdminHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -442,6 +461,12 @@ const AuthenticatedSettingsTeamRoute =
     path: '/settings/team',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AdminBusinessesBusinessIdRoute =
+  AdminBusinessesBusinessIdRouteImport.update({
+    id: '/$businessId',
+    path: '/$businessId',
+    getParentRoute: () => AdminBusinessesRoute,
+  } as any)
 const ApiInternalFlushMailRoute = ApiInternalFlushMailRouteImport.update({
   id: '/api/internal/flush-mail',
   path: '/api/internal/flush-mail',
@@ -530,7 +555,10 @@ export interface FileRoutesByFullPath {
   '/time-clock': typeof AuthenticatedTimeClockRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/billing': typeof AdminBillingRoute
-  '/admin/businesses': typeof AdminBusinessesRoute
+  '/admin/businesses': typeof AdminBusinessesRouteWithChildren
+  '/admin/communications': typeof AdminCommunicationsRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/personalize': typeof AdminPersonalizeRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -553,6 +581,7 @@ export interface FileRoutesByFullPath {
   '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/admin/businesses/$businessId': typeof AdminBusinessesBusinessIdRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
@@ -607,7 +636,10 @@ export interface FileRoutesByTo {
   '/time-clock': typeof AuthenticatedTimeClockRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/billing': typeof AdminBillingRoute
-  '/admin/businesses': typeof AdminBusinessesRoute
+  '/admin/businesses': typeof AdminBusinessesRouteWithChildren
+  '/admin/communications': typeof AdminCommunicationsRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/personalize': typeof AdminPersonalizeRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -629,6 +661,7 @@ export interface FileRoutesByTo {
   '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/admin/businesses/$businessId': typeof AdminBusinessesBusinessIdRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
@@ -686,7 +719,10 @@ export interface FileRoutesById {
   '/_authenticated/time-clock': typeof AuthenticatedTimeClockRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/billing': typeof AdminBillingRoute
-  '/admin/businesses': typeof AdminBusinessesRoute
+  '/admin/businesses': typeof AdminBusinessesRouteWithChildren
+  '/admin/communications': typeof AdminCommunicationsRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/personalize': typeof AdminPersonalizeRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -709,6 +745,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/data': typeof AuthenticatedSettingsDataRoute
   '/_authenticated/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/admin/businesses/$businessId': typeof AdminBusinessesBusinessIdRoute
   '/api/internal/flush-mail': typeof ApiInternalFlushMailRoute
   '/store/$slug/account': typeof StoreSlugAccountRoute
   '/store/$slug/cart': typeof StoreSlugCartRoute
@@ -767,6 +804,9 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/billing'
     | '/admin/businesses'
+    | '/admin/communications'
+    | '/admin/health'
+    | '/admin/integrations'
     | '/admin/orders'
     | '/admin/personalize'
     | '/admin/stores'
@@ -789,6 +829,7 @@ export interface FileRouteTypes {
     | '/settings/data'
     | '/settings/payments'
     | '/settings/team'
+    | '/admin/businesses/$businessId'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
     | '/store/$slug/cart'
@@ -844,6 +885,9 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/billing'
     | '/admin/businesses'
+    | '/admin/communications'
+    | '/admin/health'
+    | '/admin/integrations'
     | '/admin/orders'
     | '/admin/personalize'
     | '/admin/stores'
@@ -865,6 +909,7 @@ export interface FileRouteTypes {
     | '/settings/data'
     | '/settings/payments'
     | '/settings/team'
+    | '/admin/businesses/$businessId'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
     | '/store/$slug/cart'
@@ -922,6 +967,9 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/billing'
     | '/admin/businesses'
+    | '/admin/communications'
+    | '/admin/health'
+    | '/admin/integrations'
     | '/admin/orders'
     | '/admin/personalize'
     | '/admin/stores'
@@ -944,6 +992,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/data'
     | '/_authenticated/settings/payments'
     | '/_authenticated/settings/team'
+    | '/admin/businesses/$businessId'
     | '/api/internal/flush-mail'
     | '/store/$slug/account'
     | '/store/$slug/cart'
@@ -1323,6 +1372,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBusinessesRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/communications': {
+      id: '/admin/communications'
+      path: '/communications'
+      fullPath: '/admin/communications'
+      preLoaderRoute: typeof AdminCommunicationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/health': {
+      id: '/admin/health'
+      path: '/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AdminHealthRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/integrations': {
+      id: '/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AdminIntegrationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/orders': {
       id: '/admin/orders'
       path: '/orders'
@@ -1470,6 +1540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsTeamRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/admin/businesses/$businessId': {
+      id: '/admin/businesses/$businessId'
+      path: '/$businessId'
+      fullPath: '/admin/businesses/$businessId'
+      preLoaderRoute: typeof AdminBusinessesBusinessIdRouteImport
+      parentRoute: typeof AdminBusinessesRoute
+    }
     '/api/internal/flush-mail': {
       id: '/api/internal/flush-mail'
       path: '/api/internal/flush-mail'
@@ -1600,10 +1677,25 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AdminBusinessesRouteChildren {
+  AdminBusinessesBusinessIdRoute: typeof AdminBusinessesBusinessIdRoute
+}
+
+const AdminBusinessesRouteChildren: AdminBusinessesRouteChildren = {
+  AdminBusinessesBusinessIdRoute: AdminBusinessesBusinessIdRoute,
+}
+
+const AdminBusinessesRouteWithChildren = AdminBusinessesRoute._addFileChildren(
+  AdminBusinessesRouteChildren,
+)
+
 interface AdminRouteRouteChildren {
   AdminAuditRoute: typeof AdminAuditRoute
   AdminBillingRoute: typeof AdminBillingRoute
-  AdminBusinessesRoute: typeof AdminBusinessesRoute
+  AdminBusinessesRoute: typeof AdminBusinessesRouteWithChildren
+  AdminCommunicationsRoute: typeof AdminCommunicationsRoute
+  AdminHealthRoute: typeof AdminHealthRoute
+  AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPersonalizeRoute: typeof AdminPersonalizeRoute
   AdminStoresRoute: typeof AdminStoresRoute
@@ -1614,7 +1706,10 @@ interface AdminRouteRouteChildren {
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAuditRoute: AdminAuditRoute,
   AdminBillingRoute: AdminBillingRoute,
-  AdminBusinessesRoute: AdminBusinessesRoute,
+  AdminBusinessesRoute: AdminBusinessesRouteWithChildren,
+  AdminCommunicationsRoute: AdminCommunicationsRoute,
+  AdminHealthRoute: AdminHealthRoute,
+  AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPersonalizeRoute: AdminPersonalizeRoute,
   AdminStoresRoute: AdminStoresRoute,

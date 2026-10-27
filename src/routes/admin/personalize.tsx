@@ -26,12 +26,17 @@ function AdminPersonalizePage() {
   });
   const [message, setMessage] = useState("");
   const [enabled, setEnabled] = useState(false);
+  const [heroTitle, setHeroTitle] = useState("");
+  const [heroSubtitle, setHeroSubtitle] = useState("");
   const [reason, setReason] = useState("");
+  const [marketingReason, setMarketingReason] = useState("");
 
   useEffect(() => {
     if (runtime.data) {
       setMessage(runtime.data.public_announcement ?? "");
       setEnabled(runtime.data.announcement_enabled ?? false);
+      setHeroTitle(runtime.data.marketing_hero_title ?? "");
+      setHeroSubtitle(runtime.data.marketing_hero_subtitle ?? "");
     }
   }, [runtime.data]);
 
@@ -49,6 +54,23 @@ function AdminPersonalizePage() {
       setReason("");
       await queryClient.invalidateQueries({ queryKey: ["admin-runtime"] });
       await queryClient.invalidateQueries({ queryKey: ["platform-announcement"] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Could not save.")),
+  });
+
+  const saveMarketingMutation = useMutation({
+    mutationFn: () =>
+      saveRuntime({
+        data: {
+          marketingHeroTitle: heroTitle,
+          marketingHeroSubtitle: heroSubtitle,
+          reason: marketingReason,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("Public homepage copy updated.");
+      setMarketingReason("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-runtime"] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Could not save.")),
   });
@@ -93,6 +115,49 @@ function AdminPersonalizePage() {
           Save banner
         </Button>
       </div>
+      <div className="surface max-w-xl space-y-4 p-5">
+        <h2 className="text-sm font-semibold">Public homepage hero</h2>
+        <p className="text-xs text-muted-foreground">
+          Leave blank to use the default marketing copy on kwetuu.com. HTML is not supported.
+        </p>
+        <div className="space-y-1.5">
+          <Label htmlFor="hero-title">Headline</Label>
+          <Input
+            id="hero-title"
+            maxLength={500}
+            value={heroTitle}
+            onChange={(e) => setHeroTitle(e.target.value)}
+            placeholder="Run your business. Sell online. All in one place."
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="hero-sub">Subhead</Label>
+          <Textarea
+            id="hero-sub"
+            rows={3}
+            maxLength={800}
+            value={heroSubtitle}
+            onChange={(e) => setHeroSubtitle(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="m-reason">Reason (audit)</Label>
+          <Input
+            id="m-reason"
+            value={marketingReason}
+            onChange={(e) => setMarketingReason(e.target.value)}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={saveMarketingMutation.isPending || marketingReason.trim().length < 3}
+          onClick={() => saveMarketingMutation.mutate()}
+        >
+          Save homepage copy
+        </Button>
+      </div>
+
       <p className="text-sm text-muted-foreground">
         Pricing copy and ZiG display rate:{" "}
         <Link to="/admin/billing" className="font-medium text-primary underline">

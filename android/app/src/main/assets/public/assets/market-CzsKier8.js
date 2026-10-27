@@ -1,0 +1,1 @@
+import{r as e}from"./useRouter-Bgqm0-yy.js";import{t}from"./market-B-CdRcyg.js";var n=e();function r({error:e}){let r=e instanceof Error?e.message:`Something unexpected happened.`;return(0,n.jsx)(t,{children:(0,n.jsx)(`p`,{className:`text-sm text-destructive`,children:r})})}export{r as errorComponent};

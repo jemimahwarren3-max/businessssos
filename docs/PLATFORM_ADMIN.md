@@ -27,6 +27,10 @@ The operator console lives at **`/admin`**. It is not linked from the merchant a
 | `/admin/billing` | Subscription overrides, ZiG display FX, Paynow payment log |
 | `/admin/personalize` | Merchant-wide banner message |
 | `/admin/system` | `platform_runtime.billing_enforced` toggle |
+| `/admin/businesses/{id}` | Tenant detail: team emails, orders, subscription |
+| `/admin/communications` | Email outbox stats, manual flush |
+| `/admin/integrations` | Seller Paynow live gate |
+| `/admin/health` | Resend, Paynow keys, env flags (no secrets) |
 | `/admin/audit` | Platform + subscription override audit |
 
 ## Database migration

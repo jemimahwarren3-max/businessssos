@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -64,7 +64,15 @@ function AdminBusinessesPage() {
           <TableBody>
             {(list.data ?? []).map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="font-medium">{row.name}</TableCell>
+                <TableCell className="font-medium">
+                  <Link
+                    to="/admin/businesses/$businessId"
+                    params={{ businessId: row.id }}
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    {row.name}
+                  </Link>
+                </TableCell>
                 <TableCell className="capitalize">{row.plan ?? "—"}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{row.subscription_status ?? "—"}</Badge>

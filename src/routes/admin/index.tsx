@@ -89,8 +89,11 @@ function AdminOverviewPage() {
           { to: "/admin/businesses", label: "All businesses" },
           { to: "/admin/stores", label: "Storefronts" },
           { to: "/admin/orders", label: "Recent shop orders" },
+          { to: "/admin/communications", label: "Email outbox" },
           { to: "/admin/billing", label: "Subscriptions & Paynow" },
-          { to: "/admin/personalize", label: "Announcements & FX copy" },
+          { to: "/admin/integrations", label: "Paynow shop gate" },
+          { to: "/admin/personalize", label: "Homepage & merchant banner" },
+          { to: "/admin/health", label: "Ops health checks" },
           { to: "/admin/audit", label: "Audit trail" },
         ].map((link) => (
           <Button key={link.to} asChild variant="outline" className="h-auto justify-start py-3">
