@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { OrderEmailDeliveries } from "@/components/storefront/order-email-deliveries";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
 import {
@@ -350,6 +351,7 @@ export function OnlineOrdersFulfilmentPanel({
               </li>
             ))}
           </ul>
+          <OrderEmailDeliveries businessId={businessId} orderId={selectedOrder.id} />
         </div>
       ) : null}
     </section>
