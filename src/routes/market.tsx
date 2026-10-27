@@ -5,6 +5,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 import type { MarketplaceProduct } from "@/lib/storefront/contract";
+import { BRAND } from "@/lib/brand";
 import { getMarketplaceFn } from "@/lib/storefront/storefront.functions";
 
 const searchSchema = z.object({
@@ -18,14 +19,13 @@ export const Route = createFileRoute("/market")({
   loader: ({ deps }) => getMarketplaceFn({ data: { query: deps.q, category: deps.category } }),
   head: ({ loaderData }) => {
     const category = loaderData?.category ? `${loaderData.category} · ` : "";
-    const title = `${category}Shops on BusinessOS`;
+    const title = `${category}Shops on ${BRAND.name}`;
     return {
       meta: [
         { title },
         {
           name: "description",
-          content:
-            "Browse published shops and products from businesses using BusinessOS. Each product is sold by the shop named on the card.",
+          content: `Browse published shops and products from businesses using ${BRAND.name}. Each product is sold by the shop named on the card.`,
         },
         { property: "og:title", content: title },
         { property: "og:type", content: "website" },
@@ -211,7 +211,7 @@ function MarketFrame({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <p className="text-sm text-muted-foreground">BusinessOS marketplace</p>
+        <p className="text-sm text-muted-foreground">{BRAND.name} marketplace</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">Find a local shop</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Every product belongs to one business. Checkout stays with that shop, and the stock you
