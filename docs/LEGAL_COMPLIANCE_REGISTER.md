@@ -4,7 +4,7 @@ Not legal advice. Status vocabulary matches the production-readiness prompt. Ope
 
 | Requirement | Jurisdiction | Responsible | Evidence | Status | Next action |
 |---|---|---|---|---|---|
-| Contracting entity named in Terms | Operator | Operator + lawyer | `legal/TERMS_OF_SERVICE.md` still placeholder | Required and not implemented | Confirm company/sole trader details |
+| Contracting entity named in Terms | Operator | Operator + lawyer | `legal/TERMS_OF_SERVICE.md` uses `[INSERT FULL LEGAL NAME]` placeholders; `/privacy` and `/terms` publish the drafts | Required and not implemented | Confirm company or sole-trader details. Do not invent a registered company. |
 | Governing law | Operator | Lawyer | Terms §12 open | Requires professional review | Decide Zimbabwe vs other |
 | Cyber and Data Protection Act [Ch 12:07] | Zimbabwe | Lawyer | Privacy draft describes flows only | Not assessed against the statute | Counsel |
 | POTRAZ registration / DPO | Zimbabwe | Lawyer | None | Not assessed | Counsel + POTRAZ |

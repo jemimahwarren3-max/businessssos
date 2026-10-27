@@ -22,6 +22,8 @@ describe("store subdomains", () => {
     expect(storeSlugFromHostname("localhost", "localhost")).toBeNull();
     expect(storeSlugFromHostname("www.localhost", "localhost")).toBeNull();
     expect(storeSlugFromHostname("market.localhost", "localhost")).toBeNull();
+    expect(storeSlugFromHostname("privacy.localhost", "localhost")).toBeNull();
+    expect(storeSlugFromHostname("terms.localhost", "localhost")).toBeNull();
     expect(storeSlugFromHostname("shop.example.com", "localhost")).toBeNull();
   });
 

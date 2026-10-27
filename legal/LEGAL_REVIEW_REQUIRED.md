@@ -11,9 +11,10 @@ tracking aid so nothing gets missed.
 
 ## Entity & jurisdiction
 
-- [ ] Confirm the actual legal entity operating BusinessOS AI (sole
-      proprietorship, registered company, etc.) and its registration
-      details. — *Terms of Service §1*
+- [ ] Confirm the actual legal entity operating BusinessOS (sole
+      trader, registered company, or other) and its registration
+      details. The 19 October 2026 drafts use placeholders and warn
+      against describing a registered company if none exists. *Terms §1*
 - [ ] Decide and confirm the governing law / dispute-resolution jurisdiction
       for the Terms of Service. — *Terms of Service §12*
 - [ ] Confirm the minimum-age requirement against Zimbabwean contract law

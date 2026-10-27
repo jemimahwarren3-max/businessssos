@@ -221,7 +221,7 @@ function AuthPage() {
                     >
                       I agree to the{" "}
                       <a
-                        href="/legal/terms"
+                        href="/terms"
                         target="_blank"
                         rel="noreferrer"
                         className="font-medium text-primary hover:underline"
@@ -230,7 +230,7 @@ function AuthPage() {
                       </a>{" "}
                       and{" "}
                       <a
-                        href="/legal/privacy"
+                        href="/privacy"
                         target="_blank"
                         rel="noreferrer"
                         className="font-medium text-primary hover:underline"
