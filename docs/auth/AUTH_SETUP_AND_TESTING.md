@@ -7,7 +7,7 @@ Two separate email systems:
 | **Supabase Auth (GoTrue)** | Signup confirmation, password reset, magic links | Supabase Dashboard → Authentication |
 | **Resend (application)** | Order receipts, merchant alerts (`notification_outbox`) | `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL`, mail-flush workflow |
 
-Setting `RESEND_API_KEY` in GitHub/Cloud Run **does not** enable Auth confirmation emails.
+Setting `RESEND_API_KEY` in GitHub/Cloud Run **does not** enable Auth confirmation emails. See **`docs/auth/SUPABASE_AUTH_EMAIL.md`** (Supabase default mail is **team-only** until you add SMTP in the dashboard).
 
 ---
 
@@ -159,7 +159,7 @@ npm run verify:staging
 | Symptom | Check |
 | ------- | ----- |
 | Email signup disabled toast | GoTrue email provider off — enable in Supabase |
-| No confirmation email | Auth SMTP / Supabase mail logs; spam folder |
+| No confirmation email | **No custom SMTP in Supabase** (built-in only mails org team) — see `SUPABASE_AUTH_EMAIL.md`; Auth SMTP / mail logs; spam folder; or enable autoconfirm |
 | Stuck on “Confirm your email” forever | Enable **autoconfirm** on staging (see below) or fix Auth SMTP |
 | “Confirming your email…” then error | Open the link in the **same browser** as signup; link expires after 24h |
 | Google “did not finish” | Redirect URL mismatch; PKCE cookie blocked (non-HTTPS local); `APP_URL` wrong |

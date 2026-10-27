@@ -8,6 +8,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { STAGING_MIGRATION_MANIFEST } from "./staging-manifest.mjs";
 import {
+  configureStagingResendSmtp,
+  enableStagingEmailAutoconfirm,
+} from "./staging-auth-config.mjs";
+import {
   STAGING_PROJECT_REF,
   getAccessToken,
   getStagingRef,
@@ -30,30 +34,6 @@ async function shouldSkip(entry) {
   return rows[0]?.skip === true || rows[0]?.skip === "t";
 }
 
-async function enableEmail() {
-  const res = await fetch(
-    `https://api.supabase.com/v1/projects/${STAGING_PROJECT_REF}/config/auth`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        external_email_enabled: true,
-        mailer_autoconfirm: true,
-      }),
-    },
-  );
-  const body = await res.text();
-  if (!res.ok) {
-    console.error(`Email provider PATCH ${res.status}: ${body.slice(0, 1500)}`);
-    return false;
-  }
-  console.log("Staging Email provider enabled (autoconfirm on for beta).");
-  return true;
-}
-
 for (const entry of STAGING_MIGRATION_MANIFEST) {
   const name = entry.file;
   if (await shouldSkip(entry)) {
@@ -66,5 +46,6 @@ for (const entry of STAGING_MIGRATION_MANIFEST) {
   console.log(`Applied ${name}.`);
 }
 
-await enableEmail();
+await enableStagingEmailAutoconfirm(token);
+await configureStagingResendSmtp(token);
 console.log("Staging SQL finished. Production was not touched.");
