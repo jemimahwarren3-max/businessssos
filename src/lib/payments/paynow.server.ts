@@ -12,7 +12,7 @@
 // hash on that response before crediting anything.
 import { Paynow, type InitResponse } from "paynow";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { planAmountUsd, type PaidPlan } from "@/lib/billing-plans";
+import { planAmountUsd, planAmountZig, type PaidPlan } from "@/lib/billing-plans";
 import type { SubscriptionCheckoutInput } from "@/lib/business.schemas";
 import {
   AppError,
@@ -20,6 +20,14 @@ import {
   invalidateWorkspaceCacheForBusiness,
   type Db,
 } from "@/lib/business.server";
+import { loadPlatformFx } from "@/lib/platform-fx-read.server";
+import { amountToMinorUnits, fetchPaynowPollResponse } from "./paynow-poll";
+import {
+  paynowCredentialsConfigured,
+  paynowIntegrationId,
+  paynowIntegrationKey,
+  type SubscriptionBillingCurrency,
+} from "./paynow-credentials.server";
 
 function getAppUrl(): string {
   const url = process.env["APP_URL"];
@@ -29,11 +37,14 @@ function getAppUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-function createPaynowClient(): Paynow {
-  const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
-  const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
+function createPaynowClient(currency: SubscriptionBillingCurrency): Paynow {
+  const integrationId = paynowIntegrationId(currency);
+  const integrationKey = paynowIntegrationKey(currency);
   if (!integrationId || !integrationKey) {
-    throw new AppError("Payments aren't set up yet. Ask your admin to configure Paynow.");
+    const label = currency === "ZWG" ? "ZiG (ZWG)" : "USD";
+    throw new AppError(
+      `Paynow isn't set up for ${label} yet. Ask your admin to configure the matching integration keys.`,
+    );
   }
   const appUrl = getAppUrl();
   return new Paynow(
@@ -54,18 +65,59 @@ export type CheckoutResult = {
   instructions: string | undefined;
 };
 
+async function resolveBillingCurrency(
+  supabase: Db,
+  input: SubscriptionCheckoutInput,
+): Promise<SubscriptionBillingCurrency> {
+  if (input.billingCurrency) return input.billingCurrency;
+
+  const { data: business, error } = await supabase
+    .from("businesses")
+    .select("currency")
+    .eq("id", input.businessId)
+    .maybeSingle();
+  if (error) dbFail("load business currency for billing", error);
+
+  const businessCurrency = (business?.currency ?? "USD").toUpperCase();
+  if (businessCurrency === "ZWG" && paynowCredentialsConfigured("ZWG")) {
+    return "ZWG";
+  }
+  return "USD";
+}
+
+async function checkoutAmount(
+  plan: PaidPlan,
+  currency: SubscriptionBillingCurrency,
+): Promise<number> {
+  const usd = planAmountUsd(plan);
+  if (currency === "USD") return usd;
+
+  const fx = await loadPlatformFx();
+  const zig = planAmountZig(usd, fx);
+  if (zig == null || !(zig > 0)) {
+    throw new AppError(
+      "ZiG pricing isn't available right now. Try USD or ask support to refresh the platform exchange rate.",
+    );
+  }
+  return zig;
+}
+
 export async function initiateSubscriptionCheckout(
   supabase: Db,
   input: SubscriptionCheckoutInput,
   authEmail: string,
 ): Promise<CheckoutResult> {
   const plan = input.plan as PaidPlan;
-  const amount = planAmountUsd(plan);
+  const billingCurrency = await resolveBillingCurrency(supabase, input);
+  if (!paynowCredentialsConfigured(billingCurrency)) {
+    throw new AppError("Payments aren't set up yet. Ask your admin to configure Paynow.");
+  }
+  const amount = await checkoutAmount(plan, billingCurrency);
   const reference = `sub-${input.businessId}-${crypto.randomUUID()}`;
 
-  const paynow = createPaynowClient();
+  const paynow = createPaynowClient(billingCurrency);
   const payment = paynow.createPayment(reference, authEmail);
-  payment.add(`BusinessOS AI ${PLAN_LABEL[plan]} plan (monthly)`, amount);
+  payment.add(`Kwetuu ${PLAN_LABEL[plan]} plan (monthly)`, amount);
 
   let response: InitResponse | undefined;
   try {
@@ -89,7 +141,7 @@ export async function initiateSubscriptionCheckout(
     _plan: plan,
     _interval: "month",
     _amount: amount,
-    _currency: "USD",
+    _currency: billingCurrency,
     _poll_url: response.pollUrl,
   });
   if (rpcError) dbFail("record subscription payment", rpcError);
@@ -106,20 +158,44 @@ export type PaynowPollResult = "paid" | "pending" | "failed";
 // risk closing out a payment that's actually still in progress.
 const FAILURE_STATUSES = new Set(["cancelled", "disputed"]);
 
+const SUPPORTED_BILLING_CURRENCIES = new Set<SubscriptionBillingCurrency>(["USD", "ZWG"]);
+
 export async function pollAndConfirmPayment(
   reference: string,
   pollUrl: string,
 ): Promise<PaynowPollResult> {
-  const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
-  const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
-  if (!integrationId || !integrationKey) return "pending";
+  const { data: attempt, error: attemptError } = await supabaseAdmin
+    .from("subscription_payments")
+    .select("amount, currency, status")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (attemptError) {
+    console.error("[paynow] load subscription payment for verification", attemptError);
+    return "pending";
+  }
+  const currency = attempt?.currency as SubscriptionBillingCurrency | undefined;
+  if (
+    !attempt ||
+    attempt.status !== "created" ||
+    !currency ||
+    !SUPPORTED_BILLING_CURRENCIES.has(currency)
+  ) {
+    return "pending";
+  }
+
+  const integrationId = paynowIntegrationId(currency);
+  const integrationKey = paynowIntegrationKey(currency);
+  if (!integrationId || !integrationKey) {
+    console.error(
+      `[paynow] subscription polling is unavailable; ${currency} platform credentials are missing`,
+    );
+    return "pending";
+  }
 
   const paynow = new Paynow(integrationId, integrationKey);
-
   let rawBody: string;
   try {
-    const res = await fetch(pollUrl, { method: "POST" });
-    rawBody = await res.text();
+    rawBody = await fetchPaynowPollResponse(pollUrl);
   } catch (error) {
     console.error("[paynow] poll request failed", error);
     return "pending";
@@ -129,7 +205,18 @@ export async function pollAndConfirmPayment(
   try {
     statusResponse = paynow.parseStatusUpdate(rawBody);
   } catch (error) {
-    console.error("[paynow] poll response failed hash verification", error, rawBody);
+    console.error("[paynow] poll response failed hash verification", error);
+    return "pending";
+  }
+
+  if (statusResponse.reference?.trim() !== reference) {
+    console.error("[paynow] verified poll reference did not match the subscription payment");
+    return "pending";
+  }
+  const expectedAmount = amountToMinorUnits(attempt.amount);
+  const reportedAmount = amountToMinorUnits(statusResponse.amount ?? "");
+  if (expectedAmount === null || expectedAmount !== reportedAmount) {
+    console.error("[paynow] verified poll amount did not match the subscription payment");
     return "pending";
   }
 
@@ -137,12 +224,16 @@ export async function pollAndConfirmPayment(
   const paynowReference = statusResponse.paynowReference ?? null;
 
   if (status === "paid") {
-    await supabaseAdmin.rpc("paynow_confirm_payment", {
+    const { error } = await supabaseAdmin.rpc("paynow_confirm_payment", {
       _reference: reference,
-      _provider_reference: paynowReference as never,
-      _raw_status: (statusResponse.status ?? null) as never,
+      _provider_reference: paynowReference,
+      _raw_status: statusResponse.status ?? null,
       _paid: true,
     });
+    if (error) {
+      console.error("[paynow] confirm subscription payment", error);
+      return "pending";
+    }
     const { data: payment } = await supabaseAdmin
       .from("subscription_payments")
       .select("business_id")
@@ -153,12 +244,16 @@ export async function pollAndConfirmPayment(
   }
 
   if (FAILURE_STATUSES.has(status)) {
-    await supabaseAdmin.rpc("paynow_confirm_payment", {
+    const { error } = await supabaseAdmin.rpc("paynow_confirm_payment", {
       _reference: reference,
-      _provider_reference: paynowReference as never,
-      _raw_status: (statusResponse.status ?? null) as never,
+      _provider_reference: paynowReference,
+      _raw_status: statusResponse.status ?? null,
       _paid: false,
     });
+    if (error) {
+      console.error("[paynow] record failed subscription payment", error);
+      return "pending";
+    }
     return "failed";
   }
 

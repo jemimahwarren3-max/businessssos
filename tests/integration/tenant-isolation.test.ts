@@ -5,6 +5,7 @@ import {
   createTestUser,
   deleteTestBusiness,
   deleteTestUser,
+  describeStaging,
   newId,
   sql,
 } from "./helpers";
@@ -30,9 +31,24 @@ const EXPORT_TABLES = [
   "payments",
   "expenses",
   "inventory_movements",
+  "storefronts",
+  "product_listings",
+  "store_orders",
+  "store_order_items",
+  "store_order_events",
+  "store_marketing_campaigns",
+  "storefront_analytics_events",
+  "store_complaints",
+  "store_reviews",
+  "store_listing_reports",
+  "locations",
+  "product_stock",
+  "cash_sessions",
+  "cash_movements",
+  "shopper_shop_consents",
 ] as const;
 
-describe("cross-tenant isolation", () => {
+describeStaging("cross-tenant isolation", () => {
   let ownerA: string;
   let ownerB: string;
   let outsider: string;
@@ -50,7 +66,7 @@ describe("cross-tenant isolation", () => {
 
     const [product] = await asUser<{ id: string }>(
       ownerA,
-      `select id from public.create_product('${bizA}', 'Isolation Test Product', '', '', 'unit', 5, 10, 20, 0, 0, '');`,
+      `select id from public.create_product('${bizA}', 'Isolation Test Product', '', '', 'unit', 5, 10, 20, 0, 0, '', null, null);`,
     );
     productA = product!.id;
 
@@ -63,7 +79,8 @@ describe("cross-tenant isolation", () => {
     await asUser(
       ownerA,
       `select public.create_sale('${bizA}', '${customerA}', 0, 'cash',
-        'seed sale', '[{"productId":"${productA}","quantity":1,"unitPrice":10}]'::jsonb);`,
+        'seed sale', '[{"productId":"${productA}","quantity":1,"unitPrice":10}]'::jsonb,
+        'iso-sale-${newId()}', null);`,
     );
     await asUser(
       ownerA,
@@ -79,6 +96,10 @@ describe("cross-tenant isolation", () => {
       insert into public.expenses (business_id, category, amount, expense_date, created_by)
       values ('${bizA}', 'other', 15, current_date, '${ownerA}');
     `);
+    await sql(`
+      insert into public.storefronts (business_id, slug, store_name, template_id)
+      values ('${bizA}', 'iso-${newId().slice(0, 8)}', 'Isolation Shop', 'modern-minimal');
+    `);
   }, 60_000);
 
   afterAll(async () => {
@@ -93,18 +114,13 @@ describe("cross-tenant isolation", () => {
     ["business B's owner (a real user, just not a member of A)", () => ownerB],
     ["a total outsider (no business membership at all)", () => outsider],
   ])("%s cannot reach business A's data", (_label, getAttacker) => {
-    // 13 sequential Management API round trips (one per table) — the
-    // default 20s budget is tight enough that a couple of retried requests
-    // (see helpers.ts's transient-failure backoff) can blow through it even
-    // though nothing is actually wrong.
     it("cannot read any of business A's rows in any exported table", async () => {
-      for (const table of EXPORT_TABLES) {
-        const rows = await asUser(
-          getAttacker(),
-          `select * from public.${table} where business_id = '${bizA}';`,
-        );
-        expect(rows, `table "${table}" leaked a row to a non-member`).toEqual([]);
-      }
+      const checks = EXPORT_TABLES.map(
+        (table) =>
+          `select '${table}'::text as table_name where exists (select 1 from public.${table} where business_id = '${bizA}')`,
+      ).join("\nunion all\n");
+      const rows = await asUser<{ table_name: string }>(getAttacker(), checks);
+      expect(rows.map((row) => row.table_name)).toEqual([]);
     }, 60_000);
 
     it("cannot read business A's subscription", async () => {
@@ -127,7 +143,7 @@ describe("cross-tenant isolation", () => {
       await expect(
         asUser(
           getAttacker(),
-          `select public.create_product('${bizA}', 'Attacker Product', '', '', 'unit', 1, 1, 0, 0, 0, '');`,
+          `select public.create_product('${bizA}', 'Attacker Product', '', '', 'unit', 1, 1, 0, 0, 0, '', null, null);`,
         ),
       ).rejects.toThrow(/does not allow this action|permission denied/i);
     });
@@ -141,12 +157,28 @@ describe("cross-tenant isolation", () => {
       ).rejects.toThrow(/does not allow this action|could not be found|permission denied/i);
     });
 
+    it("cannot open a cash drawer in business A", async () => {
+      await expect(
+        asUser(getAttacker(), `select public.open_cash_session('${bizA}', 10, 'attack');`),
+      ).rejects.toThrow(/does not allow this action|permission denied/i);
+    });
+
+    it("cannot create a location in business A", async () => {
+      await expect(
+        asUser(
+          getAttacker(),
+          `select public.create_location('${bizA}', 'Attacker Branch', '', '');`,
+        ),
+      ).rejects.toThrow(/does not allow this action|permission denied/i);
+    });
+
     it("cannot record a sale against business A", async () => {
       await expect(
         asUser(
           getAttacker(),
           `select public.create_sale('${bizA}', null, 0, 'cash', 'attack',
-            '[{"productId":"${productA}","quantity":1,"unitPrice":10}]'::jsonb);`,
+            '[{"productId":"${productA}","quantity":1,"unitPrice":10}]'::jsonb,
+            'iso-attack-${newId()}', null);`,
         ),
       ).rejects.toThrow(/do not have permission|permission denied/i);
     });
@@ -200,7 +232,7 @@ describe("cross-tenant isolation", () => {
   it("business B's owner CAN operate normally within their own business (isolation isn't over-broad)", async () => {
     const rows = await asUser<{ id: string }>(
       ownerB,
-      `select id from public.create_product('${bizB}', 'B Own Product', '', '', 'unit', 1, 2, 5, 0, 0, '');`,
+      `select id from public.create_product('${bizB}', 'B Own Product', '', '', 'unit', 1, 2, 5, 0, 0, '', null, null);`,
     );
     expect(rows[0]?.id).toBeTruthy();
     await sql(`delete from public.inventory_movements where business_id = '${bizB}';`);

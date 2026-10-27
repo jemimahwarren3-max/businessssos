@@ -17,12 +17,18 @@ import {
   getBilling,
   startSubscriptionCheckout,
 } from "@/lib/business.functions";
-import { PLAN_MONTHLY_USD, planAmountUsd } from "@/lib/billing-plans";
+import {
+  PLAN_MONTHLY_USD,
+  planAmountUsd,
+  planAmountZig,
+  type PlatformFx,
+} from "@/lib/billing-plans";
+import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
   head: () => ({
-    meta: [{ title: "Billing — BusinessOS AI" }],
+    meta: [{ title: "Billing | Kwetuu" }],
   }),
   component: Billing,
 });
@@ -68,6 +74,11 @@ function Billing() {
   const checkPayment = useServerFn(checkSubscriptionPaymentFn);
 
   const [channel, setChannel] = useState<"web" | "ecocash" | "onemoney">("web");
+  const loadFx = useServerFn(getPlatformFxFn);
+  const [fx, setFx] = useState<PlatformFx | null>(null);
+  const [billingCurrency, setBillingCurrency] = useState<"USD" | "ZWG">(
+    currency === "ZWG" ? "ZWG" : "USD",
+  );
   const [phone, setPhone] = useState("");
   const [pendingInstructions, setPendingInstructions] = useState<string | null>(null);
 
@@ -76,6 +87,16 @@ function Billing() {
       navigate({ to: "/onboarding", replace: true });
     }
   }, [workspace.isLoading, workspace.data, navigate]);
+
+  useEffect(() => {
+    void loadFx().then(setFx);
+  }, [loadFx]);
+
+  useEffect(() => {
+    if (currency === "ZWG" && planAmountZig(PLAN_MONTHLY_USD.pro, fx) != null) {
+      setBillingCurrency("ZWG");
+    }
+  }, [currency, fx]);
 
   const billing = useQuery({
     queryKey: ["billing", businessId],
@@ -90,7 +111,13 @@ function Billing() {
   const checkoutMutation = useMutation({
     mutationFn: () =>
       startCheckout({
-        data: { businessId: businessId!, plan: "pro", channel, phone: phone || undefined },
+        data: {
+          businessId: businessId!,
+          plan: "pro",
+          channel,
+          phone: phone || undefined,
+          billingCurrency,
+        },
       }),
     onSuccess: async (result) => {
       if (result.redirectUrl) {
@@ -100,7 +127,7 @@ function Billing() {
       if (result.instructions) {
         setPendingInstructions(result.instructions);
       }
-      toast.success("Payment started — complete it on your phone, then check status below.");
+      toast.success("Payment started, complete it on your phone, then check status below.");
       await queryClient.invalidateQueries({ queryKey: ["billing", businessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't start that payment.")),
@@ -111,7 +138,7 @@ function Billing() {
       checkPayment({ data: { businessId: businessId!, reference: pendingPayment!.reference } }),
     onSuccess: async (result) => {
       if (result.status === "paid") {
-        toast.success("Payment confirmed — your plan is active.");
+        toast.success("Payment confirmed, your plan is active.");
         setPendingInstructions(null);
       } else if (result.status === "failed") {
         toast.error("That payment didn't go through. You can try again.");
@@ -131,7 +158,7 @@ function Billing() {
         role=""
         plan=""
         title="Billing"
-        subtitle="Manage your BusinessOS AI subscription."
+        subtitle="Manage your Kwetuu subscription."
       >
         <Skeleton className="h-64" />
       </AppShell>
@@ -141,6 +168,11 @@ function Billing() {
   const subscription = billing.data?.subscription;
   const statusMeta = subscription ? subscriptionStatusMeta(subscription.status) : null;
   const billingEnabled = workspace.data.billingEnabled;
+  const proUsd = planAmountUsd("pro");
+  const proZig = planAmountZig(proUsd, fx);
+  const checkoutAmount =
+    billingCurrency === "ZWG" && proZig != null ? proZig : proUsd;
+  const checkoutCurrency = billingCurrency === "ZWG" && proZig != null ? "ZWG" : "USD";
 
   return (
     <AppShell
@@ -150,7 +182,7 @@ function Billing() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Billing"
-      subtitle="Manage your BusinessOS AI subscription."
+      subtitle="Manage your Kwetuu subscription."
     >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
@@ -160,9 +192,9 @@ function Billing() {
               <div className="flex items-start gap-2.5">
                 <Sparkles className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
-                  BusinessOS is currently free while we build with our founding users. Every feature
-                  is unlocked — no card required. Pricing may be introduced later, and we'll give
-                  you clear notice before anything changes.
+                  Kwetuu is currently free while we build with our founding users. Every feature is
+                  unlocked, no card required. Pricing may be introduced later, and we'll give you
+                  clear notice before anything changes.
                 </p>
               </div>
             ) : billing.isLoading ? (
@@ -177,7 +209,9 @@ function Billing() {
                     </Badge>
                   ) : null}
                 </div>
-                {subscription.status === "trialing" && subscription.trial_ends_at ? (
+                {!workspace.data.isPlatformOwner &&
+                subscription.status === "trialing" &&
+                subscription.trial_ends_at ? (
                   <p className="text-sm text-muted-foreground">
                     Trial ends {friendlyDate(subscription.trial_ends_at)}. Pay for a plan below to
                     keep access after that.
@@ -191,9 +225,16 @@ function Billing() {
             ) : (
               <p className="text-sm text-muted-foreground">No subscription found yet.</p>
             )}
+            {workspace.data.isPlatformOwner ? (
+              <p className="rounded-lg bg-info-soft p-3 text-sm text-info">
+                Platform owner access is a separate entitlement. No subscription payment is
+                required; the subscription and payment history shown here remain actual billing
+                records.
+              </p>
+            ) : null}
           </div>
 
-          {!billingEnabled ? null : !canManageBilling ? (
+          {!billingEnabled || workspace.data.isPlatformOwner ? null : !canManageBilling ? (
             <div className="surface p-5 text-sm text-muted-foreground">
               Only an owner or admin can manage billing for this business.
             </div>
@@ -206,10 +247,40 @@ function Billing() {
                 <div className="rounded-lg border border-primary bg-primary/5 p-3">
                   <span className="text-sm font-semibold">Pro</span>
                   <span className="ml-2 text-[13px] text-muted-foreground">
-                    ${PLAN_MONTHLY_USD.pro}/mo
+                    ${PLAN_MONTHLY_USD.pro}/mo USD
+                    {proZig != null ? ` · ${formatMoney(proZig, "ZWG")} at today's rate` : ""}
                   </span>
                 </div>
               </div>
+
+              {proZig != null ? (
+                <div className="space-y-2">
+                  <Label>Charge in</Label>
+                  <RadioGroup
+                    value={billingCurrency}
+                    onValueChange={(v) => setBillingCurrency(v as "USD" | "ZWG")}
+                    className="grid grid-cols-2 gap-2"
+                  >
+                    <label className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-border p-2.5 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                      <RadioGroupItem value="USD" className="sr-only" />
+                      <span className="text-[13px] font-medium">USD</span>
+                      <span className="text-[12px] text-muted-foreground">
+                        {formatMoney(proUsd, "USD")}
+                      </span>
+                    </label>
+                    <label className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-border p-2.5 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                      <RadioGroupItem value="ZWG" className="sr-only" />
+                      <span className="text-[13px] font-medium">ZiG (ZWG)</span>
+                      <span className="text-[12px] text-muted-foreground">
+                        {formatMoney(proZig, "ZWG")}
+                      </span>
+                    </label>
+                  </RadioGroup>
+                  {fx?.notice ? (
+                    <p className="text-[12px] text-muted-foreground">{fx.notice}</p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label>Payment method</Label>
@@ -257,7 +328,7 @@ function Billing() {
                 {checkoutMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : null}
-                Pay {formatMoney(planAmountUsd("pro"), currency)}
+                Pay {formatMoney(checkoutAmount, checkoutCurrency)}
               </Button>
 
               {pendingInstructions ? (
@@ -278,7 +349,7 @@ function Billing() {
                   ) : (
                     <RefreshCw className="size-4" aria-hidden="true" />
                   )}
-                  I've paid — check status
+                  I've paid, check status
                 </Button>
               ) : null}
             </div>

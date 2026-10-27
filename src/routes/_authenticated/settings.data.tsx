@@ -15,7 +15,7 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 
 export const Route = createFileRoute("/_authenticated/settings/data")({
   head: () => ({
-    meta: [{ title: "Export data — BusinessOS AI" }],
+    meta: [{ title: "Export data | Kwetuu" }],
   }),
   component: DataExport,
 });
@@ -134,14 +134,14 @@ function DataExport() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Export data"
-      subtitle="Download everything BusinessOS AI stores for your business."
+      subtitle="Download everything Kwetuu stores for your business."
     >
       <div className="surface max-w-xl space-y-4 p-5">
         <div>
           <h2 className="text-lg font-semibold">Your data, in one file</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Products, customers, sales, invoices, quotes, expenses, and stock history — everything
-            tied to your business — as a single file you can keep, back up, or move elsewhere. JSON
+            Products, customers, sales, invoices, quotes, expenses, and stock history, everything
+            tied to your business, as a single file you can keep, back up, or move elsewhere. JSON
             keeps every field for a full backup; Excel is easier to open and browse; PDF is best for
             printing or sharing a read-only copy.
           </p>

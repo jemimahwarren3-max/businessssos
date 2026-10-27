@@ -2,9 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { orderTokenKey } from "@/lib/storefront/cart";
-import { getCustomerOrderFn } from "@/lib/storefront/storefront.functions";
+import {
+  getCustomerOrderFn,
+  submitOrderPaymentNoteFn,
+} from "@/lib/storefront/storefront.functions";
 import type { CustomerOrder } from "@/lib/storefront/contract";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { StoreComplaintForm } from "@/components/storefront/complaint-form";
+import { OrderReceipt } from "@/components/storefront/order-receipt";
+import { StoreReviewForm } from "@/components/storefront/review-form";
+import { startCustomerPaynowFn } from "@/lib/storefront/storefront.functions";
+import { readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/order/$reference")({
@@ -27,20 +34,41 @@ const STATUS_COPY: Record<string, string> = {
   completed: "Marked completed by the shop.",
   cancelled: "Cancelled.",
   unpaid: "Payment has not been recorded.",
+  pending: "Payment note sent. The shop still has to confirm they received the money.",
   paid: "Payment recorded by the shop.",
+  failed: "The shop could not confirm that payment. You can send a new reference.",
+  refunded: "Refunded.",
 };
 
 function OrderPage() {
   const { store } = StoreRoute.useLoaderData();
   const { reference } = Route.useParams();
   const load = useServerFn(getCustomerOrderFn);
+  const startPaynow = useServerFn(startCustomerPaynowFn);
+  const sendProof = useServerFn(submitOrderPaymentNoteFn);
+  const [paying, setPaying] = useState(false);
+  const [paynowChannel, setPaynowChannel] = useState<"web" | "ecocash">("web");
+  const [paynowHint, setPaynowHint] = useState<string | null>(null);
   const [token, setToken] = useState("");
   const [order, setOrder] = useState<CustomerOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [proofReference, setProofReference] = useState("");
+  const [proofNote, setProofNote] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPending, setProofPending] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem(orderTokenKey(store.slug, reference)) ?? "";
     if (saved) setToken(saved);
+    void load({ data: { slug: store.slug, reference, token: saved } })
+      .then((result) => {
+        setOrder(result);
+        setError(null);
+      })
+      .catch(() => {
+        /* Unsigned guests still use the access-code form. */
+      });
+    // load is a stable server-fn wrapper; listing it retriggers this lookup.
   }, [store.slug, reference]);
 
   async function lookup(event?: React.FormEvent) {
@@ -48,7 +76,7 @@ function OrderPage() {
     setError(null);
     try {
       const result = await load({ data: { slug: store.slug, reference, token } });
-      sessionStorage.setItem(orderTokenKey(store.slug, reference), token);
+      if (token) sessionStorage.setItem(orderTokenKey(store.slug, reference), token);
       setOrder(result);
     } catch (reason) {
       setOrder(null);
@@ -61,56 +89,240 @@ function OrderPage() {
       <h1 className="text-2xl font-semibold">Order {reference}</h1>
       <p className="mt-2 text-sm text-neutral-500">
         The access code was shown once after checkout. The order number alone does not open this
-        page.
+        page. Signed-in shoppers can open orders saved to their account without the code.
       </p>
-      <form className="mt-4 space-y-3" onSubmit={(event) => void lookup(event)}>
-        <label className="block text-sm">
-          Access code
-          <input
-            className="mt-1 w-full rounded border px-3 py-2"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-          />
-        </label>
-        <button className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white" type="submit">
-          View order
-        </button>
-      </form>
+      {order?.mine ? null : (
+        <form className="mt-4 space-y-3" onSubmit={(event) => void lookup(event)}>
+          <label className="block text-sm">
+            Access code
+            <input
+              className="mt-1 w-full rounded border px-3 py-2"
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+            />
+          </label>
+          <button className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white" type="submit">
+            View order
+          </button>
+        </form>
+      )}
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       {order ? (
         <div className="mt-6 space-y-3 text-sm">
-          <p className="font-medium">{order.storeName}</p>
           <p>{STATUS_COPY[order.fulfilmentStatus] ?? order.fulfilmentStatus}</p>
-          <p>
-            {order.paid
-              ? "Payment recorded."
-              : "Not paid yet. A pending order is not a completed sale."}
-          </p>
-          <p>
-            {order.paymentMethod === "quote"
-              ? "This is a quote request."
-              : order.paymentMethod === "pay_on_delivery"
-                ? "Pay on delivery."
-                : "Pay on pickup."}
-          </p>
-          <p>Placed {friendlyDate(order.createdAt)}</p>
-          <ul className="divide-y border-y">
-            {order.items.map((item) => (
-              <li key={item.name} className="flex justify-between py-2">
-                <span>
-                  {item.quantity} × {item.name}
-                </span>
-                <span>{formatMoney(item.lineTotal, order.currency)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-base font-semibold">
-            Total {formatMoney(order.total, order.currency)}
-          </p>
-          {order.customerAddress ? <p>Address: {order.customerAddress}</p> : null}
+          <OrderReceipt order={order} audience="customer" />
+          {order.paymentMethod === "manual" &&
+          !order.paid &&
+          order.paymentStatus !== "cancelled" ? (
+            <form
+              className="space-y-2 rounded-lg border p-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setProofPending(true);
+                setError(null);
+                const send = (proofBase64?: string) =>
+                  sendProof({
+                    data: {
+                      slug: store.slug,
+                      reference: order.reference,
+                      token,
+                      proofReference: proofReference || undefined,
+                      proofNote: proofNote || undefined,
+                      proofBase64,
+                    },
+                  });
+                const work = proofFile
+                  ? proofFile.arrayBuffer().then((buffer) => {
+                      const bytes = new Uint8Array(buffer);
+                      let binary = "";
+                      for (let i = 0; i < bytes.length; i += 1)
+                        binary += String.fromCharCode(bytes[i]!);
+                      return send(btoa(binary));
+                    })
+                  : send();
+                void work
+                  .then((next) => {
+                    setOrder(next);
+                    setProofReference("");
+                    setProofNote("");
+                    setProofFile(null);
+                  })
+                  .catch((reason: Error) =>
+                    setError(readableError(reason, "The payment note was not saved.")),
+                  )
+                  .finally(() => setProofPending(false));
+              }}
+            >
+              <p className="font-medium">Send payment proof</p>
+              <p className="text-neutral-600">
+                Attach a screenshot or paste the EcoCash, InnBucks, or bank confirmation number.
+                This does not mark the order paid. The shop must check their own account.
+              </p>
+              {order.terms?.manualPayment ? (
+                <p className="whitespace-pre-wrap text-neutral-600">
+                  {[
+                    order.terms.manualPayment.accountName,
+                    order.terms.manualPayment.accountDetail,
+                    order.terms.manualPayment.instructions,
+                  ]
+                    .filter(Boolean)
+                    .join("\n")}
+                </p>
+              ) : null}
+              {order.proofUrl ? (
+                order.proofUrl.includes(".pdf") ||
+                order.terms?.paymentProof?.storagePath?.endsWith(".pdf") ? (
+                  <a className="underline" href={order.proofUrl} rel="noreferrer" target="_blank">
+                    View the file you sent
+                  </a>
+                ) : (
+                  <img
+                    alt="Payment screenshot you sent"
+                    className="max-h-64 rounded border"
+                    src={order.proofUrl}
+                  />
+                )
+              ) : null}
+              {order.terms?.paymentProof?.reference ? (
+                <p>
+                  Last note sent: {order.terms.paymentProof.reference}
+                  {order.terms.paymentProof.rejectReason
+                    ? ` — ${order.terms.paymentProof.rejectReason}`
+                    : ""}
+                </p>
+              ) : null}
+              <label className="block">
+                Screenshot (JPEG, PNG, WebP, or PDF, 5 MB)
+                <input
+                  className="mt-1 w-full text-sm"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              <label className="block">
+                Payment reference
+                <input
+                  className="mt-1 w-full rounded border px-3 py-2"
+                  minLength={proofFile ? 0 : 3}
+                  value={proofReference}
+                  onChange={(event) => setProofReference(event.target.value)}
+                />
+              </label>
+              <label className="block">
+                Optional note
+                <textarea
+                  className="mt-1 w-full rounded border px-3 py-2"
+                  maxLength={400}
+                  value={proofNote}
+                  onChange={(event) => setProofNote(event.target.value)}
+                />
+              </label>
+              <button
+                className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                disabled={proofPending || (!token && !order.mine)}
+                type="submit"
+              >
+                {proofPending ? "Sending…" : "Send proof"}
+              </button>
+              {!token && !order.mine ? (
+                <p className="text-neutral-500">
+                  Enter the access code above before sending a note.
+                </p>
+              ) : null}
+            </form>
+          ) : null}
+          {order.paymentMethod === "paynow" && !order.paid ? (
+            <div className="space-y-2 rounded-lg border p-3">
+              <p className="font-medium">Finish paying this shop with Paynow</p>
+              <label className="block">
+                <input
+                  type="radio"
+                  name="paynow-retry"
+                  checked={paynowChannel === "web"}
+                  onChange={() => setPaynowChannel("web")}
+                />{" "}
+                Card / Paynow web
+              </label>
+              <label className="block">
+                <input
+                  type="radio"
+                  name="paynow-retry"
+                  checked={paynowChannel === "ecocash"}
+                  onChange={() => setPaynowChannel("ecocash")}
+                />{" "}
+                EcoCash ({order.customerPhone})
+              </label>
+              {paynowHint ? <p className="text-neutral-600">{paynowHint}</p> : null}
+              <button
+                className="rounded-md bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+                type="button"
+                disabled={paying}
+                onClick={() => {
+                  setPaying(true);
+                  setPaynowHint(null);
+                  void startPaynow({
+                    data: {
+                      slug: store.slug,
+                      reference: order.reference,
+                      token,
+                      channel: paynowChannel,
+                      phone: order.customerPhone,
+                    },
+                  })
+                    .then((paynow) => {
+                      if (paynow.redirectUrl) window.location.assign(paynow.redirectUrl);
+                      else
+                        setPaynowHint(
+                          paynow.instructions ?? "Open the EcoCash prompt on your phone.",
+                        );
+                    })
+                    .catch((reason: Error) =>
+                      setError(readableError(reason, "Paynow could not be started.")),
+                    )
+                    .finally(() => setPaying(false));
+                }}
+              >
+                {paying ? "Opening Paynow…" : "Pay now"}
+              </button>
+            </div>
+          ) : null}
+          {order.items.map((item) =>
+            item.canReview && item.productId ? (
+              <StoreReviewForm
+                key={item.productId}
+                slug={store.slug}
+                reference={order.reference}
+                token={token}
+                productId={item.productId}
+                productName={item.name}
+                onSaved={() => void lookup()}
+              />
+            ) : item.reviewed ? (
+              <p key={`${item.productId}-reviewed`} className="text-neutral-500">
+                You already left a verified purchase review for {item.name}.
+              </p>
+            ) : null,
+          )}
+          {order.items.every((item) => !item.canReview) &&
+          order.items.every((item) => !item.reviewed) &&
+          order.paymentMethod !== "quote" &&
+          order.fulfilmentStatus !== "cancelled" ? (
+            <p className="text-neutral-500">
+              Reviews open after the shop marks this order ready, out for delivery, or completed.
+            </p>
+          ) : null}
           <p className="text-neutral-500">
             Contact the shop if you need to change this order. Keep the access code private.
           </p>
+          <StoreComplaintForm
+            slug={store.slug}
+            reference={order.reference}
+            token={token}
+            defaultName={order.customerName}
+            defaultPhone={order.customerPhone}
+            defaultEmail={order.customerEmail ?? ""}
+          />
         </div>
       ) : null}
     </div>

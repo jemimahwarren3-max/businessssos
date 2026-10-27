@@ -1,13 +1,9 @@
 import { AppError, assertMember, listCustomers, listProducts, type Db } from "./business.server";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "./business.schemas";
-import { GroqProvider } from "./ai/groq-provider";
+import { getAIProvider } from "./ai/get-provider.server";
 import type { ChatMessage } from "./ai/provider";
+import { AI_LIMITS } from "./ai/limits.server";
 import { checkRateLimit } from "./rate-limit.server";
-
-// Bounds cumulative Groq cost per business independent of how many staff
-// share the per-minute bucket — same 24h-window primitive askAssistant uses.
-const DAILY_LIMIT = 100;
-const DAILY_WINDOW_SECONDS = 60 * 60 * 24;
 
 const CATEGORY_VALUES = EXPENSE_CATEGORIES.map((c) => c.value);
 const PAYMENT_VALUES = PAYMENT_METHODS.map((p) => p.value);
@@ -23,11 +19,11 @@ Unclear: {"type":"unknown"}
 
 Rules:
 - A sale is recording something already sold to a customer. A purchase is stock/goods the
-  business bought in, to resell or restock — e.g. "Bought 20 cases of Mazoe from ABC Suppliers
+  business bought in, to resell or restock, e.g. "Bought 20 cases of Mazoe from ABC Suppliers
   at $8 each". An expense is money paid out that isn't buying stock (rent, transport, etc).
 - Never invent a name, amount, or quantity that isn't stated or clearly implied.
 - If the message doesn't clearly match one of these, output {"type":"unknown"}.
-- Quantity defaults to 1 if not stated. Output valid JSON only — no markdown, no commentary.`;
+- Quantity defaults to 1 if not stated. Output valid JSON only, no markdown, no commentary.`;
 
 export type QuickEntryItem = {
   name: string;
@@ -99,7 +95,7 @@ export function isRawDraft(value: unknown): value is RawDraft {
   );
 }
 
-/** Groq's smaller instant models sometimes wrap JSON in a markdown code
+/** Some models wrap JSON in a markdown code
  * fence or add a stray sentence despite the prompt saying not to — pull out
  * just the outermost {...} block before parsing so that doesn't turn a
  * correctly-understood message into a false "unknown". */
@@ -208,8 +204,8 @@ export async function parseQuickEntry(
 
   const withinDailyLimit = await checkRateLimit(
     `quick-entry-daily:business:${businessId}`,
-    DAILY_LIMIT,
-    DAILY_WINDOW_SECONDS,
+    AI_LIMITS.quickEntryDaily,
+    AI_LIMITS.dayWindowSeconds,
   );
   if (!withinDailyLimit) {
     throw new AppError("Quick Add has reached its daily usage limit. Please try again tomorrow.");
@@ -220,10 +216,9 @@ export async function parseQuickEntry(
     { role: "user", content: text },
   ];
 
-  const provider = new GroqProvider();
   let raw: unknown;
   try {
-    const content = await provider.chat(messages);
+    const content = await getAIProvider().chat(messages);
     raw = JSON.parse(extractJson(content));
   } catch (error) {
     if (error instanceof SyntaxError) return { type: "unknown" };

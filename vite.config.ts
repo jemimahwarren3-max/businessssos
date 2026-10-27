@@ -6,8 +6,19 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const appUrl = (
+  process.env["APP_URL"] ||
+  process.env["VITE_APP_URL"] ||
+  "http://localhost:8080"
+).replace(/\/+$/, "");
+const shopHostsFlag = (process.env["SHOP_HOSTS"] || process.env["VITE_SHOP_HOSTS"] || "").trim();
+
 export default defineConfig(({ command }) => {
   return {
+    define: {
+      "import.meta.env.VITE_APP_URL": JSON.stringify(appUrl),
+      "import.meta.env.VITE_SHOP_HOSTS": JSON.stringify(shopHostsFlag),
+    },
     css: { transformer: "lightningcss" },
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
@@ -33,6 +44,8 @@ export default defineConfig(({ command }) => {
     server: {
       host: "::",
       port: 8080,
+      // Shop addresses in dev are http://{slug}.localhost:8080.
+      allowedHosts: true,
       watch: { awaitWriteFinish: { stabilityThreshold: 1000, pollInterval: 100 } },
     },
     plugins: [
@@ -53,18 +66,19 @@ export default defineConfig(({ command }) => {
       // The public site and auth pages always need a live connection.
       VitePWA({
         registerType: "autoUpdate",
-        injectRegister: "auto",
+        injectRegister: false,
         includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png", "icon-512-maskable.png"],
         // Nitro's node-server preset writes the client bundle to
         // .output/public, not Vite's nominal `dist` — without this the
         // plugin precaches nothing and drops sw.js where nothing serves it.
         outDir: "./.output/public",
         manifest: {
-          name: "BusinessOS AI",
-          short_name: "BusinessOS",
-          description: "Run your business, not your spreadsheets.",
-          theme_color: "#4F46E5",
-          background_color: "#F8FAFC",
+          name: "Kwetuu",
+          short_name: "Kwetuu",
+          description:
+            "Discover independent shops across Zimbabwe, or open your own online store on mykwetuu.com.",
+          theme_color: "#AF513D",
+          background_color: "#F9F6F1",
           display: "standalone",
           start_url: "/dashboard",
           // SVG covers browser installs; the PNGs exist for Android — the
@@ -86,14 +100,25 @@ export default defineConfig(({ command }) => {
         },
         workbox: {
           globPatterns: ["**/*.{js,css,ico,svg}"],
-          navigateFallback: "/dashboard",
-          navigateFallbackDenylist: [/^\/$/, /^\/auth/, /^\/reset-password/],
-          runtimeCaching: [
-            {
-              urlPattern: ({ request }) => request.destination === "document",
-              handler: "NetworkFirst",
-              options: { cacheName: "html-shell", networkTimeoutSeconds: 3 },
-            },
+          navigateFallback: "/staff-login",
+          navigateFallbackDenylist: [
+            /^\/$/,
+            /^\/auth/,
+            /^\/reset-password/,
+            /^\/market/,
+            /^\/stores/,
+            /^\/signup/,
+            /^\/login/,
+            /^\/pricing/,
+            /^\/templates/,
+            /^\/features/,
+            /^\/store/,
+            /^\/legal/,
+            /^\/health/,
+            /^\/api/,
+            /^\/sitemap/,
+            /^\/invite/,
+            /^\/admin/,
           ],
         },
       }),

@@ -1,22 +1,19 @@
 import { AppError, assertPermission, loadDashboard, loadReports, type Db } from "./business.server";
-import { GroqProvider } from "./ai/groq-provider";
+import { getAIProvider } from "./ai/get-provider.server";
 import type { ChatMessage } from "./ai/provider";
 import { formatMoney } from "./format";
 import { checkRateLimit } from "./rate-limit.server";
+import { AI_LIMITS } from "./ai/limits.server";
 
 const HISTORY_LIMIT = 12;
-// Bounds cumulative Groq cost per business independent of how many staff
-// members share the per-minute bucket — a 24h window via the same
-// check_rate_limit primitive the per-minute limits use.
-const DAILY_LIMIT = 100;
-const DAILY_WINDOW_SECONDS = 60 * 60 * 24;
 
-const SYSTEM_PROMPT = `You are the BusinessOS AI assistant, built into a small-business management app.
-Answer questions about the business using ONLY the data given to you below — never invent numbers,
+const SYSTEM_PROMPT = `You are the Kwetuu AI assistant, built into a small-business management app.
+Answer questions about the business using ONLY the data given to you below, never invent numbers,
 customers, or products that aren't in it. Keep answers short (2-4 sentences), in plain language a
-non-accountant would understand — no jargon like "COGS" or "accounts receivable". If the data doesn't
-cover what's being asked, say so honestly instead of guessing. You cannot take any actions (create
-invoices, record sales, etc.) — you can only discuss the numbers you're given.`;
+non-accountant would understand, no jargon like "COGS" or "accounts receivable". If the data doesn't
+cover what's being asked, say so honestly instead of guessing. You may recommend next steps and
+help prepare drafts, but you cannot apply changes, create records, send messages, or publish anything.
+The owner must review and explicitly approve every action in the app.`;
 
 /** Builds a compact, structured snapshot of the business — never raw DB
  * access — so the model only ever sees the minimum it needs to answer. */
@@ -94,8 +91,8 @@ export async function askAssistant(
 
   const withinDailyLimit = await checkRateLimit(
     `ai-daily-assistant:business:${businessId}`,
-    DAILY_LIMIT,
-    DAILY_WINDOW_SECONDS,
+    AI_LIMITS.assistantDaily,
+    AI_LIMITS.dayWindowSeconds,
   );
   if (!withinDailyLimit) {
     throw new AppError(
@@ -109,9 +106,8 @@ export async function askAssistant(
     ...messages.slice(-HISTORY_LIMIT),
   ];
 
-  const provider = new GroqProvider();
   try {
-    const answer = await provider.chat(chatMessages);
+    const answer = await getAIProvider().chat(chatMessages);
     return { answer };
   } catch (error) {
     console.error("[businessos] ai assistant failed", error);

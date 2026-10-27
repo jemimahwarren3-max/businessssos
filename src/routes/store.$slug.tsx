@@ -1,11 +1,15 @@
 import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { z } from "zod";
-import { StoreChrome } from "@/components/storefront/store-experience";
+import { StoreChrome, StorePreviewProvider } from "@/components/storefront/store-experience";
+import { StoreAnalyticsProvider } from "@/components/storefront/store-analytics";
 import { getPublicStoreFn, getStorePreviewFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 
 const searchSchema = z.object({
-  preview: z.literal("1").optional().catch(undefined),
+  preview: z
+    .union([z.literal("1"), z.literal(1)])
+    .optional()
+    .catch(undefined),
 });
 
 export const Route = createFileRoute("/store/$slug")({
@@ -26,16 +30,19 @@ export const Route = createFileRoute("/store/$slug")({
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Shop" }] };
     const { store, preview } = loaderData;
-    const description = store.tagline || store.about || `Shop ${store.storeName}`;
+    const description =
+      store.content.seoDescription || store.tagline || store.about || `Shop ${store.storeName}`;
     const template = getTemplate(store.templateId);
     return {
       meta: [
-        { title: `${store.storeName}` },
+        { title: store.content.seoTitle || store.storeName },
         { name: "description", content: description.slice(0, 180) },
         { property: "og:title", content: store.storeName },
         { property: "og:description", content: description.slice(0, 180) },
         { property: "og:type", content: "website" },
-        ...(store.logoUrl ? [{ property: "og:image", content: store.logoUrl }] : []),
+        ...(store.theme.coverUrl || store.logoUrl
+          ? [{ property: "og:image", content: store.theme.coverUrl || store.logoUrl || "" }]
+          : []),
         ...(preview ? [{ name: "robots", content: "noindex, nofollow" }] : []),
       ],
       links: [{ rel: "stylesheet", href: template.fontHref }],
@@ -47,8 +54,12 @@ export const Route = createFileRoute("/store/$slug")({
 function StoreLayout() {
   const { store, preview } = Route.useLoaderData();
   return (
-    <StoreChrome store={store} preview={preview}>
-      <Outlet />
-    </StoreChrome>
+    <StoreAnalyticsProvider slug={store.slug} preview={preview}>
+      <StorePreviewProvider preview={preview}>
+        <StoreChrome store={store} preview={preview}>
+          <Outlet />
+        </StoreChrome>
+      </StorePreviewProvider>
+    </StoreAnalyticsProvider>
   );
 }

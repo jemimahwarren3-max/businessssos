@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AlertTriangle, LogOut, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +23,13 @@ import {
   verifyMfaChallengeFn,
   verifyMfaEnrollmentFn,
 } from "@/lib/auth/auth.functions";
+import { checkPlatformAdmin } from "@/lib/admin/admin.functions";
+import { getNotifyEmailFn, setNotifyEmailFn } from "@/lib/business.functions";
 import { readableError } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/account")({
   head: () => ({
-    meta: [{ title: "Account — BusinessOS AI" }],
+    meta: [{ title: "Account | Kwetuu" }],
   }),
   component: AccountSettings,
 });
@@ -216,6 +219,79 @@ function DevicesSection() {
   );
 }
 
+function ShopAlertsSection({ businessId }: { businessId: string }) {
+  const queryClient = useQueryClient();
+  const load = useServerFn(getNotifyEmailFn);
+  const save = useServerFn(setNotifyEmailFn);
+  const preference = useQuery({
+    queryKey: ["notify-email", businessId],
+    queryFn: () => load({ data: { businessId } }),
+  });
+  const mutation = useMutation({
+    mutationFn: (enabled: boolean) => save({ data: { businessId, enabled } }),
+    onSuccess: (enabled) => {
+      queryClient.setQueryData(["notify-email", businessId], enabled);
+      toast.success(
+        enabled
+          ? "Shop alerts will be emailed when email is configured."
+          : "Shop alert emails are off for you.",
+      );
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Could not save that email preference.")),
+  });
+
+  return (
+    <div className="surface max-w-xl space-y-3 p-5">
+      <h2 className="text-lg font-semibold">Shop alerts</h2>
+      <p className="text-sm text-muted-foreground">
+        In-app alerts always appear in the bell. Email copies, when the operator has configured
+        Resend, go to owners, admins, and managers who leave this on. WhatsApp is a chat link, not
+        an alert channel.
+      </p>
+      {preference.isError ? (
+        <p className="text-sm text-muted-foreground">
+          {readableError(
+            preference.error as Error,
+            "This preference needs the latest database update.",
+          )}
+        </p>
+      ) : (
+        <label className="flex items-center justify-between gap-3 text-sm">
+          Email me shop alerts
+          <Switch
+            checked={preference.data ?? true}
+            disabled={preference.isLoading || mutation.isPending}
+            onCheckedChange={(checked) => mutation.mutate(checked)}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function PlatformAdminEntry() {
+  const check = useServerFn(checkPlatformAdmin);
+  const admin = useQuery({
+    queryKey: ["admin-mfa-status"],
+    queryFn: () => check(),
+    staleTime: 120_000,
+  });
+  if (!admin.data?.isAdmin) return null;
+  return (
+    <div className="surface mb-4 max-w-xl p-5">
+      <h2 className="text-lg font-semibold">Kwetuu platform admin</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Monitor all businesses, subscriptions, storefronts, and platform settings. Requires
+        authenticator verification.
+      </p>
+      <Button asChild className="mt-3" variant="outline" size="sm">
+        <Link to="/admin">Open admin console</Link>
+      </Button>
+    </div>
+  );
+}
+
 function AccountSettings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -264,7 +340,7 @@ function AccountSettings() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Account"
-      subtitle="Manage your BusinessOS AI account."
+      subtitle="Manage your Kwetuu account."
     >
       <div className="mb-4">
         <SecuritySection />
@@ -274,6 +350,12 @@ function AccountSettings() {
         <DevicesSection />
       </div>
 
+      <div className="mb-4">
+        <ShopAlertsSection businessId={workspace.data.business.id} />
+      </div>
+
+      <PlatformAdminEntry />
+
       <div className="surface max-w-xl space-y-4 border-destructive/30 p-5">
         <div>
           <h2 className="flex items-center gap-1.5 text-lg font-semibold text-destructive">
@@ -282,8 +364,8 @@ function AccountSettings() {
           </h2>
           {isOwner ? (
             <p className="mt-1 text-sm text-muted-foreground">
-              This permanently deletes <strong>{workspace.data.business.name}</strong> — every
-              product, sale, invoice, quote, customer, and expense — along with your login. This
+              This permanently deletes <strong>{workspace.data.business.name}</strong>, every
+              product, sale, invoice, quote, customer, and expense, along with your login. This
               cannot be undone. If you want to keep a copy first, use{" "}
               <span className="font-medium text-foreground">Export data</span> before continuing.
             </p>

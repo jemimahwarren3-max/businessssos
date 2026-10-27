@@ -1,0 +1,39 @@
+name: Flush mail outbox
+
+# Claims pending Resend deliveries on the deployed app. Staging URL until
+# production is explicitly cut over. Does nothing useful until
+# RESEND_API_KEY, NOTIFY_FROM_EMAIL, and MAIL_FLUSH_SECRET are set.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  flush:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/internal/flush-mail
+        env:
+          APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
+          MAIL_FLUSH_SECRET: ${{ secrets.MAIL_FLUSH_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ] || [ -z "${MAIL_FLUSH_SECRET:-}" ]; then
+            echo "Set GitHub secrets APP_URL (or STAGING_APP_URL) and MAIL_FLUSH_SECRET."
+            exit 1
+          fi
+          response="$(curl -fsS -X POST "${APP_URL%/}/api/internal/flush-mail" \
+            -H "Authorization: Bearer ${MAIL_FLUSH_SECRET}" \
+            -H "Content-Type: application/json")"
+          printf '%s\n' "$response" | python3 -c '
+          import json, sys
+          result = json.load(sys.stdin)
+          print("Mail flush: sent={sent}, failed={failed}, skipped={skipped}".format(**result))
+          if not result.get("configured"):
+              print(result.get("reason", "Resend is not configured."), file=sys.stderr)
+              raise SystemExit(1)
+          if result.get("failed", 0):
+              print(result.get("reason", "One or more email deliveries failed."), file=sys.stderr)
+              raise SystemExit(1)
+          '

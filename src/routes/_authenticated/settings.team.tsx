@@ -48,12 +48,13 @@ import { buildInviteWhatsAppMessage } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/settings/team")({
   head: () => ({
-    meta: [{ title: "Team — BusinessOS AI" }],
+    meta: [{ title: "Team | Kwetuu" }],
   }),
   component: Team,
 });
 
 const TEAM_ROLES = ["owner", "admin", "manager", "cashier", "accountant"] as const;
+const INVITE_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
 // Owner is deliberately excluded — always has every permission, not editable.
 const PERMISSION_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
 
@@ -69,7 +70,7 @@ function Team() {
   const [section, setSection] = useState<"team" | "permissions">("team");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteMode, setInviteMode] = useState<"link" | "staff">("link");
-  const [inviteRole, setInviteRole] = useState<(typeof TEAM_ROLES)[number]>("cashier");
+  const [inviteRole, setInviteRole] = useState<(typeof INVITE_ROLES)[number]>("cashier");
   const [inviteLink, setInviteLink] = useState<{ link: string; role: string } | null>(null);
   const [createdStaff, setCreatedStaff] = useState<{ name: string; role: string } | null>(null);
   const [staffName, setStaffName] = useState("");
@@ -367,11 +368,13 @@ function Team() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {TEAM_ROLES.map((r) => (
-                            <SelectItem key={r} value={r}>
-                              {ROLE_LABEL[r] ?? r}
-                            </SelectItem>
-                          ))}
+                          {(workspace.data?.role === "owner" ? TEAM_ROLES : INVITE_ROLES).map(
+                            (r) => (
+                              <SelectItem key={r} value={r}>
+                                {ROLE_LABEL[r] ?? r}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                       {m.staff_name ? (
@@ -413,7 +416,7 @@ function Team() {
                 {(invites.data ?? []).map((invite) => (
                   <li
                     key={invite.id}
-                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-5 py-3"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-3"
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium">
@@ -423,14 +426,6 @@ function Team() {
                         Expires {friendlyDate(invite.expires_at)}
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => copyLink(linkFor(invite.token))}
-                    >
-                      <Copy className="size-3.5" aria-hidden="true" /> Copy link
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -596,13 +591,13 @@ function Team() {
                 <Label>Role</Label>
                 <Select
                   value={inviteRole}
-                  onValueChange={(v) => setInviteRole(v as (typeof TEAM_ROLES)[number])}
+                  onValueChange={(v) => setInviteRole(v as (typeof INVITE_ROLES)[number])}
                 >
                   <SelectTrigger aria-label="Role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TEAM_ROLES.map((r) => (
+                    {INVITE_ROLES.map((r) => (
                       <SelectItem key={r} value={r}>
                         {ROLE_LABEL[r] ?? r}
                       </SelectItem>
@@ -652,6 +647,9 @@ function Team() {
               <div className="surface break-all p-3 text-[13px] text-muted-foreground">
                 {inviteLink.link}
               </div>
+              <p className="text-[13px] text-muted-foreground">
+                Copy this link now. We cannot show it again after you close this.
+              </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"

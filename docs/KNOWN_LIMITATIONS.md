@@ -1,0 +1,23 @@
+# Known limitations
+
+- Not production-ready. See `PRODUCTION_GO_LIVE_CHECKLIST.md`.
+- Customer checkout: pay on pickup, pay on delivery, quote, seller-configured EcoCash / InnBucks / bank / other instructions, and Paynow when the shop has linked its own keys. Screenshots go in a private `payment-proofs` bucket and are shown on signed URLs. A file never marks the order paid. Platform Paynow keys are still billing-only.
+- Merchant shop alerts are in-app. Shop-owner alerts and shopper receipts/status emails are queued for Resend, but will only send after `RESEND_API_KEY`, a verified `NOTIFY_FROM_EMAIL`, `MAIL_FLUSH_SECRET`, and the scheduled mail-flush workflow are configured. Unconfigured mail stays queued. WhatsApp Cloud is not connected.
+- Platform Paynow is subscription billing only (listed Pro is `PLAN_MONTHLY_USD.pro`, currently $7/month). Billing is off until `BILLING_ENABLED` is on. ZiG is a display equivalent from `platform_fx` when an operator stores a rate and source. Paynow still charges USD. There is no automatic RBZ feed and no stored-card recurring.
+- One shop per cart. No marketplace commission.
+- No product variants. Product photos upload to the `product-media` bucket (JPEG/PNG/WebP, 2 MB). There is no virus scanner. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
+- Shop URLs are `{slug}.{APP_URL host}`. Cloud Run domain-mappings cannot attach `*.domain`; add wildcard DNS and TLS (Cloudflare on `*` or an HTTPS load balancer). The `.run.app` URL stays on `/store/{slug}` because it cannot take extra labels. Draft preview stays on the platform host.
+- Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
+- POS `create_sale` uses catalogue `selling_price`. Staff-supplied unit prices are ignored. Sale-level discount cannot exceed the items total.
+- Cash POS needs an open drawer. Card and credit do not. Invoice payments and online shop cash are not posted to the till. Offline queued cash sales fail on sync if the drawer is closed.
+- Offline stock is an estimate. Unsynced sales stay on the device after logout.
+- Privacy and Terms at `/privacy` and `/terms` are working drafts with placeholders for the operator's legal name. They are not a compliance certificate.
+- Fiscalisation, CDPA, and consumer-law compliance are not claimed.
+- CI default branch mismatch is fixed; historical merges to `master` may have skipped CI.
+- Accessibility: code-level work exists; no screen-reader evidence this session.
+- README is not the setup guide; `ENVIRONMENT_SETUP.md` is.
+- Stock is a total on `products.stock` plus per-location rows on `product_stock`. The app still sells and adjusts the default location. There is no branch-transfer UI.
+- Order rules: cash currencies, exact-cash, quote-required delivery, automatic acceptance, structured hours, HH:MM cut-off, and collection windows are enforced in SQL. Free-text hours or cut-off notes are display-only. There is no waitlist or overnight window.
+- Distance-based delivery fees, address geocoding, and multi-merchant carts are not implemented.
+- The 200-feature product roadmap is not built. See `BUSINESSOS_AUDIT.md`.
+- Open-source tooling: keep the Supabase commerce backend. See `OPEN_SOURCE_TOOLING_AUDIT.md`. Medusa, Meilisearch, and Umami are not installed.

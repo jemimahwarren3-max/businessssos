@@ -220,7 +220,7 @@ export function QuickEntryDialog({
       return createPurchaseFn({ data: parsed });
     },
     onSuccess: async () => {
-      toast.success("Purchase recorded — stock updated.");
+      toast.success("Purchase recorded, stock updated.");
       close();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["products"] }),
@@ -289,7 +289,7 @@ export function QuickEntryDialog({
         <DialogHeader>
           <DialogTitle>Quick add</DialogTitle>
           <DialogDescription>
-            Describe what happened — a sale, a purchase, an expense, or a new customer — and confirm
+            Describe what happened, a sale, a purchase, an expense, or a new customer, and confirm
             before it's saved.
           </DialogDescription>
         </DialogHeader>
@@ -336,7 +336,7 @@ export function QuickEntryDialog({
         ) : draft.type === "unknown" ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Couldn't quite understand that — try rephrasing, or use the full form for a{" "}
+              Couldn't quite understand that, try rephrasing, or use the full form for a{" "}
               <Link to="/sales" className="font-medium text-primary underline underline-offset-2">
                 sale
               </Link>
@@ -467,7 +467,7 @@ export function QuickEntryDialog({
               </Select>
               {!purchaseForm.productId ? (
                 <p className="text-[13px] text-warning-foreground">
-                  Couldn't match "{purchaseForm.productName}" to a product — pick one, or add it
+                  Couldn't match "{purchaseForm.productName}" to a product, pick one, or add it
                   first from{" "}
                   <Link
                     to="/inventory"

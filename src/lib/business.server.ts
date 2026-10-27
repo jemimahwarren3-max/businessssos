@@ -1,7 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
+import {
+  canOperateWithPlatformEntitlement,
+  canWriteForSubscription,
+  canWriteWithPlatformEntitlement,
+} from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
+import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
   ConvertQuoteInput,
   CreateBusinessInput,
@@ -28,6 +34,8 @@ import type {
   SupplierInput,
   UpdateSupplierInput,
 } from "./business.schemas";
+
+export { canWriteForSubscription };
 
 export type Db = SupabaseClient<Database>;
 
@@ -64,7 +72,20 @@ export type Workspace = {
   plan: string;
   planStatus: string;
   isReadOnly: boolean;
+  /** True when billing is on but subscription is not paid `active` (e.g. trialing setup). */
+  isOperateLocked: boolean;
+  isPlatformOwner: boolean;
   billingEnabled: boolean;
+  /** Platform admin support view — merchant data is read-only. */
+  isImpersonating?: boolean;
+  impersonationExpiresAt?: string;
+  impersonationBusinessName?: string;
+  featureFlags?: {
+    billingExempt: boolean;
+    onlineShopEnabled: boolean;
+    smsNotifications: boolean;
+    courierManualMode: boolean;
+  };
 };
 
 /** Server-side authorization: confirm the caller belongs to the business. */
@@ -100,37 +121,69 @@ export async function assertPermission(supabase: Db, businessId: string, permiss
 }
 
 const READ_ONLY_MESSAGE =
-  "Your trial has ended. Upgrade to Pro to keep creating and editing — your existing data is still safe and visible.";
+  "Your trial has ended. Upgrade to Pro to keep creating and editing, your existing data is still safe and visible.";
 
-/** True if a subscription in this state is allowed to write — active, or
- * still inside an unexpired trial. Shared by assertCanWrite (server-side
- * enforcement) and loadWorkspace (so the UI can show a read-only banner).
- * Always true while BILLING_ENABLED=false (free beta) — the underlying
- * subscription/trial data keeps accumulating normally either way (see
- * create_business_with_owner), so re-enabling billing later doesn't need a
- * data migration, only flipping the flag back. */
-function canWriteForSubscription(
-  subscription: { status: string; trial_ends_at: string | null } | null,
-) {
-  if (!isBillingEnabled()) return true;
-  if (!subscription) return true; // fail open — shouldn't happen post atomic business creation
-  if (subscription.status === "active") return true;
-  return Boolean(
-    subscription.status === "trialing" &&
-    subscription.trial_ends_at &&
-    new Date(subscription.trial_ends_at) > new Date(),
-  );
+const OPERATE_MESSAGE =
+  "Pay for Kwetuu Pro to publish your shop and use the sales counter. You can still finish setup, add draft products, and preview your store.";
+
+async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
+  const [
+    { data: subscription, error },
+    { data: hasOwnerBypass, error: entitlementError },
+    { data: flagRow, error: flagError },
+  ] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("status, trial_ends_at")
+      .eq("business_id", businessId)
+      .maybeSingle(),
+    supabase.rpc("has_platform_subscription_bypass"),
+    supabase.rpc("get_business_feature_flags" as never, { _business_id: businessId } as never),
+  ]);
+  if (error) dbFail("check subscription status", error);
+  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
+  if (flagError) dbFail("check business feature flags", flagError);
+  const billingExempt =
+    flagRow &&
+    typeof flagRow === "object" &&
+    !Array.isArray(flagRow) &&
+    (flagRow as { billingExempt?: boolean }).billingExempt === true;
+  return {
+    subscription,
+    hasOwnerBypass: Boolean(hasOwnerBypass) || billingExempt,
+  };
 }
 
-/** Gate for every write (create/update/delete) — read paths never call this. */
+/** Gate for setup writes (products, drafts, storefront design) — trialing allowed. */
 export async function assertCanWrite(supabase: Db, businessId: string) {
-  const { data: subscription, error } = await supabase
-    .from("subscriptions")
-    .select("status, trial_ends_at")
-    .eq("business_id", businessId)
-    .maybeSingle();
-  if (error) dbFail("check subscription status", error);
-  if (!canWriteForSubscription(subscription)) fail(READ_ONLY_MESSAGE);
+  const { data: impersonating, error: impErr } = await supabase.rpc(
+    "is_platform_impersonating" as never,
+    { _business_id: businessId } as never,
+  );
+  if (impErr) dbFail("impersonation check", impErr);
+  if (impersonating) {
+    fail("Support view is read-only. End impersonation in the admin console to make changes.");
+  }
+  const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
+  if (!canWriteWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(READ_ONLY_MESSAGE);
+}
+
+/** Gate for publish, POS, and cash drawer — requires paid `active` subscription. */
+export async function assertCanOperate(supabase: Db, businessId: string) {
+  const { data: impersonating, error: impErr } = await supabase.rpc(
+    "is_platform_impersonating" as never,
+    { _business_id: businessId } as never,
+  );
+  if (impErr) dbFail("impersonation check", impErr);
+  if (impersonating) {
+    fail("Support view is read-only. End impersonation in the admin console to make changes.");
+  }
+  const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
+  if (!canOperateWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(OPERATE_MESSAGE);
+}
+
+export async function assertCanPublish(supabase: Db, businessId: string) {
+  await assertCanOperate(supabase, businessId);
 }
 
 export async function recordAudit(
@@ -171,6 +224,21 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const cached = await cacheGet<Workspace>(cacheKey);
   if (cached) return cached;
 
+  const { getActiveImpersonation, loadWorkspaceWhileImpersonating } =
+    await import("@/lib/admin/impersonation.server");
+  const impersonation = await getActiveImpersonation(userId);
+  if (impersonation) {
+    const workspace = await loadWorkspaceWhileImpersonating(
+      supabase,
+      userId,
+      impersonation.businessId,
+    );
+    if (workspace) {
+      await cacheSet(cacheKey, workspace, 60);
+    }
+    return workspace;
+  }
+
   const { data: membership, error } = await supabase
     .from("business_members")
     .select("role, business_id")
@@ -182,25 +250,42 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   if (error) dbFail("load membership", error);
   if (!membership) return null;
 
-  const [{ data: business, error: bizError }, { data: subscription }, { data: permissions }] =
-    await Promise.all([
-      supabase
-        .from("businesses")
-        .select("id, name, business_type, currency, onboarding_completed, logo_url")
-        .eq("id", membership.business_id)
-        .maybeSingle(),
-      supabase
-        .from("subscriptions")
-        .select("plan, status, trial_ends_at")
-        .eq("business_id", membership.business_id)
-        .maybeSingle(),
-      // Every member's own effective permission set — owner gets everything,
-      // everyone else gets exactly what business_role_permissions grants
-      // their role, defaulted to today's behavior on first access.
-      supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
-    ]);
+  const [
+    { data: business, error: bizError },
+    { data: subscription },
+    { data: permissions },
+    { data: hasOwnerBypass, error: entitlementError },
+    { data: featureFlags, error: featureFlagError },
+  ] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select("id, name, business_type, currency, onboarding_completed, logo_url")
+      .eq("id", membership.business_id)
+      .maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan, status, trial_ends_at")
+      .eq("business_id", membership.business_id)
+      .maybeSingle(),
+    // Every member's own effective permission set — owner gets everything,
+    // everyone else gets exactly what business_role_permissions grants
+    // their role, defaulted to today's behavior on first access.
+    supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
+    supabase.rpc("has_platform_subscription_bypass"),
+    supabase.rpc("get_business_feature_flags" as never, {
+      _business_id: membership.business_id,
+    } as never),
+  ]);
   if (bizError) dbFail("load business", bizError);
+  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
+  if (featureFlagError) dbFail("load business feature flags", featureFlagError);
   if (!business) return null;
+
+  const flags =
+    featureFlags && typeof featureFlags === "object" && !Array.isArray(featureFlags)
+      ? (featureFlags as Workspace["featureFlags"])
+      : undefined;
+  const billingExempt = flags?.billingExempt === true;
 
   const workspace: Workspace = {
     business,
@@ -208,8 +293,14 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     permissions: permissions ?? [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
-    isReadOnly: !canWriteForSubscription(subscription ?? null),
+    isReadOnly: !canWriteWithPlatformEntitlement(subscription ?? null, hasOwnerBypass || billingExempt),
+    isOperateLocked: !canOperateWithPlatformEntitlement(
+      subscription ?? null,
+      hasOwnerBypass || billingExempt,
+    ),
+    isPlatformOwner: hasOwnerBypass,
     billingEnabled: isBillingEnabled(),
+    ...(flags ? { featureFlags: flags } : {}),
   };
   await cacheSet(cacheKey, workspace, 60);
   return workspace;
@@ -254,10 +345,10 @@ export async function createBusinessRecord(
     business_id: businessId,
     user_id: userId,
     type: "welcome",
-    title: "Welcome to BusinessOS AI",
+    title: "Welcome to Kwetuu",
     message: isBillingEnabled()
       ? "Your 3-day Pro trial has started. Add your first products to begin."
-      : "You're in! BusinessOS is free during our beta — add your first products to begin.",
+      : "You're in! Kwetuu is free during our beta — add your first products to begin.",
     severity: "info",
   });
   await recordAudit(supabase, {
@@ -270,6 +361,17 @@ export async function createBusinessRecord(
   });
 
   return businessId;
+}
+
+export async function markOnboardingComplete(supabase: Db, userId: string): Promise<void> {
+  const workspace = await loadWorkspace(supabase, userId);
+  if (!workspace || workspace.business.onboarding_completed) return;
+  const { error } = await supabase
+    .from("businesses")
+    .update({ onboarding_completed: true })
+    .eq("id", workspace.business.id);
+  if (error) dbFail("complete onboarding", error);
+  await cacheDel(workspaceCacheKey(userId));
 }
 
 /* -------------------------------- billing -------------------------------- */
@@ -309,7 +411,7 @@ export async function listProducts(
   let query = supabase
     .from("products")
     .select(
-      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id",
+      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url",
     )
     .eq("business_id", businessId)
     .is("deleted_at", null)
@@ -321,6 +423,90 @@ export async function listProducts(
   const { data, error } = await query;
   if (error) dbFail("list products", error);
   return data ?? [];
+}
+
+export async function listLocations(
+  supabase: Db,
+  businessId: string,
+  options?: { includeInactive?: boolean },
+) {
+  await assertMember(supabase, businessId);
+  let query = supabase
+    .from("locations")
+    .select("id, name, address, phone, is_active, is_default")
+    .eq("business_id", businessId)
+    .order("is_default", { ascending: false })
+    .order("name");
+  if (!options?.includeInactive) {
+    query = query.eq("is_active", true);
+  }
+  const { data, error } = await query;
+  if (error) dbFail("list locations", error);
+  return data ?? [];
+}
+
+export async function createLocation(
+  supabase: Db,
+  input: { businessId: string; name: string; address?: string; phone?: string },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase.rpc("create_location", {
+    _business_id: input.businessId,
+    _name: input.name,
+    _address: input.address ?? "",
+    _phone: input.phone ?? "",
+  });
+  if (error) dbFail("create location", error);
+  return data as string;
+}
+
+export async function updateLocation(
+  supabase: Db,
+  input: {
+    businessId: string;
+    locationId: string;
+    name: string;
+    address?: string;
+    phone?: string;
+  },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("update_location" as never, {
+    _business_id: input.businessId,
+    _location_id: input.locationId,
+    _name: input.name,
+    _address: input.address ?? "",
+    _phone: input.phone ?? "",
+  } as never);
+  if (error) dbFail("update location", error);
+}
+
+export async function setDefaultLocation(
+  supabase: Db,
+  input: { businessId: string; locationId: string },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("set_default_location" as never, {
+    _business_id: input.businessId,
+    _location_id: input.locationId,
+  } as never);
+  if (error) dbFail("set default location", error);
+}
+
+export async function deactivateLocation(
+  supabase: Db,
+  input: { businessId: string; locationId: string },
+) {
+  await assertRole(supabase, input.businessId, ["owner", "admin"]);
+  await assertCanWrite(supabase, input.businessId);
+  const { error } = await supabase.rpc("deactivate_location" as never, {
+    _business_id: input.businessId,
+    _location_id: input.locationId,
+  } as never);
+  if (error) dbFail("deactivate location", error);
 }
 
 export async function createProduct(supabase: Db, input: ProductInput) {
@@ -358,41 +544,28 @@ export async function importProducts(
   const errors: string[] = [];
 
   for (const [index, row] of input.rows.entries()) {
-    const { data, error } = await supabase
-      .from("products")
-      .insert({
-        business_id: input.businessId,
-        name: row.name,
-        sku: row.sku || null,
-        barcode: row.barcode || null,
-        unit: row.unit,
-        cost_price: row.costPrice,
-        selling_price: row.sellingPrice,
-        stock: row.stock,
-        min_stock: row.minStock,
-        tax_rate: row.taxRate,
-      })
-      .select("id")
-      .single();
-    if (error || !data) {
+    const { data, error } = await supabase.rpc("create_product", {
+      _business_id: input.businessId,
+      _name: row.name,
+      _sku: row.sku || "",
+      _barcode: row.barcode || "",
+      _unit: row.unit,
+      _cost_price: row.costPrice,
+      _selling_price: row.sellingPrice,
+      _stock: row.stock,
+      _min_stock: row.minStock,
+      _tax_rate: row.taxRate,
+      _description: "",
+      _supplier_id: null,
+      _location_id: null,
+    });
+    if (error || !data?.length) {
       const reason =
         (error as { code?: string } | null)?.code === "23505"
           ? "duplicate SKU"
           : "couldn't be saved";
-      errors.push(`Row ${index + 2}: ${row.name || "unnamed product"} — ${reason}`);
+      errors.push(`Row ${index + 2}: ${row.name || "unnamed product"}, ${reason}`);
       continue;
-    }
-    if (row.stock > 0) {
-      await supabase.from("inventory_movements").insert({
-        business_id: input.businessId,
-        product_id: data.id,
-        movement_type: "stock_in",
-        quantity: row.stock,
-        stock_before: 0,
-        stock_after: row.stock,
-        reason: "Imported from spreadsheet",
-        created_by: userId,
-      });
     }
     imported++;
   }
@@ -573,7 +746,8 @@ export async function deleteSupplier(
 /* --------------------------------- sales --------------------------------- */
 
 export async function createSale(supabase: Db, input: SaleInput) {
-  await assertCanWrite(supabase, input.businessId);
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
   const { data, error } = await supabase.rpc("create_sale", {
     _business_id: input.businessId,
     _customer_id: (input.customerId || null) as never,
@@ -588,6 +762,7 @@ export async function createSale(supabase: Db, input: SaleInput) {
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("create sale", error);
+  await flushNotificationOutboxForBusiness(supabase, input.businessId);
   return { id: data as string };
 }
 
@@ -1240,7 +1415,7 @@ export async function importExpenses(
       created_by: userId,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.expenseDate} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.expenseDate}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1285,7 +1460,7 @@ export async function importSalesHistory(
       _description: (row.description || null) as never,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.saleDate} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.saleDate}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1323,7 +1498,7 @@ export async function importCustomers(
       notes: row.notes || null,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.name || "unnamed customer"} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.name || "unnamed customer"}, couldn't be saved`);
       continue;
     }
     imported++;
@@ -1386,7 +1561,7 @@ export async function importSalesDetailed(
       _notes: null as never,
     });
     if (error) {
-      errors.push(`Row ${index + 2}: ${row.product} — couldn't be saved`);
+      errors.push(`Row ${index + 2}: ${row.product}, couldn't be saved`);
       continue;
     }
     imported++;

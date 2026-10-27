@@ -1,0 +1,1 @@
+var e={pro:7};function t(t){return e[t]}function n(e,t){return!t||!(t.usdToZwg>0)?null:Math.round(e*t.usdToZwg*100)/100}export{t as n,n as r,e as t};

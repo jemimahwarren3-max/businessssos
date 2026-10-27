@@ -14,12 +14,12 @@ import { formatNumber, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/insights")({
   head: () => ({
     meta: [
-      { title: "Insights — BusinessOS AI" },
+      { title: "Insights | Kwetuu" },
       {
         name: "description",
         content: "A weekly report, low-stock forecasts, and anomalies spotted in your data.",
       },
-      { property: "og:title", content: "Insights — BusinessOS AI" },
+      { property: "og:title", content: "Insights | Kwetuu" },
       { property: "og:description", content: "What changed, what needs attention, what's next." },
     ],
   }),
@@ -79,7 +79,7 @@ function Insights() {
           <Lightbulb className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
           <h2 className="mt-3 text-lg font-semibold">Your role can't view insights</h2>
           <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-            Ask an owner, admin or manager for access — insights share financial data.
+            Ask an owner, admin or manager for access, insights share financial data.
           </p>
         </div>
       </AppShell>
@@ -107,7 +107,7 @@ function Insights() {
               This week's report
             </h2>
             <p className="text-[13px] text-muted-foreground">
-              An AI-written summary of the last 7 days — grounded in your real numbers.
+              An AI-written summary of the last 7 days, grounded in your real numbers.
             </p>
           </div>
           {report.data ? (
@@ -131,7 +131,7 @@ function Insights() {
           <div className="mt-4">
             <p className="whitespace-pre-wrap text-sm leading-relaxed">{report.data.text}</p>
             <p className="mt-3 text-[12px] text-muted-foreground">
-              {report.data.cached ? "From cache — " : "Just generated — "}
+              {report.data.cached ? "From cache, " : "Just generated, "}
               {new Date(report.data.generatedAt).toLocaleString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -143,7 +143,7 @@ function Insights() {
         ) : (
           <div className="mt-4 flex flex-col items-start gap-3">
             <p className="text-sm text-muted-foreground">
-              Not generated yet this week. It only costs a moment — and stays cached for a day.
+              Not generated yet this week. It only costs a moment, and stays cached for a day.
             </p>
             <Button
               size="sm"
@@ -187,7 +187,7 @@ function Insights() {
           </ul>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
-            Nothing unusual this week — everything is tracking close to normal.
+            Nothing unusual this week, everything is tracking close to normal.
           </p>
         )}
       </section>
@@ -195,7 +195,7 @@ function Insights() {
       <section className="surface mt-4 p-5">
         <h2 className="text-lg font-semibold">Inventory forecast</h2>
         <p className="text-[13px] text-muted-foreground">
-          Based on the last 30 days of sales — products at risk of running out soon.
+          Based on the last 30 days of sales, products at risk of running out soon.
         </p>
         {insights.isLoading ? (
           <Skeleton className="mt-4 h-16 w-full" />

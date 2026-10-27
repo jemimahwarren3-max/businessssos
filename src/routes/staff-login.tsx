@@ -7,13 +7,13 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn } from "@/lib/auth/auth.functions";
-import { resolveStaffLoginFn, verifyShopLoginFn } from "@/lib/business.functions";
+import { BRAND } from "@/lib/brand";
+import { staffSignInFn, verifyShopLoginFn } from "@/lib/business.functions";
 
 export const Route = createFileRoute("/staff-login")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Sign in — BusinessOS AI" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: `Staff sign-in | ${BRAND.name}` }, { name: "robots", content: "noindex" }],
   }),
   component: StaffLogin,
 });
@@ -21,8 +21,7 @@ export const Route = createFileRoute("/staff-login")({
 function StaffLogin() {
   const navigate = useNavigate();
   const verifyShopFn = useServerFn(verifyShopLoginFn);
-  const resolveFn = useServerFn(resolveStaffLoginFn);
-  const signInFn = useServerFn(signIn);
+  const staffSignIn = useServerFn(staffSignInFn);
 
   const [step, setStep] = useState<"shop" | "person">("shop");
   const [businessNameInput, setBusinessNameInput] = useState("");
@@ -53,7 +52,7 @@ function StaffLogin() {
         return;
       }
       if (result.staffNames.length === 0) {
-        toast.error("No staff accounts have been set up yet — ask the owner.");
+        toast.error("No staff accounts have been set up yet, ask the owner.");
         return;
       }
       setBusinessName(result.businessName ?? "");
@@ -71,14 +70,13 @@ function StaffLogin() {
     if (!selectedName) return;
     setBusy(true);
     try {
-      const { email } = await resolveFn({
-        data: { businessName: businessNameInput.trim(), name: selectedName },
+      await staffSignIn({
+        data: {
+          businessName: businessNameInput.trim(),
+          name: selectedName,
+          password: personalPassword,
+        },
       });
-      if (!email) {
-        toast.error("That name and password don't match.");
-        return;
-      }
-      await signInFn({ data: { email, password: personalPassword } });
       navigate({ to: "/dashboard", replace: true });
     } catch {
       toast.error("That name and password don't match.");

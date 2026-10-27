@@ -13,6 +13,7 @@ import {
   type SessionConfig,
 } from "@tanstack/react-start/server";
 import { SUPABASE_AUTH_STORAGE_KEY } from "@/integrations/supabase/auth-storage-key";
+import { isSessionCookieSecure } from "@/lib/auth/session-cookie";
 import { createSupabaseFetch } from "@/integrations/supabase/supabase-fetch";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -20,9 +21,9 @@ export type SupabaseTokens = { accessToken: string; refreshToken: string };
 
 function sessionConfig(): SessionConfig {
   const password = process.env["SESSION_SECRET"];
-  if (!password) {
+  if (!password || password.length < 32) {
     throw new Error(
-      "Missing SESSION_SECRET environment variable — generate 32+ random characters and set it in .env.",
+      "Missing SESSION_SECRET environment variable, generate 32+ random characters and set it in .env.",
     );
   }
   return {
@@ -38,7 +39,12 @@ function sessionConfig(): SessionConfig {
     // Set-Cookie header). Setting it ourselves rather than relying on
     // browsers' implicit Lax default, on top of the CSRF middleware in
     // start.ts (belt and suspenders, same reasoning as elsewhere this pass).
-    cookie: { httpOnly: true, secure: true, path: "/", sameSite: "lax" },
+    cookie: {
+      httpOnly: true,
+      secure: isSessionCookieSecure(process.env["APP_URL"]),
+      path: "/",
+      sameSite: "lax",
+    },
   };
 }
 
@@ -71,7 +77,7 @@ export function createAnonClient() {
 // shared constant.
 const requestCookieStorage = {
   getItem(key: string): string | null {
-    return getCookie(key) ?? null;
+    return getCookie(key) ?? getCookie(encodeURIComponent(key)) ?? null;
   },
   setItem(): void {
     // The browser already wrote this cookie; the exchange client never
@@ -96,7 +102,7 @@ export function createExchangeClient() {
   });
 }
 
-function createTokenScopedClient(accessToken: string) {
+export function createTokenScopedClient(accessToken: string) {
   const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = getSupabaseEnv();
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {

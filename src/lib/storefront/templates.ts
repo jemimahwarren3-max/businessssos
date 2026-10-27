@@ -1,17 +1,94 @@
+import { STOREFRONT_THEME_SCHEMA } from "./theme";
+import { categoryPlaceholderImage } from "./template-placeholders";
+
 export const TEMPLATE_IDS = [
-  "modern-minimal",
-  "fashion-boutique",
   "beauty",
-  "grocery",
-  "food",
-  "luxury",
+  "beauty-clinic",
+  "beauty-botanical",
+  "beauty-editorial",
+  "beauty-studio",
+  "beauty-market",
+  "fashion-boutique",
+  "fashion-lookbook",
+  "fashion-studio",
+  "fashion-tailored",
+  "fashion-atelier",
+  "fashion-archive",
+  "electronics-tech",
+  "electronics-lab",
+  "electronics-gaming",
+  "electronics-pro",
+  "electronics-home",
+  "electronics-essentials",
   "home",
+  "home-living",
+  "home-scandi",
+  "home-heritage",
+  "home-gallery",
+  "home-utility",
+  "food",
+  "grocery",
+  "food-bakery",
+  "food-market",
+  "food-counter",
+  "food-cafe",
+  "luxury",
+  "jewellery-heirloom",
+  "jewellery-modern",
+  "jewellery-gifting",
+  "jewellery-atelier",
+  "jewellery-archive",
+  "digital",
+  "wellness-retreat",
+  "wellness-movement",
+  "wellness-apothecary",
+  "wellness-studio",
+  "wellness-daily",
+  "books-reading",
+  "books-stationery",
+  "books-gifts",
+  "books-library",
+  "books-kids",
+  "books-creative",
+  "sports-performance",
+  "sports-outdoor",
+  "sports-team",
+  "sports-studio",
+  "sports-recovery",
+  "sports-essentials",
+  "modern-minimal",
   "wholesale",
   "social",
-  "digital",
+  "general-market",
+  "general-curated",
+  "general-essentials",
 ] as const;
 
 export type TemplateId = (typeof TEMPLATE_IDS)[number];
+export type StoreCategoryId =
+  | "beauty"
+  | "fashion"
+  | "electronics"
+  | "home"
+  | "food"
+  | "jewellery"
+  | "wellness"
+  | "books"
+  | "sports"
+  | "general";
+
+export const TEMPLATE_CATEGORIES: readonly { id: StoreCategoryId; name: string }[] = [
+  { id: "beauty", name: "Beauty and aesthetics" },
+  { id: "fashion", name: "Fashion and clothing" },
+  { id: "electronics", name: "Electronics and technology" },
+  { id: "home", name: "Home and living" },
+  { id: "food", name: "Food and bakery" },
+  { id: "jewellery", name: "Jewellery and accessories" },
+  { id: "wellness", name: "Wellness and lifestyle" },
+  { id: "books", name: "Books, gifts, and stationery" },
+  { id: "sports", name: "Sports and fitness" },
+  { id: "general", name: "General retail" },
+];
 
 export type StoreLayout =
   | "grid"
@@ -25,165 +102,465 @@ export type StoreLayout =
   | "social"
   | "services";
 
+export type HeroStyle = "split" | "full-bleed" | "centered" | "compact" | "side-panel" | "quiet";
+export type CatalogStyle = "editorial" | "masonry" | "standard" | "wide" | "rows" | "compact";
+export type CardStyle = "minimal" | "overlay" | "framed" | "bordered" | "floating" | "line";
+export type NavigationStyle = "editorial" | "centered" | "utility" | "compact" | "left" | "quiet";
+
 export type StoreTemplate = {
   id: TemplateId;
   name: string;
+  category: StoreCategoryId;
+  categoryName: string;
   description: string;
   bestFor: string;
   layout: StoreLayout;
+  heroStyle: HeroStyle;
+  catalogStyle: CatalogStyle;
+  cardStyle: CardStyle;
+  navigationStyle: NavigationStyle;
   fontFamily: string;
   fontHref: string;
   defaultAccent: string;
+  defaultPalette: string;
   imageRatio: "square" | "portrait" | "landscape";
   density: "compact" | "comfortable" | "spacious";
+  configurationSchema: typeof STOREFRONT_THEME_SCHEMA;
   /** Shown only inside the merchant gallery. Not real products. */
   sampleLabel: string;
+  /** Demo hero photo until the merchant uploads their own. */
+  previewImageUrl: string;
 };
 
-export const STORE_TEMPLATES: readonly StoreTemplate[] = [
+const DIRECTIONS = [
   {
-    id: "modern-minimal",
-    name: "Modern minimal",
-    description: "Spacious grid, clear prices, and fast search for everyday products.",
-    bestFor: "General retail, electronics, homeware",
-    layout: "grid",
-    fontFamily: "Inter",
-    fontHref: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-    defaultAccent: "#1F2937",
-    imageRatio: "square",
-    density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
+    label: "Atelier",
+    heroStyle: "split",
+    catalogStyle: "editorial",
+    cardStyle: "minimal",
+    navigationStyle: "editorial",
+    imageRatio: "portrait",
+    density: "spacious",
   },
   {
-    id: "fashion-boutique",
-    name: "Fashion & boutique",
-    description: "Editorial hero and large portraits for clothing, shoes, and accessories.",
-    bestFor: "Clothing, shoes, bags, jewellery",
+    label: "Lookbook",
+    heroStyle: "full-bleed",
+    catalogStyle: "masonry",
+    cardStyle: "overlay",
+    navigationStyle: "centered",
+    imageRatio: "portrait",
+    density: "comfortable",
+  },
+  {
+    label: "Studio",
+    heroStyle: "centered",
+    catalogStyle: "compact",
+    cardStyle: "framed",
+    navigationStyle: "utility",
+    imageRatio: "square",
+    density: "comfortable",
+  },
+  {
+    label: "Market",
+    heroStyle: "compact",
+    catalogStyle: "standard",
+    cardStyle: "bordered",
+    navigationStyle: "compact",
+    imageRatio: "square",
+    density: "compact",
+  },
+  {
+    label: "Gallery",
+    heroStyle: "side-panel",
+    catalogStyle: "wide",
+    cardStyle: "floating",
+    navigationStyle: "left",
+    imageRatio: "landscape",
+    density: "spacious",
+  },
+  {
+    label: "Archive",
+    heroStyle: "quiet",
+    catalogStyle: "rows",
+    cardStyle: "line",
+    navigationStyle: "quiet",
+    imageRatio: "square",
+    density: "compact",
+  },
+] as const satisfies readonly {
+  label: string;
+  heroStyle: HeroStyle;
+  catalogStyle: CatalogStyle;
+  cardStyle: CardStyle;
+  navigationStyle: NavigationStyle;
+  imageRatio: "square" | "portrait" | "landscape";
+  density: "compact" | "comfortable" | "spacious";
+}[];
+
+type CategoryDefinition = {
+  id: StoreCategoryId;
+  name: string;
+  layout: StoreLayout;
+  bestFor: string;
+  defaultAccent: string;
+  defaultPalette: string;
+  fontFamily: string;
+  fontHref: string;
+  directionIds: readonly string[];
+  directionNames: readonly string[];
+  description: string;
+};
+
+const CATEGORIES: readonly CategoryDefinition[] = [
+  {
+    id: "beauty",
+    name: "Beauty and aesthetics",
+    layout: "soft",
+    bestFor: "Skincare, cosmetics, salons, and beauty",
+    defaultAccent: "#9D4E6C",
+    defaultPalette: "rose",
+    fontFamily: "Nunito",
+    fontHref: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap",
+    directionIds: [
+      "beauty",
+      "beauty-clinic",
+      "beauty-botanical",
+      "beauty-editorial",
+      "beauty-studio",
+      "beauty-market",
+    ],
+    directionNames: [
+      "Soft ritual",
+      "Skin clinic",
+      "Botanical apothecary",
+      "Beauty journal",
+      "Colour studio",
+      "Daily essentials",
+    ],
+    description:
+      "Routine-led product storytelling, ingredient notes, soft editorial space, or crisp clinical clarity.",
+  },
+  {
+    id: "fashion",
+    name: "Fashion and clothing",
     layout: "editorial",
+    bestFor: "Clothing, shoes, accessories, and seasonal collections",
+    defaultAccent: "#3F2E2A",
+    defaultPalette: "linen",
     fontFamily: "Fraunces",
     fontHref:
       "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap",
-    defaultAccent: "#3F2E2A",
-    imageRatio: "portrait",
-    density: "spacious",
-    sampleLabel: "Sample layout — not your products",
+    directionIds: [
+      "fashion-boutique",
+      "fashion-lookbook",
+      "fashion-studio",
+      "fashion-tailored",
+      "fashion-atelier",
+      "fashion-archive",
+    ],
+    directionNames: [
+      "Boutique edit",
+      "Season lookbook",
+      "Street studio",
+      "Tailored wardrobe",
+      "Designer atelier",
+      "Collection archive",
+    ],
+    description:
+      "Fashion storefronts range from immersive seasonal campaigns to fast, compact collection browsing.",
   },
   {
-    id: "beauty",
-    name: "Beauty & cosmetics",
-    description: "Category-led collections with room for ingredients and shade notes you supply.",
-    bestFor: "Cosmetics, skincare, hair products",
-    layout: "soft",
-    fontFamily: "Nunito",
-    fontHref: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap",
-    defaultAccent: "#9D4E6C",
-    imageRatio: "square",
-    density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
-  },
-  {
-    id: "grocery",
-    name: "Grocery & convenience",
-    description: "Dense cards, quantity steppers, and category browsing for repeat shops.",
-    bestFor: "Grocery shops and mini-markets",
+    id: "electronics",
+    name: "Electronics and technology",
     layout: "dense",
-    fontFamily: "Source Sans 3",
-    fontHref:
-      "https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap",
-    defaultAccent: "#166534",
-    imageRatio: "square",
-    density: "compact",
-    sampleLabel: "Sample layout — not your products",
-  },
-  {
-    id: "food",
-    name: "Food & restaurant",
-    description: "Menu sections, item notes, hours, and pickup or delivery.",
-    bestFor: "Restaurants, takeaways, bakeries",
-    layout: "menu",
-    fontFamily: "Literata",
-    fontHref:
-      "https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&display=swap",
-    defaultAccent: "#9A3412",
-    imageRatio: "landscape",
-    density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
-  },
-  {
-    id: "luxury",
-    name: "Premium luxury",
-    description: "Quiet typography, wide margins, and a single refined product story.",
-    bestFor: "Premium fashion, jewellery, gifts",
-    layout: "luxury",
-    fontFamily: "Cormorant Garamond",
-    fontHref:
-      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@400;500&display=swap",
-    defaultAccent: "#1C1917",
-    imageRatio: "portrait",
-    density: "spacious",
-    sampleLabel: "Sample layout — not your products",
+    bestFor: "Phones, computers, accessories, and consumer technology",
+    defaultAccent: "#173F74",
+    defaultPalette: "cobalt",
+    fontFamily: "Manrope",
+    fontHref: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap",
+    directionIds: [
+      "electronics-tech",
+      "electronics-lab",
+      "electronics-gaming",
+      "electronics-pro",
+      "electronics-home",
+      "electronics-essentials",
+    ],
+    directionNames: [
+      "Tech launch",
+      "Product lab",
+      "Gaming arena",
+      "Pro equipment",
+      "Connected home",
+      "Quick essentials",
+    ],
+    description:
+      "Specification-led product cards, comparison-friendly grids, and focused launch merchandising.",
   },
   {
     id: "home",
-    name: "Home & lifestyle",
-    description: "Large photography with space for dimensions, materials, and delivery notes.",
-    bestFor: "Furniture, decor, appliances",
+    name: "Home and living",
     layout: "showcase",
+    bestFor: "Furniture, decor, household goods, and handmade objects",
+    defaultAccent: "#3F4F44",
+    defaultPalette: "botanical",
     fontFamily: "Manrope",
     fontHref: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap",
-    defaultAccent: "#3F4F44",
-    imageRatio: "landscape",
-    density: "spacious",
-    sampleLabel: "Sample layout — not your products",
-  },
-  {
-    id: "wholesale",
-    name: "Wholesale & bulk",
-    description: "Quantity-first rows, minimums, and quote requests when a cart is not enough.",
-    bestFor: "Distributors and wholesalers",
-    layout: "wholesale",
-    fontFamily: "IBM Plex Sans",
-    fontHref:
-      "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap",
-    defaultAccent: "#1E3A5F",
-    imageRatio: "square",
-    density: "compact",
-    sampleLabel: "Sample layout — not your products",
-  },
-  {
-    id: "social",
-    name: "Social commerce",
-    description: "Mobile-first photos, WhatsApp contact, and a short checkout.",
-    bestFor: "WhatsApp, Instagram, and home sellers",
-    layout: "social",
-    fontFamily: "Plus Jakarta Sans",
-    fontHref:
-      "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap",
-    defaultAccent: "#BE185D",
-    imageRatio: "portrait",
-    density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
-  },
-  {
-    id: "digital",
-    name: "Digital products & services",
+    directionIds: [
+      "home",
+      "home-living",
+      "home-scandi",
+      "home-heritage",
+      "home-gallery",
+      "home-utility",
+    ],
+    directionNames: [
+      "Home showcase",
+      "Collected living",
+      "Scandi calm",
+      "Heritage house",
+      "Design gallery",
+      "Home essentials",
+    ],
     description:
-      "Service descriptions and a request flow. Nothing is marked delivered until you fulfil it.",
-    bestFor: "Downloads, classes, consultations",
+      "Room-scale photography, considered object galleries, and practical homewares catalogues.",
+  },
+  {
+    id: "food",
+    name: "Food and bakery",
+    layout: "menu",
+    bestFor: "Bakeries, groceries, takeaways, cafes, and food shops",
+    defaultAccent: "#9A3412",
+    defaultPalette: "market",
+    fontFamily: "Literata",
+    fontHref:
+      "https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&display=swap",
+    directionIds: ["food", "grocery", "food-bakery", "food-market", "food-counter", "food-cafe"],
+    directionNames: [
+      "Bakery menu",
+      "Fresh market",
+      "Celebration bakery",
+      "Market baskets",
+      "Takeaway counter",
+      "Cafe table",
+    ],
+    description:
+      "Menu-first ordering, quick repeat-buy aisles, and warm bakery or cafe merchandising.",
+  },
+  {
+    id: "jewellery",
+    name: "Jewellery and accessories",
+    layout: "luxury",
+    bestFor: "Jewellery, watches, handbags, and premium gifts",
+    defaultAccent: "#1C1917",
+    defaultPalette: "linen",
+    fontFamily: "Cormorant Garamond",
+    fontHref:
+      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@400;500&display=swap",
+    directionIds: [
+      "luxury",
+      "jewellery-heirloom",
+      "jewellery-modern",
+      "jewellery-gifting",
+      "jewellery-atelier",
+      "jewellery-archive",
+    ],
+    directionNames: [
+      "Quiet luxury",
+      "Heirloom collection",
+      "Modern metal",
+      "Gift boutique",
+      "Jeweller atelier",
+      "Object archive",
+    ],
+    description:
+      "Gallery-scale details, refined whitespace, and considered gift or collection discovery.",
+  },
+  {
+    id: "wellness",
+    name: "Wellness and lifestyle",
     layout: "services",
+    bestFor: "Wellness products, personal care, classes, and lifestyle services",
+    defaultAccent: "#4338CA",
+    defaultPalette: "plum",
     fontFamily: "Figtree",
     fontHref: "https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap",
-    defaultAccent: "#4338CA",
-    imageRatio: "landscape",
-    density: "comfortable",
-    sampleLabel: "Sample layout — not your products",
+    directionIds: [
+      "digital",
+      "wellness-retreat",
+      "wellness-movement",
+      "wellness-apothecary",
+      "wellness-studio",
+      "wellness-daily",
+    ],
+    directionNames: [
+      "Wellness journal",
+      "Retreat shop",
+      "Movement practice",
+      "Natural apothecary",
+      "Care studio",
+      "Daily wellbeing",
+    ],
+    description:
+      "Service-aware product pages and calm merchandising for care, movement, and daily wellbeing.",
+  },
+  {
+    id: "books",
+    name: "Books, gifts, and stationery",
+    layout: "editorial",
+    bestFor: "Booksellers, gift shops, stationery, and creative supplies",
+    defaultAccent: "#4B3C32",
+    defaultPalette: "linen",
+    fontFamily: "Literata",
+    fontHref:
+      "https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&display=swap",
+    directionIds: [
+      "books-reading",
+      "books-stationery",
+      "books-gifts",
+      "books-library",
+      "books-kids",
+      "books-creative",
+    ],
+    directionNames: [
+      "Reading room",
+      "Paper shop",
+      "Gift wrap",
+      "Independent library",
+      "Little readers",
+      "Creative desk",
+    ],
+    description:
+      "Literary editorial shelves, paper-goods grids, curated gifts, and creative supply catalogues.",
+  },
+  {
+    id: "sports",
+    name: "Sports and fitness",
+    layout: "dense",
+    bestFor: "Sports equipment, activewear, team gear, and training",
+    defaultAccent: "#175C54",
+    defaultPalette: "botanical",
+    fontFamily: "Source Sans 3",
+    fontHref:
+      "https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap",
+    directionIds: [
+      "sports-performance",
+      "sports-outdoor",
+      "sports-team",
+      "sports-studio",
+      "sports-recovery",
+      "sports-essentials",
+    ],
+    directionNames: [
+      "Performance gear",
+      "Trail and outdoor",
+      "Club shop",
+      "Training studio",
+      "Recovery room",
+      "Sports essentials",
+    ],
+    description:
+      "High-utility equipment grids, outdoor collection stories, and club or studio gear.",
+  },
+  {
+    id: "general",
+    name: "General retail",
+    layout: "grid",
+    bestFor: "Everyday products, mixed catalogues, and independent retailers",
+    defaultAccent: "#1F2937",
+    defaultPalette: "midnight",
+    fontFamily: "Inter",
+    fontHref: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+    directionIds: [
+      "modern-minimal",
+      "wholesale",
+      "social",
+      "general-market",
+      "general-curated",
+      "general-essentials",
+    ],
+    directionNames: [
+      "Modern minimal",
+      "Trade counter",
+      "Social seller",
+      "Neighbourhood market",
+      "Curated edit",
+      "Everyday essentials",
+    ],
+    description:
+      "Flexible designs for mixed inventories, quick trade ordering, and social-first independent shops.",
   },
 ];
+
+const DIRECTION_DESCRIPTIONS = [
+  "A large editorial lead and considered product story, with an airy image-led catalogue.",
+  "An immersive campaign header and irregular image-led collection for visual discovery.",
+  "A centered brand introduction with framed, balanced product cards and clear utility.",
+  "A compact, high-utility landing with dense browsing and quick category access.",
+  "A side-by-side story panel and wide product imagery for a curated gallery feel.",
+  "A quiet, compact catalogue with restrained headings and clean list-first scanning.",
+] as const;
+
+const LEGACY_LAYOUT_OVERRIDES: Partial<Record<TemplateId, StoreLayout>> = {
+  grocery: "dense",
+  wholesale: "wholesale",
+  social: "social",
+};
+
+export const STORE_TEMPLATES: readonly StoreTemplate[] = CATEGORIES.flatMap((category) =>
+  DIRECTIONS.map((direction, index) => {
+    const id = category.directionIds[index]!;
+    if (!isTemplateId(id)) throw new Error(`Unregistered storefront template: ${id}`);
+    return {
+      id,
+      name: category.directionNames[index]!,
+      category: category.id,
+      categoryName: category.name,
+      description: `${DIRECTION_DESCRIPTIONS[index]} ${category.description}`,
+      bestFor: category.bestFor,
+      layout: LEGACY_LAYOUT_OVERRIDES[id] ?? category.layout,
+      heroStyle: direction.heroStyle,
+      catalogStyle: direction.catalogStyle,
+      cardStyle: direction.cardStyle,
+      navigationStyle: direction.navigationStyle,
+      fontFamily: category.fontFamily,
+      fontHref: category.fontHref,
+      defaultAccent: category.defaultAccent,
+      defaultPalette: category.defaultPalette,
+      imageRatio: direction.imageRatio,
+      density: direction.density,
+      configurationSchema: STOREFRONT_THEME_SCHEMA,
+      sampleLabel: "Sample layout, not your products — replace placeholder photos",
+      previewImageUrl: categoryPlaceholderImage(category.id),
+    };
+  }),
+);
 
 export function isTemplateId(value: string): value is TemplateId {
   return (TEMPLATE_IDS as readonly string[]).includes(value);
 }
 
 export function getTemplate(id: string): StoreTemplate {
-  return STORE_TEMPLATES.find((template) => template.id === id) ?? STORE_TEMPLATES[0]!;
+  return (
+    STORE_TEMPLATES.find((template) => template.id === id) ??
+    STORE_TEMPLATES.find((template) => template.id === "modern-minimal")!
+  );
+}
+
+const TYPE_TO_TEMPLATE: Record<string, TemplateId> = {
+  grocery: "grocery",
+  boutique: "fashion-boutique",
+  hardware: "home",
+  electronics: "electronics-tech",
+  pharmacy: "beauty-clinic",
+  salon: "beauty",
+  restaurant: "food-counter",
+  bakery: "food-bakery",
+  wholesale: "wholesale",
+  services: "digital",
+  other: "modern-minimal",
+};
+
+export function templateForBusinessType(businessType: string): TemplateId {
+  return TYPE_TO_TEMPLATE[businessType] ?? "modern-minimal";
 }

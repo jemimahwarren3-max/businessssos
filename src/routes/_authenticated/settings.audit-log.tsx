@@ -21,7 +21,7 @@ import { friendlyDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings/audit-log")({
   head: () => ({
-    meta: [{ title: "Audit log — BusinessOS AI" }],
+    meta: [{ title: "Audit log | Kwetuu" }],
   }),
   component: AuditLog,
 });
@@ -92,7 +92,7 @@ function AuditLog() {
           <History className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
           <h2 className="mt-3 text-lg font-semibold">Nothing recorded yet</h2>
           <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-            Sensitive changes — team roles, permissions, deletions, and more — will show up here as
+            Sensitive changes, team roles, permissions, deletions, and more, will show up here as
             they happen.
           </p>
         </div>
@@ -125,7 +125,7 @@ function AuditLog() {
                         </Badge>
                       ) : null}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{entry.summary ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{entry.summary ?? "-"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

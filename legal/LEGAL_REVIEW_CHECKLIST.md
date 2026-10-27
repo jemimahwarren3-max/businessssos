@@ -1,10 +1,10 @@
-# Pre-Launch Checklist — BusinessOS AI
+# Pre-Launch Checklist — Kwetuu
 
 A go/no-go view, distinct from `LEGAL_REVIEW_REQUIRED.md` (which is a flat
 list of open questions). This groups the same underlying work by what it
 actually means for launching commercially:
 
-- 🟢 **GREEN** — implemented *and* technically verified (live-tested this
+- 🟢 **GREEN** — implemented _and_ technically verified (live-tested this
   session, not just written).
 - 🟡 **YELLOW** — implemented, but needs a lawyer or a business decision
   before you should rely on it.
@@ -13,27 +13,27 @@ actually means for launching commercially:
 
 ## 🔴 RED — resolve before commercial launch
 
-| Item | Why it blocks launch |
-|---|---|
-| Paynow merchant account approval | Without an approved merchant account, real payments cannot be processed at all — this is an operational blocker, not a documentation one. Confirm current status. |
-| No registered legal entity confirmed | The Terms of Service can't be a real, enforceable contract without a real counterparty named in it. |
-| No governing law decided for the Terms of Service | A dispute has nowhere defined to be resolved. |
-| No real limitation-of-liability clause | The current text is a placeholder — this is the clause that would actually matter in a dispute, and it hasn't been drafted by a lawyer. |
+| Item                                                   | Why it blocks launch                                                                                                                                                                                      |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Paynow merchant account approval                       | Without an approved merchant account, real payments cannot be processed at all — this is an operational blocker, not a documentation one. Confirm current status.                                         |
+| No registered legal entity confirmed                   | The Terms of Service can't be a real, enforceable contract without a real counterparty named in it.                                                                                                       |
+| No governing law decided for the Terms of Service      | A dispute has nowhere defined to be resolved.                                                                                                                                                             |
+| No real limitation-of-liability clause                 | The current text is a placeholder — this is the clause that would actually matter in a dispute, and it hasn't been drafted by a lawyer.                                                                   |
 | No contact information anywhere in the legal documents | Every "add a real contact here" placeholder across `legal/*.md` needs a real email/address before publishing — a policy nobody can reach you through isn't credible or, in some jurisdictions, compliant. |
-| No responsible-disclosure / security contact | If someone finds a vulnerability, there's currently no way for them to tell you responsibly. |
+| No responsible-disclosure / security contact           | If someone finds a vulnerability, there's currently no way for them to tell you responsibly.                                                                                                              |
 
 ## 🟡 YELLOW — built, needs legal or business sign-off
 
-| Item | What's done | What's still needed |
-|---|---|---|
-| Terms of Service | Fully drafted, grounded in actual billing/data behavior | Lawyer review, entity name, governing law (see RED above) |
-| Privacy Policy | Fully drafted, data flows verified against actual code | Lawyer review; confirm Supabase region, Groq retention policy, international transfer question |
-| Refund Policy | Reasonable default drafted | An actual business decision from you, then legal check against Zimbabwean consumer protection law |
-| AI Disclaimer | Drafted, data flow to Groq precisely documented | Lawyer review of the liability-limiting language |
-| Cookie Policy | Drafted; technically accurate (one cookie, no tracking) | Lawyer confirmation that no consent banner is required |
-| Accessibility Statement | Drafted, honest about scope | No real screen-reader testing has been performed — don't claim more than the statement itself claims |
-| Third-party DPAs (Supabase, Paynow, Groq) | Vendor inventory documented (`docs/THIRD_PARTY_SERVICES.md`) | Confirm whether formal Data Processing Agreements are needed/exist |
-| Zimbabwe Cyber and Data Protection Act compliance | Data handling documented accurately | Not assessed against the actual statute — needs a lawyer familiar with it |
+| Item                                              | What's done                                                  | What's still needed                                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Terms of Service                                  | Fully drafted, grounded in actual billing/data behavior      | Lawyer review, entity name, governing law (see RED above)                                            |
+| Privacy Policy                                    | Fully drafted, data flows verified against actual code       | Lawyer review; confirm Supabase region, Groq retention policy, international transfer question       |
+| Refund Policy                                     | Reasonable default drafted                                   | An actual business decision from you, then legal check against Zimbabwean consumer protection law    |
+| AI Disclaimer                                     | Drafted, data flow to Groq precisely documented              | Lawyer review of the liability-limiting language                                                     |
+| Cookie Policy                                     | Drafted; technically accurate (one cookie, no tracking)      | Lawyer confirmation that no consent banner is required                                               |
+| Accessibility Statement                           | Drafted, honest about scope                                  | No real screen-reader testing has been performed — don't claim more than the statement itself claims |
+| Third-party DPAs (Supabase, Paynow, Groq)         | Vendor inventory documented (`docs/THIRD_PARTY_SERVICES.md`) | Confirm whether formal Data Processing Agreements are needed/exist                                   |
+| Zimbabwe Cyber and Data Protection Act compliance | Data handling documented accurately                          | Not assessed against the actual statute — needs a lawyer familiar with it                            |
 
 ## 🟢 GREEN — implemented and verified
 
@@ -42,6 +42,7 @@ Supabase project, throwaway data, cleaned up afterward) — see the session
 history / `SECURITY.md` for how.
 
 **Security & data integrity**
+
 - Row-level security enforcing tenant isolation (a business cannot read or
   write another business's data).
 - Every multi-step write (sales, invoices, products, stock adjustments,
@@ -61,18 +62,20 @@ history / `SECURITY.md` for how.
   row claiming an action or acceptance that didn't happen.
 
 **User rights & billing**
+
 - Trial/plan-expiry enforcement: confirmed live that writes are blocked
   and reads remain available once a trial lapses unpaid.
 - Data export: confirmed live that the correct data is returned and
   non-owner/admin roles are blocked.
 - Account deletion: confirmed live that deletion is immediate, cascades
-  correctly, and is correctly *refused* (atomically) when other active
+  correctly, and is correctly _refused_ (atomically) when other active
   team members exist.
 - Consent gate: confirmed live that sign-up is rejected server-side
   without acceptance, and that a signed-in user cannot forge their own
   acceptance record.
 
 **Accessibility**
+
 - Color contrast fixes verified by independent calculation (not
   eyeballed) — several real WCAG failures found and corrected.
 - Skip link, keyboard focus visibility, `prefers-reduced-motion` support,

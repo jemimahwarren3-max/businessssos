@@ -73,12 +73,12 @@ function salesChartSummary(
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
     meta: [
-      { title: "Reports — BusinessOS AI" },
+      { title: "Reports | Kwetuu" },
       {
         name: "description",
         content: "Sales, profit, expenses, inventory and customer reports for your business.",
       },
-      { property: "og:title", content: "Reports — BusinessOS AI" },
+      { property: "og:title", content: "Reports | Kwetuu" },
       { property: "og:description", content: "See how your business is really doing." },
     ],
   }),
@@ -584,7 +584,7 @@ function Reports() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import sales history"
-        description="Quick totals for charts only — one row per day's revenue and cost. Never touches stock or links to specific products or customers."
+        description="Quick totals for charts only, one row per day's revenue and cost. Never touches stock or links to specific products or customers."
         columns={SALE_HISTORY_IMPORT_COLUMNS}
         templateFilename="sales-history-template"
         parseRow={(record, rowNumber) => {
@@ -623,7 +623,7 @@ function Reports() {
         open={detailedImportOpen}
         onOpenChange={setDetailedImportOpen}
         title="Import detailed sales"
-        description="Real transactions — matched against your existing products and customers, decrements stock, and shows up in Top Products/Top Customers. Leave Unit Price blank to use the product's current price."
+        description="Real transactions, matched against your existing products and customers, decrements stock, and shows up in Top Products/Top Customers. Leave Unit Price blank to use the product's current price."
         columns={SALE_LINE_IMPORT_COLUMNS}
         templateFilename="detailed-sales-template"
         parseRow={(record, rowNumber) => {
@@ -649,7 +649,7 @@ function Reports() {
             rowNumber,
             ok: true,
             value: result.data,
-            summary: `${result.data.saleDate} · ${result.data.product} × ${formatNumber(result.data.quantity)}${result.data.customer ? ` — ${result.data.customer}` : ""}`,
+            summary: `${result.data.saleDate} · ${result.data.product} × ${formatNumber(result.data.quantity)}${result.data.customer ? `, ${result.data.customer}` : ""}`,
           };
         }}
         onImport={async (rows) => {

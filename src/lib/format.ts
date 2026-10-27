@@ -1,9 +1,13 @@
 export function formatMoney(amount: number, currency = "USD") {
   const value = Number.isFinite(amount) ? amount : 0;
+  const code = currency === "ZiG" ? "ZWG" : currency;
+  if (code === "ZWG") {
+    return `ZiG ${value.toFixed(2)}`;
+  }
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency,
+      currency: code,
       maximumFractionDigits: 2,
     }).format(value);
   } catch {
@@ -35,6 +39,18 @@ export function friendlyDate(value: string | Date) {
     month: "short",
     day: "numeric",
     year: "numeric",
+  }).format(date);
+}
+
+export function friendlyDateTime(value: string | Date, timeZone = "Africa/Harare") {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
   }).format(date);
 }
 

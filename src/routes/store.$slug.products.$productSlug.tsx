@@ -1,9 +1,18 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { z } from "zod";
 import { ProductView } from "@/components/storefront/store-experience";
-import { getPublicStoreFn } from "@/lib/storefront/storefront.functions";
+import { emptyProductReviews } from "@/lib/storefront/contract";
+import { getProductReviewsFn, getPublicStoreFn } from "@/lib/storefront/storefront.functions";
+import { storePublicUrl } from "@/lib/storefront/host";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/products/$productSlug")({
+  validateSearch: z.object({
+    preview: z
+      .union([z.literal("1"), z.literal(1)])
+      .optional()
+      .catch(undefined),
+  }),
   loader: async ({ params }) => {
     const parent = await getPublicStoreFn({ data: { slug: params.slug } });
     const focused = await getPublicStoreFn({
@@ -13,11 +22,20 @@ export const Route = createFileRoute("/store/$slug/products/$productSlug")({
       parent?.products.find((item) => item.slug === params.productSlug) ??
       focused?.products.find((item) => item.slug === params.productSlug);
     if (!parent || !product) throw notFound();
-    return { product };
+    let reviews = emptyProductReviews;
+    try {
+      reviews = await getProductReviewsFn({
+        data: { slug: params.slug, productId: product.id },
+      });
+    } catch {
+      reviews = emptyProductReviews;
+    }
+    return { product, reviews };
   },
   head: ({ loaderData, params }) => {
     if (!loaderData) return { meta: [{ title: "Product" }] };
     const product = loaderData.product;
+    const reviews = loaderData.reviews;
     const description = (product.description || product.name).slice(0, 180);
     const jsonLd = JSON.stringify({
       "@context": "https://schema.org",
@@ -33,6 +51,15 @@ export const Route = createFileRoute("/store/$slug/products/$productSlug")({
           ? "https://schema.org/InStock"
           : "https://schema.org/OutOfStock",
       },
+      ...(reviews.count > 0 && reviews.average != null
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: reviews.average,
+              reviewCount: reviews.count,
+            },
+          }
+        : {}),
     }).replace(/</g, "\\u003c");
     return {
       meta: [
@@ -44,7 +71,12 @@ export const Route = createFileRoute("/store/$slug/products/$productSlug")({
         ...(product.imageUrl ? [{ property: "og:image", content: product.imageUrl }] : []),
       ],
       scripts: [{ type: "application/ld+json", children: jsonLd }],
-      links: [{ rel: "canonical", href: `/store/${params.slug}/products/${params.productSlug}` }],
+      links: [
+        {
+          rel: "canonical",
+          href: storePublicUrl(params.slug, `/products/${params.productSlug}`),
+        },
+      ],
     };
   },
   component: ProductPage,
@@ -52,7 +84,7 @@ export const Route = createFileRoute("/store/$slug/products/$productSlug")({
 
 function ProductPage() {
   const { store } = StoreRoute.useLoaderData();
-  const { product } = Route.useLoaderData();
+  const { product, reviews } = Route.useLoaderData();
   return (
     <ProductView
       store={{
@@ -62,6 +94,7 @@ function ProductPage() {
           : [product, ...store.products],
       }}
       product={product}
+      reviews={reviews}
     />
   );
 }

@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+
+concurrency:
+  group: staging-ci-${{ github.repository }}
+  queue: max
+  cancel-in-progress: false
 
 jobs:
   check:
@@ -14,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.11.0"
+          node-version: "22.12.0"
           cache: npm
 
       - run: npm ci
@@ -24,6 +28,26 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Apply staging SQL
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_PROJECT_ID: slajanbsfqjnuuiohbmg
+        run: node scripts/apply-staging-sql.mjs
+
+      - name: Staging readiness
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "No SUPABASE_ACCESS_TOKEN — skipping staging readiness."
+            exit 0
+          fi
+          node scripts/staging-readiness-check.mjs
 
       - name: Test
         run: npm run test
@@ -37,8 +61,44 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          APP_URL: http://localhost:8080
+          SHOP_HOSTS: "true"
           VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
           SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET }}
+  e2e-smoke:
+    needs: check
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Deployed smoke tests
+        env:
+          E2E_BASE_URL: https://mykwetuu.com
+        run: npm run test:e2e
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-cloud-run.yml
+    secrets: inherit
+    with:
+      region: europe-west1
+      service: kwetuu

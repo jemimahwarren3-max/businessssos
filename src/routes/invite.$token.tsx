@@ -14,7 +14,7 @@ import { readableError } from "@/lib/format";
 export const Route = createFileRoute("/invite/$token")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "You're invited — BusinessOS AI" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "You're invited | Kwetuu" }, { name: "robots", content: "noindex" }],
   }),
   component: InvitePage,
 });

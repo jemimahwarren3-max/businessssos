@@ -15,11 +15,11 @@ exist. Restoring both together keeps those IDs intact.
 **One-time setup**, before the first run does anything useful — add two
 repository secrets (Settings → Secrets and variables → Actions):
 
-- `SUPABASE_DB_PASSWORD` — the production database password. Reset it from
-  the Supabase dashboard (Project Settings → Database → Reset database
-  password) if you don't have it recorded anywhere; resetting it doesn't
-  break the running app, since it authenticates the Postgres connection
-  directly, not the app's own Supabase client keys.
+- `SUPABASE_DB_URL` — the production Supabase **session pooler** connection
+  string from the dashboard's Connect dialog. Use the session pooler, not the
+  direct database host: the direct host can resolve to IPv6, which GitHub
+  hosted runners may not be able to reach. Keep the password embedded in this
+  connection string private.
 - `BACKUP_ENCRYPTION_PASSPHRASE` — a long random passphrase, used to encrypt
   every dump. **Save it somewhere outside GitHub too** (a password manager) —
   if it only lives in the GitHub secret and the repo or account is ever
@@ -52,10 +52,10 @@ locally, or run these same steps in a throwaway GitHub Actions job.
      project first (this gives you a fresh, empty `auth`/`storage`/etc. that
      the dump will restore into), then run the same `pg_restore` command
      against the new project's connection string. Afterward, update
-     `.env.production` (and the Render service's env vars) to point at the
-     new project's URL/keys.
+     `.env.production` (and Cloud Run, or the temporary Render service) to
+     point at the new project's URL/keys. Official hosting is Cloud Run.
 4. Sanity-check the restore before trusting it: confirm `select count(*)
-   from businesses;` and a spot-checked row match what you expect, and try
+from businesses;` and a spot-checked row match what you expect, and try
    signing in as a real account.
 
 ## Testing this actually works

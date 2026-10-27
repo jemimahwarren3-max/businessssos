@@ -1,13 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
 import { quoteCartFn } from "@/lib/storefront/storefront.functions";
 import type { CartQuote } from "@/lib/storefront/contract";
+import { allowedFulfilments } from "@/lib/storefront/order-rules";
 import { formatMoney, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/cart")({
+  validateSearch: z.object({
+    preview: z
+      .union([z.literal("1"), z.literal(1)])
+      .optional()
+      .catch(undefined),
+  }),
   head: () => ({ meta: [{ title: "Cart" }, { name: "robots", content: "noindex" }] }),
   component: CartPage,
 });
@@ -19,11 +27,7 @@ function CartPage() {
   const [priced, setPriced] = useState<CartQuote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const fulfilment = store.delivery.pickupEnabled
-    ? "pickup"
-    : store.delivery.deliveryEnabled
-      ? "delivery"
-      : "quote";
+  const fulfilment = allowedFulfilments(store)[0] ?? "quote";
 
   useEffect(() => {
     setLines(readCart(store.slug));
@@ -91,6 +95,11 @@ function CartPage() {
                     Quantity
                     <input
                       className="ml-2 w-20 rounded border px-2 py-1"
+                      style={{
+                        backgroundColor: store.theme.surface,
+                        color: store.theme.text,
+                        borderColor: store.theme.accent + "70",
+                      }}
                       type="number"
                       min={1}
                       value={line.quantity}
@@ -108,6 +117,7 @@ function CartPage() {
                 </div>
                 <button
                   className="text-sm underline"
+                  style={{ color: store.theme.link }}
                   type="button"
                   onClick={() => update(lines.filter((item) => item.productId !== line.productId))}
                 >
@@ -145,6 +155,7 @@ function CartPage() {
           to="/store/$slug/checkout"
           params={{ slug: store.slug }}
           className="mt-6 inline-flex rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+          style={{ backgroundColor: store.theme.button, color: store.theme.buttonText }}
         >
           Checkout
         </Link>

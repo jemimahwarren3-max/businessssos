@@ -60,12 +60,12 @@ const EMPTY_ITEM: LineItemInput = {
 export const Route = createFileRoute("/_authenticated/customers")({
   head: () => ({
     meta: [
-      { title: "Customers — BusinessOS AI" },
+      { title: "Customers | Kwetuu" },
       {
         name: "description",
         content: "Your customer directory with contact details and outstanding balances.",
       },
-      { property: "og:title", content: "Customers — BusinessOS AI" },
+      { property: "og:title", content: "Customers | Kwetuu" },
       { property: "og:description", content: "Know who buys from you and who owes you." },
     ],
   }),
@@ -164,7 +164,7 @@ function Customers() {
         toast.success("Quote created. Opening WhatsApp…");
         window.open(link, "_blank", "noopener,noreferrer");
       } else {
-        toast.success("Quote created — but this customer has no phone on file to message.");
+        toast.success("Quote created, but this customer has no phone on file to message.");
       }
     },
     onError: (error: Error) => toast.error(readableError(error, "We couldn't create that order.")),
@@ -377,7 +377,7 @@ function Customers() {
           <DialogHeader>
             <DialogTitle>Order for {orderTarget?.name}</DialogTitle>
             <DialogDescription>
-              Add what they're buying — this creates a quote and opens WhatsApp with it pre-filled,
+              Add what they're buying, this creates a quote and opens WhatsApp with it pre-filled,
               using their phone number on file.
             </DialogDescription>
           </DialogHeader>
@@ -419,7 +419,7 @@ function Customers() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import customers"
-        description="Bring in a customer list from a spreadsheet — only the name is required."
+        description="Bring in a customer list from a spreadsheet, only the name is required."
         columns={CUSTOMER_IMPORT_COLUMNS}
         templateFilename="customers-template"
         parseRow={(record, rowNumber) => {
@@ -441,7 +441,7 @@ function Customers() {
             rowNumber,
             ok: true,
             value: result.data,
-            summary: `${result.data.name}${result.data.phone ? ` — ${result.data.phone}` : ""}`,
+            summary: `${result.data.name}${result.data.phone ? `, ${result.data.phone}` : ""}`,
           };
         }}
         onImport={async (rows) => {

@@ -2,9 +2,23 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import {
+  configuredPlatformRoot,
+  publicStoreRedirect,
+  shopHostsEnabled,
+} from "./lib/storefront/host";
+import { assertProductionRuntimeEnv } from "./lib/runtime-env.server";
 import { initSentry } from "./lib/monitoring/sentry";
+import { clientIpFromRequest } from "./lib/request-ip";
 
 void initSentry();
+
+let productionEnvChecked = false;
+function ensureProductionRuntimeEnv() {
+  if (productionEnvChecked) return;
+  productionEnvChecked = true;
+  assertProductionRuntimeEnv();
+}
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -62,7 +76,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
 // Even once authenticated, we still never trust the status field on the
 // wire: always re-poll Paynow ourselves via our own stored poll_url before
 // crediting anything. See src/lib/payments/paynow.server.ts for why.
-async function verifyPaynowWebhookBody(raw: string): Promise<string | null> {
+async function verifyPlatformPaynowWebhookBody(raw: string): Promise<string | null> {
   const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
   const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
   if (!integrationId || !integrationKey) return null;
@@ -73,37 +87,87 @@ async function verifyPaynowWebhookBody(raw: string): Promise<string | null> {
     const status = paynow.parseStatusUpdate(raw);
     return status.reference ?? null;
   } catch (error) {
-    console.error("[paynow webhook] hash verification failed", error);
+    console.error("[paynow webhook] platform hash verification failed", error);
     return null;
   }
 }
 
 async function handlePaynowWebhook(request: Request): Promise<Response> {
   try {
-    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
-    const { createAnonClient } = await import("./lib/auth/session.server");
-    const { data: allowed } = await createAnonClient().rpc("check_rate_limit", {
+    const ip = clientIpFromRequest(request);
+    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const { data: allowed, error: rateError } = await supabaseAdmin.rpc("check_rate_limit", {
       _key: `paynow-webhook:ip:${ip}`,
       _limit: 30,
       _window_seconds: 60,
     });
-    if (allowed === false) return new Response("Too Many Requests", { status: 429 });
+    if (rateError || allowed !== true) {
+      if (rateError) console.error("[paynow webhook] rate limit check failed", rateError);
+      return new Response("Too Many Requests", { status: 429 });
+    }
 
     const raw = await request.text();
-    const reference = await verifyPaynowWebhookBody(raw);
+    const { paynowReferenceFromBody, pollAndConfirmShopPayment, verifyShopPaynowWebhookBody } =
+      await import("./lib/payments/shop-paynow.server");
+    const reference = paynowReferenceFromBody(raw);
     if (!reference) return new Response("Unauthorized", { status: 401 });
 
-    const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+    const shopPayment = await supabaseAdmin
+      .from("shop_order_payments")
+      .select("reference, poll_url, status, business_id")
+      .eq("reference", reference)
+      .maybeSingle();
+    if (shopPayment.error) {
+      console.error("[paynow webhook] shop lookup failed", shopPayment.error);
+      return new Response("Error", { status: 500 });
+    }
+    if (shopPayment.data) {
+      const valid = await verifyShopPaynowWebhookBody(
+        raw,
+        shopPayment.data.reference,
+        shopPayment.data.business_id,
+      );
+      if (!valid) return new Response("Unauthorized", { status: 401 });
+      if (shopPayment.data.status === "created") {
+        await pollAndConfirmShopPayment(
+          shopPayment.data.reference,
+          shopPayment.data.poll_url,
+          shopPayment.data.business_id,
+        );
+      }
+      return new Response("OK", { status: 200 });
+    }
+
+    const platformReference = await verifyPlatformPaynowWebhookBody(raw);
+    if (!platformReference) return new Response("Unauthorized", { status: 401 });
+
     const { data: row, error } = await supabaseAdmin
       .from("subscription_payments")
       .select("reference, poll_url, status")
-      .eq("reference", reference)
+      .eq("reference", platformReference)
       .maybeSingle();
     if (error) {
       console.error("[paynow webhook] lookup failed", error);
       return new Response("Error", { status: 500 });
     }
-    if (!row) return new Response("Unknown reference", { status: 404 });
+    if (!row) {
+      const { data: launchRow, error: launchError } = await supabaseAdmin
+        .from("storefront_launch_payments" as never)
+        .select("reference, poll_url, status")
+        .eq("reference", platformReference)
+        .maybeSingle();
+      if (launchError) {
+        console.error("[paynow webhook] launch lookup failed", launchError);
+        return new Response("Error", { status: 500 });
+      }
+      if (!launchRow) return new Response("Unknown reference", { status: 404 });
+      const launchPayment = launchRow as { reference: string; poll_url: string; status: string };
+      if (launchPayment.status === "created") {
+        const { pollAndConfirmLaunchPayment } = await import("./lib/payments/launch-fee.server");
+        await pollAndConfirmLaunchPayment(launchPayment.reference, launchPayment.poll_url);
+      }
+      return new Response("OK", { status: 200 });
+    }
 
     if (row.status === "created") {
       const { pollAndConfirmPayment } = await import("./lib/payments/paynow.server");
@@ -119,9 +183,16 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    ensureProductionRuntimeEnv();
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/webhooks/paynow") {
       return handlePaynowWebhook(request);
+    }
+
+    const platform = configuredPlatformRoot();
+    if (platform && (request.method === "GET" || request.method === "HEAD")) {
+      const target = publicStoreRedirect(url, platform, shopHostsEnabled());
+      if (target) return Response.redirect(target, 308);
     }
 
     try {

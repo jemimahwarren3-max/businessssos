@@ -16,12 +16,12 @@ import { readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/assistant")({
   head: () => ({
     meta: [
-      { title: "AI Assistant — BusinessOS AI" },
+      { title: "AI Assistant | Kwetuu" },
       {
         name: "description",
         content: "Ask questions about your business and get answers grounded in your real data.",
       },
-      { property: "og:title", content: "AI Assistant — BusinessOS AI" },
+      { property: "og:title", content: "AI Assistant | Kwetuu" },
       { property: "og:description", content: "Don't just see your data. Understand it." },
     ],
   }),
@@ -103,7 +103,7 @@ function Assistant() {
           <Sparkles className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
           <h2 className="mt-3 text-lg font-semibold">Your role can't use the assistant</h2>
           <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-            Ask an owner, admin or manager for access — the assistant shares financial data.
+            Ask an owner, admin or manager for access, the assistant shares financial data.
           </p>
         </div>
       </AppShell>
@@ -118,7 +118,7 @@ function Assistant() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="AI Assistant"
-      subtitle="Answers are grounded in your last 30 days of data — nothing is invented."
+      subtitle="AI helps interpret business data and prepare ideas. It never changes records, sends messages, or publishes without your approval."
       actions={
         messages.length > 0 ? (
           <Button variant="outline" size="sm" onClick={() => setMessages([])}>
@@ -137,7 +137,7 @@ function Assistant() {
               <div>
                 <h2 className="text-lg font-semibold">Ask about your business</h2>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-                  Sales, profit, stock, and who owes you money — answered from your real numbers.
+                  Sales, profit, stock, and who owes you money, answered from your real numbers.
                 </p>
               </div>
               <div className="grid w-full max-w-md gap-2 sm:grid-cols-2">

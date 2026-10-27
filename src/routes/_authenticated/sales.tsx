@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
-import { addSale, getCustomers, getProducts } from "@/lib/business.functions";
+import { addSale, getCashDrawerFn, getCustomers, getProducts } from "@/lib/business.functions";
 import { PAYMENT_METHODS, saleSchema, type LineItemInput } from "@/lib/business.schemas";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
 import { computeTotals } from "@/lib/invoice-calc";
@@ -59,12 +59,12 @@ import { useOnlineStatus } from "@/lib/offline/use-online-status";
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
     meta: [
-      { title: "Sales — BusinessOS AI" },
+      { title: "Sales | Kwetuu" },
       {
         name: "description",
         content: "Ring up a sale, take payment, and update stock automatically.",
       },
-      { property: "og:title", content: "Sales — BusinessOS AI" },
+      { property: "og:title", content: "Sales | Kwetuu" },
       { property: "og:description", content: "The fastest way to sell." },
     ],
   }),
@@ -147,12 +147,20 @@ function Sales() {
   const fetchProducts = useServerFn(getProducts);
   const fetchCustomers = useServerFn(getCustomers);
   const createSaleFn = useServerFn(addSale);
+  const loadDrawer = useServerFn(getCashDrawerFn);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
       navigate({ to: "/onboarding", replace: true });
     }
   }, [workspace.isLoading, workspace.data, navigate]);
+
+  const drawer = useQuery({
+    queryKey: ["cash-drawer", businessId],
+    enabled: Boolean(businessId) && isOnline,
+    queryFn: () => loadDrawer({ data: { businessId: businessId! } }),
+  });
+  const cashDrawerOpen = drawer.data?.open === true;
 
   const products = useQuery({
     queryKey: ["products", businessId, search],
@@ -218,7 +226,7 @@ function Sales() {
     }
     if (result.failed > 0) {
       toast.error(
-        `${result.failed} offline sale${result.failed === 1 ? "" : "s"} couldn't sync — review below.`,
+        `${result.failed} offline sale${result.failed === 1 ? "" : "s"} couldn't sync, review below.`,
       );
     }
     await queryClient.invalidateQueries({ queryKey: ["pending-sales"] });
@@ -384,7 +392,7 @@ function Sales() {
     },
     onSuccess: async (result) => {
       if (result.offline) {
-        toast.success("Sale saved offline — it'll sync automatically once you're back online.");
+        toast.success("Sale saved offline, it'll sync automatically once you're back online.");
         setReceipt({ number: "Pending sync", total: totals.total, offline: true });
       } else {
         toast.success("Sale completed.");
@@ -648,7 +656,16 @@ function Sales() {
 
             {paymentMethod === "credit" && !customerId ? (
               <p className="text-[13px] text-warning-foreground">
-                Select a customer for credit sales — it's added to what they owe.
+                Select a customer for credit sales, it's added to what they owe.
+              </p>
+            ) : null}
+            {paymentMethod === "cash" && isOnline && !cashDrawerOpen ? (
+              <p className="text-[13px] text-warning-foreground">
+                Open the{" "}
+                <Link to="/cash-drawer" className="underline">
+                  cash drawer
+                </Link>{" "}
+                before taking cash. Card and credit still work.
               </p>
             ) : null}
 
@@ -680,7 +697,8 @@ function Sales() {
               disabled={
                 saleMutation.isPending ||
                 cart.length === 0 ||
-                (paymentMethod === "credit" && !customerId)
+                (paymentMethod === "credit" && !customerId) ||
+                (paymentMethod === "cash" && isOnline && !cashDrawerOpen)
               }
             >
               {saleMutation.isPending ? (

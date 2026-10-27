@@ -1,13 +1,13 @@
 import { AppError, assertPermission, type Db } from "./business.server";
 import { cacheGet, cacheSet } from "@/lib/cache/redis.server";
-import { GroqProvider } from "./ai/groq-provider";
+import { getAIProvider } from "./ai/get-provider.server";
 import type { ChatMessage } from "./ai/provider";
 import { buildBusinessSummary } from "./ai.server";
 import { formatMoney } from "./format";
+import { AI_LIMITS } from "./ai/limits.server";
 import { checkRateLimit } from "./rate-limit.server";
 
 const WEEKLY_REPORT_TTL_SECONDS = 60 * 60 * 24;
-const WEEKLY_REPORT_DAILY_LIMIT = 10;
 
 function weeklyReportCacheKey(businessId: string) {
   return `weekly-report:${businessId}`;
@@ -212,7 +212,7 @@ export function computeAnomalies(input: AnomalyInput): Anomaly[] {
         severity: "info",
         message: `Unusually large ${expense.category} expense: ${formatMoney(amount, currency)}${
           expense.vendor ? ` (${expense.vendor})` : ""
-        } — about ${Math.round(amount / average)}x the usual amount for that category.`,
+        }, about ${Math.round(amount / average)}x the usual amount for that category.`,
       });
     }
   }
@@ -263,11 +263,11 @@ export async function getAnomalies(supabase: Db, businessId: string): Promise<An
 /* ---------------------------- weekly AI report ---------------------------- */
 
 const WEEKLY_REPORT_SYSTEM_PROMPT = `You are the BusinessOS AI assistant, writing a short weekly business
-report for a small-business owner. Using ONLY the data given to you below — never invent numbers,
-customers, or products that aren't in it — write a 4-6 sentence narrative summary of how the last 7
+report for a small-business owner. Using ONLY the data given to you below, never invent numbers,
+customers, or products that aren't in it, write a 4-6 sentence narrative summary of how the last 7
 days went. Plain language a non-accountant would understand, no jargon like "COGS" or "accounts
 receivable". Mention anything in the "Things to watch" list if present. End on a brief, concrete
-suggestion if one is obvious from the numbers — otherwise skip it rather than inventing one.`;
+suggestion if one is obvious from the numbers, otherwise skip it rather than inventing one.`;
 
 export type WeeklyReport = { text: string; generatedAt: string; cached: boolean };
 
@@ -289,7 +289,7 @@ export async function getWeeklyReport(
   // the 24h cache above; mainly bounds forceRegenerate abuse.
   const withinDailyLimit = await checkRateLimit(
     `ai-daily-report:business:${businessId}`,
-    WEEKLY_REPORT_DAILY_LIMIT,
+    AI_LIMITS.weeklyReportDaily,
     WEEKLY_REPORT_TTL_SECONDS,
   );
   if (!withinDailyLimit) {
@@ -317,10 +317,9 @@ export async function getWeeklyReport(
     { role: "user", content: "Write this week's report." },
   ];
 
-  const provider = new GroqProvider();
   let text: string;
   try {
-    text = await provider.chat(chatMessages);
+    text = await getAIProvider().chat(chatMessages);
   } catch (error) {
     console.error("[businessos] weekly report generation failed", error);
     throw new AppError("The weekly report isn't available right now. Please try again shortly.");

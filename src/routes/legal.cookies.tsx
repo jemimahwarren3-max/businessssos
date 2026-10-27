@@ -4,7 +4,7 @@ import content from "../../legal/COOKIE_POLICY.md?raw";
 
 export const Route = createFileRoute("/legal/cookies")({
   head: () => ({
-    meta: [{ title: "Cookie Policy — BusinessOS AI" }],
+    meta: [{ title: "Cookie Policy | Kwetuu" }],
   }),
   component: () => <LegalDocument content={content} />,
 });

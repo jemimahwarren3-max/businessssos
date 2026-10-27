@@ -1,6 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import {
+  configuredPlatformRoot,
+  rewriteStoreInputUrl,
+  rewriteStoreOutputUrl,
+  shopHostsEnabled,
+} from "./lib/storefront/host";
 import { captureError, initSentry } from "./lib/monitoring/sentry";
 
 // Browser-only — the server side of error reporting is error-capture.ts,
@@ -21,11 +27,20 @@ export const getRouter = () => {
   installClientErrorListeners();
   const queryClient = new QueryClient();
 
+  const platform = configuredPlatformRoot();
   const router = createRouter({
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
+    ...(platform
+      ? {
+          rewrite: {
+            input: ({ url }) => rewriteStoreInputUrl(url, platform.hostname),
+            output: ({ url }) => rewriteStoreOutputUrl(url, platform.hostname, shopHostsEnabled()),
+          },
+        }
+      : {}),
   });
 
   return router;

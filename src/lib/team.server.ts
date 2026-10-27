@@ -1,7 +1,15 @@
-import { AppError, assertPermission, dbFail, recordAudit, type Db } from "./business.server";
+import {
+  AppError,
+  assertPermission,
+  assertRole,
+  dbFail,
+  recordAudit,
+  type Db,
+} from "./business.server";
 import { isPasswordBreached } from "./auth/breach-check.server";
-import { createAnonClient } from "./auth/session.server";
+import { createAnonClient, setServerSession } from "./auth/session.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { clearLoginFailures, peekLoginFailures, recordLoginFailure } from "./rate-limit.server";
 
 const BREACHED_PASSWORD_MESSAGE =
   "That password has appeared in known data breaches, so it's not safe to use. Please choose a different one.";
@@ -26,7 +34,6 @@ export type InvitePreview = {
 export type PendingInvite = {
   id: string;
   role: string;
-  token: string;
   expires_at: string;
   created_at: string;
 };
@@ -38,7 +45,7 @@ export async function listPendingInvites(
   await assertPermission(supabase, businessId, "users.view");
   const { data, error } = await supabase
     .from("business_invites")
-    .select("id, role, token, expires_at, created_at")
+    .select("id, role, expires_at, created_at")
     .eq("business_id", businessId)
     .eq("status", "pending")
     .order("created_at", { ascending: false });
@@ -60,6 +67,9 @@ export async function createInvite(
   role: string,
 ): Promise<{ token: string }> {
   await assertPermission(supabase, businessId, "users.invite");
+  if (role === "owner") {
+    throw new AppError("You cannot invite someone as owner.");
+  }
   const { data, error } = await supabase.rpc("create_business_invite", {
     _business_id: businessId,
     _role: role as never,
@@ -105,6 +115,9 @@ export async function updateTeamMemberRole(
   role: string,
 ): Promise<void> {
   await assertPermission(supabase, businessId, "roles.manage");
+  if (role === "owner") {
+    await assertRole(supabase, businessId, ["owner"]);
+  }
   const { error } = await supabase.rpc("update_team_member_role", {
     _business_id: businessId,
     _member_user_id: memberUserId,
@@ -163,7 +176,7 @@ export async function acceptInvite(supabase: Db, token: string): Promise<{ busin
 /** Creates a name+password account for staff without an email — an internal,
  * never-emailed placeholder address satisfies Supabase Auth's schema, but
  * staff never see or type it; they sign in with businessName+name+password
- * via resolveStaffLogin below, which resolves back to this address. Uses
+ * via staffSignIn below, which resolves back to this address. Uses
  * supabaseAdmin only for the auth-user creation itself — the business_members
  * insert goes through the caller's own RLS-scoped client, same as every
  * other write in this file, since the existing "bootstrap or admin add
@@ -177,6 +190,9 @@ export async function createStaffAccount(
   role: string,
 ): Promise<{ userId: string }> {
   await assertPermission(supabase, businessId, "users.invite");
+  if (role === "owner") {
+    throw new AppError("You cannot create a staff login as owner.");
+  }
   if (await isPasswordBreached(password)) {
     throw new AppError(BREACHED_PASSWORD_MESSAGE);
   }
@@ -238,7 +254,7 @@ export async function resetStaffPassword(
   if (lookupError) dbFail("look up staff member", lookupError);
   if (!member?.staff_name) {
     throw new AppError(
-      'That team member signs in with email — they can use "Forgot password" instead.',
+      'That team member signs in with email, they can use "Forgot password" instead.',
     );
   }
   if (await isPasswordBreached(newPassword)) {
@@ -263,16 +279,14 @@ export async function resetStaffPassword(
   });
 }
 
-/** Public — resolves businessName+name back to the internal email so the
- * client can hand off to the existing, unmodified signIn flow. Deliberately
- * returns null for every kind of failure (wrong business name, wrong name,
- * no staff account) — same "don't reveal which part was wrong" principle
- * signIn itself already uses for wrong-email vs. wrong-password. */
-export async function resolveStaffLogin(
-  businessName: string,
-  name: string,
-): Promise<string | null> {
-  const { data, error } = await createAnonClient().rpc("resolve_staff_login", {
+const STAFF_LOCKOUT_THRESHOLD = 5;
+const STAFF_LOCKOUT_WINDOW_SECONDS = 15 * 60;
+const STAFF_LOCKOUT_MESSAGE =
+  "Too many failed sign-in attempts. Please wait 15 minutes and try again.";
+const STAFF_SIGNIN_FAIL_MESSAGE = "That name and password don't match.";
+
+async function resolveStaffEmail(businessName: string, name: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.rpc("resolve_staff_login", {
     _business_name: businessName,
     _staff_name: name,
   });
@@ -281,6 +295,51 @@ export async function resolveStaffLogin(
     return null;
   }
   return (data as string | null) ?? null;
+}
+
+/** Public — resolves businessName+name to the internal email on the server
+ * and signs in there. The email never goes to the browser. Failures use one
+ * message so the roster cannot be used to probe which names have passwords. */
+export async function staffSignIn(
+  businessName: string,
+  name: string,
+  password: string,
+): Promise<{ userId: string }> {
+  const staffLockoutKey = `auth-lockout:staff:${businessName.toLowerCase()}:${name.toLowerCase()}`;
+  const staffFailures = await peekLoginFailures(staffLockoutKey, STAFF_LOCKOUT_WINDOW_SECONDS);
+  if (staffFailures >= STAFF_LOCKOUT_THRESHOLD) {
+    throw new AppError(STAFF_LOCKOUT_MESSAGE);
+  }
+
+  const email = await resolveStaffEmail(businessName, name);
+  if (!email) {
+    await recordLoginFailure(staffLockoutKey, STAFF_LOCKOUT_WINDOW_SECONDS);
+    throw new AppError(STAFF_SIGNIN_FAIL_MESSAGE);
+  }
+
+  const emailLockoutKey = `auth-lockout:email:${email}`;
+  const emailFailures = await peekLoginFailures(emailLockoutKey, STAFF_LOCKOUT_WINDOW_SECONDS);
+  if (emailFailures >= STAFF_LOCKOUT_THRESHOLD) {
+    throw new AppError(STAFF_LOCKOUT_MESSAGE);
+  }
+
+  const { data: result, error } = await createAnonClient().auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error || !result.session) {
+    await recordLoginFailure(staffLockoutKey, STAFF_LOCKOUT_WINDOW_SECONDS);
+    await recordLoginFailure(emailLockoutKey, STAFF_LOCKOUT_WINDOW_SECONDS);
+    throw new AppError(STAFF_SIGNIN_FAIL_MESSAGE);
+  }
+
+  await clearLoginFailures(staffLockoutKey);
+  await clearLoginFailures(emailLockoutKey);
+  await setServerSession({
+    accessToken: result.session.access_token,
+    refreshToken: result.session.refresh_token,
+  });
+  return { userId: result.user.id };
 }
 
 export async function setStaffPassword(

@@ -16,6 +16,7 @@ Server (Node / Nitro, TanStack Start server functions)
   ├──▶ Supabase Auth — identity, session issuance
   ├──▶ Paynow — payment initiation/polling (subscription billing only)
   ├──▶ Groq — AI Assistant inference (aggregated business summary + question)
+  ├──▶ Resend — merchant shop alerts and shopper receipts (queued if unset)
   └──▶ Upstash Redis — optional cache-aside for workspace lookups (no
        customer/transaction data; fails open if unconfigured)
 
@@ -39,7 +40,8 @@ Browser (independently of the server)
 **Data at rest**: Postgres (Supabase), encryption-at-rest guarantees not
 independently verified — see `legal/LEGAL_REVIEW_REQUIRED.md`.
 **Data in transit**: HTTPS throughout; session cookie is httpOnly + secure
-+ sameSite=Lax.
+
+- sameSite=Lax.
 
 ## Flow 2: Subscription checkout (Paynow)
 
@@ -71,13 +73,14 @@ business (surfaced on the Billing settings page).
    product names. Never raw database access, and never full transaction
    history or customer contact details.
 2. That summary, a fixed system prompt, and up to the last 12 messages of
-   the conversation are sent to Groq's chat completions API.
-3. Groq's response is returned to the user. Nothing from this exchange is
+   the conversation are sent to Gemini when `GEMINI_API_KEY` is configured;
+   otherwise they are sent to Groq when `GROQ_API_KEY` is configured.
+3. The provider's response is returned to the user. Nothing from this exchange is
    persisted server-side beyond the conversation shown in the browser tab
    (no chat history table).
 
-**Third-party data retention**: Groq's retention/training policy for this
-traffic has not been independently confirmed — see
+**Third-party data retention**: Gemini's and Groq's retention/training policies for this
+traffic have not been independently confirmed — see
 `legal/LEGAL_REVIEW_REQUIRED.md`.
 
 ## Flow 4: Account deletion
@@ -109,7 +112,27 @@ returns it as one JSON object, downloaded client-side as a file. Nothing is
 written to disk or a temp table server-side — it's assembled in memory per
 request and streamed back.
 
-## What's explicitly *not* collected or sent anywhere
+## Flow 6: Transactional shop email (Resend)
+
+1. Database functions enqueue shopper receipts/status updates and opted-in
+   merchant alerts in `notification_outbox`. The first shopper receipt may
+   contain the one-time order access code; later status emails never include
+   it.
+2. The Cloud Run server claims pending rows and sends plain-text messages to
+   Resend. A stable outbox ID is sent as the provider idempotency key so
+   retries after a delivery-state update failure do not create duplicate
+   messages.
+3. The GitHub Actions mail-flush workflow calls the authenticated endpoint
+   every ten minutes. Provider failures are retried with backoff. If Resend
+   is not configured, messages remain queued and the scheduled workflow
+   reports the configuration failure.
+
+The API key is server-only. Sending from `noreply@mykwetuu.com` requires
+verifying `mykwetuu.com` and publishing the DNS records Resend provides.
+Authentication confirmation and password-reset messages remain on Supabase
+Auth SMTP.
+
+## What's explicitly _not_ collected or sent anywhere
 
 - No analytics or tracking tool is integrated (verified by grep — no
   Google Analytics, Meta Pixel, PostHog, Segment, or similar in the

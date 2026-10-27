@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Info,
   Plus,
+  Sparkles,
   TrendingUp,
   Users,
   Wallet,
@@ -27,20 +28,31 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWorkspace } from "@/hooks/use-workspace";
-import { getDashboard } from "@/lib/business.functions";
-import { formatMoney, formatNumber, formatPercent, greeting } from "@/lib/format";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
+import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
+import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
+import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
+import { storePublicUrl } from "@/lib/storefront/host";
+import { BRAND } from "@/lib/brand";
+import { getDailyBusinessBriefingFn } from "@/lib/growth.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  beforeLoad: async () => {
+    const workspace = await getWorkspace();
+    if (!workspace) {
+      throw redirect({ to: "/onboarding", replace: true });
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Dashboard — BusinessOS AI" },
+      { title: `Dashboard | ${BRAND.name}` },
       {
         name: "description",
         content:
           "Today's sales, profit, outstanding payments, low stock and your business health score.",
       },
-      { property: "og:title", content: "Dashboard — BusinessOS AI" },
+      { property: "og:title", content: `Dashboard | ${BRAND.name}` },
       { property: "og:description", content: "See how your business is doing today." },
     ],
   }),
@@ -76,7 +88,10 @@ function Dashboard() {
   const workspace = useWorkspace();
   const [range, setRange] = useState("7");
   const fetchDashboard = useServerFn(getDashboard);
+  const fetchBriefing = useServerFn(getDailyBusinessBriefingFn);
   const businessId = workspace.data?.business.id;
+  const canReadBriefing =
+    hasPermission(workspace.data, "reports.financial") && hasPermission(workspace.data, "ai.use");
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -88,6 +103,25 @@ function Dashboard() {
     queryKey: ["dashboard", businessId, range],
     enabled: Boolean(businessId),
     queryFn: () => fetchDashboard({ data: { businessId: businessId!, days: Number(range) } }),
+  });
+  const loadStore = useServerFn(getStorefrontAdminFn);
+  const storefront = useQuery({
+    queryKey: ["storefront", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => loadStore({ data: { businessId: businessId! } }),
+  });
+  const fetchNotifyEmail = useServerFn(getNotifyEmailFn);
+  const notifyEmail = useQuery({
+    queryKey: ["notify-email", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchNotifyEmail({ data: { businessId: businessId! } }),
+    staleTime: 60_000,
+  });
+  const briefing = useQuery({
+    queryKey: ["daily-business-briefing", businessId],
+    enabled: Boolean(businessId) && canReadBriefing,
+    staleTime: 60 * 60 * 1000,
+    queryFn: () => fetchBriefing({ data: { businessId: businessId! } }),
   });
 
   if (!workspace.data) {
@@ -122,6 +156,89 @@ function Dashboard() {
         </Button>
       }
     >
+      {storefront.data ? (
+        <div className="mb-4">
+          <StoreLaunchCentre
+            admin={storefront.data}
+            billingEnabled={workspace.data.billingEnabled}
+            isOperateLocked={workspace.data.isOperateLocked}
+            notificationsConfigured={notifyEmail.data === true}
+            compact
+            {...(storefront.data.store?.slug
+              ? { publicUrl: storePublicUrl(storefront.data.store.slug) }
+              : {})}
+          />
+        </div>
+      ) : null}
+      {canReadBriefing ? (
+        <section className="surface mb-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Sparkles className="size-4.5 text-primary" aria-hidden="true" />
+                Your AI business briefing
+              </h2>
+              <p className="text-[13px] text-muted-foreground">
+                A daily AI briefing based on recorded business and opted-in storefront activity.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/growth">Explore growth</Link>
+            </Button>
+          </div>
+          {briefing.isLoading ? (
+            <Skeleton className="mt-4 h-16 w-full" />
+          ) : briefing.isError ? (
+            <p className="mt-4 text-sm text-destructive">
+              {readableError(briefing.error, "Today's AI briefing is unavailable.")}
+            </p>
+          ) : briefing.data ? (
+            <div>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">
+                {briefing.data.text}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {briefing.data.cached ? "Today's saved briefing" : "Generated today"} ·{" "}
+                {new Date(briefing.data.generatedAt).toLocaleTimeString("en", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      {canReadBriefing && data ? (
+        <section className="surface mb-4 space-y-3 p-5">
+          <div>
+            <h2 className="text-base font-semibold">Recommended next steps</h2>
+            <p className="text-[13px] text-muted-foreground">
+              Based on your recorded business activity. Each button opens a page for you to review
+              and decide; AI does not apply changes.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.lowStockCount > 0 ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/inventory">Review {data.lowStockCount} low-stock items</Link>
+              </Button>
+            ) : null}
+            {data.outstanding > 0 ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/invoices">Review outstanding invoices</Link>
+              </Button>
+            ) : null}
+            {storefront.data && !storefront.data.checklist.published ? (
+              <Button asChild size="sm" variant="outline">
+                <Link to="/storefront">Continue building your shop</Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm" variant="outline">
+              <Link to="/insights">Review sales and stock insights</Link>
+            </Button>
+          </div>
+        </section>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Today's sales"
@@ -237,7 +354,7 @@ function Dashboard() {
         <section className="surface p-5">
           <h2 className="text-lg font-semibold">Business Health</h2>
           <p className="text-[13px] text-muted-foreground">
-            Calculated from your own data — no guesswork.
+            Calculated from your own data, no guesswork.
           </p>
           {data ? (
             <>

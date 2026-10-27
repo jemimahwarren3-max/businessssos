@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Download, Loader2, Minus, Package, Plus, Search, Upload } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { DataTable, type ColumnDef } from "@/components/data-table";
 import { ImportDialog } from "@/components/import-dialog";
+import { ProductCreateForm } from "@/components/product-create-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,22 +19,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
   addProduct,
+  getLocations,
   getProducts,
   getSuppliers,
   importProductsFn,
   updateStock,
+  uploadProductImageFn,
 } from "@/lib/business.functions";
 import {
   productImportRowSchema,
@@ -40,6 +36,10 @@ import {
   type ProductImportRow,
 } from "@/lib/business.schemas";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
+import { optimizeProductImage } from "@/lib/product-image-optimizer";
+import { getOnlineProductReadiness } from "@/lib/storefront/product-readiness";
+import { getStorefrontAdminFn, saveListingFn } from "@/lib/storefront/storefront.functions";
+import type { AdminStore } from "@/lib/storefront/contract";
 import type { ImportColumn } from "@/lib/spreadsheet";
 import { downloadXlsx } from "@/lib/xlsx-export";
 
@@ -84,12 +84,12 @@ const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
 export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — BusinessOS AI" },
+      { title: "Inventory | Kwetuu" },
       {
         name: "description",
         content: "Track products, stock levels, cost and selling prices, and restock alerts.",
       },
-      { property: "og:title", content: "Inventory — BusinessOS AI" },
+      { property: "og:title", content: "Inventory | Kwetuu" },
       { property: "og:description", content: "Know exactly what you have in stock." },
     ],
   }),
@@ -105,23 +105,10 @@ type ProductRow = {
   selling_price: number;
   stock: number;
   min_stock: number;
+  image_url: string | null;
 };
 
-const EMPTY_PRODUCT = {
-  name: "",
-  sku: "",
-  unit: "unit",
-  costPrice: "",
-  sellingPrice: "",
-  stock: "",
-  minStock: "0",
-  description: "",
-  supplierId: "",
-};
-
-// Radix Select reserves value="" for "no selection" — this sentinel stands
-// in for "no supplier" and is mapped back to "" before validation.
-const NO_SUPPLIER = "none";
+type OnlineProduct = AdminStore["products"][number];
 
 function Inventory() {
   const navigate = useNavigate();
@@ -134,7 +121,6 @@ function Inventory() {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_PRODUCT);
   const [stockTarget, setStockTarget] = useState<{
     product: ProductRow;
     mode: "in" | "out";
@@ -143,10 +129,15 @@ function Inventory() {
   const [stockReason, setStockReason] = useState("");
 
   const fetchProducts = useServerFn(getProducts);
+  const fetchLocations = useServerFn(getLocations);
   const fetchSuppliers = useServerFn(getSuppliers);
   const createProduct = useServerFn(addProduct);
+  const uploadPhoto = useServerFn(uploadProductImageFn);
   const adjustStock = useServerFn(updateStock);
   const importProductsRows = useServerFn(importProductsFn);
+  const fetchStorefront = useServerFn(getStorefrontAdminFn);
+  const saveOnlineListing = useServerFn(saveListingFn);
+  const canManageOnline = workspace.data?.permissions.includes("business.settings") ?? false;
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -159,6 +150,39 @@ function Inventory() {
     enabled: Boolean(businessId),
     queryFn: () => fetchProducts({ data: { businessId: businessId!, search } }),
   });
+  const storefront = useQuery({
+    queryKey: ["storefront", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchStorefront({ data: { businessId: businessId! } }),
+  });
+  const onlineListingMutation = useMutation({
+    mutationFn: (input: { product: OnlineProduct; published: boolean }) =>
+      saveOnlineListing({
+        data: {
+          businessId: businessId!,
+          productId: input.product.id,
+          published: input.published,
+          publicName: input.product.publicName,
+          details: input.product.details,
+          sizeGuide: input.product.sizeGuide,
+          minQty: input.product.minQty,
+          maxQty: input.product.maxQty,
+          featured: input.product.featured,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("Online availability updated.");
+      await queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Could not update online availability.")),
+  });
+
+  const locations = useQuery({
+    queryKey: ["locations", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchLocations({ data: { businessId: businessId! } }),
+  });
 
   const suppliers = useQuery({
     queryKey: ["suppliers", businessId],
@@ -167,28 +191,29 @@ function Inventory() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input: { fields: Record<string, unknown>; photo: File | null }) => {
+      const photo = input.photo ? await optimizeProductImage(input.photo) : null;
       const parsed = productSchema.parse({
+        ...input.fields,
         businessId,
-        name: form.name,
-        sku: form.sku,
-        unit: form.unit || "unit",
-        costPrice: form.costPrice || 0,
-        sellingPrice: form.sellingPrice || 0,
-        stock: form.stock || 0,
-        minStock: form.minStock || 0,
-        taxRate: 0,
-        description: form.description,
-        supplierId: form.supplierId,
       });
-      return createProduct({ data: parsed });
+      const created = await createProduct({ data: parsed });
+      const productId = Array.isArray(created) ? created[0]?.id : created?.id;
+      if (photo && productId) {
+        const form = new FormData();
+        form.set("businessId", businessId!);
+        form.set("productId", productId);
+        form.set("file", photo);
+        await uploadPhoto({ data: form });
+      }
+      return created;
     },
     onSuccess: async () => {
       setAddOpen(false);
-      setForm(EMPTY_PRODUCT);
       toast.success("Product added.");
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "We couldn't add that product.")),
   });
@@ -213,9 +238,157 @@ function Inventory() {
       toast.success("Stock updated.");
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "We couldn't update the stock.")),
   });
+
+  const rows = (products.data ?? []) as ProductRow[];
+  const columns = useMemo<ColumnDef<ProductRow, unknown>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Product",
+        cell: ({ row }) => (
+          <div className="flex max-w-[280px] items-center gap-3">
+            {row.original.image_url ? (
+              <img
+                src={row.original.image_url}
+                alt=""
+                className="size-10 shrink-0 rounded-md object-cover"
+              />
+            ) : (
+              <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted text-[10px] text-muted-foreground">
+                No photo
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="truncate font-medium">{row.original.name}</p>
+              <p className="text-[13px] text-muted-foreground">
+                {row.original.sku ?? "No SKU"} · per {row.original.unit}
+              </p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "cost_price",
+        header: "Cost",
+        cell: ({ row }) => (
+          <span className="tabular-nums text-muted-foreground">
+            {formatMoney(Number(row.original.cost_price), currency)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "selling_price",
+        header: "Price",
+        cell: ({ row }) => (
+          <span className="font-medium tabular-nums">
+            {formatMoney(Number(row.original.selling_price), currency)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "stock",
+        header: "Stock",
+        cell: ({ row }) => <StockBadge product={row.original} />,
+      },
+      {
+        id: "online",
+        header: "Online store",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const onlineProduct = storefront.data?.products.find(
+            (product) => product.id === row.original.id,
+          );
+          const readiness = onlineProduct ? getOnlineProductReadiness(onlineProduct) : null;
+          const pending =
+            onlineListingMutation.isPending &&
+            onlineListingMutation.variables?.product.id === row.original.id;
+          return (
+            <div className="space-y-1">
+              <p className="text-xs font-medium">
+                {onlineProduct?.published ? "Available online" : "Not listed online"}
+              </p>
+              {canManageOnline ? (
+                <Button
+                  size="sm"
+                  variant={onlineProduct?.published ? "secondary" : "outline"}
+                  disabled={
+                    storefront.isLoading ||
+                    !onlineProduct ||
+                    pending ||
+                    (!onlineProduct.published && !readiness?.ready)
+                  }
+                  onClick={() => {
+                    if (onlineProduct) {
+                      onlineListingMutation.mutate({
+                        product: onlineProduct,
+                        published: !onlineProduct.published,
+                      });
+                    }
+                  }}
+                >
+                  {pending
+                    ? "Saving…"
+                    : onlineProduct?.published
+                      ? "Disable online"
+                      : "Make available"}
+                </Button>
+              ) : null}
+              {!onlineProduct?.published && readiness && !readiness.ready ? (
+                <p className="max-w-40 text-xs text-warning-foreground">{readiness.missing[0]}</p>
+              ) : null}
+              <a
+                href="/storefront#launch-products"
+                className="block text-xs font-medium text-foreground underline"
+              >
+                Manage online details
+              </a>
+            </div>
+          );
+        },
+      },
+      ...(canEdit
+        ? [
+            {
+              id: "actions",
+              header: () => <span className="block text-right">Actions</span>,
+              enableSorting: false,
+              cell: ({ row }) => (
+                <div className="flex justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => setStockTarget({ product: row.original, mode: "in" })}
+                  >
+                    <Plus className="size-3.5" aria-hidden="true" /> In
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => setStockTarget({ product: row.original, mode: "out" })}
+                  >
+                    <Minus className="size-3.5" aria-hidden="true" /> Out
+                  </Button>
+                </div>
+              ),
+            } satisfies ColumnDef<ProductRow, unknown>,
+          ]
+        : []),
+    ],
+    [
+      canEdit,
+      canManageOnline,
+      currency,
+      onlineListingMutation,
+      storefront.data,
+      storefront.isLoading,
+    ],
+  );
 
   if (!workspace.data) {
     return (
@@ -225,8 +398,6 @@ function Inventory() {
       </div>
     );
   }
-
-  const rows = (products.data ?? []) as ProductRow[];
 
   function exportExcel() {
     downloadXlsx("inventory", [
@@ -254,7 +425,7 @@ function Inventory() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Inventory"
-      subtitle="Everything you sell, and how much of it you have left."
+      subtitle="Totals on this page. Sales and stock changes use the default location. Moving stock between locations is not available yet."
       actions={
         <>
           {rows.length > 0 ? (
@@ -288,6 +459,30 @@ function Inventory() {
           aria-label="Search products"
         />
       </div>
+      {locations.data && locations.data.length > 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Default location:{" "}
+          {locations.data.find((l) => l.is_default)?.name ?? locations.data[0]?.name}
+          {locations.data.length > 1
+            ? `. ${locations.data.length} active locations. Stock numbers here are the total.`
+            : ". Stock numbers here match this location."}
+        </p>
+      ) : null}
+      {storefront.isLoading ? (
+        <p className="mt-3 text-sm text-muted-foreground" role="status">
+          Loading online availability…
+        </p>
+      ) : null}
+      {storefront.isError ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 p-3">
+          <p className="text-sm text-destructive">
+            {readableError(storefront.error as Error, "Online availability could not be loaded.")}
+          </p>
+          <Button size="sm" variant="outline" onClick={() => void storefront.refetch()}>
+            Retry online status
+          </Button>
+        </div>
+      ) : null}
 
       <div className="surface mt-4 overflow-hidden">
         {products.isLoading ? (
@@ -305,7 +500,7 @@ function Inventory() {
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
               {search
                 ? "Try a shorter search term."
-                : "Add your first product and BusinessOS AI will start tracking stock, profit and restock alerts for you."}
+                : "Add your first product and Kwetuu will start tracking stock, profit and restock alerts for you."}
             </p>
             {canEdit && !search ? (
               <Button className="mt-5 gap-1.5" onClick={() => setAddOpen(true)}>
@@ -316,96 +511,107 @@ function Inventory() {
         ) : (
           <>
             <ul className="divide-y divide-border lg:hidden">
-              {rows.map((product) => (
-                <li key={product.id} className="p-4">
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{product.name}</p>
-                      <p className="text-[13px] text-muted-foreground">
-                        {product.sku ? `${product.sku} · ` : ""}
-                        {formatMoney(Number(product.selling_price), currency)}
-                      </p>
-                    </div>
-                    <StockBadge product={product} />
-                  </div>
-                  {canEdit ? (
-                    <div className="mt-3 flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1"
-                        onClick={() => setStockTarget({ product, mode: "in" })}
+              {rows.map((product) => {
+                const onlineProduct = storefront.data?.products.find(
+                  (item) => item.id === product.id,
+                );
+                const readiness = onlineProduct ? getOnlineProductReadiness(onlineProduct) : null;
+                const pending =
+                  onlineListingMutation.isPending &&
+                  onlineListingMutation.variables?.product.id === product.id;
+                return (
+                  <li key={product.id} className="p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-2">
+                      <span className="text-xs font-medium">
+                        {onlineProduct?.published ? "Available online" : "Not listed online"}
+                      </span>
+                      {canManageOnline ? (
+                        <Button
+                          size="sm"
+                          variant={onlineProduct?.published ? "secondary" : "outline"}
+                          disabled={
+                            storefront.isLoading ||
+                            !onlineProduct ||
+                            pending ||
+                            (!onlineProduct.published && !readiness?.ready)
+                          }
+                          onClick={() => {
+                            if (onlineProduct) {
+                              onlineListingMutation.mutate({
+                                product: onlineProduct,
+                                published: !onlineProduct.published,
+                              });
+                            }
+                          }}
+                        >
+                          {pending
+                            ? "Saving…"
+                            : onlineProduct?.published
+                              ? "Disable online"
+                              : "Make available"}
+                        </Button>
+                      ) : null}
+                      {!onlineProduct?.published && readiness && !readiness.ready ? (
+                        <span className="w-full text-xs text-warning-foreground">
+                          {readiness.missing[0]}
+                        </span>
+                      ) : null}
+                      <a
+                        href="/storefront#launch-products"
+                        className="text-xs font-medium underline"
                       >
-                        <Plus className="size-3.5" aria-hidden="true" /> Stock in
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1"
-                        onClick={() => setStockTarget({ product, mode: "out" })}
-                      >
-                        <Minus className="size-3.5" aria-hidden="true" /> Stock out
-                      </Button>
+                        Manage online details
+                      </a>
                     </div>
-                  ) : null}
-                </li>
-              ))}
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt=""
+                          className="size-12 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span className="grid size-12 place-items-center rounded-md bg-muted text-[10px] text-muted-foreground">
+                          No photo
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{product.name}</p>
+                        <p className="text-[13px] text-muted-foreground">
+                          {product.sku ? `${product.sku} · ` : ""}
+                          {formatMoney(Number(product.selling_price), currency)}
+                        </p>
+                      </div>
+                      <StockBadge product={product} />
+                    </div>
+                    {canEdit ? (
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => setStockTarget({ product, mode: "in" })}
+                        >
+                          <Plus className="size-3.5" aria-hidden="true" /> Stock in
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => setStockTarget({ product, mode: "out" })}
+                        >
+                          <Minus className="size-3.5" aria-hidden="true" /> Stock out
+                        </Button>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
 
-            <table className="hidden w-full text-sm lg:table">
-              <thead>
-                <tr className="border-b border-border text-left text-[12px] uppercase tracking-wide text-muted-foreground">
-                  <th className="px-5 py-3 font-medium">Product</th>
-                  <th className="px-5 py-3 font-medium">Cost</th>
-                  <th className="px-5 py-3 font-medium">Price</th>
-                  <th className="px-5 py-3 font-medium">Stock</th>
-                  {canEdit ? <th className="px-5 py-3 text-right font-medium">Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((product) => (
-                  <tr key={product.id}>
-                    <td className="max-w-[280px] px-5 py-3">
-                      <p className="truncate font-medium">{product.name}</p>
-                      <p className="text-[13px] text-muted-foreground">
-                        {product.sku ?? "No SKU"} · per {product.unit}
-                      </p>
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-muted-foreground">
-                      {formatMoney(Number(product.cost_price), currency)}
-                    </td>
-                    <td className="px-5 py-3 font-medium tabular-nums">
-                      {formatMoney(Number(product.selling_price), currency)}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StockBadge product={product} />
-                    </td>
-                    {canEdit ? (
-                      <td className="px-5 py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1"
-                            onClick={() => setStockTarget({ product, mode: "in" })}
-                          >
-                            <Plus className="size-3.5" aria-hidden="true" /> In
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1"
-                            onClick={() => setStockTarget({ product, mode: "out" })}
-                          >
-                            <Minus className="size-3.5" aria-hidden="true" /> Out
-                          </Button>
-                        </div>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="hidden lg:block">
+              <DataTable columns={columns} data={rows} caption="Inventory products" />
+            </div>
           </>
         )}
       </div>
@@ -418,122 +624,15 @@ function Inventory() {
               Only the name and prices are required. You can edit everything later.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="p-name">Product name</Label>
-              <Input
-                id="p-name"
-                value={form.name}
-                maxLength={160}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="2kg White Sugar"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-sku">SKU / code (optional)</Label>
-              <Input
-                id="p-sku"
-                value={form.sku}
-                maxLength={60}
-                onChange={(e) => setForm({ ...form, sku: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-unit">Unit</Label>
-              <Input
-                id="p-unit"
-                value={form.unit}
-                maxLength={24}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                placeholder="unit, kg, box"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-cost">Cost price ({currency})</Label>
-              <Input
-                id="p-cost"
-                inputMode="decimal"
-                value={form.costPrice}
-                onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-price">Selling price ({currency})</Label>
-              <Input
-                id="p-price"
-                inputMode="decimal"
-                value={form.sellingPrice}
-                onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-stock">Stock on hand</Label>
-              <Input
-                id="p-stock"
-                inputMode="decimal"
-                value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-min">Alert me below</Label>
-              <Input
-                id="p-min"
-                inputMode="decimal"
-                value={form.minStock}
-                onChange={(e) => setForm({ ...form, minStock: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="p-supplier">Supplier (optional)</Label>
-              <Select
-                value={form.supplierId || NO_SUPPLIER}
-                onValueChange={(value) =>
-                  setForm({ ...form, supplierId: value === NO_SUPPLIER ? "" : value })
-                }
-              >
-                <SelectTrigger id="p-supplier">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_SUPPLIER}>No supplier</SelectItem>
-                  {(suppliers.data ?? []).map((supplier) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="p-desc">Notes (optional)</Label>
-              <Textarea
-                id="p-desc"
-                rows={2}
-                maxLength={600}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => addMutation.mutate()}
-              disabled={addMutation.isPending || form.name.trim().length === 0}
-              className="gap-1.5"
-            >
-              {addMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : null}
-              Save product
-            </Button>
-          </DialogFooter>
+          <ProductCreateForm
+            currency={currency}
+            suppliers={suppliers.data ?? []}
+            pending={addMutation.isPending}
+            onCancel={() => setAddOpen(false)}
+            onSubmit={(values, photo) =>
+              addMutation.mutate({ fields: values as Record<string, unknown>, photo })
+            }
+          />
         </DialogContent>
       </Dialog>
 
@@ -543,7 +642,7 @@ function Inventory() {
             <DialogTitle>{stockTarget?.mode === "in" ? "Add stock" : "Remove stock"}</DialogTitle>
             <DialogDescription>
               {stockTarget
-                ? `${stockTarget.product.name} — currently ${formatNumber(
+                ? `${stockTarget.product.name}, currently ${formatNumber(
                     Number(stockTarget.product.stock),
                   )} ${stockTarget.product.unit}`
                 : ""}
@@ -593,8 +692,8 @@ function Inventory() {
       <ImportDialog<ProductImportRow>
         open={importOpen}
         onOpenChange={setImportOpen}
-        title="Import products"
-        description="Bring in a product list from a spreadsheet — opening stock is recorded as a stock-in movement."
+        title="Import products and opening stock"
+        description="Upload a .csv or Excel spreadsheet (.xlsx) with product details and a Stock or SOH column. Opening quantities are recorded as stock-in movements."
         columns={PRODUCT_IMPORT_COLUMNS}
         templateFilename="products-template"
         parseRow={(record, rowNumber) => {
@@ -620,13 +719,14 @@ function Inventory() {
             rowNumber,
             ok: true,
             value: result.data,
-            summary: `${result.data.name} — ${formatNumber(result.data.stock)} ${result.data.unit} @ ${formatMoney(result.data.sellingPrice, currency)}`,
+            summary: `${result.data.name}, ${formatNumber(result.data.stock)} ${result.data.unit} @ ${formatMoney(result.data.sellingPrice, currency)}`,
           };
         }}
         onImport={async (rows) => {
           const outcome = await importProductsRows({ data: { businessId: businessId!, rows } });
           await queryClient.invalidateQueries({ queryKey: ["products"] });
           await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          await queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
           return outcome;
         }}
       />

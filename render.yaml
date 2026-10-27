@@ -12,7 +12,7 @@ services:
     startCommand: node .output/server/index.mjs
     envVars:
       - key: NODE_VERSION
-        value: 22.11.0
+        value: 22.12.0
       - key: SUPABASE_PROJECT_ID
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
@@ -39,6 +39,9 @@ services:
         sync: false
       - key: PAYNOW_INTEGRATION_KEY
         sync: false
+      # Platform host. Public shops use https://{slug}.{this host}.
+      # Add a wildcard DNS record for *.yourdomain on the Render service.
+      # The build copies this into the browser bundle.
       - key: APP_URL
         sync: false
       - key: PLATFORM_ADMIN_USER_ID

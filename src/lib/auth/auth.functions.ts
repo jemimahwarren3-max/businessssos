@@ -5,6 +5,7 @@ import { getAppUrl } from "@/lib/app-url.server";
 import { deleteMyAccount } from "@/lib/account-deletion.server";
 import type { Db } from "@/lib/business.server";
 import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
+import { allowAal1Session } from "@/integrations/supabase/auth-middleware";
 import {
   authedRateLimit,
   clearLoginFailures,
@@ -13,6 +14,8 @@ import {
   recordLoginFailure,
 } from "@/lib/rate-limit.server";
 import { isPasswordBreached } from "./breach-check.server";
+import { EMAIL_PROVIDER_OFF_MESSAGE } from "./auth-providers";
+import { friendlySignUpError, isEmailProviderDisabled } from "./signup-errors";
 import {
   challengeTotp,
   enrollTotp,
@@ -22,10 +25,15 @@ import {
   verifyTotpEnrollment,
 } from "./mfa.server";
 import { verifyCurrentPassword } from "./reauth.server";
+import { handleAuthCallback } from "./handle-auth-callback.server";
+import {
+  completeOAuthCallback,
+  resolvePostAuthPath,
+  resolvePostAuthPathForUser,
+} from "./oauth-callback.server";
 import {
   clearServerSession,
   createAnonClient,
-  createExchangeClient,
   createMfaScopedClient,
   setServerSession,
   tryGetAuthedContext,
@@ -57,6 +65,7 @@ const updatePasswordLimit = [
 // Tighter than the general API limit: these accept a 6-digit TOTP code,
 // exactly the kind of surface that normally gets a tight attempt throttle.
 const mfaLimit = [
+  allowAal1Session,
   authedRateLimit({ keyPrefix: "mfa", maxRequests: 8, windowSeconds: 60 }),
 ] as const;
 const signOutOthersLimit = [
@@ -116,30 +125,42 @@ export const signIn = createServerFn({ method: "POST" })
     // password is wrong — distinguishing the two tells an attacker which
     // emails have accounts.
     if (error || !result.session) {
+      const goTrue = `${error?.code ?? ""} ${error?.message ?? ""}`;
+      if (isEmailProviderDisabled(goTrue)) {
+        throw new Error(EMAIL_PROVIDER_OFF_MESSAGE);
+      }
       await recordLoginFailure(lockoutKey, ACCOUNT_LOCKOUT_WINDOW_SECONDS);
       throw new Error("Incorrect email or password.");
     }
     await clearLoginFailures(lockoutKey);
     await establishSession(result.session);
-    return { userId: result.user.id };
+    const path = await resolvePostAuthPathForUser(result.session.access_token, result.user.id);
+    return { userId: result.user.id, path };
   });
 
 const BREACHED_PASSWORD_MESSAGE =
   "That password has appeared in known data breaches, so it's not safe to use. Please choose a different one.";
 
-function friendlySignUpError(message: string): string {
-  const m = message.toLowerCase();
-  if (m.includes("password")) return "Your password must be at least 8 characters.";
-  if (m.includes("email") && (m.includes("invalid") || m.includes("valid"))) {
-    return "Please enter a valid email address.";
-  }
-  if (m.includes("rate limit") || m.includes("too many")) {
-    return "Too many attempts. Please wait a moment and try again.";
-  }
-  // Anything else — including "already registered" — gets a generic
-  // message rather than confirming or denying the email is already in use.
-  return "We couldn't create that account. Please try again.";
-}
+/** Breach + terms check before browser `supabase.auth.signUp` (stores PKCE verifier for email links). */
+export const assertEmailSignUpAllowed = createServerFn({ method: "POST" })
+  .middleware(signUpLimit)
+  .inputValidator((data: unknown) => signUpSchema.parse(data))
+  .handler(async ({ data }) => {
+    if (await isPasswordBreached(data.password)) {
+      throw new Error(BREACHED_PASSWORD_MESSAGE);
+    }
+    return { ok: true as const };
+  });
+
+export const recordSignupLegalAcceptance = createServerFn({ method: "POST" })
+  .middleware(signUpLimit)
+  .inputValidator((data: unknown) =>
+    z.object({ userId: z.string().uuid(), acceptedTerms: z.literal(true) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    await recordLegalAcceptance(data.userId, getRequestIP() ?? null);
+    return { ok: true as const };
+  });
 
 export const signUp = createServerFn({ method: "POST" })
   .middleware(signUpLimit)
@@ -151,17 +172,28 @@ export const signUp = createServerFn({ method: "POST" })
     const { data: result, error } = await createAnonClient().auth.signUp({
       email: data.email,
       password: data.password,
-      options: { data: { full_name: data.fullName } },
+      options: {
+        data: { full_name: data.fullName },
+        emailRedirectTo: `${getAppUrl()}/auth/confirm`,
+      },
     });
-    if (error) throw new Error(friendlySignUpError(error.message));
+    if (error) {
+      console.error("[auth] signUp", error.message, error.code ?? "");
+      throw new Error(friendlySignUpError(`${error.code ?? ""} ${error.message}`));
+    }
 
     if (result.user) {
-      await recordLegalAcceptance(result.user.id, getRequestIP() ?? null);
+      try {
+        await recordLegalAcceptance(result.user.id, getRequestIP() ?? null);
+      } catch (legalError) {
+        console.error("[auth] legal acceptance after signUp", legalError);
+      }
     }
 
     if (result.session) {
       await establishSession(result.session);
-      return { needsEmailConfirmation: false };
+      const path = await resolvePostAuthPathForUser(result.session.access_token, result.user!.id);
+      return { needsEmailConfirmation: false, path };
     }
     // Whether this is a new signup awaiting confirmation or an email that
     // already has an account, Supabase's response — and ours — look
@@ -174,36 +206,104 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => requestResetSchema.parse(data))
   .handler(async ({ data }) => {
     await createAnonClient().auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${getAppUrl()}/auth/callback?next=/reset-password`,
+      redirectTo: `${getAppUrl()}/auth/recover`,
     });
     // Always looks the same to the caller, regardless of whether the email
     // has an account — same reasoning as signUp above.
     return { ok: true };
   });
 
+const resendConfirmationSchema = z.object({ email: emailSchema });
+
+/** Resend Supabase Auth signup confirmation (not Resend transactional mail). */
+export const resendSignupConfirmation = createServerFn({ method: "POST" })
+  .middleware(resetLimit)
+  .inputValidator((data: unknown) => resendConfirmationSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { error } = await createAnonClient().auth.resend({
+      type: "signup",
+      email: data.email,
+      options: {
+        emailRedirectTo: `${getAppUrl()}/auth/confirm`,
+      },
+    });
+    if (error) {
+      throw new Error(friendlySignUpError(`${error.code ?? ""} ${error.message}`));
+    }
+    return { ok: true as const };
+  });
+
 // Called from routes/auth.callback.tsx's beforeLoad — the server-side half
 // of the PKCE OAuth/magic-link handoff. The browser holds the code_verifier
 // (see integrations/supabase/client.ts's cookie-backed storage adapter);
 // Supabase's SDK reads it back out of that same cookie via this request.
-export const exchangeOAuthCode = createServerFn({ method: "POST" })
+const oauthCallbackSchema = z.object({
+  code: z.string().min(1),
+  acceptedTerms: z.boolean().optional(),
+});
+
+const authTokensSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1),
+});
+
+/** Legacy email links that redirect to Site URL with `#access_token=` (not PKCE `?code=`). */
+export const establishSessionFromAuthTokens = createServerFn({ method: "POST" })
   .middleware(oauthCallbackLimit)
-  .inputValidator((data: unknown) =>
-    z.object({ code: z.string().min(1), acceptedTerms: z.boolean().optional() }).parse(data),
-  )
+  .inputValidator((data: unknown) => authTokensSchema.parse(data))
   .handler(async ({ data }) => {
-    const { data: result, error } = await createExchangeClient().auth.exchangeCodeForSession(
-      data.code,
-    );
-    if (error || !result.session) {
-      throw new Error("That sign-in link is invalid or has expired.");
+    const client = createAnonClient();
+    const { data: sessionData, error } = await client.auth.setSession({
+      access_token: data.accessToken,
+      refresh_token: data.refreshToken,
+    });
+    if (error || !sessionData.session) {
+      throw new Error("That link is invalid or has expired.");
     }
-    // Only set when the auth page's sign-up tab (with its required
-    // checkbox) initiated this OAuth flow — a plain sign-in never sends it,
-    // so an existing user re-authenticating doesn't get a spurious new row.
-    if (data.acceptedTerms) {
-      await recordLegalAcceptance(result.user.id, getRequestIP() ?? null);
+    await establishSession(sessionData.session);
+    return { ok: true as const };
+  });
+
+const emailLinkOtpSchema = z.object({
+  tokenHash: z.string().min(1),
+  type: z.enum(["recovery", "signup", "email"]),
+});
+
+export const verifyEmailLinkOtp = createServerFn({ method: "POST" })
+  .middleware(oauthCallbackLimit)
+  .inputValidator((data: unknown) => emailLinkOtpSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { data: result, error } = await createAnonClient().auth.verifyOtp({
+      token_hash: data.tokenHash,
+      type: data.type,
+    });
+    if (error || !result.session) {
+      throw new Error("That link is invalid or has expired.");
     }
     await establishSession(result.session);
+    return { ok: true as const };
+  });
+
+/** Single round-trip: exchange PKCE code, seal session, return onboarding vs dashboard. */
+export const finishOAuthCallback = createServerFn({ method: "POST" })
+  .middleware(oauthCallbackLimit)
+  .inputValidator((data: unknown) => oauthCallbackSchema.parse(data))
+  .handler(async ({ data }) => {
+    return handleAuthCallback({
+      code: data.code,
+      ...(data.acceptedTerms === undefined ? {} : { acceptedTerms: data.acceptedTerms }),
+    });
+  });
+
+/** @deprecated Prefer finishOAuthCallback — kept for tests calling exchange only. */
+export const exchangeOAuthCode = createServerFn({ method: "POST" })
+  .middleware(oauthCallbackLimit)
+  .inputValidator((data: unknown) => oauthCallbackSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { userId } = await completeOAuthCallback({ code: data.code });
+    if (data.acceptedTerms) {
+      await recordLegalAcceptance(userId, getRequestIP() ?? null);
+    }
     return { ok: true };
   });
 
@@ -242,6 +342,12 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(async ()
   if (!ctx) return null;
   const email = (ctx.claims as { email?: string }).email ?? null;
   return { userId: ctx.userId, email };
+});
+
+/** After OAuth or magic link — send new merchants to shop setup, not an empty dashboard. */
+export const getPostAuthDestination = createServerFn({ method: "GET" }).handler(async () => {
+  const path = await resolvePostAuthPath();
+  return { path };
 });
 
 export const updatePassword = createServerFn({ method: "POST" })

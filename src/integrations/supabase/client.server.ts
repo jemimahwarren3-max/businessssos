@@ -1,7 +1,7 @@
 // Server-side Supabase client with service role key — bypasses RLS entirely.
 // This is deliberately hard to reach for: `eslint.config.js` blocks importing
 // this module from anywhere except an explicit allowlist (currently
-// src/server.ts's webhook handler and lib/payments/paynow.server.ts, both of
+// src/server.ts's webhook handler and lib/payments/*paynow.server.ts, both of
 // which run with no user session to scope a normal RLS-enforced client to).
 // Adding a new caller means widening that allowlist on purpose, not routing
 // around it. For anything with a user session, use the RLS-scoped client

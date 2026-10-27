@@ -45,12 +45,12 @@ import { downloadXlsx } from "@/lib/xlsx-export";
 export const Route = createFileRoute("/_authenticated/quotes")({
   head: () => ({
     meta: [
-      { title: "Quotes — BusinessOS AI" },
+      { title: "Quotes | Kwetuu" },
       {
         name: "description",
         content: "Send quotations and turn accepted ones into invoices in one click.",
       },
-      { property: "og:title", content: "Quotes — BusinessOS AI" },
+      { property: "og:title", content: "Quotes | Kwetuu" },
       { property: "og:description", content: "Quote it, then bill it." },
     ],
   }),
@@ -363,7 +363,7 @@ function Quotes() {
                       {quote.customer_name ?? "No customer"}
                     </td>
                     <td className="px-5 py-3 text-muted-foreground">
-                      {quote.valid_until ? friendlyDate(quote.valid_until) : "—"}
+                      {quote.valid_until ? friendlyDate(quote.valid_until) : "-"}
                     </td>
                     <td className="px-5 py-3 font-medium tabular-nums">
                       {formatMoney(quote.total, currency)}

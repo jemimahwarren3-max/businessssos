@@ -12,6 +12,8 @@ import type { ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { captureError } from "@/lib/monitoring/sentry";
+import { AuthLinkHashHandler } from "@/components/auth-link-hash-handler";
+import { BRAND, HOME_SEO } from "@/lib/brand";
 
 function NotFoundComponent() {
   return (
@@ -35,12 +37,13 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+  const normalizedError = error instanceof Error ? error : new Error("Unknown route error");
+  console.error(normalizedError);
   // Redundant with error-capture.ts server-side (console.error is already
   // wrapped there) but this is the only path that also catches a client-
   // side render error after hydration, where that wrapping doesn't reach.
-  void captureError(error);
+  void captureError(normalizedError);
   const router = useRouter();
 
   return (
@@ -79,14 +82,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BusinessOS AI — Run your business, not your spreadsheets" },
-      {
-        name: "description",
-        content:
-          "Inventory, sales, invoices, expenses and intelligent business insights in one simple platform for small businesses.",
-      },
+      { title: HOME_SEO.title },
+      { name: "description", content: HOME_SEO.description },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: BRAND.name },
+      { property: "og:title", content: HOME_SEO.title },
+      { property: "og:description", content: HOME_SEO.ogDescription },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "application-name", content: BRAND.name },
+      { name: "theme-color", content: BRAND.themeColor },
+      { name: "msapplication-TileColor", content: BRAND.themeColor },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -94,9 +99,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap",
       },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "icon", href: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/icon-192.png", sizes: "192x192" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,
@@ -125,6 +133,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <AuthLinkHashHandler />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>

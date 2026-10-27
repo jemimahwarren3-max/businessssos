@@ -25,7 +25,7 @@ import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/sale-history")({
   head: () => ({
     meta: [
-      { title: "Sales history — BusinessOS AI" },
+      { title: "Sales history | Kwetuu" },
       { name: "description", content: "Every sale, and refunds when something needs to go back." },
     ],
   }),
@@ -111,7 +111,7 @@ function SalesHistory() {
       });
     },
     onSuccess: async () => {
-      toast.success("Refund recorded — stock updated.");
+      toast.success("Refund recorded, stock updated.");
       setRefunding(false);
       setRefundQuantities({});
       setRefundReason("");

@@ -10,6 +10,7 @@ import {
   customerSchema,
   expenseIdSchema,
   expenseSchema,
+  generateInvoiceDraftSchema,
   importCustomersSchema,
   importExpensesSchema,
   importProductsSchema,
@@ -20,6 +21,7 @@ import {
   listNotificationsSchema,
   markAllNotificationsReadSchema,
   markNotificationReadSchema,
+  notifyEmailSchema,
   invoiceIdSchema,
   invoiceSchema,
   invoiceStatusSchema,
@@ -39,6 +41,10 @@ import {
   revokeInviteSchema,
   saleSchema,
   listSalesSchema,
+  listLocationsSchema,
+  locationInputSchema,
+  locationIdSchema,
+  updateLocationSchema,
   saleIdSchema,
   refundSaleSchema,
   setStaffPasswordSchema,
@@ -46,7 +52,10 @@ import {
   setRolePermissionSchema,
   commissionReportSchema,
   setCommissionRateSchema,
+  addCashMovementSchema,
+  closeCashSessionSchema,
   clockInSchema,
+  openCashSessionSchema,
   timeEntriesReportSchema,
   adjustTimeEntrySchema,
   timeEntryIdSchema,
@@ -61,6 +70,7 @@ import {
 } from "./business.schemas";
 import { z } from "zod";
 import { listAuditLogs } from "./audit.server";
+import { generateInvoiceDraft } from "./invoice-copilot.server";
 import {
   adjustTimeEntry,
   clockIn,
@@ -71,10 +81,19 @@ import {
   listTimeEntries,
 } from "./time-tracking.server";
 import {
+  addCashMovement,
+  closeCashSession,
+  loadCashDrawer,
+  openCashSession,
+} from "./cash-drawer.server";
+import {
+  getNotifyEmail,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  setNotifyEmail,
 } from "./notifications.server";
+import { AI_LIMITS } from "./ai/limits.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
 import { getAnomalies, getInventoryForecast, getWeeklyReport } from "./insights.server";
@@ -93,13 +112,14 @@ import {
   listTeamMembers,
   removeTeamMember,
   resetStaffPassword,
-  resolveStaffLogin,
   revokeInvite,
+  staffSignIn,
   setRolePermission,
   setStaffPassword,
   updateTeamMemberRole,
   verifyShopLogin,
 } from "./team.server";
+import { uploadProductImage } from "./product-media.server";
 import { parseAndSanitize } from "./security";
 import { authedRateLimit, ipRateLimit } from "./rate-limit.server";
 import {
@@ -134,6 +154,11 @@ import {
   listCustomers,
   listExpenses,
   listInvoices,
+  listLocations,
+  createLocation,
+  updateLocation,
+  setDefaultLocation,
+  deactivateLocation,
   listProducts,
   listPurchaseOrders,
   listQuotes,
@@ -142,6 +167,7 @@ import {
   loadDashboard,
   loadReports,
   loadWorkspace,
+  markOnboardingComplete,
   recordInvoicePayment,
   setInvoiceStatus,
   setQuoteStatus,
@@ -171,11 +197,15 @@ const exportRateLimit = [
   authedRateLimit({ keyPrefix: "data-export", maxRequests: 3, windowSeconds: 60 }),
 ] as const;
 
-// Every call here hits Groq — tighter than the general API limit, on top
+// Every call here hits an AI provider — tighter than the general API limit, on top
 // of the per-business daily cap enforced inside askAssistant/getWeeklyReport
 // themselves (see ai.server.ts/insights.server.ts).
 const aiRateLimit = [
-  authedRateLimit({ keyPrefix: "ai-assistant", maxRequests: 20, windowSeconds: 60 }),
+  authedRateLimit({
+    keyPrefix: "ai-assistant",
+    maxRequests: AI_LIMITS.assistantPerMinute,
+    windowSeconds: 60,
+  }),
 ] as const;
 
 // Each call does up to 500 sequential row inserts — its own cap keeps that
@@ -184,10 +214,14 @@ const importRateLimit = [
   authedRateLimit({ keyPrefix: "csv-import", maxRequests: 10, windowSeconds: 60 }),
 ] as const;
 
-// Also hits Groq — same tier as the assistant, on top of parseQuickEntry's
+// Also hits an AI provider — same tier as the assistant, on top of parseQuickEntry's
 // own per-business daily cap (see quick-entry.server.ts).
 const quickEntryRateLimit = [
-  authedRateLimit({ keyPrefix: "quick-entry", maxRequests: 20, windowSeconds: 60 }),
+  authedRateLimit({
+    keyPrefix: "quick-entry",
+    maxRequests: AI_LIMITS.quickEntryPerMinute,
+    windowSeconds: 60,
+  }),
 ] as const;
 
 // Keyed by IP — the one team-related endpoint a not-yet-logged-in visitor
@@ -196,9 +230,8 @@ const invitePreviewLimit = [
   ipRateLimit({ keyPrefix: "invite-preview", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
 
-// Tighter than signInLimit (10/min) — businessCode+name is a lower-entropy
-// "username" than a full email, so the lookup step gets its own stricter cap
-// on top of signIn's own limit on the password-check step that follows it.
+// Tighter than signInLimit (10/min) — businessName+staff name is a
+// lower-entropy username than a full email, so sign-in gets its own cap.
 const staffLoginLimit = [
   ipRateLimit({ keyPrefix: "staff-login", maxRequests: 8, windowSeconds: 60 }),
 ] as const;
@@ -213,6 +246,13 @@ export const createBusiness = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     createBusinessRecord(context.supabase as Db, context.userId, data),
   );
+
+export const completeOnboarding = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .handler(async ({ context }) => {
+    await markOnboardingComplete(context.supabase as Db, context.userId);
+    return { ok: true as const };
+  });
 
 export const getDashboard = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -238,6 +278,58 @@ export const getReports = createServerFn({ method: "POST" })
     loadReports(context.supabase as Db, data.businessId, data.days),
   );
 
+export const getLocations = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(listLocationsSchema, data))
+  .handler(async ({ data, context }) =>
+    listLocations(context.supabase as Db, data.businessId, {
+      ...(data.includeInactive ? { includeInactive: true } : {}),
+    }),
+  );
+
+export const createLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationInputSchema, data))
+  .handler(async ({ data, context }) => {
+    const id = await createLocation(context.supabase as Db, {
+      businessId: data.businessId,
+      name: data.name,
+      ...(data.address !== undefined ? { address: data.address } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+    });
+    return { id };
+  });
+
+export const updateLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(updateLocationSchema, data))
+  .handler(async ({ data, context }) => {
+    await updateLocation(context.supabase as Db, {
+      businessId: data.businessId,
+      locationId: data.locationId,
+      name: data.name,
+      ...(data.address !== undefined ? { address: data.address } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone } : {}),
+    });
+    return { ok: true as const };
+  });
+
+export const setDefaultLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationIdSchema, data))
+  .handler(async ({ data, context }) => {
+    await setDefaultLocation(context.supabase as Db, data);
+    return { ok: true as const };
+  });
+
+export const deactivateLocationFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(locationIdSchema, data))
+  .handler(async ({ data, context }) => {
+    await deactivateLocation(context.supabase as Db, data);
+    return { ok: true as const };
+  });
+
 export const getProducts = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) =>
@@ -257,6 +349,33 @@ export const addProduct = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(productSchema, data))
   .handler(async ({ data, context }) => createProduct(context.supabase as Db, data));
+
+function parseProductPhotoForm(data: unknown): {
+  businessId: string;
+  productId: string;
+  file: File;
+} {
+  if (!(data instanceof FormData)) {
+    throw new Error("Choose a photo.");
+  }
+  const businessId = String(data.get("businessId") ?? "");
+  const productId = String(data.get("productId") ?? "");
+  const file = data.get("file");
+  if (!/^[0-9a-f-]{36}$/i.test(businessId) || !/^[0-9a-f-]{36}$/i.test(productId)) {
+    throw new Error("That product could not be found.");
+  }
+  if (!(file instanceof File)) {
+    throw new Error("Choose a photo.");
+  }
+  return { businessId, productId, file };
+}
+
+export const uploadProductImageFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseProductPhotoForm(data))
+  .handler(async ({ data, context }) =>
+    uploadProductImage(context.supabase as Db, data.businessId, data.productId, data.file),
+  );
 
 export const updateStock = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -534,7 +653,7 @@ export const startSubscriptionCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(subscriptionCheckoutSchema, data))
   .handler(async ({ data, context }) => {
     const email = (context.claims as { email?: string }).email;
-    if (!email) throw new Error("Your account has no email on file — please contact support.");
+    if (!email) throw new Error("Your account has no email on file, please contact support.");
     return initiateSubscriptionCheckout(context.supabase as Db, data, email);
   });
 
@@ -562,6 +681,11 @@ export const askAssistantFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     askAssistant(context.supabase as Db, data.businessId, data.messages),
   );
+
+export const generateInvoiceDraftFn = createServerFn({ method: "POST" })
+  .middleware([...authAndRateLimit, ...aiRateLimit])
+  .inputValidator((data: unknown) => parseAndSanitize(generateInvoiceDraftSchema, data))
+  .handler(async ({ data, context }) => generateInvoiceDraft(context.supabase as Db, data));
 
 /* -------------------------------- quick add -------------------------------- */
 
@@ -677,12 +801,10 @@ export const resetStaffPasswordFn = createServerFn({ method: "POST" })
     ),
   );
 
-export const resolveStaffLoginFn = createServerFn({ method: "POST" })
+export const staffSignInFn = createServerFn({ method: "POST" })
   .middleware(staffLoginLimit)
   .inputValidator((data: unknown) => parseAndSanitize(staffLoginSchema, data))
-  .handler(async ({ data }) => ({
-    email: await resolveStaffLogin(data.businessName, data.name),
-  }));
+  .handler(async ({ data }) => staffSignIn(data.businessName, data.name, data.password));
 
 export const setStaffPasswordFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -733,6 +855,32 @@ export const setCommissionRateFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(setCommissionRateSchema, data))
   .handler(async ({ data, context }) =>
     setMemberCommissionRate(context.supabase as Db, data.businessId, data.memberUserId, data.rate),
+  );
+
+export const getCashDrawerFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => loadCashDrawer(context.supabase as Db, data.businessId));
+
+export const openCashSessionFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(openCashSessionSchema, data))
+  .handler(async ({ data, context }) =>
+    openCashSession(context.supabase as Db, data.businessId, data.openingFloat, data.note ?? ""),
+  );
+
+export const closeCashSessionFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(closeCashSessionSchema, data))
+  .handler(async ({ data, context }) =>
+    closeCashSession(context.supabase as Db, data.businessId, data.countedCash, data.note ?? ""),
+  );
+
+export const addCashMovementFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(addCashMovementSchema, data))
+  .handler(async ({ data, context }) =>
+    addCashMovement(context.supabase as Db, data.businessId, data.kind, data.amount, data.note),
   );
 
 export const getMyActiveShiftFn = createServerFn({ method: "POST" })
@@ -798,7 +946,9 @@ export const getAuditLogsFn = createServerFn({ method: "POST" })
 export const getNotificationsFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(listNotificationsSchema, data))
-  .handler(async ({ data, context }) => listNotifications(context.supabase as Db, data.businessId));
+  .handler(async ({ data, context }) =>
+    listNotifications(context.supabase as Db, data.businessId, data.offset ?? 0),
+  );
 
 export const markNotificationReadFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -812,4 +962,18 @@ export const markAllNotificationsReadFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(markAllNotificationsReadSchema, data))
   .handler(async ({ data, context }) =>
     markAllNotificationsRead(context.supabase as Db, data.businessId),
+  );
+
+export const getNotifyEmailFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) => getNotifyEmail(context.supabase as Db, data.businessId));
+
+export const setNotifyEmailFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(notifyEmailSchema, data))
+  .handler(async ({ data, context }) =>
+    setNotifyEmail(context.supabase as Db, data.businessId, data.enabled),
   );

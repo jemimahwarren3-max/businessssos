@@ -14,10 +14,10 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Choose a new password — BusinessOS AI" },
-      { name: "description", content: "Set a new password for your BusinessOS AI account." },
-      { property: "og:title", content: "Choose a new password — BusinessOS AI" },
-      { property: "og:description", content: "Secure your BusinessOS AI account." },
+      { title: "Choose a new password | Kwetuu" },
+      { name: "description", content: "Set a new password for your Kwetuu account." },
+      { property: "og:title", content: "Choose a new password | Kwetuu" },
+      { property: "og:description", content: "Secure your Kwetuu account." },
       { name: "robots", content: "noindex" },
     ],
   }),
