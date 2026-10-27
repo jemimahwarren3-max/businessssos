@@ -104,7 +104,7 @@ jobs:
             --build-arg "VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}" \
             --build-arg "VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}" \
             --build-arg "APP_URL=${APP_URL}" \
-            --build-arg "SHOP_HOSTS=false" \
+            --build-arg "SHOP_HOSTS=true" \
             --tag "${IMAGE}" \
             .
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
@@ -154,7 +154,7 @@ jobs:
           pairs = {
               "NODE_ENV": "production",
               "HOST": "0.0.0.0",
-              "SHOP_HOSTS": "false",
+              "SHOP_HOSTS": "true",
               "BILLING_ENABLED": "false",
               "APP_URL": os.environ["APP_URL"],
               "SUPABASE_URL": os.environ["STAGING_SUPABASE_URL"],
@@ -238,3 +238,7 @@ jobs:
           done
           echo "Leave GitHub secret APP_URL as https://mykwetuu.com. Do not switch it to .run.app."
           echo "When certificate Ready is True, https://mykwetuu.com is the public URL."
+          echo "Shop URLs are https://{slug}.mykwetuu.com. Cloud Run domain-mappings cannot bind *."
+          echo "Add a wildcard DNS record for *.mykwetuu.com (same target as the apex mapping),"
+          echo "then terminate TLS with Cloudflare on * or an HTTPS load balancer + wildcard cert."
+          echo "Supabase Auth redirect URLs should include https://*.mykwetuu.com/**"

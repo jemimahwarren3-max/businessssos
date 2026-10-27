@@ -41,7 +41,7 @@ jobs:
         run: npm run build
         env:
           APP_URL: http://localhost:8080
-          SHOP_HOSTS: "false"
+          SHOP_HOSTS: "true"
           VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}

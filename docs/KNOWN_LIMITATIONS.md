@@ -6,7 +6,7 @@
 - Platform Paynow is subscription billing only ($3/month Pro).
 - One shop per cart. No marketplace commission.
 - No product variants, no file uploads. Shopper accounts exist; guest checkout and access codes still work. Reviews exist only as verified-purchase text after an order is ready or completed. Transactional order email is queued when checkout includes an email. Marketing lists are not sent.
-- Shop URLs default to `{APP_URL}/store/{slug}` so Cloud Run works without wildcard DNS. `{slug}.{host}` only when `SHOP_HOSTS=true` and a wildcard certificate exists.
+- Shop URLs are `{slug}.{APP_URL host}`. Cloud Run domain-mappings cannot attach `*.domain`; add wildcard DNS and TLS (Cloudflare on `*` or an HTTPS load balancer). The `.run.app` URL stays on `/store/{slug}` because it cannot take extra labels. Draft preview stays on the platform host.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` still accepts staff-supplied unit prices (intentional for the counter, unsafe if you exposed that RPC to shoppers).
 - Cash POS needs an open drawer. Card and credit do not. Invoice payments and online shop cash are not posted to the till. Offline queued cash sales fail on sync if the drawer is closed.

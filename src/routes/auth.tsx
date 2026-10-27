@@ -346,7 +346,7 @@ function AuthPage() {
           </p>
         </div>
         <ul className="space-y-2 text-sm text-primary-foreground/80">
-          <li>· Live storefront at /store/your-slug</li>
+          <li>· Live storefront at your-shop.{BRAND.domain}</li>
           <li>· Cash now; your own Paynow keys when you add them</li>
           <li>· Staff still sign in with the business name</li>
         </ul>

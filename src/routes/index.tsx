@@ -1,13 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Check, ShoppingBag, Store, Wallet } from "lucide-react";
 import { MarketingShell } from "@/components/marketing-shell";
+import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { TemplatePreview } from "@/components/storefront/template-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
+import { EMPTY_MARKETPLACE } from "@/lib/storefront/contract";
+import { featuredPublishedShops } from "@/lib/storefront/published-shops";
+import { getMarketplaceFn } from "@/lib/storefront/storefront.functions";
 import { STORE_TEMPLATES } from "@/lib/storefront/templates";
 
 export const Route = createFileRoute("/")({
+  loader: async () => {
+    try {
+      return await getMarketplaceFn({ data: {} });
+    } catch {
+      return EMPTY_MARKETPLACE;
+    }
+  },
   head: () => ({
     meta: [
       { title: `${BRAND.name}: Open an online shop for your business` },
@@ -24,9 +35,28 @@ export const Route = createFileRoute("/")({
     ],
   }),
   component: Landing,
+  errorComponent: LandingError,
 });
 
+function LandingError({ error }: { error: Error }) {
+  return (
+    <MarketingShell>
+      <div className="mx-auto max-w-6xl px-4 py-16">
+        <h1 className="text-3xl font-extrabold tracking-tight">Open your shop</h1>
+        <p className="mt-3 text-sm text-destructive">{error.message}</p>
+        <Button asChild className="mt-6">
+          <Link to="/auth" search={{ mode: "signup" }}>
+            Create your shop
+          </Link>
+        </Button>
+      </div>
+    </MarketingShell>
+  );
+}
+
 function Landing() {
+  const market = Route.useLoaderData();
+  const featuredShops = featuredPublishedShops(market.shops);
   const heroTemplate =
     STORE_TEMPLATES.find((t) => t.id === "fashion-boutique") ?? STORE_TEMPLATES[0]!;
   return (
@@ -57,8 +87,7 @@ function Landing() {
               </Button>
             </div>
             <p className="mt-4 text-[13px] text-muted-foreground">
-              Free during beta · No card required · Live shops at /store/your-slug until wildcard
-              DNS is on
+              Free during beta · No card required · Live shops at your-shop.{BRAND.domain}
             </p>
           </div>
           <div className="relative">
@@ -121,6 +150,24 @@ function Landing() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-14">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Live shops</h2>
+            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+              Real published shops from the database. Templates below are labelled samples, not
+              these catalogues.
+            </p>
+          </div>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/stores">See all</Link>
+          </Button>
+        </div>
+        <div className="mt-8">
+          <PublishedShopGrid shops={featuredShops} />
+        </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-14">

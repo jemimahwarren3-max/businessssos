@@ -2,10 +2,12 @@ import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { Logo } from "@/components/logo";
+import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 import type { MarketplaceProduct } from "@/lib/storefront/contract";
 import { BRAND } from "@/lib/brand";
+import { storePublicUrl } from "@/lib/storefront/host";
 import { getMarketplaceFn } from "@/lib/storefront/storefront.functions";
 
 const searchSchema = z.object({
@@ -91,44 +93,11 @@ function MarketPage() {
         </div>
       ) : null}
 
-      {!filtering && market.shops.length === 0 ? (
-        <section className="mt-10 rounded-lg border border-dashed p-8">
-          <h2 className="text-lg font-semibold">No shops are listed yet</h2>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            When a business publishes its shop and leaves it visible here, its products show up with
-            the shop name, the current price, and the current stock label.
-          </p>
-          <Button asChild className="mt-4" variant="outline">
-            <Link to="/auth" search={{ mode: "signup" }}>
-              Open a shop
-            </Link>
-          </Button>
-        </section>
-      ) : null}
-
-      {market.shops.length > 0 ? (
+      {!filtering || market.shops.length > 0 ? (
         <section className="mt-10">
           <h2 className="text-lg font-semibold">Shops</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {market.shops.map((shop) => (
-              <Link
-                key={shop.slug}
-                to="/store/$slug"
-                params={{ slug: shop.slug }}
-                className="rounded-lg border p-4 transition-colors hover:bg-muted/40"
-              >
-                <p className="font-medium">{shop.storeName}</p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                  {shop.businessType}
-                </p>
-                {shop.tagline ? (
-                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{shop.tagline}</p>
-                ) : null}
-                {shop.address ? (
-                  <p className="mt-2 text-sm text-muted-foreground">{shop.address}</p>
-                ) : null}
-              </Link>
-            ))}
+          <div className="mt-4">
+            <PublishedShopGrid shops={market.shops} />
           </div>
         </section>
       ) : null}
@@ -169,10 +138,9 @@ function ProductSection({
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => (
-            <Link
+            <a
               key={`${product.storeSlug}-${product.slug}`}
-              to="/store/$slug/products/$productSlug"
-              params={{ slug: product.storeSlug, productSlug: product.slug }}
+              href={storePublicUrl(product.storeSlug, `/products/${product.slug}`)}
               className="overflow-hidden rounded-lg border"
             >
               {product.imageUrl ? (
@@ -186,7 +154,7 @@ function ProductSection({
                 <p className="text-xs text-muted-foreground">{product.storeName}</p>
                 <p className="text-xs text-muted-foreground">{product.stockLabel}</p>
               </div>
-            </Link>
+            </a>
           ))}
         </div>
       )}
@@ -201,8 +169,9 @@ function MarketFrame({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Logo to="/" />
           <nav className="flex items-center gap-4 text-sm">
+            <Link to="/stores">Shops</Link>
             <Link to="/market" search={{ q: "", category: "" }}>
-              Shops
+              Products
             </Link>
             <Link to="/auth" search={{ mode: "signin" }}>
               Sign in

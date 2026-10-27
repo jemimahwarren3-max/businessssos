@@ -41,7 +41,7 @@ See `CLOUD_RUN_LAUNCH.md` for the first-revision checklist and GitHub Action.
 
 ## Custom domains and shops
 
-`SHOP_HOSTS=false` (Cloud Run default) keeps shops at `https://{APP_URL host}/store/{slug}` and does not 308 to a subdomain. Set `SHOP_HOSTS=true` and rebuild only when a wildcard certificate exists. Cloud Run domain mapping binds one hostname; `{slug}.run.app` is not available.
+Deploys set `SHOP_HOSTS=true`. Public shops are `https://{slug}.mykwetuu.com`; `/store/{slug}` 308s there except draft preview. Cloud Run domain mapping binds one hostname, so `*.mykwetuu.com` needs wildcard DNS plus Cloudflare or an HTTPS load balancer. `{slug}.run.app` is not available.
 
 Paynow `resulturl` must be `https://mykwetuu.com/api/webhooks/paynow` on the apex, not a shop host.
 
