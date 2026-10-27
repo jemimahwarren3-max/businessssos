@@ -99,7 +99,7 @@ export function buildLaunchSteps(
       title: "Set up your store",
       description: "Name, contact details, and where customers find you.",
       done: checklist.name,
-      href: "#launch-setup",
+      href: "#store-builder",
     },
     {
       id: "design",

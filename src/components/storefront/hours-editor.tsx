@@ -8,7 +8,7 @@ import {
   type WeeklyHour,
 } from "@/lib/storefront/clocks";
 
-type HoursState = Record<number, { open: string; close: string; closed: boolean }>;
+export type HoursState = Record<number, { open: string; close: string; closed: boolean }>;
 
 export function hoursStateFrom(rows: WeeklyHour[] | undefined): HoursState {
   const next: HoursState = {};

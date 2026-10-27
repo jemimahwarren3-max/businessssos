@@ -30,6 +30,10 @@ Apply `20261021150000_storefront_template_library.sql` after the existing storef
 
 Platform Paynow keys (`PAYNOW_INTEGRATION_ID` / `PAYNOW_INTEGRATION_KEY`) remain for BusinessOS subscription billing only. Customer checkout cannot mark itself paid by redirect. Paynow, EcoCash, and InnBucks are not offered until each merchant connects an approved account of their own.
 
+## Store builder (Stage 3)
+
+Merchants open **My Online Store → Store builder** (`#store-builder`) for a tabbed workflow: **Design** (three layout families: Modern Minimal, Bold Commerce, Local Business), **Branding** (colours, fonts, logo/banner upload or HTTPS URLs), **Products** (Stage 2 online catalogue), **Store information** (contact, delivery, manual payment instructions), and **Preview** (desktop/mobile, live draft using published listings only). **Save draft** persists through `save_storefront`; **Discard changes** reverts unsaved edits. Logo and banner uploads use the `product-media` bucket at `{businessId}/storefront/{logo|cover}/…` with existing member RLS.
+
 ## Templates
 
 Sixty storefront designs (six each in ten retail categories) share one renderer (`src/components/storefront/store-experience.tsx`) and one template registry (`src/lib/storefront/templates.ts`). Sellers can filter/search the gallery, preview their published products on desktop or mobile, customize palettes, color tokens, type pairing, logo, cover image, and section visibility, and save those settings to their own store. Changing template does not copy products or orders. Gallery sketches are labelled sample layouts; the seller's draft preview uses their actual published catalogue.
