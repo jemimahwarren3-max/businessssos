@@ -23,6 +23,7 @@ const FILES = [
   "20261027160000_admin_console_phase3.sql",
   "20261027161000_platform_runtime_admin_columns.sql",
   "20261027170000_location_management_rpcs.sql",
+  "20261027180000_store_launch_eligibility.sql",
 ];
 
 describe("staging migration manifest", () => {

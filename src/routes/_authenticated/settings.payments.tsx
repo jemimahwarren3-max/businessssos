@@ -38,8 +38,9 @@ function PaymentsSettingsPage() {
             shoppers pay you at checkout.
           </p>
           <p className="text-[13px] text-muted-foreground">
-            Publishing your shop and using POS when billing is enforced requires an active Pro plan.
-            There is no separate launch-fee SKU today — activation is through subscription.
+            When billing is enforced, publishing and POS require an active Pro subscription. If
+            platform launch fees are enabled (`launch_fee_required` on `platform_runtime`), pay the
+            one-time store launch fee from My Online Store → Launch readiness before publishing.
           </p>
           <Button asChild size="sm">
             <Link to="/settings/billing">Open Kwetuu billing</Link>

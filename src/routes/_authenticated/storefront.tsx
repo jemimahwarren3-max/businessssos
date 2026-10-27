@@ -28,6 +28,7 @@ import {
 import { getTemplate } from "@/lib/storefront/templates";
 import { themeFromPalette } from "@/lib/storefront/theme";
 import { StoreBuilder } from "@/components/storefront/store-builder";
+import { StoreLaunchReadiness } from "@/components/storefront/store-launch-readiness";
 import { BRAND } from "@/lib/brand";
 import { OnlineOrdersFulfilmentPanel } from "@/components/storefront/online-orders-fulfilment-panel";
 import type {
@@ -272,6 +273,12 @@ function StorefrontEditor({
         isOperateLocked={isOperateLocked}
         notificationsConfigured={notificationsConfigured}
         {...(publicUrl ? { publicUrl } : {})}
+      />
+
+      <StoreLaunchReadiness
+        businessId={businessId}
+        {...(store?.slug ? { storeSlug: store.slug } : {})}
+        canManage={permissions.includes("business.settings")}
       />
 
       {publicUrl ? (

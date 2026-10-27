@@ -150,7 +150,24 @@ async function handlePaynowWebhook(request: Request): Promise<Response> {
       console.error("[paynow webhook] lookup failed", error);
       return new Response("Error", { status: 500 });
     }
-    if (!row) return new Response("Unknown reference", { status: 404 });
+    if (!row) {
+      const { data: launchRow, error: launchError } = await supabaseAdmin
+        .from("storefront_launch_payments" as never)
+        .select("reference, poll_url, status")
+        .eq("reference", platformReference)
+        .maybeSingle();
+      if (launchError) {
+        console.error("[paynow webhook] launch lookup failed", launchError);
+        return new Response("Error", { status: 500 });
+      }
+      if (!launchRow) return new Response("Unknown reference", { status: 404 });
+      const launchPayment = launchRow as { reference: string; poll_url: string; status: string };
+      if (launchPayment.status === "created") {
+        const { pollAndConfirmLaunchPayment } = await import("./lib/payments/launch-fee.server");
+        await pollAndConfirmLaunchPayment(launchPayment.reference, launchPayment.poll_url);
+      }
+      return new Response("OK", { status: 200 });
+    }
 
     if (row.status === "created") {
       const { pollAndConfirmPayment } = await import("./lib/payments/paynow.server");

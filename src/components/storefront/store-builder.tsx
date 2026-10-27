@@ -34,6 +34,7 @@ import { readableError } from "@/lib/format";
 import { storePublicUrl } from "@/lib/storefront/host";
 import {
   getMarketplaceListingFn,
+  getStoreLaunchEligibilityFn,
   publishStorefrontFn,
   saveStorefrontFn,
   setMarketplaceVisibleFn,
@@ -434,6 +435,12 @@ export function StoreBuilder({
       void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Could not change publication")),
+  });
+
+  const loadEligibility = useServerFn(getStoreLaunchEligibilityFn);
+  const eligibility = useQuery({
+    queryKey: ["store-launch-eligibility", businessId],
+    queryFn: () => loadEligibility({ data: { businessId } }),
   });
 
   const listing = useQuery({
@@ -979,7 +986,16 @@ export function StoreBuilder({
         <Button
           type="button"
           variant="secondary"
-          disabled={disabled || publishMutation.isPending}
+          disabled={
+            disabled ||
+            publishMutation.isPending ||
+            (store.status !== "published" && eligibility.data?.state !== "eligible_to_publish")
+          }
+          title={
+            store.status !== "published" && eligibility.data?.state !== "eligible_to_publish"
+              ? "Complete launch requirements above before publishing"
+              : undefined
+          }
           onClick={() => publishMutation.mutate(store.status !== "published")}
         >
           {store.status === "published" ? "Unpublish" : "Publish store"}
