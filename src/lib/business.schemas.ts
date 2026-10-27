@@ -599,6 +599,26 @@ export const notifyEmailSchema = z.object({
   enabled: z.boolean(),
 });
 
+export const listLocationsSchema = businessIdSchema.extend({
+  includeInactive: z.boolean().optional(),
+});
+
+export const locationInputSchema = z.object({
+  businessId: z.string().uuid(),
+  name: z.string().trim().min(1, "Name is required").max(120),
+  address: z.string().trim().max(240).optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+});
+
+export const locationIdSchema = z.object({
+  businessId: z.string().uuid(),
+  locationId: z.string().uuid(),
+});
+
+export const updateLocationSchema = locationInputSchema.extend({
+  locationId: z.string().uuid(),
+});
+
 /* ------------------------------- insights -------------------------------- */
 
 export const weeklyReportSchema = z.object({
