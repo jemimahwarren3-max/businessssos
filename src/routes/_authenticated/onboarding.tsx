@@ -146,14 +146,21 @@ function Onboarding() {
   };
 
   const createMutation = useMutation({
-    mutationFn: async () => create({ data: createBusinessSchema.parse(form) }),
+    mutationFn: async () => {
+      const parsed = createBusinessSchema.safeParse(form);
+      if (!parsed.success) {
+        throw new Error(parsed.error.errors[0]?.message ?? "Check your shop details and try again.");
+      }
+      return create({ data: parsed.data });
+    },
     onSuccess: async (newBusinessId) => {
       queryClient.removeQueries({ queryKey: ["workspace"] });
       setBusinessId(newBusinessId);
       setTemplateId(templateForBusinessType(form.businessType));
       toast.success(`${form.name} is ready. Next, pick a shop layout.`);
     },
-    onError: (error: Error) => toast.error(error.message || "We couldn't create your business."),
+    onError: (error: Error) =>
+      toast.error(readableError(error, "We couldn't create your business.")),
   });
 
   const saveShopMutation = useMutation({

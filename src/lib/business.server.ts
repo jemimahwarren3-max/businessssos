@@ -343,12 +343,22 @@ export async function createBusinessRecord(
     _phone: input.phone ?? "",
     _address: input.address ?? "",
   });
-  if (error || !businessId) dbFail("create business", error);
+  if (error) dbFail("create business", error);
+  const businessIdStr =
+    typeof businessId === "string"
+      ? businessId
+      : businessId &&
+          typeof businessId === "object" &&
+          "id" in businessId &&
+          typeof (businessId as { id: unknown }).id === "string"
+        ? (businessId as { id: string }).id
+        : null;
+  if (!businessIdStr) dbFail("create business", new Error("Unexpected create business response."));
 
   // Best-effort — the business itself is already fully committed above, so a
   // failure here shouldn't roll anything back or block the user.
   await supabase.from("notifications").insert({
-    business_id: businessId,
+    business_id: businessIdStr,
     user_id: userId,
     type: "welcome",
     title: "Welcome to Kwetuu",
@@ -358,15 +368,15 @@ export async function createBusinessRecord(
     severity: "info",
   });
   await recordAudit(supabase, {
-    businessId,
+    businessId: businessIdStr,
     userId,
     action: "business.created",
     entityType: "business",
-    entityId: businessId,
+    entityId: businessIdStr,
     summary: `Created business ${input.name}`,
   });
 
-  return businessId;
+  return businessIdStr;
 }
 
 export async function markOnboardingComplete(supabase: Db, userId: string): Promise<void> {

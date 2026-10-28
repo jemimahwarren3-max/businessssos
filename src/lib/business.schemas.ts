@@ -53,8 +53,8 @@ export const createBusinessSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code"),
-  phone: z.string().trim().max(40).optional().or(z.literal("")),
-  address: z.string().trim().max(240).optional().or(z.literal("")),
+  phone: z.string().trim().max(40).default(""),
+  address: z.string().trim().max(240).default(""),
 });
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>;
 
