@@ -9,6 +9,7 @@ import {
   describeStaging,
   newId,
   sql,
+  describeStaging,
 } from "./helpers";
 
 // Regression tests for the grant-leak bug found and fixed this session:
