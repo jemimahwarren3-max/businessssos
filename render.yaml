@@ -51,4 +51,5 @@ services:
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: VITE_SENTRY_DSN
+      - key: VITE_SENTRY_DSN_BACKEND
         sync: false
