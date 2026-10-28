@@ -17,6 +17,8 @@ export async function fetchStagingAuthConfig(token) {
   return JSON.parse(text);
 }
 
+let authConfigWriteSkipped = false;
+
 /** @param {string} token @param {Record<string, unknown>} body */
 async function patchStagingAuthConfig(token, body) {
   const res = await fetch(AUTH_CONFIG_URL, {
@@ -28,6 +30,15 @@ async function patchStagingAuthConfig(token, body) {
     body: JSON.stringify(body),
   });
   const text = await res.text();
+  if (res.status === 403) {
+    if (!authConfigWriteSkipped) {
+      authConfigWriteSkipped = true;
+      console.warn(
+        "Skipping Supabase Auth config PATCH: SUPABASE_ACCESS_TOKEN lacks auth_config_write / project_admin_write (SQL migrations still applied).",
+      );
+    }
+    return null;
+  }
   if (!res.ok) {
     throw new Error(`PATCH auth config ${res.status}: ${text.slice(0, 1500)}`);
   }
@@ -39,10 +50,11 @@ async function patchStagingAuthConfig(token, body) {
  * @param {string} token
  */
 export async function enableStagingEmailAutoconfirm(token) {
-  await patchStagingAuthConfig(token, {
+  const updated = await patchStagingAuthConfig(token, {
     external_email_enabled: true,
     mailer_autoconfirm: true,
   });
+  if (updated === null) return;
   console.log("Staging Email provider enabled (autoconfirm on for beta).");
 }
 
@@ -71,7 +83,7 @@ export async function configureStagingResendSmtp(token) {
     return false;
   }
 
-  await patchStagingAuthConfig(token, {
+  const updated = await patchStagingAuthConfig(token, {
     external_email_enabled: true,
     smtp_admin_email: from,
     smtp_host: "smtp.resend.com",
@@ -80,6 +92,7 @@ export async function configureStagingResendSmtp(token) {
     smtp_pass: apiKey,
     smtp_sender_name: "Kwetuu",
   });
+  if (updated === null) return false;
   console.log(`Staging Auth SMTP configured via Resend (From: ${from}).`);
   return true;
 }
