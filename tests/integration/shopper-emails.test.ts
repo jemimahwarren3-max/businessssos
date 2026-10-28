@@ -23,6 +23,11 @@ describeStaging("shopper order emails", () => {
       new URL("../../supabase/migrations/20261019220000_shopper_order_emails.sql", import.meta.url),
     );
     await sql(readFileSync(migration, "utf8"));
+    // That migration defines a legacy 7-arg create_store_order; CREATE OR REPLACE adds
+    // an overload instead of replacing the 9-arg function from stage8 migrations.
+    await sql(`
+      drop function if exists public.create_store_order(text, text, jsonb, jsonb, text, text, timestamptz);
+    `);
     owner = await createTestUser(`mail-own-${newId()}@example.com`);
     biz = await createTestBusiness(owner, `Mail Shop ${newId()}`);
     slug = `em-${newId().slice(0, 8)}`;

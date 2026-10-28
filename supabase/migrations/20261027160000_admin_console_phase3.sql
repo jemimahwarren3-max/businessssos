@@ -19,6 +19,7 @@ create index if not exists platform_impersonation_admin_active_idx
 alter table public.platform_impersonation_sessions enable row level security;
 
 -- No direct table access for authenticated users — Node uses service_role RPCs only.
+drop policy if exists "service role only impersonation" on public.platform_impersonation_sessions;
 create policy "service role only impersonation"
   on public.platform_impersonation_sessions
   for all
@@ -223,12 +224,14 @@ create table if not exists public.business_feature_flags (
 
 alter table public.business_feature_flags enable row level security;
 
+drop policy if exists "members read own feature flags" on public.business_feature_flags;
 create policy "members read own feature flags"
   on public.business_feature_flags
   for select
   to authenticated
   using (public.is_business_member(business_id));
 
+drop policy if exists "service role feature flags" on public.business_feature_flags;
 create policy "service role feature flags"
   on public.business_feature_flags
   for all
