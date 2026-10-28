@@ -243,9 +243,14 @@ export const getWorkspace = createServerFn({ method: "GET" })
 export const createBusiness = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(createBusinessSchema, data))
-  .handler(async ({ data, context }) =>
-    createBusinessRecord(context.supabase as Db, context.userId, data),
-  );
+  .handler(async ({ data, context }) => {
+    try {
+      return await createBusinessRecord(context.supabase as Db, context.userId, data);
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error("We couldn't create your business. Please try again.");
+    }
+  });
 
 export const completeOnboarding = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)

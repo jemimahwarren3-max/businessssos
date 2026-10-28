@@ -54,10 +54,26 @@ export function friendlyDateTime(value: string | Date, timeZone = "Africa/Harare
   }).format(date);
 }
 
+function isInternalFrameworkError(message: string): boolean {
+  return (
+    message.includes("reading 'rest'") ||
+    message.includes("Cannot read properties of undefined") ||
+    message.includes("Cannot read properties of null") ||
+    message.includes("Seroval")
+  );
+}
+
 /** Server errors are already user-friendly (see business.server.ts AppError) —
  * anything else (network failures, framework errors) gets a generic fallback. */
 export function readableError(error: Error, fallback: string) {
   const message = error.message ?? "";
-  if (!message || message.startsWith("[") || message.includes("fetch")) return fallback;
+  if (
+    !message ||
+    message.startsWith("[") ||
+    message.includes("fetch") ||
+    isInternalFrameworkError(message)
+  ) {
+    return fallback;
+  }
   return message;
 }

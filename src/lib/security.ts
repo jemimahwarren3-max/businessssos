@@ -61,11 +61,33 @@ export function coalesceServerFnData(data: unknown): unknown {
 // silently widening defaulted fields back to optional (confirmed via
 // isolated repro: identical schema, `.parse()` directly gives the correct
 // required-with-default type; through the old signature it didn't).
+function firstZodIssueMessage(error: z.ZodError): string {
+  const issues = error.issues ?? (error as { errors?: z.ZodIssue[] }).errors ?? [];
+  return issues[0]?.message ?? "Invalid input.";
+}
+
+/** Plain Error for TanStack Start server-fn serialization (never throw raw ZodError). */
 export function parseAndSanitize<S extends z.ZodType>(schema: S, data: unknown): z.infer<S> {
-  const result = schema.safeParse(sanitizeInput(coalesceServerFnData(data)));
-  if (!result.success) {
-    const message = result.error.errors[0]?.message ?? "Invalid input.";
-    throw new Error(message);
+  try {
+    const result = schema.safeParse(sanitizeInput(coalesceServerFnData(data)));
+    if (!result.success) {
+      throw new Error(firstZodIssueMessage(result.error));
+    }
+    return result.data;
+  } catch (error) {
+    if (error instanceof Error && error.message && !isInternalFrameworkError(error.message)) {
+      throw error;
+    }
+    console.error("[parseAndSanitize] validation failed", error);
+    throw new Error("Invalid input.");
   }
-  return result.data;
+}
+
+function isInternalFrameworkError(message: string): boolean {
+  return (
+    message.includes("reading 'rest'") ||
+    message.includes("Cannot read properties of undefined") ||
+    message.includes("Cannot read properties of null") ||
+    message.includes("Seroval")
+  );
 }

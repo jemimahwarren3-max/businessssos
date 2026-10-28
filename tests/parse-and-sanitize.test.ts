@@ -21,7 +21,7 @@ describe("parseAndSanitize", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
       expect(error).not.toHaveProperty("issues");
-      expect(String((error as Error).message).length).toBeGreaterThan(0);
+      expect((error as Error).message).toMatch(/too short|Invalid input/i);
     }
   });
 
