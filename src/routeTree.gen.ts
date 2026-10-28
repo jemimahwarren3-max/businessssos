@@ -65,9 +65,9 @@ import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
 import { Route as AdminPersonalizeRouteImport } from './routes/admin/personalize'
 import { Route as AdminStoresRouteImport } from './routes/admin/stores'
 import { Route as AdminSystemRouteImport } from './routes/admin/system'
-import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
-import { Route as AuthRecoverRouteImport } from './routes/auth.recover'
+import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
+import { Route as AuthConfirmRouteImport } from './routes/auth_.confirm'
+import { Route as AuthRecoverRouteImport } from './routes/auth_.recover'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LegalAccessibilityRouteImport } from './routes/legal.accessibility'
 import { Route as LegalAiDisclaimerRouteImport } from './routes/legal.ai-disclaimer'
@@ -378,19 +378,19 @@ const AdminSystemRoute = AdminSystemRouteImport.update({
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
-  getParentRoute: () => AuthRoute,
+  id: '/auth_/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthConfirmRoute = AuthConfirmRouteImport.update({
-  id: '/confirm',
-  path: '/confirm',
-  getParentRoute: () => AuthRoute,
+  id: '/auth_/confirm',
+  path: '/auth/confirm',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRecoverRoute = AuthRecoverRouteImport.update({
-  id: '/recover',
-  path: '/recover',
-  getParentRoute: () => AuthRoute,
+  id: '/auth_/recover',
+  path: '/auth/recover',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -525,7 +525,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
@@ -608,7 +608,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
@@ -693,7 +693,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/health': typeof HealthRoute
@@ -744,9 +744,9 @@ export interface FileRoutesById {
   '/admin/personalize': typeof AdminPersonalizeRoute
   '/admin/stores': typeof AdminStoresRoute
   '/admin/system': typeof AdminSystemRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/auth/confirm': typeof AuthConfirmRoute
-  '/auth/recover': typeof AuthRecoverRoute
+  '/auth_/callback': typeof AuthCallbackRoute
+  '/auth_/confirm': typeof AuthConfirmRoute
+  '/auth_/recover': typeof AuthRecoverRoute
   '/invite/$token': typeof InviteTokenRoute
   '/legal/accessibility': typeof LegalAccessibilityRoute
   '/legal/ai-disclaimer': typeof LegalAiDisclaimerRoute
@@ -997,9 +997,9 @@ export interface FileRouteTypes {
     | '/admin/personalize'
     | '/admin/stores'
     | '/admin/system'
-    | '/auth/callback'
-    | '/auth/confirm'
-    | '/auth/recover'
+    | '/auth_/callback'
+    | '/auth_/confirm'
+    | '/auth_/recover'
     | '/invite/$token'
     | '/legal/accessibility'
     | '/legal/ai-disclaimer'
@@ -1032,7 +1032,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  AuthRoute: typeof AuthRouteWithChildren
+  AuthRoute: typeof AuthRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   HealthRoute: typeof HealthRoute
@@ -1047,6 +1047,9 @@ export interface RootRouteChildren {
   StoresRoute: typeof StoresRoute
   TemplatesRoute: typeof TemplatesRoute
   TermsRoute: typeof TermsRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
+  AuthRecoverRoute: typeof AuthRecoverRoute
   InviteTokenRoute: typeof InviteTokenRoute
   LegalAccessibilityRoute: typeof LegalAccessibilityRoute
   LegalAiDisclaimerRoute: typeof LegalAiDisclaimerRoute
@@ -1452,26 +1455,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSystemRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/callback'
+    '/auth_/callback': {
+      id: '/auth_/callback'
+      path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/auth/confirm': {
-      id: '/auth/confirm'
-      path: '/confirm'
+    '/auth_/confirm': {
+      id: '/auth_/confirm'
+      path: '/auth/confirm'
       fullPath: '/auth/confirm'
       preLoaderRoute: typeof AuthConfirmRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/auth/recover': {
-      id: '/auth/recover'
-      path: '/recover'
+    '/auth_/recover': {
+      id: '/auth_/recover'
+      path: '/auth/recover'
       fullPath: '/auth/recover'
       preLoaderRoute: typeof AuthRecoverRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -1761,20 +1764,6 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
-interface AuthRouteChildren {
-  AuthCallbackRoute: typeof AuthCallbackRoute
-  AuthConfirmRoute: typeof AuthConfirmRoute
-  AuthRecoverRoute: typeof AuthRecoverRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthCallbackRoute: AuthCallbackRoute,
-  AuthConfirmRoute: AuthConfirmRoute,
-  AuthRecoverRoute: AuthRecoverRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 interface MarketRouteChildren {
   MarketCartsRoute: typeof MarketCartsRoute
 }
@@ -1815,7 +1804,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRouteRoute: AdminRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  AuthRoute: AuthRouteWithChildren,
+  AuthRoute: AuthRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   HealthRoute: HealthRoute,
@@ -1830,6 +1819,9 @@ const rootRouteChildren: RootRouteChildren = {
   StoresRoute: StoresRoute,
   TemplatesRoute: TemplatesRoute,
   TermsRoute: TermsRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
+  AuthRecoverRoute: AuthRecoverRoute,
   InviteTokenRoute: InviteTokenRoute,
   LegalAccessibilityRoute: LegalAccessibilityRoute,
   LegalAiDisclaimerRoute: LegalAiDisclaimerRoute,

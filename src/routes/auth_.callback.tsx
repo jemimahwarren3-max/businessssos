@@ -12,7 +12,7 @@ const searchSchema = z.object({
 
 const FINISH_TIMEOUT_MS = 25_000;
 
-export const Route = createFileRoute("/auth/callback")({
+export const Route = createFileRoute("/auth_/callback")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [{ name: "robots", content: "noindex" }],

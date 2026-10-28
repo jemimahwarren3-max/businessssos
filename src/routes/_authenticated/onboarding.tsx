@@ -149,7 +149,9 @@ function Onboarding() {
     mutationFn: async () => {
       const parsed = createBusinessSchema.safeParse(form);
       if (!parsed.success) {
-        throw new Error(parsed.error.errors[0]?.message ?? "Check your shop details and try again.");
+        throw new Error(
+          parsed.error.errors[0]?.message ?? "Check your shop details and try again.",
+        );
       }
       return create({ data: parsed.data });
     },
