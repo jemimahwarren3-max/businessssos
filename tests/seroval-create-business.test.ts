@@ -31,7 +31,7 @@ describe("server fn result serialization", () => {
       plugins: [...plugins],
       onParse() {},
       onDone() {},
-      onError: (error) => failures.push(error),
+      onError: (error) => failures.push(error instanceof Error ? error : new Error(String(error))),
     });
     dispose();
     expect(failures).toHaveLength(0);
@@ -45,7 +45,7 @@ describe("server fn result serialization", () => {
       plugins: [...plugins],
       onParse() {},
       onDone() {},
-      onError: (error) => failures.push(error),
+      onError: (error) => failures.push(error instanceof Error ? error : new Error(String(error))),
     });
     dispose();
     expect(failures.length).toBeGreaterThan(0);
