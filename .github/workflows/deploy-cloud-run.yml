@@ -87,21 +87,68 @@ jobs:
           REGION: ${{ inputs.region }}
         run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
+      # Cron jobs use PRODUCTION_* directly. Cloud Run uses production only when
+      # PRODUCTION_SUPABASE_URL and PRODUCTION_SUPABASE_PUBLISHABLE_KEY are both set.
+      - name: Select Supabase project for Cloud Run
+        env:
+          PRODUCTION_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PRODUCTION_SUPABASE_PUBLISHABLE_KEY }}
+          PRODUCTION_SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_SUPABASE_PROJECT_ID }}
+          PRODUCTION_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          url="" key="" project="" role=""
+          if [ -n "${PRODUCTION_SUPABASE_URL:-}" ] && [ -n "${PRODUCTION_SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            echo "Cloud Run Supabase target: production (businessos)."
+            url="${PRODUCTION_SUPABASE_URL}"
+            key="${PRODUCTION_SUPABASE_PUBLISHABLE_KEY}"
+            project="${PRODUCTION_SUPABASE_PROJECT_ID:-maidxfntfpnkcqnuhozo}"
+            role="${PRODUCTION_SUPABASE_SERVICE_ROLE_KEY:-}"
+          else
+            if [ -n "${PRODUCTION_SUPABASE_URL:-}" ]; then
+              echo "PRODUCTION_SUPABASE_URL is set but PRODUCTION_SUPABASE_PUBLISHABLE_KEY is missing — Cloud Run stays on staging until both are set."
+            else
+              echo "Cloud Run Supabase target: staging (businessos-staging)."
+            fi
+            url="${STAGING_SUPABASE_URL}"
+            key="${STAGING_SUPABASE_PUBLISHABLE_KEY}"
+            project="${STAGING_SUPABASE_PROJECT_ID:-slajanbsfqjnuuiohbmg}"
+            role="${SUPABASE_SERVICE_ROLE_KEY:-}"
+          fi
+          if [ -z "${url}" ] || [ -z "${key}" ]; then
+            echo "Missing Supabase URL/publishable key for the selected Cloud Run target."
+            exit 1
+          fi
+          if [ -z "${role}" ]; then
+            echo "Missing service role key (PRODUCTION_SUPABASE_SERVICE_ROLE_KEY for production, or SUPABASE_SERVICE_ROLE_KEY for staging)."
+            exit 1
+          fi
+          {
+            echo "DEPLOY_SUPABASE_URL=${url}"
+            echo "DEPLOY_SUPABASE_PUBLISHABLE_KEY=${key}"
+            echo "DEPLOY_SUPABASE_PROJECT_ID=${project}"
+            echo "DEPLOY_SUPABASE_SERVICE_ROLE_KEY=${role}"
+          } >> "$GITHUB_ENV"
+
       - name: Build image
         env:
           PROJECT: ${{ secrets.GCP_PROJECT_ID }}
           REGION: ${{ inputs.region }}
           SERVICE: ${{ inputs.service }}
           APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
-          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           VITE_SENTRY_DSN_BACKEND: ${{ secrets.VITE_SENTRY_DSN_BACKEND }}
         run: |
           set -euo pipefail
+          VITE_SUPABASE_URL="${DEPLOY_SUPABASE_URL}"
+          VITE_SUPABASE_PUBLISHABLE_KEY="${DEPLOY_SUPABASE_PUBLISHABLE_KEY}"
+          VITE_SUPABASE_PROJECT_ID="${DEPLOY_SUPABASE_PROJECT_ID}"
           if [ -z "${PROJECT:-}" ] || [ -z "${APP_URL:-}" ] || [ -z "${VITE_SUPABASE_URL:-}" ]; then
-            echo "Missing GCP_PROJECT_ID, APP_URL (or STAGING_APP_URL), or staging Supabase secrets."
+            echo "Missing GCP_PROJECT_ID, APP_URL (or STAGING_APP_URL), or Supabase secrets for Cloud Run."
             exit 1
           fi
           IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/kwetuu/${SERVICE}:${GITHUB_SHA}"
@@ -130,16 +177,18 @@ jobs:
           REGION: ${{ inputs.region }}
           SERVICE: ${{ inputs.service }}
           APP_URL: ${{ secrets.APP_URL || secrets.STAGING_APP_URL }}
-          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
-          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
-          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NOTIFY_FROM_EMAIL: ${{ secrets.NOTIFY_FROM_EMAIL || 'Kwetuu <noreply@mykwetuu.com>' }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || secrets.RESEND_API }}
           MAIL_FLUSH_SECRET: ${{ secrets.MAIL_FLUSH_SECRET }}
           SHOP_PAYMENT_ENCRYPTION_KEY: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY }}
           SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PAYNOW_INTEGRATION_ID: ${{ secrets.PAYNOW_INTEGRATION_ID }}
+          PAYNOW_INTEGRATION_KEY: ${{ secrets.PAYNOW_INTEGRATION_KEY }}
+          PAYNOW_INTEGRATION_ID_ZIG: ${{ secrets.PAYNOW_INTEGRATION_ID_ZIG }}
+          PAYNOW_INTEGRATION_KEY_ZIG: ${{ secrets.PAYNOW_INTEGRATION_KEY_ZIG }}
         run: |
           set -euo pipefail
           missing=0
@@ -150,15 +199,17 @@ jobs:
             echo "Value: at least 32 random characters (same value as Secret Manager if you already made one)."
             missing=1
           fi
-          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-            echo "GitHub secret SUPABASE_SERVICE_ROLE_KEY is empty."
-            echo "Name: SUPABASE_SERVICE_ROLE_KEY"
-            echo "Value: staging service_role key from Supabase → Settings → API (not the publishable key)."
+          if [ -z "${DEPLOY_SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "Missing Supabase service role for Cloud Run (see Select Supabase project step)."
             missing=1
           fi
           if [ "${missing}" -ne 0 ]; then
             exit 1
           fi
+          export SUPABASE_URL="${DEPLOY_SUPABASE_URL}"
+          export SUPABASE_PUBLISHABLE_KEY="${DEPLOY_SUPABASE_PUBLISHABLE_KEY}"
+          export SUPABASE_PROJECT_ID="${DEPLOY_SUPABASE_PROJECT_ID}"
+          export SUPABASE_SERVICE_ROLE_KEY="${DEPLOY_SUPABASE_SERVICE_ROLE_KEY}"
           python3 - <<'PY'
           import json, os, pathlib
           pairs = {
@@ -167,9 +218,9 @@ jobs:
               "SHOP_HOSTS": "true",
               "BILLING_ENABLED": "false",
               "APP_URL": os.environ["APP_URL"],
-              "SUPABASE_URL": os.environ["STAGING_SUPABASE_URL"],
-              "SUPABASE_PUBLISHABLE_KEY": os.environ["STAGING_SUPABASE_PUBLISHABLE_KEY"],
-              "SUPABASE_PROJECT_ID": os.environ["STAGING_SUPABASE_PROJECT_ID"],
+              "SUPABASE_URL": os.environ["SUPABASE_URL"],
+              "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"],
+              "SUPABASE_PROJECT_ID": os.environ["SUPABASE_PROJECT_ID"],
               "SESSION_SECRET": os.environ["SESSION_SECRET"],
               "SUPABASE_SERVICE_ROLE_KEY": os.environ["SUPABASE_SERVICE_ROLE_KEY"],
           }
@@ -188,6 +239,17 @@ jobs:
           payment_key_previous = os.environ.get("SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS") or ""
           if payment_key_previous:
               pairs["SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS"] = payment_key_previous
+          for key in (
+              "GROQ_API_KEY",
+              "GEMINI_API_KEY",
+              "PAYNOW_INTEGRATION_ID",
+              "PAYNOW_INTEGRATION_KEY",
+              "PAYNOW_INTEGRATION_ID_ZIG",
+              "PAYNOW_INTEGRATION_KEY_ZIG",
+          ):
+              value = os.environ.get(key) or ""
+              if value.strip():
+                  pairs[key] = value.strip()
           path = pathlib.Path("/tmp/kwetuu-run-env.yaml")
           with path.open("w", encoding="utf-8") as fh:
               for key, value in pairs.items():

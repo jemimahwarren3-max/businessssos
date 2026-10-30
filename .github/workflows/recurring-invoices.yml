@@ -19,6 +19,10 @@ jobs:
       - name: Call generate_due_recurring_invoices
         run: |
           set -euo pipefail
+          if [ -z "${{ secrets.PRODUCTION_SUPABASE_URL }}" ] || [ -z "${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "Set repository secrets PRODUCTION_SUPABASE_URL and PRODUCTION_SUPABASE_SERVICE_ROLE_KEY (businessos service_role, not anon)."
+            exit 1
+          fi
           response=$(curl -sS -w "\n%{http_code}" -X POST \
             "${{ secrets.PRODUCTION_SUPABASE_URL }}/rest/v1/rpc/generate_due_recurring_invoices" \
             -H "apikey: ${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}" \
