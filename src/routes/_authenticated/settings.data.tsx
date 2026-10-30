@@ -106,10 +106,10 @@ function DataExport() {
     onSuccess: async ({ format, result }) => {
       const stamp = new Date().toISOString().slice(0, 10);
       if (format === "json") {
-        downloadJson(`businessos-export-${stamp}.json`, result);
+        downloadJson(`kwetuu-export-${stamp}.json`, result);
         toast.success("Your data has been downloaded.");
       } else if (format === "xlsx") {
-        await downloadExcel(`businessos-export-${stamp}`, result as Record<string, unknown>);
+        await downloadExcel(`kwetuu-export-${stamp}`, result as Record<string, unknown>);
         toast.success("Your data has been downloaded.");
       } else {
         setPrintData(result as Record<string, unknown>);
