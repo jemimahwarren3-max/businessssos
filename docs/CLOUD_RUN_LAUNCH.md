@@ -75,11 +75,19 @@ console steps in the operator reply / GitHub secrets table below.
 | `GCP_WORKLOAD_IDENTITY_PROVIDER`   | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/kwetuu/providers/github` |
 | `GCP_SERVICE_ACCOUNT`              | `kwetuu-github@PROJECT_ID.iam.gserviceaccount.com`                                     |
 | `APP_URL`                          | Always `https://mykwetuu.com` (do not flip to `.run.app`)                              |
-| `STAGING_SUPABASE_URL`             | Staging project URL                                                                    |
+| `STAGING_SUPABASE_URL`             | Staging project URL (CI + Cloud Run until production cutover)                        |
 | `STAGING_SUPABASE_PUBLISHABLE_KEY` | Staging anon/publishable key                                                           |
 | `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                 |
-| `NOTIFY_FROM_EMAIL`                | Optional. e.g. `Kwetuu <alerts@mykwetuu.com>` after Resend verifies the domain         |
-| `MAIL_FLUSH_SECRET`                | Optional. 16+ characters, same value as Secret Manager                                 |
+| `SUPABASE_SERVICE_ROLE_KEY`        | Staging `service_role` for Cloud Run while on staging                                    |
+| `PRODUCTION_SUPABASE_URL`          | `https://maidxfntfpnkcqnuhozo.supabase.co` (cron + optional Cloud Run cutover)         |
+| `PRODUCTION_SUPABASE_PUBLISHABLE_KEY` | Production anon/publishable — with URL, switches Cloud Run to production on deploy |
+| `PRODUCTION_SUPABASE_PROJECT_ID`   | Optional. `maidxfntfpnkcqnuhozo`                                                      |
+| `PRODUCTION_SUPABASE_SERVICE_ROLE_KEY` | Production `service_role` for cron and Cloud Run cutover                           |
+| `SUPABASE_DB_URL`                  | Production session pooler URI (nightly backup workflow)                                  |
+| `BACKUP_ENCRYPTION_PASSPHRASE`     | Encrypts backup artifacts                                                              |
+| `RESEND_API_KEY`                   | Resend (accepts legacy secret name `RESEND_API` in deploy workflow)                      |
+| `NOTIFY_FROM_EMAIL`                | Optional. e.g. `Kwetuu <noreply@mykwetuu.com>` after Resend verifies the domain        |
+| `MAIL_FLUSH_SECRET`                | 16+ characters; same value on Cloud Run after deploy                                     |
 
 ## Domain `mykwetuu.com`
 
