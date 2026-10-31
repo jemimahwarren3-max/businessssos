@@ -536,7 +536,7 @@ export async function getAdminHealth(userId: string, tokens: SupabaseTokens): Pr
     mailFlushSecretSet: Boolean(process.env["MAIL_FLUSH_SECRET"]?.trim()),
     redisConfigured: Boolean(
       process.env["UPSTASH_REDIS_REST_URL"]?.trim() &&
-        process.env["UPSTASH_REDIS_REST_TOKEN"]?.trim(),
+      process.env["UPSTASH_REDIS_REST_TOKEN"]?.trim(),
     ),
     aiDisabled:
       process.env["AI_DISABLED"]?.trim().toLowerCase() === "true" ||
