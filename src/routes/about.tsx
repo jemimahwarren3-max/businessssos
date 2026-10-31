@@ -9,7 +9,7 @@ export const Route = createFileRoute("/about")({
       { title: `About | ${BRAND.name}` },
       {
         name: "description",
-        content: `BusinessOS AI by ${BRAND.name} helps Zimbabwean small businesses manage inventory, sales, customers, invoices and expenses, and sell through a branded online shop.`,
+        content: `${BRAND.name} helps Zimbabwean small businesses manage inventory, sales, customers, invoices and expenses, and sell through a branded online shop.`,
       },
     ],
   }),
@@ -22,10 +22,10 @@ function AboutPage() {
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">About {BRAND.name}</h1>
         <p className="mt-4 text-muted-foreground">
-          BusinessOS AI by {BRAND.name} ({BRAND.domain}) helps Zimbabwean small businesses manage
-          inventory, sales, customers, invoices and expenses in one platform, with the option to
-          create a branded online shop. Its AI tools provide business assistance and practical
-          insights based on business data.
+          {BRAND.name} ({BRAND.domain}) helps Zimbabwean small businesses manage inventory, sales,
+          customers, invoices and expenses in one platform, with the option to create a branded
+          online shop. Its AI tools provide business assistance and practical insights based on
+          business data.
         </p>
         <p className="mt-4 text-muted-foreground">
           We build for shops that take cash, EcoCash, and collection windows — including businesses

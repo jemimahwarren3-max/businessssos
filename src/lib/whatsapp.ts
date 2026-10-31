@@ -58,7 +58,7 @@ export function buildInviteWhatsAppMessage(
   link: string,
 ): string {
   return [
-    `You're invited to join ${businessName} on BusinessOS AI as ${roleLabel}.`,
+    `You're invited to join ${businessName} on Kwetuu as ${roleLabel}.`,
     `Open this link to accept: ${link}`,
   ].join("\n\n");
 }

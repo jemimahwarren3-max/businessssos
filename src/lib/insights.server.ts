@@ -262,7 +262,7 @@ export async function getAnomalies(supabase: Db, businessId: string): Promise<An
 
 /* ---------------------------- weekly AI report ---------------------------- */
 
-const WEEKLY_REPORT_SYSTEM_PROMPT = `You are the BusinessOS AI assistant, writing a short weekly business
+const WEEKLY_REPORT_SYSTEM_PROMPT = `You are the Kwetuu assistant, writing a short weekly business
 report for a small-business owner. Using ONLY the data given to you below, never invent numbers,
 customers, or products that aren't in it, write a 4-6 sentence narrative summary of how the last 7
 days went. Plain language a non-accountant would understand, no jargon like "COGS" or "accounts

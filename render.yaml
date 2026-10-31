@@ -5,7 +5,7 @@
 # .env.production (never commit that file).
 services:
   - type: web
-    name: businessos-ai
+    name: kwetuu
     runtime: node
     plan: free
     buildCommand: npm install && npm run build
@@ -29,20 +29,32 @@ services:
         sync: false
       - key: SESSION_SECRET
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
         value: openai/gpt-oss-20b
       - key: BILLING_ENABLED
-        value: "true"
+        value: "false"
       - key: PAYNOW_INTEGRATION_ID
         sync: false
       - key: PAYNOW_INTEGRATION_KEY
+        sync: false
+      - key: PAYNOW_INTEGRATION_ID_ZIG
+        sync: false
+      - key: PAYNOW_INTEGRATION_KEY_ZIG
+        sync: false
+      - key: SHOP_PAYMENT_ENCRYPTION_KEY
         sync: false
       # Platform host. Public shops use https://{slug}.{this host}.
       # Add a wildcard DNS record for *.yourdomain on the Render service.
       # The build copies this into the browser bundle.
       - key: APP_URL
+        sync: false
+      - key: SHOP_HOSTS
+        sync: false
+      - key: VITE_SHOP_HOSTS
         sync: false
       - key: PLATFORM_ADMIN_USER_ID
         sync: false
@@ -51,5 +63,12 @@ services:
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: VITE_SENTRY_DSN
+        sync: false
       - key: VITE_SENTRY_DSN_BACKEND
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: NOTIFY_FROM_EMAIL
+        sync: false
+      - key: MAIL_FLUSH_SECRET
         sync: false
