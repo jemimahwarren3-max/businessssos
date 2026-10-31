@@ -14,14 +14,13 @@ export const Route = createFileRoute("/store/$slug/products/$productSlug")({
       .catch(undefined),
   }),
   loader: async ({ params }) => {
-    const parent = await getPublicStoreFn({ data: { slug: params.slug } });
+    // Parent /store/$slug already loaded the catalogue. One focused RPC is enough
+    // to resolve this slug; do not call get_public_store twice per product view.
     const focused = await getPublicStoreFn({
       data: { slug: params.slug, category: `slug:${params.productSlug}` },
     });
-    const product =
-      parent?.products.find((item) => item.slug === params.productSlug) ??
-      focused?.products.find((item) => item.slug === params.productSlug);
-    if (!parent || !product) throw notFound();
+    const product = focused?.products.find((item) => item.slug === params.productSlug);
+    if (!focused || !product) throw notFound();
     let reviews = emptyProductReviews;
     try {
       reviews = await getProductReviewsFn({

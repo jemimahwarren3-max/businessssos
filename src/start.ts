@@ -1,6 +1,7 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { isPrivateHttpPath } from "./lib/auth/session-cookie";
+import { isPublicCachableHttpPath, PUBLIC_STOREFRONT_CACHE_CONTROL } from "./lib/http-cache";
 import { renderErrorPage } from "./lib/error-page";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
@@ -53,6 +54,8 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next, pathn
     const headers = result.response.headers;
     if (isPrivateHttpPath(pathname)) {
       headers.set("Cache-Control", "private, no-store");
+    } else if (isPublicCachableHttpPath(pathname)) {
+      headers.set("Cache-Control", PUBLIC_STOREFRONT_CACHE_CONTROL);
     }
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("X-Frame-Options", "DENY");

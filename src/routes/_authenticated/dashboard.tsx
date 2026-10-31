@@ -87,6 +87,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const workspace = useWorkspace();
   const [range, setRange] = useState("7");
+  const [wantBriefing, setWantBriefing] = useState(false);
   const fetchDashboard = useServerFn(getDashboard);
   const fetchBriefing = useServerFn(getDailyBusinessBriefingFn);
   const businessId = workspace.data?.business.id;
@@ -119,7 +120,7 @@ function Dashboard() {
   });
   const briefing = useQuery({
     queryKey: ["daily-business-briefing", businessId],
-    enabled: Boolean(businessId) && canReadBriefing,
+    enabled: Boolean(businessId) && canReadBriefing && wantBriefing,
     staleTime: 60 * 60 * 1000,
     queryFn: () => fetchBriefing({ data: { businessId: businessId! } }),
   });
@@ -179,14 +180,28 @@ function Dashboard() {
                 Your AI business briefing
               </h2>
               <p className="text-[13px] text-muted-foreground">
-                A daily AI briefing based on recorded business and opted-in storefront activity.
+                Optional. Sales numbers above come from your books — this only runs when you ask.
               </p>
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/growth">Explore growth</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={wantBriefing && briefing.isFetching}
+                onClick={() => {
+                  setWantBriefing(true);
+                  if (wantBriefing) void briefing.refetch();
+                }}
+              >
+                {briefing.data ? "Refresh briefing" : "Generate today's briefing"}
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/growth">Explore growth</Link>
+              </Button>
+            </div>
           </div>
-          {briefing.isLoading ? (
+          {wantBriefing && briefing.isLoading ? (
             <Skeleton className="mt-4 h-16 w-full" />
           ) : briefing.isError ? (
             <p className="mt-4 text-sm text-destructive">

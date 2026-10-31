@@ -53,6 +53,30 @@ function AdminHealthPage() {
             ok={health.data.mailFlushSecretSet}
             detail="Needed for scheduled outbox flush via GitHub Actions."
           />
+          <StatusRow
+            label="Redis workspace cache"
+            ok={health.data.redisConfigured}
+            detail="Optional Upstash. Fail-open to Postgres when unset."
+          />
+          <StatusRow
+            label="Groq API key"
+            ok={health.data.groqConfigured}
+            detail="AI features only. Core commerce does not need this."
+          />
+          <StatusRow
+            label="Gemini API key"
+            ok={health.data.geminiConfigured}
+            detail="Optional second provider."
+          />
+          <StatusRow
+            label="AI kill switch"
+            ok={!health.data.aiDisabled}
+            detail={
+              health.data.aiDisabled
+                ? "AI_DISABLED or AI_PROVIDER=off — shops and POS stay up."
+                : "AI is allowed within daily quotas."
+            }
+          />
         </div>
       ) : null}
     </AdminShell>

@@ -185,6 +185,10 @@ jobs:
           SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_DISABLED: ${{ secrets.AI_DISABLED }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           PAYNOW_INTEGRATION_ID: ${{ secrets.PAYNOW_INTEGRATION_ID }}
           PAYNOW_INTEGRATION_KEY: ${{ secrets.PAYNOW_INTEGRATION_KEY }}
           PAYNOW_INTEGRATION_ID_ZIG: ${{ secrets.PAYNOW_INTEGRATION_ID_ZIG }}
@@ -242,6 +246,10 @@ jobs:
           for key in (
               "GROQ_API_KEY",
               "GEMINI_API_KEY",
+              "AI_PROVIDER",
+              "AI_DISABLED",
+              "UPSTASH_REDIS_REST_URL",
+              "UPSTASH_REDIS_REST_TOKEN",
               "PAYNOW_INTEGRATION_ID",
               "PAYNOW_INTEGRATION_KEY",
               "PAYNOW_INTEGRATION_ID_ZIG",

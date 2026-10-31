@@ -17,7 +17,7 @@ if (!/^https?:\/\/[a-zA-Z0-9.\-:]+$/.test(base)) {
   console.error(`Refusing to run — "${base}" doesn't look like a plain http(s) origin.`);
   process.exit(1);
 }
-const routes = ["/", "/auth?mode=signin", "/health"];
+const routes = ["/", "/market", "/auth?mode=signin", "/health"];
 
 for (const route of routes) {
   const url = `${base}${route}`;
