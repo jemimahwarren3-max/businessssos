@@ -28,6 +28,8 @@ const FILES = [
   "20261027210000_order_fulfilment_stage6.sql",
   "20261027220000_order_notification_stage7.sql",
   "20261027230000_order_fulfilment_stage8.sql",
+  "20261031080000_fix_outbox_branding.sql",
+  "20261031163000_create_business_idempotent.sql",
 ];
 
 describe("staging migration manifest", () => {
