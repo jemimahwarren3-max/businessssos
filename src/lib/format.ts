@@ -69,9 +69,9 @@ export function readableError(error: Error, fallback: string) {
   const message = error.message ?? "";
   if (
     !message ||
-    message.startsWith("[") ||
-    message.includes("fetch") ||
-    isInternalFrameworkError(message)
+    isInternalFrameworkError(message) ||
+    /^failed to fetch/i.test(message) ||
+    message === "HTTPError"
   ) {
     return fallback;
   }

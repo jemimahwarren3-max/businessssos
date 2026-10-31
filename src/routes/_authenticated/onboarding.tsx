@@ -153,7 +153,11 @@ function Onboarding() {
           parsed.error.issues ?? (parsed.error as { errors?: { message?: string }[] }).errors ?? [];
         throw new Error(issues[0]?.message ?? "Check your shop details and try again.");
       }
-      return create({ data: parsed.data });
+      const result = await create({ data: parsed.data });
+      if (!result?.ok) {
+        throw new Error(result?.error ?? "We couldn't create your business. Please try again.");
+      }
+      return result.businessId;
     },
     onSuccess: async (newBusinessId) => {
       queryClient.removeQueries({ queryKey: ["workspace"] });

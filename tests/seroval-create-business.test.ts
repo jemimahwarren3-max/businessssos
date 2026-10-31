@@ -10,7 +10,19 @@ const plugins = defaultSerovalDeserializerPlugins;
 describe("server fn result serialization", () => {
   it("serializes a successful createBusiness payload", async () => {
     const payload = {
-      result: "550e8400-e29b-41d4-a716-446655440000",
+      result: { ok: true as const, businessId: "550e8400-e29b-41d4-a716-446655440000" },
+      error: undefined,
+      context: {},
+    };
+    await expect(toCrossJSONAsync(payload, { refs: new Map(), plugins })).resolves.toBeDefined();
+  });
+
+  it("serializes a failed createBusiness result object without throwing", async () => {
+    const payload = {
+      result: {
+        ok: false as const,
+        error: "That business name is already taken. Please choose another.",
+      },
       error: undefined,
       context: {},
     };
