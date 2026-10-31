@@ -267,6 +267,10 @@ export type AdminHealth = {
   paynowUsd: boolean;
   paynowZig: boolean;
   mailFlushSecretSet: boolean;
+  redisConfigured: boolean;
+  aiDisabled: boolean;
+  groqConfigured: boolean;
+  geminiConfigured: boolean;
 };
 
 export async function logPlatformAudit(
@@ -530,6 +534,15 @@ export async function getAdminHealth(userId: string, tokens: SupabaseTokens): Pr
     paynowUsd: paynowCredentialsConfigured("USD"),
     paynowZig: paynowCredentialsConfigured("ZWG"),
     mailFlushSecretSet: Boolean(process.env["MAIL_FLUSH_SECRET"]?.trim()),
+    redisConfigured: Boolean(
+      process.env["UPSTASH_REDIS_REST_URL"]?.trim() &&
+        process.env["UPSTASH_REDIS_REST_TOKEN"]?.trim(),
+    ),
+    aiDisabled:
+      process.env["AI_DISABLED"]?.trim().toLowerCase() === "true" ||
+      process.env["AI_PROVIDER"]?.trim().toLowerCase() === "off",
+    groqConfigured: Boolean(process.env["GROQ_API_KEY"]?.trim()),
+    geminiConfigured: Boolean(process.env["GEMINI_API_KEY"]?.trim()),
   };
 }
 

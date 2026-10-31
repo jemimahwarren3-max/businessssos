@@ -56,4 +56,13 @@ describe("Gemini provider", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     expect(getAIProvider()).toBeInstanceOf(GroqProvider);
   });
+
+  it("stops all model calls when AI_DISABLED or AI_PROVIDER=off", () => {
+    vi.stubEnv("GROQ_API_KEY", "test-groq-key");
+    vi.stubEnv("AI_DISABLED", "true");
+    expect(() => getAIProvider()).toThrow(/temporarily disabled/i);
+    vi.stubEnv("AI_DISABLED", "");
+    vi.stubEnv("AI_PROVIDER", "off");
+    expect(() => getAIProvider()).toThrow(/temporarily disabled/i);
+  });
 });
