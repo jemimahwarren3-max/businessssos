@@ -79,6 +79,12 @@ describe("store subdomains", () => {
       "localhost",
     );
     expect(encodedPreview).toBeUndefined();
+    expect(
+      rewriteStoreOutputUrl(
+        new URL("https://mykwetuu.com/store/grande?preview=%221%22"),
+        "mykwetuu.com",
+      ),
+    ).toBeUndefined();
     expect(storePublicUrlOn(root, "harare-cloth", "/products/dress")).toBe(
       "http://harare-cloth.localhost:8080/products/dress",
     );

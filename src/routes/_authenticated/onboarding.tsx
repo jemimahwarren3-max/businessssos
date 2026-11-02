@@ -563,7 +563,7 @@ function Onboarding() {
                   <Link
                     to="/store/$slug"
                     params={{ slug }}
-                    search={{ preview: "1" }}
+                    search={{ preview: 1 }}
                     className="font-medium text-primary underline-offset-2 hover:underline"
                   >
                     Open draft preview

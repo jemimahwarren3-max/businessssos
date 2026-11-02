@@ -117,8 +117,7 @@ export async function loadPublicStore(input: {
   if (data == null) return null;
   const store = await parseRpc("load public store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: input.slug });
-  if (offered.error) rpcFail("check public shop Paynow availability", offered.error);
-  store.payments.paynow = offered.data === true;
+  if (!offered.error) store.payments.paynow = offered.data === true;
   return store;
 }
 
@@ -128,8 +127,7 @@ export async function loadStorePreview(supabase: Db, slug: string): Promise<Publ
   if (data == null) return null;
   const store = await parseRpc("preview store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: slug });
-  if (offered.error) rpcFail("check preview shop Paynow availability", offered.error);
-  store.payments.paynow = offered.data === true;
+  if (!offered.error) store.payments.paynow = offered.data === true;
   return store;
 }
 
