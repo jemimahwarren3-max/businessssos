@@ -1,7 +1,9 @@
-import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
+import { createFileRoute, notFound, Outlet, redirect } from "@tanstack/react-router";
 import { StoreChrome, StorePreviewProvider } from "@/components/storefront/store-experience";
 import { StoreAnalyticsProvider } from "@/components/storefront/store-analytics";
+import { ShopNotLive } from "@/components/storefront/shop-not-live";
 import { parseStorePreviewSearch } from "@/lib/storefront/preview-search";
+import { decideStorePage } from "@/lib/storefront/store-page";
 import { getPublicStoreFn, getStorePreviewFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 
@@ -9,12 +11,28 @@ export const Route = createFileRoute("/store/$slug")({
   validateSearch: parseStorePreviewSearch,
   loaderDeps: ({ search }) => ({ preview: search.preview === 1 }),
   loader: async ({ params, deps }) => {
-    const store = deps.preview
-      ? await getStorePreviewFn({ data: { slug: params.slug } })
-      : await getPublicStoreFn({ data: { slug: params.slug } });
-    if (!store) throw notFound();
-    return { store, preview: deps.preview };
+    let store = null;
+    let previewFailed = false;
+    if (deps.preview) {
+      try {
+        store = await getStorePreviewFn({ data: { slug: params.slug } });
+      } catch (error) {
+        console.error("[businessos] draft shop preview", error);
+        previewFailed = true;
+      }
+    } else {
+      store = await getPublicStoreFn({ data: { slug: params.slug } });
+    }
+    const page = decideStorePage({
+      preview: deps.preview,
+      storeFound: Boolean(store),
+      previewFailed,
+    });
+    if (page.kind === "setup") throw redirect({ to: "/onboarding", replace: true });
+    if (page.kind === "unpublished" || !store) throw notFound();
+    return { store, preview: page.preview };
   },
+  notFoundComponent: ShopNotLive,
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Shop" }] };
     const { store, preview } = loaderData;
