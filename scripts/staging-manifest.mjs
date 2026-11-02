@@ -3,6 +3,16 @@
  * skipIf: SQL that returns one row with column `skip` = true → file is not re-run.
  */
 export const STAGING_MIGRATION_MANIFEST = [
+  {
+    file: "20261019160000_products_low_stock_threshold.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'products'
+          and column_name = 'low_stock_threshold'
+      ) as skip
+    `,
+  },
   { file: "20261020030000_product_media.sql" },
   { file: "20261021120000_manual_shop_payments.sql" },
   { file: "20261021140000_payment_proof_storage.sql" },
