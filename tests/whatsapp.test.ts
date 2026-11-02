@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildWhatsAppLink } from "../src/lib/whatsapp";
+import {
+  buildProductWhatsAppMessage,
+  buildSaleReceiptWhatsAppMessage,
+  buildWhatsAppLink,
+  buildWhatsAppShareUrl,
+} from "../src/lib/whatsapp";
 
 describe("buildWhatsAppLink", () => {
   it("rewrites a Zimbabwe local number's leading 0 to the 263 country code", () => {
@@ -30,5 +35,40 @@ describe("buildWhatsAppLink", () => {
 
   it("returns null when the phone has no digits at all", () => {
     expect(buildWhatsAppLink("n/a", "hi")).toBeNull();
+  });
+});
+
+describe("WhatsApp share helpers", () => {
+  it("opens a chooser when no phone is on file", () => {
+    expect(buildWhatsAppShareUrl("hello")).toBe("https://wa.me/?text=hello");
+  });
+
+  it("builds a product card with price, availability and link", () => {
+    const message = buildProductWhatsAppMessage({
+      businessName: "Rudo's Shop",
+      productName: "2L cooking oil",
+      price: 12,
+      currency: "USD",
+      availability: "In stock",
+      url: "https://rudos.mykwetuu.com/products/oil",
+    });
+    expect(message).toContain("2L cooking oil from Rudo's Shop");
+    expect(message).toContain("Price:");
+    expect(message).toContain("Availability: In stock");
+    expect(message).toContain("https://rudos.mykwetuu.com/products/oil");
+  });
+
+  it("builds a receipt the merchant still has to send", () => {
+    const message = buildSaleReceiptWhatsAppMessage({
+      businessName: "Rudo's Shop",
+      receiptNumber: "S-0004",
+      items: [{ name: "Bread", quantity: 2, unitPrice: 1.5 }],
+      total: 3,
+      currency: "USD",
+      paymentMethod: "EcoCash",
+    });
+    expect(message).toContain("Receipt S-0004");
+    expect(message).toContain("Paid: EcoCash");
+    expect(message).toContain("2 x Bread");
   });
 });

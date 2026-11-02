@@ -9,7 +9,12 @@ import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefron
 import { getProductReviewsFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 import { storeSurface } from "@/lib/storefront/store-surface";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { storePublicUrl } from "@/lib/storefront/host";
+import {
+  buildProductWhatsAppMessage,
+  buildWhatsAppLink,
+  buildWhatsAppShareUrl,
+} from "@/lib/whatsapp";
 import {
   readRecentlyViewed,
   readWishlist,
@@ -913,6 +918,23 @@ export function ProductView({
             Copy product link
           </button>
         ) : null}
+        <a
+          className="ml-4 mt-4 inline-block text-sm underline"
+          href={buildWhatsAppShareUrl(
+            buildProductWhatsAppMessage({
+              businessName: store.storeName,
+              productName: product.name,
+              price: product.price,
+              currency: product.currency,
+              availability: product.stockLabel,
+              url: share || storePublicUrl(store.slug, `/products/${product.slug}`),
+            }),
+          )}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Share on WhatsApp
+        </a>
         <button
           type="button"
           className="ml-4 mt-4 text-sm underline"

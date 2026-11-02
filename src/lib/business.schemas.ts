@@ -166,11 +166,23 @@ export const saleSchema = z.object({
   customerId: z.string().uuid().optional().or(z.literal("")),
   discount: z.coerce.number().min(0, "Discount cannot be negative").max(99999999).default(0),
   paymentMethod: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
   notes: z.string().trim().max(600).optional().or(z.literal("")),
   items: z.array(saleItemSchema).min(1, "Add at least one item"),
   idempotencyKey: z.string().uuid(),
 });
 export type SaleInput = z.infer<typeof saleSchema>;
+
+export const creditPaymentSchema = z.object({
+  businessId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  amount: z.coerce.number().positive("Payment amount must be greater than zero").max(99999999),
+  method: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
+  idempotencyKey: z.string().uuid(),
+});
+export type CreditPaymentInput = z.infer<typeof creditPaymentSchema>;
 
 export const listSalesSchema = z.object({
   businessId: z.string().uuid(),

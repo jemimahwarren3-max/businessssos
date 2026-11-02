@@ -10,10 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { DailyTakingsList } from "@/components/daily-takings";
 import {
   addCashMovementFn,
   closeCashSessionFn,
   getCashDrawerFn,
+  getDailyTakingsFn,
   openCashSessionFn,
 } from "@/lib/business.functions";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
@@ -58,6 +60,7 @@ function CashDrawerPage() {
   const [moveNote, setMoveNote] = useState("");
 
   const loadDrawer = useServerFn(getCashDrawerFn);
+  const loadTakings = useServerFn(getDailyTakingsFn);
   const openSession = useServerFn(openCashSessionFn);
   const closeSession = useServerFn(closeCashSessionFn);
   const addMove = useServerFn(addCashMovementFn);
@@ -73,8 +76,16 @@ function CashDrawerPage() {
     enabled: Boolean(businessId),
     queryFn: () => loadDrawer({ data: { businessId: businessId! } }),
   });
+  const takings = useQuery({
+    queryKey: ["daily-takings", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => loadTakings({ data: { businessId: businessId! } }),
+  });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["cash-drawer", businessId] });
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ["cash-drawer", businessId] });
+    void queryClient.invalidateQueries({ queryKey: ["daily-takings", businessId] });
+  };
 
   const openMutation = useMutation({
     mutationFn: () =>
@@ -151,6 +162,23 @@ function CashDrawerPage() {
       title="Cash drawer"
       subtitle="A signed ledger of float, cash sales, refunds, and pay in or out. Closing stores counted versus expected."
     >
+      <section className="mb-6 rounded-lg border p-4">
+        <h2 className="text-base font-semibold">Today&apos;s takings</h2>
+        <p className="text-[13px] text-muted-foreground">
+          What came in by method. Expected cash in the till is the ledger below.
+        </p>
+        <div className="mt-3">
+          {takings.isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : takings.isError ? (
+            <p className="text-sm text-destructive">
+              {readableError(takings.error, "Could not load today's takings.")}
+            </p>
+          ) : (
+            <DailyTakingsList takings={takings.data} currency={currency} showCashUpLink={false} />
+          )}
+        </div>
+      </section>
       {drawer.isLoading ? (
         <Skeleton className="h-48" />
       ) : open ? (
@@ -250,8 +278,8 @@ function CashDrawerPage() {
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Cash sales and cash refunds are refused until a drawer is open. Card and credit sales
-            still work. Online shop cash is not in this till.
+            Cash sales and cash refunds are refused until a drawer is open. EcoCash, InnBucks,
+            ZIPIT, bank, card and credit still work. Online shop cash is not in this till.
           </p>
           {canDrawer ? (
             <form

@@ -9,7 +9,8 @@
 - Shop URLs are `{slug}.{APP_URL host}`. Cloud Run domain-mappings cannot attach `*.domain`; add wildcard DNS and TLS (Cloudflare on `*` or an HTTPS load balancer). The `.run.app` URL stays on `/store/{slug}` because it cannot take extra labels. Draft preview stays on the platform host.
 - Draft preview is apex-only (`?preview=1`) because the session cookie is host-scoped.
 - POS `create_sale` uses catalogue `selling_price`. Staff-supplied unit prices are ignored. Sale-level discount cannot exceed the items total.
-- Cash POS needs an open drawer. Card and credit do not. Invoice payments and online shop cash are not posted to the till. Offline queued cash sales fail on sync if the drawer is closed.
+- Cash POS needs an open drawer. EcoCash, InnBucks, ZIPIT, bank, card and credit do not. Those labels are recorded tenders, not provider confirmation — a screenshot or EcoCash name does not mean the money arrived. Invoice payments and online shop cash are not posted to the till. Offline queued cash sales fail on sync if the drawer is closed; the queue tells the cashier to open the drawer and retry.
+- Customer credit book repayments write `payments` and reduce `outstanding_balance`. They are not shop-order settlement. WhatsApp product share and receipts are `wa.me` prefills; nothing is auto-sent and WhatsApp Cloud is not connected.
 - Offline stock is an estimate. Unsynced sales stay on the device after logout.
 - Privacy and Terms at `/privacy` and `/terms` are working drafts with placeholders for the operator's legal name. They are not a compliance certificate.
 - Fiscalisation, CDPA, and consumer-law compliance are not claimed.

@@ -1,7 +1,7 @@
 # Implementation roadmap
 
 **Date:** 2 November 2026  
-**Status:** audit complete. **Stage 1 is not started.** Waiting for approval.
+**Status:** Stage 1 (Morning desk) implemented on this branch. Later stages still wait for approval.
 
 Do not implement all 100 items. Each stage below is a shippable slice with migrations, RLS, UI, empty/error states, tests, and a regression pass on POS + checkout.
 
@@ -18,7 +18,7 @@ Documents:
 
 No application behaviour change.
 
-## Stage 1 — Morning desk (proposed next)
+## Stage 1 — Morning desk (done in this PR)
 
 **Goal:** An owner can open Kwetuu after a shift and see money in, who owes them, what is running out, and share a product on WhatsApp — without a new backend vendor.
 

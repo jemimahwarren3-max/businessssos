@@ -3,7 +3,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Download, Loader2, Minus, Package, Plus, Search, Upload } from "lucide-react";
+import {
+  Download,
+  Loader2,
+  MessageCircle,
+  Minus,
+  Package,
+  Plus,
+  Search,
+  Upload,
+} from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DataTable, type ColumnDef } from "@/components/data-table";
 import { ImportDialog } from "@/components/import-dialog";
@@ -52,7 +61,9 @@ import { getOnlineProductReadiness } from "@/lib/storefront/product-readiness";
 import { getStorefrontAdminFn, saveListingFn } from "@/lib/storefront/storefront.functions";
 import type { AdminStore } from "@/lib/storefront/contract";
 import type { ImportColumn } from "@/lib/spreadsheet";
+import { storePublicUrl } from "@/lib/storefront/host";
 import { downloadXlsx } from "@/lib/xlsx-export";
+import { buildProductWhatsAppMessage, buildWhatsAppShareUrl } from "@/lib/whatsapp";
 
 // Aliases are matched after lowercasing and stripping spaces/underscores/
 // hyphens (see normalizeHeader in lib/spreadsheet.ts), so "Retail Price",
@@ -413,26 +424,54 @@ function Inventory() {
               id: "actions",
               header: () => <span className="block text-right">Actions</span>,
               enableSorting: false,
-              cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1"
-                    onClick={() => setStockTarget({ product: row.original, mode: "in" })}
-                  >
-                    <Plus className="size-3.5" aria-hidden="true" /> In
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1"
-                    onClick={() => setStockTarget({ product: row.original, mode: "out" })}
-                  >
-                    <Minus className="size-3.5" aria-hidden="true" /> Out
-                  </Button>
-                </div>
-              ),
+              cell: ({ row }) => {
+                const product = row.original;
+                const listing = storefront.data?.products.find((item) => item.id === product.id);
+                const slug = storefront.data?.store?.slug;
+                const listingSlug = listing?.slug;
+                const stock = Number(product.stock);
+                const href = buildWhatsAppShareUrl(
+                  buildProductWhatsAppMessage({
+                    businessName: workspace.data?.business.name ?? "",
+                    productName: product.name,
+                    price: Number(product.selling_price),
+                    currency,
+                    availability:
+                      stock <= 0
+                        ? "Out of stock"
+                        : `${formatNumber(stock)} ${product.unit} available`,
+                    url:
+                      slug && listingSlug && listing?.published
+                        ? storePublicUrl(slug, `/products/${listingSlug}`)
+                        : null,
+                  }),
+                );
+                return (
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="outline" className="gap-1" asChild>
+                      <a href={href} target="_blank" rel="noreferrer">
+                        <MessageCircle className="size-3.5" aria-hidden="true" /> Share
+                      </a>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => setStockTarget({ product, mode: "in" })}
+                    >
+                      <Plus className="size-3.5" aria-hidden="true" /> In
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => setStockTarget({ product, mode: "out" })}
+                    >
+                      <Minus className="size-3.5" aria-hidden="true" /> Out
+                    </Button>
+                  </div>
+                );
+              },
             } satisfies ColumnDef<ProductRow, unknown>,
           ]
         : []),
@@ -444,6 +483,7 @@ function Inventory() {
       onlineListingMutation,
       storefront.data,
       storefront.isLoading,
+      workspace.data?.business.name,
     ],
   );
 
@@ -689,26 +729,57 @@ function Inventory() {
                       </div>
                       <StockBadge product={product} />
                     </div>
-                    {canEdit ? (
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1"
-                          onClick={() => setStockTarget({ product, mode: "in" })}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" className="gap-1" asChild>
+                        <a
+                          href={buildWhatsAppShareUrl(
+                            buildProductWhatsAppMessage({
+                              businessName: workspace.data?.business.name ?? "",
+                              productName: product.name,
+                              price: Number(product.selling_price),
+                              currency,
+                              availability:
+                                Number(product.stock) <= 0
+                                  ? "Out of stock"
+                                  : `${formatNumber(Number(product.stock))} ${product.unit} available`,
+                              url:
+                                storefront.data?.store?.slug &&
+                                onlineProduct?.slug &&
+                                onlineProduct.published
+                                  ? storePublicUrl(
+                                      storefront.data.store.slug,
+                                      `/products/${onlineProduct.slug}`,
+                                    )
+                                  : null,
+                            }),
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
                         >
-                          <Plus className="size-3.5" aria-hidden="true" /> Stock in
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1"
-                          onClick={() => setStockTarget({ product, mode: "out" })}
-                        >
-                          <Minus className="size-3.5" aria-hidden="true" /> Stock out
-                        </Button>
-                      </div>
-                    ) : null}
+                          <MessageCircle className="size-3.5" aria-hidden="true" /> Share
+                        </a>
+                      </Button>
+                      {canEdit ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => setStockTarget({ product, mode: "in" })}
+                          >
+                            <Plus className="size-3.5" aria-hidden="true" /> Stock in
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => setStockTarget({ product, mode: "out" })}
+                          >
+                            <Minus className="size-3.5" aria-hidden="true" /> Stock out
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}

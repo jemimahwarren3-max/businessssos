@@ -33,6 +33,7 @@ const FILES = [
   "20261031163000_create_business_idempotent.sql",
   "20261102010000_fix_browse_marketplace_readonly.sql",
   "20261102120000_storefront_template_allowlist.sql",
+  "20261102140000_morning_desk.sql",
 ];
 
 describe("staging migration manifest", () => {
