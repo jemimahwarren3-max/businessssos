@@ -21,6 +21,12 @@ export function buildWhatsAppLink(
   return `https://wa.me/${international}?text=${encodeURIComponent(message)}`;
 }
 
+/** Opens WhatsApp with a pre-filled message. If no phone is on file the
+ * user picks a chat themselves. Nothing is auto-sent. */
+export function buildWhatsAppShareUrl(message: string, phone?: string | null): string {
+  return buildWhatsAppLink(phone, message) ?? `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
 type OrderTotals = { subtotal: number; tax: number; total: number };
 
 function itemLines(items: LineItemInput[], currency: string, priceLabel: string): string {
@@ -78,5 +84,45 @@ export function buildPurchaseOrderWhatsAppMessage(
     itemLines(items, currency, "est."),
     `Estimated total: ${formatMoney(totals.total, currency)}`,
     "Please confirm availability and current pricing.",
+  ].join("\n\n");
+}
+
+export function buildProductWhatsAppMessage(input: {
+  businessName: string;
+  productName: string;
+  price: number;
+  currency: string;
+  availability: string;
+  url?: string | null;
+}): string {
+  const lines = [
+    `${input.productName} from ${input.businessName}`,
+    `Price: ${formatMoney(input.price, input.currency)}`,
+    `Availability: ${input.availability}`,
+  ];
+  if (input.url) lines.push(input.url);
+  return lines.join("\n");
+}
+
+export function buildSaleReceiptWhatsAppMessage(input: {
+  businessName: string;
+  receiptNumber: string;
+  items: { name: string; quantity: number; unitPrice: number }[];
+  total: number;
+  currency: string;
+  paymentMethod: string;
+}): string {
+  const itemLines = input.items
+    .map(
+      (item) =>
+        `- ${item.quantity} x ${item.name} (${formatMoney(item.unitPrice, input.currency)})`,
+    )
+    .join("\n");
+  return [
+    `Receipt ${input.receiptNumber} from ${input.businessName}`,
+    itemLines,
+    `Paid: ${input.paymentMethod}`,
+    `Total: ${formatMoney(input.total, input.currency)}`,
+    "Thank you for your purchase.",
   ].join("\n\n");
 }

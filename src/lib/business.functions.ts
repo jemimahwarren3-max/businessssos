@@ -7,6 +7,7 @@ import {
   createBusinessSchema,
   createInviteSchema,
   createStaffAccountSchema,
+  creditPaymentSchema,
   customerSchema,
   expenseIdSchema,
   expenseSchema,
@@ -167,10 +168,12 @@ import {
   listQuotes,
   listSuppliers,
   loadBillingSummary,
+  loadDailyTakings,
   loadDashboard,
   loadReports,
   loadWorkspace,
   markOnboardingComplete,
+  recordCustomerCreditPayment,
   recordInvoicePayment,
   setInvoiceStatus,
   setQuoteStatus,
@@ -266,6 +269,11 @@ export const completeOnboarding = createServerFn({ method: "POST" })
     await markOnboardingComplete(context.supabase as Db, context.userId);
     return { ok: true as const };
   });
+
+export const getDailyTakingsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => loadDailyTakings(context.supabase as Db, data.businessId));
 
 export const getDashboard = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -529,6 +537,11 @@ export const addPayment = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(paymentSchema, data))
   .handler(async ({ data, context }) => recordInvoicePayment(context.supabase as Db, data));
+
+export const addCreditPayment = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(creditPaymentSchema, data))
+  .handler(async ({ data, context }) => recordCustomerCreditPayment(context.supabase as Db, data));
 
 /* -------------------------------- quotes -------------------------------- */
 

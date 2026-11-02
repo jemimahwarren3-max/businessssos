@@ -89,6 +89,17 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
+  {
+    file: "20261102140000_morning_desk.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'record_customer_credit_payment'
+      ) as skip
+    `,
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

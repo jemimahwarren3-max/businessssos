@@ -72,4 +72,20 @@ describe("offline sale sync", () => {
     expect(seed.__all()[0]?.status).toBe("failed");
     expect(seed.__all()[0]?.isOverSold).toBe(true);
   });
+
+  it("keeps a cash sale that failed because the drawer is closed", async () => {
+    const db = await import("@/lib/offline/db");
+    const seed = db as typeof db & {
+      __seed: (rows: PendingSale[]) => void;
+      __all: () => PendingSale[];
+    };
+    seed.__seed([sale("cash-1")]);
+    const submit: SubmitSale = async () => {
+      throw new Error("Open the cash drawer before taking cash.");
+    };
+    const result = await syncPendingSales("biz", submit);
+    expect(result).toEqual({ synced: 0, failed: 1 });
+    expect(seed.__all()[0]?.isClosedDrawer).toBe(true);
+    expect(seed.__all()[0]?.error).toMatch(/cash drawer/i);
+  });
 });

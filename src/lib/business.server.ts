@@ -11,6 +11,7 @@ import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.ser
 import type {
   ConvertQuoteInput,
   CreateBusinessInput,
+  CreditPaymentInput,
   CustomerImportRow,
   CustomerInput,
   ExpenseImportRow,
@@ -47,7 +48,7 @@ function fail(message: string): never {
 }
 
 const USER_FACING_DB =
-  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name/i;
+  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found/i;
 
 function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
@@ -749,7 +750,28 @@ export async function listCustomers(supabase: Db, businessId: string, search: st
   if (term) query = query.or(`name.ilike.%${term}%,phone.ilike.%${term}%,email.ilike.%${term}%`);
   const { data, error } = await query;
   if (error) dbFail("list customers", error);
-  return data ?? [];
+  const rows = data ?? [];
+  const ids = rows.map((row) => row.id);
+  if (ids.length === 0) return rows.map((row) => ({ ...row, last_paid_at: null as string | null }));
+
+  const { data: payments, error: payError } = await supabase
+    .from("payments")
+    .select("customer_id, paid_at")
+    .eq("business_id", businessId)
+    .in("customer_id", ids)
+    .order("paid_at", { ascending: false })
+    .limit(500);
+  if (payError) dbFail("list customer payments", payError);
+
+  const lastPaid = new Map<string, string>();
+  for (const payment of payments ?? []) {
+    if (!payment.customer_id || lastPaid.has(payment.customer_id)) continue;
+    lastPaid.set(payment.customer_id, payment.paid_at);
+  }
+  return rows.map((row) => ({
+    ...row,
+    last_paid_at: lastPaid.get(row.id) ?? null,
+  }));
 }
 
 export async function createCustomer(supabase: Db, userId: string, input: CustomerInput) {
@@ -899,6 +921,7 @@ export async function createSale(supabase: Db, input: SaleInput) {
       unitPrice: item.unitPrice,
     })) as never,
     _idempotency_key: input.idempotencyKey,
+    _rail: (input.rail || null) as never,
   });
   if (error) dbFail("create sale", error);
   void flushNotificationOutboxForBusiness(supabase, input.businessId);
@@ -1236,6 +1259,22 @@ export async function recordInvoicePayment(supabase: Db, input: PaymentInput) {
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("record payment", error);
+  return { id: data as string };
+}
+
+export async function recordCustomerCreditPayment(supabase: Db, input: CreditPaymentInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("record_customer_credit_payment", {
+    _business_id: input.businessId,
+    _customer_id: input.customerId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("record credit repayment", error);
   return { id: data as string };
 }
 
@@ -1711,6 +1750,17 @@ export async function importSalesDetailed(
 
 /* ------------------------------ dashboard ------------------------------ */
 
+export type DailyTakingsRail = { rail: string; method: string; amount: number };
+
+export type DailyTakings = {
+  day: string;
+  timezone: string;
+  received: DailyTakingsRail[];
+  creditOnAccount: number;
+};
+
+export type DashboardDebtor = { id: string; name: string; outstanding: number };
+
 export type DashboardData = {
   currency: string;
   todaySales: number;
@@ -1724,7 +1774,42 @@ export type DashboardData = {
   series: { label: string; sales: number; profit: number }[];
   health: { score: number; label: string; signals: { tone: string; text: string }[] };
   lowStock: { id: string; name: string; stock: number; min_stock: number; unit: string }[];
+  todayTakings: DailyTakings;
+  debtors: DashboardDebtor[];
 };
+
+const EMPTY_TAKINGS: DailyTakings = {
+  day: "",
+  timezone: "Africa/Harare",
+  received: [],
+  creditOnAccount: 0,
+};
+
+export async function loadDailyTakings(supabase: Db, businessId: string): Promise<DailyTakings> {
+  const { data, error } = await supabase.rpc("get_daily_takings", {
+    _business_id: businessId,
+  });
+  if (error) {
+    if (skipMissingRpc("daily takings", error)) return EMPTY_TAKINGS;
+    dbFail("daily takings", error);
+  }
+  const raw = data as {
+    day?: string;
+    timezone?: string;
+    received?: { rail?: string; method?: string; amount?: number }[] | null;
+    creditOnAccount?: number;
+  } | null;
+  return {
+    day: String(raw?.day ?? ""),
+    timezone: String(raw?.timezone ?? "Africa/Harare"),
+    received: (raw?.received ?? []).map((row) => ({
+      rail: String(row.rail ?? row.method ?? ""),
+      method: String(row.method ?? ""),
+      amount: round2(Number(row.amount ?? 0)),
+    })),
+    creditOnAccount: round2(Number(raw?.creditOnAccount ?? 0)),
+  };
+}
 
 function dayKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -1740,40 +1825,50 @@ export async function loadDashboard(
   windowStart.setDate(windowStart.getDate() - (days * 2 - 1));
   windowStart.setHours(0, 0, 0, 0);
 
-  const [businessRes, salesRes, invoiceRes, productRes, expenseRes] = await Promise.all([
-    supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
-    supabase
-      .from("sales")
-      .select("total, cost_total, discount, created_at")
-      .eq("business_id", businessId)
-      // partially_refunded sales still contribute their (already-reduced)
-      // remaining total — only fully refunded/cancelled sales are excluded.
-      .in("status", ["completed", "partially_refunded"])
-      .gte("created_at", windowStart.toISOString()),
-    // No date filter is possible here by design — an unpaid invoice from
-    // last year is still "outstanding" today — so .limit() is the only
-    // available bound. Safety net only: a business that somehow exceeds it
-    // would see an understated outstanding total, not an error, but this is
-    // far beyond realistic usage for this app's target market.
-    supabase
-      .from("invoices")
-      .select("customer_id, total, amount_paid, status, due_date")
-      .eq("business_id", businessId)
-      .in("status", ["sent", "partially_paid", "overdue"])
-      .limit(2000),
-    supabase
-      .from("products")
-      .select("id, name, stock, min_stock, unit")
-      .eq("business_id", businessId)
-      .is("deleted_at", null)
-      .eq("is_active", true)
-      .limit(500),
-    supabase
-      .from("expenses")
-      .select("amount, expense_date")
-      .eq("business_id", businessId)
-      .gte("expense_date", dayKey(windowStart)),
-  ]);
+  const [businessRes, salesRes, invoiceRes, productRes, expenseRes, debtorsRes, takings] =
+    await Promise.all([
+      supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
+      supabase
+        .from("sales")
+        .select("total, cost_total, discount, created_at")
+        .eq("business_id", businessId)
+        // partially_refunded sales still contribute their (already-reduced)
+        // remaining total — only fully refunded/cancelled sales are excluded.
+        .in("status", ["completed", "partially_refunded"])
+        .gte("created_at", windowStart.toISOString()),
+      // No date filter is possible here by design — an unpaid invoice from
+      // last year is still "outstanding" today — so .limit() is the only
+      // available bound. Safety net only: a business that somehow exceeds it
+      // would see an understated outstanding total, not an error, but this is
+      // far beyond realistic usage for this app's target market.
+      supabase
+        .from("invoices")
+        .select("customer_id, total, amount_paid, status, due_date")
+        .eq("business_id", businessId)
+        .in("status", ["sent", "partially_paid", "overdue"])
+        .limit(2000),
+      supabase
+        .from("products")
+        .select("id, name, stock, min_stock, unit")
+        .eq("business_id", businessId)
+        .is("deleted_at", null)
+        .eq("is_active", true)
+        .limit(500),
+      supabase
+        .from("expenses")
+        .select("amount, expense_date")
+        .eq("business_id", businessId)
+        .gte("expense_date", dayKey(windowStart)),
+      supabase
+        .from("customers")
+        .select("id, name, outstanding_balance")
+        .eq("business_id", businessId)
+        .is("deleted_at", null)
+        .gt("outstanding_balance", 0)
+        .order("outstanding_balance", { ascending: false })
+        .limit(1000),
+      loadDailyTakings(supabase, businessId),
+    ]);
 
   const currency = businessRes.data?.currency ?? "USD";
   const sales = salesRes.data ?? [];
@@ -1815,11 +1910,14 @@ export async function loadDashboard(
   const todayKey = dayKey(now);
   const today = buckets.get(todayKey) ?? { sales: 0, profit: 0 };
 
-  const outstanding = invoices.reduce(
-    (sum, inv) => sum + Math.max(Number(inv.total ?? 0) - Number(inv.amount_paid ?? 0), 0),
-    0,
-  );
-  const outstandingCustomers = new Set(invoices.map((inv) => inv.customer_id).filter(Boolean)).size;
+  const allDebtors = (debtorsRes.data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    outstanding: round2(Number(row.outstanding_balance ?? 0)),
+  }));
+  const outstanding = allDebtors.reduce((sum, row) => sum + row.outstanding, 0);
+  const outstandingCustomers = allDebtors.length;
+  const debtors = allDebtors.slice(0, 8);
   const overdueCount = invoices.filter(
     (inv) => inv.due_date && new Date(inv.due_date) < now,
   ).length;
@@ -1888,8 +1986,14 @@ export async function loadDashboard(
       tone: "warn",
       text: `${overdueCount} invoice${overdueCount === 1 ? "" : "s"} overdue`,
     });
-  } else if (outstanding > 0) {
+  } else if (invoices.length > 0) {
     signals.push({ tone: "info", text: "All invoices are still within terms" });
+  }
+  if (outstandingCustomers > 0) {
+    signals.push({
+      tone: "info",
+      text: `${outstandingCustomers} customer${outstandingCustomers === 1 ? "" : "s"} on the credit book`,
+    });
   }
 
   if (expenseTotal > current.sales && current.sales > 0) {
@@ -1924,6 +2028,8 @@ export async function loadDashboard(
       min_stock: Number(p.min_stock),
       unit: p.unit,
     })),
+    todayTakings: takings,
+    debtors,
   };
 }
 

@@ -36,10 +36,12 @@ export async function syncPendingSales(
     } catch (error) {
       const message = error instanceof Error ? error.message : "Couldn't sync this sale.";
       const isOverSold = /not enough stock|out of stock/i.test(message);
+      const isClosedDrawer = /open the cash drawer/i.test(message);
       await updatePendingSale(sale.localId, {
         status: "failed",
-        error: message,
+        error: isClosedDrawer ? "Open the cash drawer, then tap Sync now." : message,
         isOverSold,
+        isClosedDrawer,
       });
       failed++;
       onProgress?.({ localId: sale.localId, status: "failed", error: message });

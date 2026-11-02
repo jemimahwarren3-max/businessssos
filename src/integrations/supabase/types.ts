@@ -940,6 +940,7 @@ export type Database = {
           invoice_id: string | null;
           method: Database["public"]["Enums"]["payment_method"];
           paid_at: string;
+          rail: string | null;
           reference: string | null;
           sale_id: string | null;
         };
@@ -954,6 +955,7 @@ export type Database = {
           invoice_id?: string | null;
           method?: Database["public"]["Enums"]["payment_method"];
           paid_at?: string;
+          rail?: string | null;
           reference?: string | null;
           sale_id?: string | null;
         };
@@ -968,6 +970,7 @@ export type Database = {
           invoice_id?: string | null;
           method?: Database["public"]["Enums"]["payment_method"];
           paid_at?: string;
+          rail?: string | null;
           reference?: string | null;
           sale_id?: string | null;
         };
@@ -2466,8 +2469,13 @@ export type Database = {
           _location_id?: string | null;
           _notes: string;
           _payment_method: Database["public"]["Enums"]["payment_method"];
+          _rail?: string | null;
         };
         Returns: string;
+      };
+      get_daily_takings: {
+        Args: { _business_id: string; _day?: string | null };
+        Returns: Json;
       };
       get_cash_drawer: { Args: { _business_id: string }; Returns: Json };
       open_cash_session: {
@@ -2772,6 +2780,18 @@ export type Database = {
           _reference: string;
         };
         Returns: undefined;
+      };
+      record_customer_credit_payment: {
+        Args: {
+          _amount: number;
+          _business_id: string;
+          _customer_id: string;
+          _idempotency_key?: string | null;
+          _method: Database["public"]["Enums"]["payment_method"];
+          _rail?: string | null;
+          _reference?: string | null;
+        };
+        Returns: string;
       };
       record_invoice_payment: {
         Args: {

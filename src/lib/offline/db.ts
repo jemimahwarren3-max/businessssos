@@ -21,11 +21,13 @@ export type PendingSale = {
   customerId: string;
   discount: number;
   paymentMethod: string;
+  rail?: string;
   items: PendingSaleItem[];
   createdAt: string;
   status: "pending" | "syncing" | "failed";
   error?: string;
   isOverSold?: boolean;
+  isClosedDrawer?: boolean;
 };
 
 interface OfflineSchema extends DBSchema {

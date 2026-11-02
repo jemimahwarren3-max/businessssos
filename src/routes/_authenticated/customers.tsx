@@ -3,7 +3,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Download, Loader2, MessageCircle, Plus, Search, Upload, Users } from "lucide-react";
+import {
+  BookOpen,
+  Download,
+  Loader2,
+  MessageCircle,
+  Plus,
+  Search,
+  Upload,
+  Users,
+} from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ImportDialog } from "@/components/import-dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +32,7 @@ import { LineItemsEditor } from "@/components/line-items-editor";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
+  addCreditPayment,
   addCustomer,
   addQuote,
   getCustomers,
@@ -30,13 +40,15 @@ import {
   importCustomersFn,
 } from "@/lib/business.functions";
 import {
+  creditPaymentSchema,
   customerImportRowSchema,
   customerSchema,
   quoteSchema,
   type CustomerImportRow,
   type LineItemInput,
 } from "@/lib/business.schemas";
-import { formatMoney, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { CREDIT_REPAYMENT_RAILS, railToPaymentMethod } from "@/lib/payment-rails";
 import { computeTotals } from "@/lib/invoice-calc";
 import type { ImportColumn } from "@/lib/spreadsheet";
 import { buildQuoteWhatsAppMessage, buildWhatsAppLink } from "@/lib/whatsapp";
@@ -79,6 +91,7 @@ type CustomerRow = {
   phone: string | null;
   email: string | null;
   outstanding_balance: number;
+  last_paid_at: string | null;
 };
 
 const EMPTY = { name: "", phone: "", email: "", address: "", notes: "" };
@@ -91,6 +104,12 @@ function Customers() {
   const currency = workspace.data?.business.currency ?? "USD";
   const businessName = workspace.data?.business.name ?? "";
   const canOrder = hasPermission(workspace.data, "customers.order");
+  const canPay = hasPermission(workspace.data, "payments.record");
+  const [bookOnly, setBookOnly] = useState(false);
+  const [payTarget, setPayTarget] = useState<CustomerRow | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payRail, setPayRail] = useState("cash");
+  const [payReference, setPayReference] = useState("");
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search);
@@ -105,6 +124,7 @@ function Customers() {
   const fetchProducts = useServerFn(getProducts);
   const createQuoteFn = useServerFn(addQuote);
   const importCustomersRows = useServerFn(importCustomersFn);
+  const recordCreditFn = useServerFn(addCreditPayment);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -172,6 +192,34 @@ function Customers() {
     onError: (error: Error) => toast.error(readableError(error, "We couldn't create that order.")),
   });
 
+  const payMutation = useMutation({
+    mutationFn: async () => {
+      const parsed = creditPaymentSchema.parse({
+        businessId,
+        customerId: payTarget!.id,
+        amount: payAmount,
+        method: railToPaymentMethod(payRail),
+        rail: payRail,
+        reference: payReference,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      return recordCreditFn({ data: parsed });
+    },
+    onSuccess: async () => {
+      toast.success("Repayment recorded.");
+      setPayTarget(null);
+      setPayAmount("");
+      setPayReference("");
+      setPayRail("cash");
+      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["daily-takings"] });
+      await queryClient.invalidateQueries({ queryKey: ["cash-drawer"] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "We couldn't record that repayment.")),
+  });
+
   if (!workspace.data) {
     return (
       <div className="mx-auto max-w-6xl space-y-4 p-6">
@@ -181,7 +229,12 @@ function Customers() {
     );
   }
 
-  const rows = (customers.data ?? []) as CustomerRow[];
+  const allRows = (customers.data ?? []) as CustomerRow[];
+  const rows = bookOnly
+    ? allRows
+        .filter((row) => Number(row.outstanding_balance ?? 0) > 0)
+        .sort((a, b) => Number(b.outstanding_balance) - Number(a.outstanding_balance))
+    : allRows;
 
   function exportExcel() {
     downloadXlsx("customers", [
@@ -201,7 +254,7 @@ function Customers() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Customers"
-      subtitle="Your customer directory and who still owes you money."
+      subtitle="Your customer directory and the credit book of who still owes you money."
       actions={
         <>
           {rows.length > 0 ? (
@@ -218,18 +271,29 @@ function Customers() {
         </>
       }
     >
-      <div className="relative max-w-sm">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, phone or email"
-          className="pl-9"
-          aria-label="Search customers"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, phone or email"
+            className="pl-9"
+            aria-label="Search customers"
+          />
+        </div>
+        <Button
+          type="button"
+          variant={bookOnly ? "default" : "outline"}
+          className="gap-1.5"
+          onClick={() => setBookOnly((value) => !value)}
+        >
+          <BookOpen className="size-4" aria-hidden="true" />
+          {bookOnly ? "Showing credit book" : "Credit book"}
+        </Button>
       </div>
 
       <div className="surface mt-4 overflow-hidden">
@@ -248,7 +312,9 @@ function Customers() {
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
               {search
                 ? "Try a shorter search term."
-                : "Add the people who buy from you so you can track credit, invoices and repeat sales."}
+                : bookOnly
+                  ? "Nobody is on the credit book right now."
+                  : "Add the people who buy from you so you can track credit, invoices and repeat sales."}
             </p>
             {!search ? (
               <Button className="mt-5 gap-1.5" onClick={() => setOpen(true)}>
@@ -263,12 +329,15 @@ function Customers() {
               return (
                 <li
                   key={customer.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-5 py-4"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{customer.name}</p>
                     <p className="truncate text-[13px] text-muted-foreground">
                       {customer.phone || customer.email || "No contact details"}
+                      {customer.last_paid_at
+                        ? ` · Last paid ${friendlyDate(customer.last_paid_at)}`
+                        : ""}
                     </p>
                   </div>
                   <span
@@ -280,19 +349,36 @@ function Customers() {
                   >
                     {owed > 0 ? `Owes ${formatMoney(owed, currency)}` : "Settled"}
                   </span>
-                  {canOrder ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0 gap-1.5"
-                      onClick={() => {
-                        setOrderItems([{ ...EMPTY_ITEM }]);
-                        setOrderTarget(customer);
-                      }}
-                    >
-                      <MessageCircle className="size-3.5" aria-hidden="true" /> Order
-                    </Button>
-                  ) : null}
+                  <div className="col-span-2 flex flex-wrap justify-end gap-2 sm:col-span-1">
+                    {canPay && owed > 0 ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => {
+                          setPayAmount(String(owed));
+                          setPayRail("cash");
+                          setPayReference("");
+                          setPayTarget(customer);
+                        }}
+                      >
+                        Record payment
+                      </Button>
+                    ) : null}
+                    {canOrder ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 gap-1.5"
+                        onClick={() => {
+                          setOrderItems([{ ...EMPTY_ITEM }]);
+                          setOrderTarget(customer);
+                        }}
+                      >
+                        <MessageCircle className="size-3.5" aria-hidden="true" /> Order
+                      </Button>
+                    ) : null}
+                  </div>
                 </li>
               );
             })}
@@ -412,6 +498,75 @@ function Customers() {
                 <MessageCircle className="size-4" aria-hidden="true" />
               )}
               Create quote &amp; message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(payTarget)}
+        onOpenChange={(next) => {
+          if (!next) setPayTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record a repayment</DialogTitle>
+            <DialogDescription>
+              {payTarget
+                ? `${payTarget.name} owes ${formatMoney(Number(payTarget.outstanding_balance), currency)}. This writes a payment and reduces the credit book. It does not confirm EcoCash or bank money arrived.`
+                : "Record a repayment."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="credit-amount">Amount</Label>
+              <Input
+                id="credit-amount"
+                inputMode="decimal"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="credit-rail">How they paid</Label>
+              <select
+                id="credit-rail"
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                value={payRail}
+                onChange={(e) => setPayRail(e.target.value)}
+              >
+                {CREDIT_REPAYMENT_RAILS.map((rail) => (
+                  <option key={rail.value} value={rail.value}>
+                    {rail.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="credit-ref">Reference (optional)</Label>
+              <Input
+                id="credit-ref"
+                value={payReference}
+                maxLength={120}
+                onChange={(e) => setPayReference(e.target.value)}
+                placeholder="EcoCash or bank reference"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPayTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => payMutation.mutate()}
+              disabled={payMutation.isPending || Number(payAmount) <= 0}
+              className="gap-1.5"
+            >
+              {payMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Save repayment
             </Button>
           </DialogFooter>
         </DialogContent>

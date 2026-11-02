@@ -8,6 +8,7 @@ import {
   Camera,
   History,
   Loader2,
+  MessageCircle,
   Minus,
   Plus,
   Printer,
@@ -42,8 +43,10 @@ import { SaleReceiptPrintView, type SaleReceiptProps } from "@/components/sale-r
 import { useDebounce } from "@/hooks/use-debounce";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { addSale, getCashDrawerFn, getCustomers, getProducts } from "@/lib/business.functions";
-import { PAYMENT_METHODS, saleSchema, type LineItemInput } from "@/lib/business.schemas";
+import { saleSchema, type LineItemInput } from "@/lib/business.schemas";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
+import { POS_PAYMENT_RAILS, paymentRailLabel, railToPaymentMethod } from "@/lib/payment-rails";
+import { buildSaleReceiptWhatsAppMessage, buildWhatsAppShareUrl } from "@/lib/whatsapp";
 import { computeTotals } from "@/lib/invoice-calc";
 import {
   addPendingSale,
@@ -137,12 +140,14 @@ function Sales() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [discount, setDiscount] = useState("0");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentRail, setPaymentRail] = useState("cash");
+  const paymentMethod = railToPaymentMethod(paymentRail);
   const [receipt, setReceipt] = useState<{
     number: string;
     total: number;
     offline: boolean;
     printData: SaleReceiptProps | null;
+    customerPhone: string | null;
   } | null>(null);
   // Stays the same across a failed submit so a retry can't double-book the sale;
   // only rotates once the sale actually succeeds or the cart is cleared.
@@ -221,6 +226,7 @@ function Sales() {
         customerId: sale.customerId,
         discount: sale.discount,
         paymentMethod: sale.paymentMethod,
+        rail: sale.rail ?? sale.paymentMethod,
         items: sale.items,
         idempotencyKey: sale.idempotencyKey,
       });
@@ -346,7 +352,7 @@ function Sales() {
     setCart([]);
     setDiscount("0");
     setCustomerId("");
-    setPaymentMethod("cash");
+    setPaymentRail("cash");
     setIdempotencyKey(crypto.randomUUID());
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["products"] }),
@@ -362,6 +368,7 @@ function Sales() {
         customerId: customerId === NONE ? "" : customerId,
         discount: discount || 0,
         paymentMethod,
+        rail: paymentRail,
         items: cart.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -378,6 +385,7 @@ function Sales() {
           customerId: parsed.customerId ?? "",
           discount: parsed.discount,
           paymentMethod: parsed.paymentMethod,
+          rail: parsed.rail || paymentRail,
           items: parsed.items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -396,8 +404,7 @@ function Sales() {
       return { id: result.id, offline: false as const };
     },
     onSuccess: async (result) => {
-      const methodLabel =
-        PAYMENT_METHODS.find((m) => m.value === paymentMethod)?.label ?? paymentMethod;
+      const methodLabel = paymentRailLabel(paymentRail, paymentMethod);
       const printData: SaleReceiptProps = {
         businessName: workspace.data?.business.name ?? "",
         receiptNumber: result.offline ? "Pending" : result.id.slice(0, 8),
@@ -416,9 +423,16 @@ function Sales() {
         currency,
         customerName: customers.data?.find((c) => c.id === customerId)?.name,
       };
+      const customerPhone = customers.data?.find((c) => c.id === customerId)?.phone ?? null;
       if (result.offline) {
         toast.success("Sale saved offline, it'll sync automatically once you're back online.");
-        setReceipt({ number: "Pending sync", total: totals.total, offline: true, printData });
+        setReceipt({
+          number: "Pending sync",
+          total: totals.total,
+          offline: true,
+          printData,
+          customerPhone,
+        });
       } else {
         toast.success("Sale completed.");
         setReceipt({
@@ -426,6 +440,7 @@ function Sales() {
           total: totals.total,
           offline: false,
           printData,
+          customerPhone,
         });
       }
       await resetAfterSale();
@@ -669,14 +684,14 @@ function Sales() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="sale-payment">Payment</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <Select value={paymentRail} onValueChange={setPaymentRail}>
                   <SelectTrigger id="sale-payment">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
+                    {POS_PAYMENT_RAILS.map((rail) => (
+                      <SelectItem key={rail.value} value={rail.value}>
+                        {rail.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -689,13 +704,24 @@ function Sales() {
                 Select a customer for credit sales, it's added to what they owe.
               </p>
             ) : null}
-            {paymentMethod === "cash" && isOnline && !cashDrawerOpen ? (
+            {paymentRail === "cash" && isOnline && !cashDrawerOpen ? (
               <p className="text-[13px] text-warning-foreground">
                 Open the{" "}
                 <Link to="/cash-drawer" className="underline">
                   cash drawer
                 </Link>{" "}
-                before taking cash. Card and credit still work.
+                before taking cash. EcoCash, InnBucks, ZIPIT, bank, card and credit still work.
+              </p>
+            ) : null}
+            {paymentRail === "cash" && !isOnline ? (
+              <p className="text-[13px] text-warning-foreground">
+                This cash sale will sync after you open the cash drawer.
+              </p>
+            ) : null}
+            {paymentRail === "ecocash" || paymentRail === "innbucks" || paymentRail === "zipit" ? (
+              <p className="text-[12px] text-muted-foreground">
+                Recording {paymentRailLabel(paymentRail)} here does not confirm the money arrived.
+                Check the customer&apos;s statement before you treat it as paid.
               </p>
             ) : null}
 
@@ -728,7 +754,7 @@ function Sales() {
                 saleMutation.isPending ||
                 cart.length === 0 ||
                 (paymentMethod === "credit" && !customerId) ||
-                (paymentMethod === "cash" && isOnline && !cashDrawerOpen)
+                (paymentRail === "cash" && isOnline && !cashDrawerOpen)
               }
             >
               {saleMutation.isPending ? (
@@ -777,7 +803,17 @@ function Sales() {
                       {sale.status === "failed" ? (
                         <p className="flex items-center gap-1 text-destructive">
                           <AlertTriangle className="size-3 shrink-0" aria-hidden="true" />
-                          {sale.error ?? "Couldn't sync"}
+                          {sale.isClosedDrawer ? (
+                            <>
+                              Open the{" "}
+                              <Link to="/cash-drawer" className="underline">
+                                cash drawer
+                              </Link>
+                              , then tap Sync now.
+                            </>
+                          ) : (
+                            (sale.error ?? "Couldn't sync")
+                          )}
                         </p>
                       ) : sale.status === "syncing" ? (
                         <p className="text-muted-foreground">Syncing…</p>
@@ -824,6 +860,27 @@ function Sales() {
             {receipt?.printData && !receipt.offline ? (
               <Button variant="outline" className="w-full gap-1.5" onClick={() => window.print()}>
                 <Printer className="size-4" aria-hidden="true" /> Print receipt
+              </Button>
+            ) : null}
+            {receipt?.printData && !receipt.offline ? (
+              <Button variant="outline" className="w-full gap-1.5" asChild>
+                <a
+                  href={buildWhatsAppShareUrl(
+                    buildSaleReceiptWhatsAppMessage({
+                      businessName: receipt.printData.businessName,
+                      receiptNumber: receipt.printData.receiptNumber,
+                      items: receipt.printData.items,
+                      total: receipt.printData.total,
+                      currency: receipt.printData.currency,
+                      paymentMethod: receipt.printData.paymentMethod,
+                    }),
+                    receipt.customerPhone,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle className="size-4" aria-hidden="true" /> Send on WhatsApp
+                </a>
               </Button>
             ) : null}
             <Button className="w-full" onClick={() => setReceipt(null)}>
