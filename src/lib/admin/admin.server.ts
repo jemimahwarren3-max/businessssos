@@ -13,6 +13,7 @@ import {
   flushNotificationOutboxAdmin,
   notificationEmailStatus,
 } from "@/lib/notifications.mail.server";
+import { flushWhatsAppOutboxAdmin } from "@/lib/notifications.whatsapp.server";
 import { AppError, dbFail, invalidateWorkspaceCacheForBusiness } from "@/lib/business.server";
 import { getMfaStatus } from "@/lib/auth/mfa.server";
 import type { SupabaseTokens } from "@/lib/auth/session.server";
@@ -480,13 +481,14 @@ export async function listAdminOutbox(
 
 export async function flushAdminOutbox(userId: string, tokens: SupabaseTokens, reason: string) {
   await requireAdmin(userId, tokens);
-  const result = await flushNotificationOutboxAdmin();
+  const email = await flushNotificationOutboxAdmin();
+  const whatsapp = await flushWhatsAppOutboxAdmin();
   await logPlatformAudit(userId, "flush_notification_outbox", reason, {
-    sent: result.sent,
-    failed: result.failed,
-    skipped: result.skipped,
+    sent: email.sent + whatsapp.sent,
+    failed: email.failed + whatsapp.failed,
+    skipped: email.skipped + whatsapp.skipped,
   });
-  return result;
+  return { ...email, sent: email.sent + whatsapp.sent, failed: email.failed + whatsapp.failed };
 }
 
 export async function listPaymentProviderControls(userId: string, tokens: SupabaseTokens) {

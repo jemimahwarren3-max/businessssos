@@ -9,6 +9,8 @@ import {
   getGrowthMetrics,
   listMarketingCampaigns,
   listMarketingProducts,
+  listWhatsAppMarketingAudience,
+  queueWhatsAppMarketing,
   saveMarketingCampaign,
 } from "./growth.server";
 import { marketingDraftInputSchema, saveMarketingCampaignSchema } from "./growth.contract";
@@ -55,6 +57,27 @@ export const saveMarketingCampaignFn = createServerFn({ method: "POST" })
   .middleware(authenticated)
   .inputValidator((data: unknown) => parseAndSanitize(saveMarketingCampaignSchema, data))
   .handler(async ({ data, context }) => saveMarketingCampaign(context.supabase as Db, data));
+
+export const getWhatsAppMarketingAudienceFn = createServerFn({ method: "POST" })
+  .middleware(authenticated)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    listWhatsAppMarketingAudience(context.supabase as Db, data.businessId),
+  );
+
+export const queueWhatsAppMarketingFn = createServerFn({ method: "POST" })
+  .middleware(authenticated)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        campaignId: z.string().uuid(),
+        copy: z.string().trim().min(8).max(1000),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) => queueWhatsAppMarketing(context.supabase as Db, data));
 
 export const getDailyBusinessBriefingFn = createServerFn({ method: "POST" })
   .middleware(aiRequests)

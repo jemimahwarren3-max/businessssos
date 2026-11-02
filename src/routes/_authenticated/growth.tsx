@@ -15,6 +15,8 @@ import {
   getMarketingCampaignsFn,
   getMarketingProductsFn,
   getStoreGrowthMetricsFn,
+  getWhatsAppMarketingAudienceFn,
+  queueWhatsAppMarketingFn,
   saveMarketingCampaignFn,
 } from "@/lib/growth.functions";
 import type { MarketingChannel, MarketingDraft } from "@/lib/growth.contract";
@@ -88,6 +90,8 @@ function Growth() {
   const fetchStorefront = useServerFn(getStorefrontAdminFn);
   const generateDraft = useServerFn(generateMarketingDraftFn);
   const saveCampaign = useServerFn(saveMarketingCampaignFn);
+  const fetchAudience = useServerFn(getWhatsAppMarketingAudienceFn);
+  const queueWhatsApp = useServerFn(queueWhatsAppMarketingFn);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -114,6 +118,11 @@ function Growth() {
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId) && canManageMarketing,
     queryFn: () => fetchStorefront({ data: { businessId: businessId! } }),
+  });
+  const audience = useQuery({
+    queryKey: ["whatsapp-marketing-audience", businessId],
+    enabled: Boolean(businessId) && canManageMarketing,
+    queryFn: () => fetchAudience({ data: { businessId: businessId! } }),
   });
 
   const generate = useMutation({
@@ -156,6 +165,24 @@ function Growth() {
     },
     onError: (error: Error) =>
       toast.error(readableError(error, "The campaign could not be saved.")),
+  });
+
+  const queue = useMutation({
+    mutationFn: (input: { campaignId: string; copy: string }) =>
+      queueWhatsApp({
+        data: {
+          businessId: businessId!,
+          campaignId: input.campaignId,
+          copy: input.copy,
+        },
+      }),
+    onSuccess: (result) => {
+      toast.success(
+        `Queued ${result.queued} WhatsApp message${result.queued === 1 ? "" : "s"} to opted-in shoppers. They stay pending until WhatsApp Cloud is connected.`,
+      );
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "That WhatsApp campaign could not be queued.")),
   });
 
   if (!workspace.data) {
@@ -315,8 +342,15 @@ function Growth() {
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Create a channel-specific draft from your business and catalogue. AI will not publish or
-          send it for you.
+          send it for you. WhatsApp Cloud is not connected — queued WhatsApp stays pending and is
+          never marked sent without a Meta message id.
         </p>
+        {canManageMarketing && audience.data ? (
+          <p className="mt-3 text-sm">
+            WhatsApp news list: {audience.data.optedIn} opted in, {audience.data.withPhone} with a
+            phone on a saved order.
+          </p>
+        ) : null}
         {!canManageMarketing ? (
           <p className="mt-4 text-sm text-muted-foreground">
             Your role does not have permission to manage marketing campaigns.
@@ -524,6 +558,20 @@ function Growth() {
                               Copy link
                             </Button>
                           </div>
+                        ) : null}
+                        {campaign.channel === "whatsapp" ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            disabled={queue.isPending || !campaign.copy.trim()}
+                            onClick={() =>
+                              queue.mutate({ campaignId: campaign.id, copy: campaign.copy })
+                            }
+                          >
+                            Queue to opted-in WhatsApp list
+                          </Button>
                         ) : null}
                       </li>
                     );

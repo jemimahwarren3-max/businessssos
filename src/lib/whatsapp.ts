@@ -1,23 +1,24 @@
 import type { LineItemInput } from "./business.schemas";
 import { formatMoney } from "./format";
 
-/** wa.me needs a full international number, digits only. Contacts here are
- * almost always stored as a local Zimbabwe number (e.g. "0771234567", no
- * country code) since this app's users are in Zimbabwe — a leading 0 is
- * treated as the local trunk prefix and rewritten to +263. This is a
- * heuristic, not a phone-parsing library: numbers that already carry a
- * country code (leading "+" or already 263...) pass through untouched.
- * Nothing is auto-sent — WhatsApp opens with the message pre-filled and the
- * user still has to hit send, so a wrong guess here is just a dead link,
- * not a misfire. */
+/** E.164-ish digits for Graph / wa.me. Contacts here are almost always a
+ * local Zimbabwe number (e.g. "0771234567"). A leading 0 is treated as the
+ * trunk prefix and rewritten to 263. Numbers that already carry a country
+ * code pass through as digits. A wrong guess on a wa.me link is a dead
+ * chat, not a misfire — Cloud send still requires a Graph message id. */
+export function toWhatsAppAddress(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/[^\d]/g, "");
+  if (digits.length < 7) return null;
+  return digits.startsWith("0") ? `263${digits.slice(1)}` : digits;
+}
+
 export function buildWhatsAppLink(
   phone: string | null | undefined,
   message: string,
 ): string | null {
-  if (!phone) return null;
-  const digits = phone.replace(/[^\d]/g, "");
-  if (!digits) return null;
-  const international = digits.startsWith("0") ? `263${digits.slice(1)}` : digits;
+  const international = toWhatsAppAddress(phone);
+  if (!international) return null;
   return `https://wa.me/${international}?text=${encodeURIComponent(message)}`;
 }
 

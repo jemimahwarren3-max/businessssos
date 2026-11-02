@@ -162,6 +162,8 @@ export async function placeOrder(input: {
     address?: string | undefined;
     notes?: string | undefined;
     messagesConsent?: boolean | undefined;
+    whatsappUpdates?: boolean | undefined;
+    marketingConsent?: boolean | undefined;
   };
   items: { productId: string; quantity: number; note?: string | undefined }[];
   fulfilment: string;
@@ -188,6 +190,21 @@ export async function placeOrder(input: {
     _collection_point_id: input.collectionPointId ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
+  if (
+    parsed.orderId &&
+    !parsed.replayed &&
+    (input.customer.whatsappUpdates || input.customer.marketingConsent)
+  ) {
+    const optIn = await untypedRpc(supabase, "record_order_messaging_opt_in", {
+      _order_id: parsed.orderId,
+      _access_token: parsed.accessToken ?? "",
+      _whatsapp_updates: Boolean(input.customer.whatsappUpdates),
+      _marketing: Boolean(input.customer.marketingConsent),
+    });
+    if (optIn.error) {
+      console.error("[businessos] WhatsApp opt-in after order", optIn.error);
+    }
+  }
   if (parsed.orderId && input.analyticsVisitorId) {
     await attributeStoreOrderAnalytics(parsed.orderId, input.analyticsVisitorId, input.campaignId);
   }
@@ -823,4 +840,17 @@ export async function setShopperConsent(slug: string, messages: boolean): Promis
     _messages: messages,
   });
   return parseRpc("set shopper consent", result, shopperAccountSchema);
+}
+
+export async function setShopperMarketingConsent(
+  slug: string,
+  marketing: boolean,
+): Promise<ShopperAccount> {
+  const ctx = await tryGetAuthedContext();
+  if (!ctx) throw new AppError("Sign in to update your preferences.");
+  const result = await untypedRpc(ctx.supabase, "set_shopper_marketing_consent", {
+    _slug: slug,
+    _marketing: marketing,
+  });
+  return parseRpc("set shopper marketing consent", result, shopperAccountSchema);
 }

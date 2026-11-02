@@ -1,3 +1,5 @@
+import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getAIProvider } from "@/lib/ai/get-provider.server";
 import { AppError, assertCanWrite, assertPermission, dbFail, type Db } from "@/lib/business.server";
@@ -15,6 +17,19 @@ import {
 } from "./growth.contract";
 
 const DAY_SECONDS = AI_LIMITS.dayWindowSeconds;
+
+async function untypedRpc(
+  client: { rpc: (...args: never[]) => unknown },
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<{ data: Json | null; error: { message?: string } | null }> {
+  return (await (
+    client.rpc as (
+      name: string,
+      params: Record<string, unknown>,
+    ) => Promise<{ data: Json | null; error: { message?: string } | null }>
+  )(fn, args)) as { data: Json | null; error: { message?: string } | null };
+}
 
 const BRIEFING_SYSTEM_PROMPT = `You are Kwetuu's practical daily business adviser for small merchants.
 Use only the supplied business snapshot. Do not invent figures, causes, customer identities, or trends.
@@ -235,6 +250,37 @@ export async function saveMarketingCampaign(supabase: Db, input: SaveMarketingCa
     callToAction: data.call_to_action,
     createdAt: data.created_at,
   };
+}
+
+export async function listWhatsAppMarketingAudience(supabase: Db, businessId: string) {
+  await assertPermission(supabase, businessId, "business.settings");
+  const result = await untypedRpc(supabase, "list_whatsapp_marketing_audience", {
+    _business_id: businessId,
+  });
+  if (result.error) dbFail("load WhatsApp marketing audience", result.error);
+  const parsed = z
+    .object({ optedIn: z.coerce.number(), withPhone: z.coerce.number() })
+    .safeParse(result.data);
+  return parsed.success ? parsed.data : { optedIn: 0, withPhone: 0 };
+}
+
+export async function queueWhatsAppMarketing(
+  supabase: Db,
+  input: { businessId: string; campaignId: string; copy: string },
+) {
+  await assertPermission(supabase, input.businessId, "business.settings");
+  await assertCanWrite(supabase, input.businessId);
+  const result = await untypedRpc(supabase, "queue_whatsapp_marketing", {
+    _business_id: input.businessId,
+    _campaign_id: input.campaignId,
+    _copy: input.copy,
+  });
+  if (result.error) dbFail("queue WhatsApp marketing", result.error);
+  const parsed = z
+    .object({ queued: z.coerce.number(), skippedNoPhone: z.coerce.number() })
+    .safeParse(result.data);
+  if (!parsed.success) return { queued: 0, skippedNoPhone: 0 };
+  return parsed.data;
 }
 
 export async function getDailyBusinessBriefing(

@@ -484,6 +484,7 @@ export const shopperOrderSummarySchema = z.object({
 
 export const shopperAccountSchema = z.object({
   messagesConsent: z.boolean(),
+  marketingConsent: z.boolean().optional(),
   orders: z.array(shopperOrderSummarySchema),
 });
 
@@ -706,6 +707,8 @@ export const checkoutSchema = z.object({
     address: z.string().trim().max(300).optional(),
     notes: z.string().trim().max(500).optional(),
     messagesConsent: z.boolean().optional(),
+    whatsappUpdates: z.boolean().optional(),
+    marketingConsent: z.boolean().optional(),
   }),
   items: z.array(cartItemSchema).min(1).max(50),
   collectAt: z.string().max(40).optional(),
