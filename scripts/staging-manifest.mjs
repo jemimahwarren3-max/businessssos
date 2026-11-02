@@ -133,4 +133,13 @@ export const STAGING_READINESS_CHECKS = [
       where n.nspname = 'public' and p.proname = 'create_business_with_owner'
     ) as ok`,
   },
+  {
+    id: "business_feature_flags",
+    label: "get_business_feature_flags() (workspace load must not 404 onboarding)",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'get_business_feature_flags'
+    ) as ok`,
+  },
 ];

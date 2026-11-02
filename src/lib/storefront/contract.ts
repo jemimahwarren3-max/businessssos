@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TEMPLATE_IDS } from "./templates";
-import { STOREFRONT_THEME_SCHEMA } from "./theme";
+import { STOREFRONT_THEME_DEFAULTS, STOREFRONT_THEME_SCHEMA } from "./theme";
 
 const deliveryZoneSchema = z.object({
   id: z.string().max(40),
@@ -517,7 +517,7 @@ export const adminStoreSchema = z.object({
     .object({
       slug: z.string(),
       status: z.enum(["draft", "published"]),
-      templateId: z.enum(TEMPLATE_IDS),
+      templateId: z.enum(TEMPLATE_IDS).catch("modern-minimal"),
       storeName: z.string(),
       tagline: z.string(),
       about: z.string(),
@@ -527,7 +527,7 @@ export const adminStoreSchema = z.object({
       address: z.string(),
       logoUrl: z.string().nullable(),
       accentColor: z.string().nullable(),
-      theme: STOREFRONT_THEME_SCHEMA,
+      theme: STOREFRONT_THEME_SCHEMA.catch(STOREFRONT_THEME_DEFAULTS),
       content: storefrontContentSchema.default(EMPTY_STOREFRONT_CONTENT),
       heroTitle: z.string(),
       heroSubtitle: z.string(),
