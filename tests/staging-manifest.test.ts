@@ -29,7 +29,9 @@ const FILES = [
   "20261027220000_order_notification_stage7.sql",
   "20261027230000_order_fulfilment_stage8.sql",
   "20261031080000_fix_outbox_branding.sql",
+  "20261031090000_product_category_rpc.sql",
   "20261031163000_create_business_idempotent.sql",
+  "20261102010000_fix_browse_marketplace_readonly.sql",
 ];
 
 describe("staging migration manifest", () => {

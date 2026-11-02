@@ -62,6 +62,19 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261027220000_order_notification_stage7.sql" },
   { file: "20261027230000_order_fulfilment_stage8.sql" },
   { file: "20261031080000_fix_outbox_branding.sql" },
+  {
+    file: "20261031090000_product_category_rpc.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'create_product'
+          and p.proargnames is not null
+          and '_category_id' = any (p.proargnames)
+      ) as skip
+    `,
+  },
   { file: "20261031163000_create_business_idempotent.sql" },
   { file: "20261102010000_fix_browse_marketplace_readonly.sql" },
 ];
@@ -131,6 +144,17 @@ export const STAGING_READINESS_CHECKS = [
       select 1 from pg_proc p
       join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and p.proname = 'create_business_with_owner'
+    ) as ok`,
+  },
+  {
+    id: "create_product_category",
+    label: "create_product() accepts _category_id",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'create_product'
+        and p.proargnames is not null
+        and '_category_id' = any (p.proargnames)
     ) as ok`,
   },
 ];

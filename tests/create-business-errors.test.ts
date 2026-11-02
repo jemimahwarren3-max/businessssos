@@ -49,6 +49,16 @@ describe("userFacingDbMessage", () => {
       }),
     ).toBe("Shop setup is out of date. Wait a minute and try again.");
   });
+
+  it("maps a missing create_product _category_id overload to the same toast", () => {
+    expect(
+      userFacingDbMessage({
+        code: "PGRST202",
+        message:
+          "Could not find the function public.create_product with parameter _category_id in the schema cache",
+      }),
+    ).toBe("Shop setup is out of date. Wait a minute and try again.");
+  });
 });
 
 describe("readableError", () => {
