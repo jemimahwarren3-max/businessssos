@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -41,12 +41,17 @@ import {
 } from "@/lib/storefront/storefront.functions";
 import {
   getTemplate,
+  isTemplateId,
   STORE_TEMPLATES,
   templateForBusinessType,
   type TemplateId,
 } from "@/lib/storefront/templates";
 import { storePublicUrl } from "@/lib/storefront/host";
-import { resumeOnboardingShopStep } from "@/lib/onboarding-resume";
+import {
+  onboardingShopStepStorageKey,
+  readOnboardingShopStep,
+  resumeOnboardingShopStep,
+} from "@/lib/onboarding-resume";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -104,6 +109,7 @@ function Onboarding() {
   const [delivery, setDelivery] = useState(false);
   const [modeChosen, setModeChosen] = useState(false);
   const [shopStep, setShopStep] = useState(0);
+  const hydratedShopStepFor = useRef<string | null>(null);
 
   const fx = useQuery({
     queryKey: ["platform-fx"],
@@ -111,14 +117,20 @@ function Onboarding() {
   });
 
   useEffect(() => {
-    if (existingId) setBusinessId(existingId);
+    if (!existingId) return;
+    setBusinessId(existingId);
+    setModeChosen(true);
   }, [existingId]);
   useEffect(() => {
     if (workspace.data?.business) {
+      const type = workspace.data.business.business_type;
       setForm((current) => ({
         ...current,
         name: workspace.data!.business.name,
         currency: workspace.data!.business.currency,
+        businessType: BUSINESS_TYPES.some((option) => option.value === type)
+          ? (type as CreateBusinessInput["businessType"])
+          : current.businessType,
       }));
     }
   }, [workspace.data]);
@@ -130,17 +142,29 @@ function Onboarding() {
     queryFn: () => loadAdmin({ data: { businessId: activeBusinessId! } }),
   });
   useEffect(() => {
+    if (!activeBusinessId || typeof sessionStorage === "undefined") return;
+    if (hydratedShopStepFor.current !== activeBusinessId) {
+      hydratedShopStepFor.current = activeBusinessId;
+      const saved = readOnboardingShopStep(sessionStorage, activeBusinessId);
+      if (saved !== null) {
+        setShopStep(saved);
+        return;
+      }
+    }
+    sessionStorage.setItem(onboardingShopStepStorageKey(activeBusinessId), String(shopStep));
+  }, [activeBusinessId, shopStep]);
+  useEffect(() => {
     const store = admin.data?.store;
     if (!store?.slug) return;
     setModeChosen(true);
+    if (isTemplateId(store.templateId)) setTemplateId(store.templateId);
     setShopStep((current) =>
-      current === 0
-        ? resumeOnboardingShopStep({
-            slug: store.slug,
-            status: store.status,
-            productCount: admin.data?.products.length ?? 0,
-          })
-        : current,
+      resumeOnboardingShopStep({
+        slug: store.slug,
+        status: store.status,
+        productCount: admin.data?.products.length ?? 0,
+        savedStep: current === 0 ? null : current,
+      }),
     );
   }, [admin.data]);
 

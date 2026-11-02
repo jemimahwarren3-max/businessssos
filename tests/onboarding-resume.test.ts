@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resumeOnboardingShopStep } from "@/lib/onboarding-resume";
+import {
+  onboardingShopStepStorageKey,
+  readOnboardingShopStep,
+  resumeOnboardingShopStep,
+} from "@/lib/onboarding-resume";
 
 describe("resumeOnboardingShopStep", () => {
   it("starts at the template picker when the shop has no slug yet", () => {
@@ -12,5 +16,25 @@ describe("resumeOnboardingShopStep", () => {
 
   it("resumes at publish when inventory already has items", () => {
     expect(resumeOnboardingShopStep({ slug: "grande", status: "draft", productCount: 1 })).toBe(3);
+  });
+
+  it("keeps the step the merchant was on after a 404 round-trip", () => {
+    expect(
+      resumeOnboardingShopStep({
+        slug: "grande",
+        status: "draft",
+        productCount: 0,
+        savedStep: 3,
+      }),
+    ).toBe(3);
+  });
+
+  it("reads a saved shop step from session storage", () => {
+    const businessId = "11111111-1111-4111-8111-111111111111";
+    const storage = {
+      getItem: (key: string) => (key === onboardingShopStepStorageKey(businessId) ? "3" : null),
+    };
+    expect(readOnboardingShopStep(storage, businessId)).toBe(3);
+    expect(readOnboardingShopStep({ getItem: () => "9" }, businessId)).toBeNull();
   });
 });
