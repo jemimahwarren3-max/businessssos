@@ -516,7 +516,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = CATEGORIES.flatMap((cat
       name: category.directionNames[index]!,
       category: category.id,
       categoryName: category.name,
-      description: `${DIRECTION_DESCRIPTIONS[index]} ${category.description}`,
+      description: DIRECTION_DESCRIPTIONS[index]!,
       bestFor: category.bestFor,
       layout: LEGACY_LAYOUT_OVERRIDES[id] ?? category.layout,
       heroStyle: direction.heroStyle,
@@ -530,7 +530,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = CATEGORIES.flatMap((cat
       imageRatio: direction.imageRatio,
       density: direction.density,
       configurationSchema: STOREFRONT_THEME_SCHEMA,
-      sampleLabel: "Sample layout, not your products — replace placeholder photos",
+      sampleLabel: "Website layout preview — your products replace this sample catalogue",
       previewImageUrl: categoryPlaceholderImage(category.id),
     };
   }),

@@ -40,7 +40,17 @@ describe("website-like storefront templates", () => {
     expect(html).toContain("Shop now");
     expect(html).toContain("Sourdough loaf");
     expect(html).not.toContain("Placeholder");
+    expect(html).not.toContain("/marketing/");
+    expect(html).not.toContain("<img");
     expect(html).toContain('data-composition="centered"');
+  });
+
+  it("describes the website layout instead of repeating the same category blurb", () => {
+    const bakery = getTemplate("food-bakery").description;
+    const market = getTemplate("grocery").description;
+    expect(bakery).not.toEqual(market);
+    expect(bakery).not.toMatch(/Menu-first ordering/);
+    expect(market).not.toMatch(/Menu-first ordering/);
   });
 
   it("changes homepage composition between two designs in the same category", () => {
