@@ -126,6 +126,7 @@ import {
   adjustStock,
   convertQuote,
   createBusinessRecord,
+  createCategory,
   createCustomer,
   createExpense,
   createInvoice,
@@ -159,6 +160,8 @@ import {
   updateLocation,
   setDefaultLocation,
   deactivateLocation,
+  listCategories,
+  listLocationStock,
   listProducts,
   listPurchaseOrders,
   listQuotes,
@@ -334,6 +337,37 @@ export const deactivateLocationFn = createServerFn({ method: "POST" })
     await deactivateLocation(context.supabase as Db, data);
     return { ok: true as const };
   });
+
+export const getCategories = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    listCategories(context.supabase as Db, data.businessId),
+  );
+
+export const addCategory = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      businessIdSchema.extend({ name: z.string().trim().min(1).max(80) }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    createCategory(context.supabase as Db, data.businessId, data.name),
+  );
+
+export const getLocationStock = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      businessIdSchema.extend({ locationId: z.string().uuid() }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    listLocationStock(context.supabase as Db, data.businessId, data.locationId),
+  );
 
 export const getProducts = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)

@@ -19,7 +19,8 @@ export type OrderAction =
   | "complete"
   | "cancel"
   | "mark_paid"
-  | "reject_proof";
+  | "reject_proof"
+  | "refund";
 
 export function fulfilmentActions(input: {
   fulfilmentStatus: string;
@@ -39,6 +40,7 @@ export function fulfilmentActions(input: {
     }
   }
   if (input.saleId == null) actions.push("cancel");
+  if (input.saleId != null && input.fulfilmentStatus === "completed") actions.push("refund");
   if (input.paymentMethod === "quote" && input.fulfilmentStatus === "awaiting_confirmation") {
     actions.push("accept");
     return actions;
@@ -68,4 +70,5 @@ export const ACTION_LABEL: Record<OrderAction, string> = {
   cancel: "Cancel order",
   mark_paid: "Record payment",
   reject_proof: "Reject this payment note",
+  refund: "Refund items",
 };

@@ -101,6 +101,7 @@ function Onboarding() {
   const [productStock, setProductStock] = useState("10");
   const [pickup, setPickup] = useState(true);
   const [delivery, setDelivery] = useState(false);
+  const [modeChosen, setModeChosen] = useState(false);
   const [shopStep, setShopStep] = useState(0);
 
   const fx = useQuery({
@@ -126,6 +127,9 @@ function Onboarding() {
     enabled: Boolean(businessId),
     queryFn: () => loadAdmin({ data: { businessId: businessId! } }),
   });
+  useEffect(() => {
+    if (admin.data?.store?.slug) setModeChosen(true);
+  }, [admin.data?.store?.slug]);
 
   const zigMonthly = useMemo(() => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null), [fx.data]);
 
@@ -271,6 +275,46 @@ function Onboarding() {
       ) : null}
     </div>
   );
+
+  if (businessId && !modeChosen && !admin.data?.store?.slug) {
+    return (
+      <OnboardingShell
+        step={0}
+        totalSteps={1}
+        stepTitle="How will you use Kwetuu?"
+        footer={<span />}
+      >
+        <OnboardingHeading
+          title="How do you want to get started?"
+          description="You can always add an online store later from your dashboard."
+        />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <button
+            type="button"
+            className="flex flex-col items-start gap-3 rounded-xl border-2 border-transparent bg-card p-6 text-left transition hover:border-primary"
+            onClick={() => setModeChosen(true)}
+          >
+            <span className="text-3xl" aria-hidden="true">🛒</span>
+            <span className="text-lg font-semibold">Sell online</span>
+            <span className="text-sm text-muted-foreground">
+              Set up a storefront so customers can browse and order from you online.
+            </span>
+          </button>
+          <button
+            type="button"
+            className="flex flex-col items-start gap-3 rounded-xl border-2 border-transparent bg-card p-6 text-left transition hover:border-primary"
+            onClick={() => void exitToDashboard()}
+          >
+            <span className="text-3xl" aria-hidden="true">📋</span>
+            <span className="text-lg font-semibold">Business tools only</span>
+            <span className="text-sm text-muted-foreground">
+              Use POS, inventory, sales tracking, expenses and reports — no online store needed.
+            </span>
+          </button>
+        </div>
+      </OnboardingShell>
+    );
+  }
 
   if (businessId) {
     const shopFooter =
