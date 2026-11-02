@@ -1,116 +1,232 @@
-import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import type { StoreTemplate } from "@/lib/storefront/templates";
+import { sampleProductsForCategory } from "@/lib/storefront/template-placeholders";
+import { themeFromPalette } from "@/lib/storefront/theme";
 
-function Tile({ className, style }: { className?: string; style?: CSSProperties }) {
-  return <span className={cn("block bg-white/80", className)} style={style} />;
+function ProductTile({
+  name,
+  price,
+  accent,
+  surface,
+  cardStyle,
+  imageUrl,
+}: {
+  name: string;
+  price: number;
+  accent: string;
+  surface: string;
+  cardStyle: StoreTemplate["cardStyle"];
+  imageUrl: string;
+}) {
+  if (cardStyle === "line") {
+    return (
+      <span
+        className="flex items-center gap-1.5 border-b py-1"
+        style={{ borderColor: `${accent}35` }}
+      >
+        <img src={imageUrl} alt="" className="size-5 rounded-sm object-cover" />
+        <span className="min-w-0 flex-1 truncate text-[7px] font-medium">{name}</span>
+        <span className="text-[7px]" style={{ color: accent }}>
+          ${price}
+        </span>
+      </span>
+    );
+  }
+  if (cardStyle === "overlay") {
+    return (
+      <span className="relative block overflow-hidden">
+        <img src={imageUrl} alt="" className="h-10 w-full object-cover" />
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 px-1 py-0.5 text-[6px] text-white">
+          {name}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "block overflow-hidden",
+        cardStyle === "floating" && "rounded-md shadow-sm",
+        cardStyle === "framed" && "rounded-sm border-2",
+        cardStyle === "bordered" && "rounded-sm border",
+        cardStyle === "minimal" && "rounded-none",
+      )}
+      style={{ background: surface, borderColor: `${accent}40` }}
+    >
+      <img src={imageUrl} alt="" className="h-8 w-full object-cover" />
+      <span className="block truncate px-1 py-0.5 text-[6px] font-medium">{name}</span>
+    </span>
+  );
 }
 
-function LayoutSketch({ template, accent }: { template: StoreTemplate; accent: string }) {
+function Hero({
+  template,
+  title,
+  accent,
+  surface,
+  imageUrl,
+}: {
+  template: StoreTemplate;
+  title: string;
+  accent: string;
+  surface: string;
+  imageUrl: string;
+}) {
+  const copy = (
+    <span className="block min-w-0">
+      <span className="block text-[6px] font-semibold uppercase tracking-[0.14em] opacity-60">
+        {template.categoryName}
+      </span>
+      <span className="mt-0.5 block truncate text-[9px] font-semibold" style={{ color: accent }}>
+        {title}
+      </span>
+      <span
+        className="mt-1 inline-flex rounded-sm px-1.5 py-0.5 text-[6px] font-semibold text-white"
+        style={{ background: accent }}
+      >
+        Shop now
+      </span>
+    </span>
+  );
+
   if (template.heroStyle === "split") {
     return (
-      <div className="grid h-full grid-cols-[1.5fr_1fr] gap-1.5 p-2">
-        <Tile className="h-full rounded-sm" style={{ background: accent }} />
-        <div className="grid grid-rows-2 gap-1.5">
-          <Tile className="rounded-sm" />
-          <Tile className="rounded-sm" />
-        </div>
+      <div className="grid grid-cols-2 items-stretch" style={{ background: surface }}>
+        <img src={imageUrl} alt="" className="h-16 w-full object-cover" />
+        <div className="flex items-center p-2">{copy}</div>
       </div>
     );
   }
   if (template.heroStyle === "full-bleed") {
     return (
-      <div className="grid h-full grid-rows-[3fr_1fr] gap-1.5 p-2">
-        <Tile className="rounded-sm" style={{ background: accent, opacity: 0.88 }} />
-        <div className="grid grid-cols-4 gap-1.5">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Tile key={index} className="rounded-sm" />
-          ))}
-        </div>
+      <div className="relative h-16 overflow-hidden">
+        <img src={imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-black/35" />
+        <div className="relative flex h-full items-end p-2 text-white">{copy}</div>
       </div>
     );
   }
   if (template.heroStyle === "centered") {
     return (
-      <div className="flex h-full flex-col items-center gap-2 p-2.5">
-        <Tile className="h-1/4 w-2/5 rounded-full" style={{ background: accent }} />
-        <div className="grid flex-1 grid-cols-3 gap-1.5 self-stretch">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Tile key={index} className="rounded-full" />
-          ))}
-        </div>
+      <div className="px-2 py-2 text-center" style={{ background: surface }}>
+        {copy}
       </div>
     );
   }
   if (template.heroStyle === "compact") {
     return (
-      <div className="flex h-full flex-col gap-1.5 p-2">
-        <Tile className="h-1/5 rounded-sm" style={{ background: accent }} />
-        <div className="grid flex-1 grid-cols-4 gap-1">
-          {Array.from({ length: 12 }).map((_, index) => (
-            <Tile key={index} className="rounded-sm" />
-          ))}
-        </div>
+      <div className="flex items-center gap-2 px-2 py-1.5" style={{ background: surface }}>
+        <div className="min-w-0 flex-1">{copy}</div>
+        <img src={imageUrl} alt="" className="h-10 w-14 rounded-sm object-cover" />
       </div>
     );
   }
   if (template.heroStyle === "side-panel") {
     return (
-      <div className="grid h-full grid-cols-[1fr_1.5fr] gap-1.5 p-2">
-        <div className="flex flex-col justify-center gap-1.5">
-          <Tile className="h-1/3 rounded-sm" style={{ background: accent }} />
-          <Tile className="h-2 rounded-sm" />
-          <Tile className="h-2 w-2/3 rounded-sm" />
-        </div>
-        <div className="grid grid-rows-2 gap-1.5">
-          <Tile className="rounded-sm" />
-          <Tile className="rounded-sm" />
-        </div>
+      <div className="grid grid-cols-[0.9fr_1.1fr]" style={{ background: surface }}>
+        <div className="flex items-center p-2">{copy}</div>
+        <img src={imageUrl} alt="" className="h-16 w-full object-cover" />
       </div>
     );
   }
   return (
-    <div className="flex h-full flex-col justify-center gap-1.5 p-2.5">
-      <Tile className="h-1/5 w-1/3 rounded-sm" style={{ background: accent }} />
-      {Array.from({ length: 4 }).map((_, index) => (
-        <span key={index} className="flex h-3 items-center gap-2 border-b border-white/40 pb-1">
-          <Tile className="h-2 flex-1 rounded-sm" />
-          <Tile className="h-2 w-8 rounded-sm" />
-        </span>
-      ))}
+    <div className="px-2 py-2" style={{ background: surface }}>
+      {copy}
     </div>
   );
 }
 
+/** Miniature shop website for pickers — header, hero, and catalogue, not a photo card. */
 export function TemplatePreview({
   template,
   className,
+  storeName,
 }: {
   template: StoreTemplate;
   className?: string;
+  storeName?: string;
 }) {
+  const theme = themeFromPalette(template.defaultPalette, template.defaultAccent);
+  const products = sampleProductsForCategory(template.category);
+  const title = storeName || template.name;
+  const columns =
+    template.catalogStyle === "compact"
+      ? "grid-cols-4"
+      : template.catalogStyle === "rows" || template.cardStyle === "line"
+        ? "grid-cols-1"
+        : template.catalogStyle === "editorial" || template.catalogStyle === "wide"
+          ? "grid-cols-2"
+          : "grid-cols-3";
+
   return (
     <div
-      className={cn("relative overflow-hidden rounded-lg border bg-muted/60", className)}
-      style={{ background: `${template.defaultAccent}18` }}
+      className={cn("relative overflow-hidden rounded-lg border shadow-sm", className)}
+      style={{
+        background: theme.background,
+        color: theme.text,
+        fontFamily: `"${template.fontFamily}", Inter, sans-serif`,
+      }}
       data-layout={template.layout}
       data-template={template.id}
       data-category={template.category}
       data-composition={template.heroStyle}
+      aria-label={`${template.name} shop website`}
     >
-      <img
-        src={template.previewImageUrl}
-        alt=""
-        className="absolute inset-0 size-full object-cover"
-        loading="lazy"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
-      <div className="relative h-full min-h-[4rem] opacity-90 mix-blend-soft-light">
-        <LayoutSketch template={template} accent={template.defaultAccent} />
+      <div
+        className="flex items-center gap-1 border-b px-2 py-1"
+        style={{ background: theme.surface, borderColor: `${theme.accent}25` }}
+      >
+        <span className="size-1.5 rounded-full bg-neutral-300" />
+        <span className="size-1.5 rounded-full bg-neutral-300" />
+        <span className="truncate text-[7px] opacity-50">yourshop.mykwetuu.com</span>
       </div>
-      <span className="absolute bottom-1 left-1 rounded bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
-        Placeholder
-      </span>
+      <header
+        className={cn(
+          "flex items-center justify-between gap-2 px-2 py-1.5",
+          template.navigationStyle === "centered" && "flex-col",
+        )}
+        style={{ background: theme.surface, color: theme.primary }}
+      >
+        <span className="truncate text-[9px] font-semibold">{title}</span>
+        <span
+          className={cn(
+            "flex shrink-0 gap-1.5 text-[7px] font-medium",
+            template.navigationStyle === "compact" && "text-[6px]",
+          )}
+        >
+          <span>Shop</span>
+          <span>Search</span>
+          <span>Cart</span>
+        </span>
+      </header>
+      <Hero
+        template={template}
+        title={title}
+        accent={theme.primary}
+        surface={theme.surface}
+        imageUrl={template.previewImageUrl}
+      />
+      <div
+        className={cn(
+          "gap-1 p-1.5",
+          template.catalogStyle === "rows" || template.cardStyle === "line"
+            ? "flex flex-col"
+            : "grid",
+          columns,
+        )}
+      >
+        {products.map((product) => (
+          <ProductTile
+            key={product.name}
+            name={product.name}
+            price={product.price}
+            accent={theme.primary}
+            surface={theme.surface}
+            cardStyle={template.cardStyle}
+            imageUrl={template.previewImageUrl}
+          />
+        ))}
+      </div>
     </div>
   );
 }
