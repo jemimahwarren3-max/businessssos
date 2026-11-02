@@ -15,8 +15,8 @@ Kwetuu should make running a business easier, cheaper, safer and more profitable
 | Status | Count | Meaning |
 | ------ | ----- | ------- |
 | **Exists** | 32 | Shipped in schema + merchant/shopper UI, with the qualification in the row |
-| **Partial** | 41 | Foundation exists; the Zimbabwe-shaped behaviour is incomplete or generic |
-| **Missing** | 27 | No table, RPC, or real workflow |
+| **Partial** | 42 | Foundation exists; the Zimbabwe-shaped behaviour is incomplete or generic |
+| **Missing** | 26 | No table, RPC, or real workflow |
 
 Do not treat “Exists” as “loved in a tuckshop”. Several Exists items are English-only, online-only, or generic (for example `mobile_money` instead of EcoCash).
 
@@ -157,10 +157,10 @@ Dashboard can already answer, roughly: yesterday’s sales/profit, who has outst
 
 | # | Idea | Status | What exists | Gap |
 | - | ---- | ------ | ----------- | --- |
-| 71 | Low-data mode | Missing | — | Image/request budget. |
-| 72 | Offline POS | Partial | IndexedDB + queued cash/card-as-cash sales. Many flows online-only. | Closed drawer blocks sync; stock is an estimate. |
-| 73 | Auto sync | Exists | Sync on reconnect, idempotent keys. | No dead-letter UI beyond sales queue. |
-| 74 | Power interruption | Partial | Queued sale + idempotency. | In-progress cart not snapshotted. |
+| 71 | Low-data mode | Partial | Account toggle + `DeferredImage` on product photos. | First public-shop HTML may still include image URLs. Logos/auth still load. |
+| 72 | Offline POS | Partial | IndexedDB + queued cash/card-as-cash sales. Stock labelled estimate while offline. | Many flows still online-only. |
+| 73 | Auto sync | Exists | Sync on reconnect, idempotent keys, cashier Retry this sale on failed rows. | No background sync when the tab is closed. |
+| 74 | Power interruption | Partial | Queued sale + idempotency + in-progress cart snapshot (`posDrafts`). | Not proven on a real till power cut. |
 | 75 | Receipts | Exists | Browser print POS + shop receipts; email when Resend is configured. | No thermal-printer driver. |
 | 76 | Local business templates | Partial | 60 website templates (grocery, bakery, salon, hardware, …). | Not a POS “tuckshop setup” pack. |
 | 77 | Shona and Ndebele | Missing | English UI. | i18n framework. |
