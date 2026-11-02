@@ -47,7 +47,7 @@ function fail(message: string): never {
 }
 
 const USER_FACING_DB =
-  /already taken|already exists|already belong|signed in|choose another|does not allow|not allowed/i;
+  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name/i;
 
 function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
@@ -69,10 +69,30 @@ export function userFacingDbMessage(error: unknown): string {
   if (message && USER_FACING_DB.test(message)) {
     return firstUserFacingLine(message);
   }
-  if (code === "42883" || /schema cache|could not find the function/i.test(message)) {
+  if (isMissingDbFunction(error)) {
     return "Shop setup is out of date. Wait a minute and try again.";
   }
   return "Something went wrong saving your data. Please try again.";
+}
+
+/** Optional RPCs (feature flags, impersonation, platform bypass) may be
+ * missing on a staging database that has not applied every migration.
+ * Treat those as "function not installed" rather than wiping the workspace. */
+export function isMissingDbFunction(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  const message = (error as { message?: string } | null)?.message ?? "";
+  return (
+    code === "42883" ||
+    code === "PGRST202" ||
+    /schema cache|could not find the function/i.test(message)
+  );
+}
+
+function skipMissingRpc(context: string, error: unknown): boolean {
+  if (!error) return true;
+  if (!isMissingDbFunction(error)) return false;
+  console.error(`[businessos] ${context} skipped (function missing)`, error);
+  return true;
 }
 
 export function dbFail(context: string, error: unknown): never {
@@ -163,8 +183,15 @@ async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
     supabase.rpc("get_business_feature_flags" as never, { _business_id: businessId } as never),
   ]);
   if (error) dbFail("check subscription status", error);
-  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
-  if (flagError) dbFail("check business feature flags", flagError);
+  if (
+    entitlementError &&
+    !skipMissingRpc("check platform subscription entitlement", entitlementError)
+  ) {
+    dbFail("check platform subscription entitlement", entitlementError);
+  }
+  if (flagError && !skipMissingRpc("check business feature flags", flagError)) {
+    dbFail("check business feature flags", flagError);
+  }
   const billingExempt =
     flagRow &&
     typeof flagRow === "object" &&
@@ -172,7 +199,7 @@ async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
     (flagRow as { billingExempt?: boolean }).billingExempt === true;
   return {
     subscription,
-    hasOwnerBypass: Boolean(hasOwnerBypass) || billingExempt,
+    hasOwnerBypass: Boolean(hasOwnerBypass) || Boolean(billingExempt),
   };
 }
 
@@ -182,7 +209,8 @@ export async function assertCanWrite(supabase: Db, businessId: string) {
     "is_platform_impersonating" as never,
     { _business_id: businessId } as never,
   );
-  if (impErr) dbFail("impersonation check", impErr);
+  if (impErr && !skipMissingRpc("impersonation check", impErr))
+    dbFail("impersonation check", impErr);
   if (impersonating) {
     fail("Support view is read-only. End impersonation in the admin console to make changes.");
   }
@@ -196,7 +224,8 @@ export async function assertCanOperate(supabase: Db, businessId: string) {
     "is_platform_impersonating" as never,
     { _business_id: businessId } as never,
   );
-  if (impErr) dbFail("impersonation check", impErr);
+  if (impErr && !skipMissingRpc("impersonation check", impErr))
+    dbFail("impersonation check", impErr);
   if (impersonating) {
     fail("Support view is read-only. End impersonation in the admin console to make changes.");
   }
@@ -302,8 +331,15 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     ),
   ]);
   if (bizError) dbFail("load business", bizError);
-  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
-  if (featureFlagError) dbFail("load business feature flags", featureFlagError);
+  if (
+    entitlementError &&
+    !skipMissingRpc("check platform subscription entitlement", entitlementError)
+  ) {
+    dbFail("check platform subscription entitlement", entitlementError);
+  }
+  if (featureFlagError && !skipMissingRpc("load business feature flags", featureFlagError)) {
+    dbFail("load business feature flags", featureFlagError);
+  }
   if (!business) return null;
 
   const flags =
@@ -320,13 +356,13 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     planStatus: subscription?.status ?? "trialing",
     isReadOnly: !canWriteWithPlatformEntitlement(
       subscription ?? null,
-      hasOwnerBypass || billingExempt,
+      Boolean(hasOwnerBypass) || billingExempt,
     ),
     isOperateLocked: !canOperateWithPlatformEntitlement(
       subscription ?? null,
-      hasOwnerBypass || billingExempt,
+      Boolean(hasOwnerBypass) || billingExempt,
     ),
-    isPlatformOwner: hasOwnerBypass,
+    isPlatformOwner: Boolean(hasOwnerBypass),
     billingEnabled: isBillingEnabled(),
     ...(flags ? { featureFlags: flags } : {}),
   };
@@ -596,24 +632,40 @@ export async function deactivateLocation(
   if (error) dbFail("deactivate location", error);
 }
 
+type CreateProductRpcArgs = Database["public"]["Functions"]["create_product"]["Args"];
+
+/**
+ * Named args for create_product. Staging still has the 13-arg function
+ * (no _category_id). PostgREST rejects extra named parameters with PGRST202,
+ * which the UI shows as "Shop setup is out of date".
+ * Only send _category_id when the merchant actually chose one so onboarding
+ * and inventory add still match the current function.
+ */
+export function createProductRpcArgs(input: ProductInput): CreateProductRpcArgs {
+  const args: CreateProductRpcArgs = {
+    _business_id: input.businessId,
+    _name: input.name,
+    _sku: input.sku || "",
+    _barcode: input.barcode || "",
+    _unit: input.unit,
+    _cost_price: input.costPrice,
+    _selling_price: input.sellingPrice,
+    _stock: input.stock,
+    _min_stock: input.minStock,
+    _tax_rate: input.taxRate,
+    _description: input.description || "",
+    _supplier_id: input.supplierId || null,
+  };
+  if (input.categoryId) {
+    args._category_id = input.categoryId;
+  }
+  return args;
+}
+
 export async function createProduct(supabase: Db, input: ProductInput) {
   await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase
-    .rpc("create_product", {
-      _business_id: input.businessId,
-      _name: input.name,
-      _sku: input.sku || "",
-      _barcode: input.barcode || "",
-      _unit: input.unit,
-      _cost_price: input.costPrice,
-      _selling_price: input.sellingPrice,
-      _stock: input.stock,
-      _min_stock: input.minStock,
-      _tax_rate: input.taxRate,
-      _description: input.description || "",
-      _supplier_id: input.supplierId || null,
-      _category_id: input.categoryId || null,
-    })
+    .rpc("create_product", createProductRpcArgs(input))
     .single();
   if (error || !data) dbFail("create product", error);
   return data;

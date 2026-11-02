@@ -24,11 +24,7 @@ import {
   type CollectionPoint,
   type DeliveryZone,
 } from "@/lib/storefront/delivery-zones";
-import {
-  BUILDER_TEMPLATE_CHOICES,
-  builderChoiceForTemplateId,
-  resolveBuilderTemplateId,
-} from "@/lib/storefront/builder-templates";
+import { resolveBuilderTemplateId } from "@/lib/storefront/builder-templates";
 import {
   MANUAL_PAYMENT_LABELS,
   mergeManualMethods,
@@ -46,7 +42,12 @@ import {
   setMarketplaceVisibleFn,
   uploadStorefrontBrandingFn,
 } from "@/lib/storefront/storefront.functions";
-import { getTemplate, type TemplateId } from "@/lib/storefront/templates";
+import {
+  getTemplate,
+  STORE_TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  type TemplateId,
+} from "@/lib/storefront/templates";
 import {
   STOREFRONT_THEME_SCHEMA,
   STORE_PALETTES,
@@ -155,6 +156,9 @@ export function StoreBuilder({
   const [logoUrl, setLogoUrl] = useState(store.logoUrl ?? "");
   const [templateId, setTemplateId] = useState<TemplateId>(
     resolveBuilderTemplateId(store.templateId ?? "modern-minimal"),
+  );
+  const [templateCategory, setTemplateCategory] = useState(
+    () => getTemplate(resolveBuilderTemplateId(store.templateId ?? "modern-minimal")).category,
   );
   const [theme, setTheme] = useState<StorefrontTheme>(() =>
     STOREFRONT_THEME_SCHEMA.parse(
@@ -381,6 +385,7 @@ export function StoreBuilder({
     setHeroSubtitle(snap.heroSubtitle);
     setLogoUrl(snap.logoUrl);
     setTemplateId(resolveBuilderTemplateId(snap.templateId));
+    setTemplateCategory(getTemplate(resolveBuilderTemplateId(snap.templateId)).category);
     setTheme(snap.theme);
     setPickup(snap.pickup);
     setDelivery(snap.delivery);
@@ -508,7 +513,7 @@ export function StoreBuilder({
   });
 
   const template = getTemplate(templateId);
-  const builderChoice = builderChoiceForTemplateId(templateId);
+  const categoryTemplates = STORE_TEMPLATES.filter((row) => row.category === templateCategory);
   const publicUrl = store.slug ? storePublicUrl(store.slug) : "";
   const disabled = !canManage;
 
@@ -526,7 +531,7 @@ export function StoreBuilder({
           <Link
             to="/store/$slug"
             params={{ slug: store.slug }}
-            search={{ preview: "1" }}
+            search={{ preview: 1 }}
             className="text-sm font-medium underline"
           >
             Open full preview
@@ -555,21 +560,39 @@ export function StoreBuilder({
 
         <TabsContent value="design" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Choose a layout. Each theme changes hero, navigation, and product grid on your live
-            shop.
+            Each design is a shop website — header, homepage, and product grid. Switching keeps your
+            products.
           </p>
-          <div className="grid gap-4 lg:grid-cols-3">
-            {BUILDER_TEMPLATE_CHOICES.map((choice) => {
-              const previewTemplate = getTemplate(choice.templateId);
-              const selected = choice.templateId === templateId;
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Shop type</span>
+            <select
+              className="h-10 w-full max-w-sm rounded-md border border-border bg-background px-3"
+              value={templateCategory}
+              disabled={disabled}
+              onChange={(event) =>
+                setTemplateCategory(
+                  event.target.value as (typeof TEMPLATE_CATEGORIES)[number]["id"],
+                )
+              }
+            >
+              {TEMPLATE_CATEGORIES.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {categoryTemplates.map((previewTemplate) => {
+              const selected = previewTemplate.id === templateId;
               return (
                 <button
-                  key={choice.id}
+                  key={previewTemplate.id}
                   type="button"
                   disabled={disabled}
                   onClick={() => {
-                    setTemplateId(choice.templateId);
-                    setTheme((current) =>
+                    setTemplateId(previewTemplate.id);
+                    setTheme(
                       themeFromPalette(
                         previewTemplate.defaultPalette,
                         previewTemplate.defaultAccent,
@@ -580,10 +603,16 @@ export function StoreBuilder({
                   style={{ outline: selected ? "2px solid var(--primary)" : undefined }}
                   aria-pressed={selected}
                 >
-                  <TemplatePreview template={previewTemplate} className="mb-3 h-32" />
-                  <p className="font-semibold">{choice.title}</p>
-                  <p className="text-xs text-muted-foreground">{choice.subtitle}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{choice.description}</p>
+                  <TemplatePreview
+                    template={previewTemplate}
+                    storeName={storeName || previewTemplate.name}
+                    className="mb-3 h-44"
+                  />
+                  <p className="font-semibold">{previewTemplate.name}</p>
+                  <p className="text-xs text-muted-foreground">{previewTemplate.bestFor}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {previewTemplate.description}
+                  </p>
                 </button>
               );
             })}
@@ -1037,8 +1066,8 @@ export function StoreBuilder({
         <TabsContent value="preview" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              Live preview of <strong>{builderChoice.title}</strong> using published online products
-              only. Draft shop — not visible to the public.
+              Live preview of <strong>{template.name}</strong> as a shop website. Draft — not
+              visible to the public.
             </p>
             <div className="flex gap-2">
               <Button

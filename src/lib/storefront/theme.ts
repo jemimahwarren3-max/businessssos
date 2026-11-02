@@ -178,6 +178,11 @@ export const STORE_PALETTES = [
 
 export type StorePalette = (typeof STORE_PALETTES)[number];
 
+/** SQL save_storefront only accepts empty or https:// cover URLs. */
+export function persistedCoverUrl(url: unknown): string {
+  return typeof url === "string" && url.startsWith("https://") && url.length <= 500 ? url : "";
+}
+
 export function themeFromPalette(paletteId: string, templateAccent?: string): StorefrontTheme {
   const palette =
     STORE_PALETTES.find((candidate) => candidate.id === paletteId) ?? STORE_PALETTES[0];

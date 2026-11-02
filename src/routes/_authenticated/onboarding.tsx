@@ -46,6 +46,7 @@ import {
   type TemplateId,
 } from "@/lib/storefront/templates";
 import { storePublicUrl } from "@/lib/storefront/host";
+import { resumeOnboardingShopStep } from "@/lib/onboarding-resume";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -122,14 +123,26 @@ function Onboarding() {
     }
   }, [workspace.data]);
 
+  const activeBusinessId = businessId ?? existingId;
   const admin = useQuery({
-    queryKey: ["storefront", businessId],
-    enabled: Boolean(businessId),
-    queryFn: () => loadAdmin({ data: { businessId: businessId! } }),
+    queryKey: ["storefront", activeBusinessId],
+    enabled: Boolean(activeBusinessId),
+    queryFn: () => loadAdmin({ data: { businessId: activeBusinessId! } }),
   });
   useEffect(() => {
-    if (admin.data?.store?.slug) setModeChosen(true);
-  }, [admin.data?.store?.slug]);
+    const store = admin.data?.store;
+    if (!store?.slug) return;
+    setModeChosen(true);
+    setShopStep((current) =>
+      current === 0
+        ? resumeOnboardingShopStep({
+            slug: store.slug,
+            status: store.status,
+            productCount: admin.data?.products.length ?? 0,
+          })
+        : current,
+    );
+  }, [admin.data]);
 
   const zigMonthly = useMemo(() => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null), [fx.data]);
 
@@ -165,6 +178,7 @@ function Onboarding() {
     },
     onSuccess: async (newBusinessId) => {
       queryClient.removeQueries({ queryKey: ["workspace"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace"] });
       setBusinessId(newBusinessId);
       setTemplateId(templateForBusinessType(form.businessType));
       toast.success(`${form.name} is ready. Next, pick a shop layout.`);
@@ -175,10 +189,10 @@ function Onboarding() {
 
   const saveShopMutation = useMutation({
     mutationFn: async (extra: { pickupEnabled?: boolean; deliveryEnabled?: boolean } = {}) => {
-      if (!businessId) throw new Error("Create the business first.");
+      if (!activeBusinessId) throw new Error("Create the business first.");
       return saveShop({
         data: defaultShopPatch({
-          businessId,
+          businessId: activeBusinessId,
           storeName: form.name || workspace.data?.business.name || "Shop",
           templateId,
           phone: form.phone ?? "",
@@ -189,17 +203,17 @@ function Onboarding() {
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+      void queryClient.invalidateQueries({ queryKey: ["storefront", activeBusinessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Could not save the shop")),
   });
 
   const productMutation = useMutation({
     mutationFn: async () => {
-      if (!businessId) throw new Error("Create the business first.");
+      if (!activeBusinessId) throw new Error("Create the business first.");
       await createProductFn({
         data: {
-          businessId,
+          businessId: activeBusinessId,
           name: productName.trim(),
           sku: "",
           barcode: "",
@@ -220,7 +234,7 @@ function Onboarding() {
       );
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+      void queryClient.invalidateQueries({ queryKey: ["storefront", activeBusinessId] });
       setShopStep(2);
     },
     onError: (error: Error) => toast.error(readableError(error, "Could not add the product")),
@@ -228,13 +242,13 @@ function Onboarding() {
 
   const publishMutation = useMutation({
     mutationFn: async () => {
-      if (!businessId) throw new Error("Create the business first.");
+      if (!activeBusinessId) throw new Error("Create the business first.");
       await saveShopMutation.mutateAsync({});
-      return publish({ data: { businessId, published: true } });
+      return publish({ data: { businessId: activeBusinessId, published: true } });
     },
     onSuccess: async () => {
       toast.success("Shop published.");
-      void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+      void queryClient.invalidateQueries({ queryKey: ["storefront", activeBusinessId] });
       try {
         await markComplete({});
         queryClient.removeQueries({ queryKey: ["workspace"] });
@@ -251,7 +265,8 @@ function Onboarding() {
 
   const slug = admin.data?.store?.slug;
   const publicUrl = slug ? storePublicUrl(slug) : "";
-  const shopName = form.name || workspace.data?.business.name || "Your shop";
+  const shopName =
+    admin.data?.store?.storeName || form.name || workspace.data?.business.name || "Your shop";
 
   const nameFooter = (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -280,7 +295,52 @@ function Onboarding() {
     </div>
   );
 
-  if (businessId && !modeChosen && !admin.data?.store?.slug) {
+  if (workspace.isLoading || (activeBusinessId && admin.isLoading && !admin.data)) {
+    return (
+      <OnboardingShell step={0} totalSteps={SHOP_STEP_TITLES.length} stepTitle="Your shop">
+        <OnboardingHeading
+          title="Loading your shop"
+          description="We're picking up where you left off. Your products and settings are still saved."
+        />
+        <Loader2 className="mt-8 size-8 animate-spin text-primary" aria-label="Loading" />
+      </OnboardingShell>
+    );
+  }
+
+  if (workspace.isError) {
+    return (
+      <OnboardingShell step={0} totalSteps={1} stepTitle="Your shop">
+        <OnboardingHeading
+          title="We couldn't load your shop"
+          description="Nothing was deleted. This page failed to open your existing shop."
+        />
+        <Button className="mt-6 rounded-full" onClick={() => void workspace.refetch()}>
+          Try again
+        </Button>
+      </OnboardingShell>
+    );
+  }
+
+  if (activeBusinessId && admin.isError) {
+    return (
+      <OnboardingShell step={0} totalSteps={SHOP_STEP_TITLES.length} stepTitle="Your shop">
+        <OnboardingHeading
+          title="We couldn't open your storefront"
+          description="Your shop is still saved. Try again, or continue to inventory from the dashboard."
+        />
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button className="rounded-full" onClick={() => void admin.refetch()}>
+            Try again
+          </Button>
+          <Button variant="outline" className="rounded-full" onClick={() => void exitToDashboard()}>
+            Go to dashboard
+          </Button>
+        </div>
+      </OnboardingShell>
+    );
+  }
+
+  if (activeBusinessId && !modeChosen && !admin.data?.store?.slug) {
     return (
       <OnboardingShell
         step={0}
@@ -324,7 +384,7 @@ function Onboarding() {
     );
   }
 
-  if (businessId) {
+  if (activeBusinessId) {
     const shopFooter =
       shopStep < 3 ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -372,14 +432,14 @@ function Onboarding() {
         {shopStep === 0 ? (
           <>
             <OnboardingHeading
-              title="Pick a look for your storefront"
-              description="Layout and style only — your products and settings stay when you switch later."
+              title="Pick a website for your shop"
+              description="Each option is a full shop site — header, homepage, and product grid. You can switch later without losing products."
             />
             <p className="mt-2 text-sm text-muted-foreground">
-              Each design starts with placeholder photos — swap them for your logo and product shots
-              in Storefront settings.
+              Each card is a miniature shop website. The live store uses this header, homepage, and
+              product grid with your catalogue.
             </p>
-            <div className="mt-6 grid max-h-[32rem] gap-3 overflow-y-auto sm:grid-cols-2">
+            <div className="mt-6 grid max-h-[36rem] gap-4 overflow-y-auto sm:grid-cols-2">
               {templateChoices.map((template) => (
                 <button
                   key={template.id}
@@ -387,15 +447,16 @@ function Onboarding() {
                   onClick={() => setTemplateId(template.id)}
                   className={
                     templateId === template.id
-                      ? "flex flex-col gap-2 overflow-hidden rounded-xl border-2 border-primary bg-card p-2 text-left shadow-soft transition sm:flex-row"
-                      : "flex flex-col gap-2 overflow-hidden rounded-xl border-2 border-transparent bg-card p-2 text-left transition hover:border-border sm:flex-row"
+                      ? "flex flex-col overflow-hidden rounded-xl border-2 border-primary bg-card text-left shadow-soft transition"
+                      : "flex flex-col overflow-hidden rounded-xl border-2 border-transparent bg-card text-left transition hover:border-border"
                   }
                 >
                   <TemplatePreview
                     template={template}
-                    className="h-28 w-full shrink-0 sm:h-24 sm:w-32"
+                    storeName={form.name || template.name}
+                    className="h-48 w-full rounded-none border-0 border-b"
                   />
-                  <span className="min-w-0 py-1">
+                  <span className="min-w-0 p-3">
                     <span className="font-semibold">{template.name}</span>
                     <span className="mt-1 block text-sm text-muted-foreground">
                       {template.description}
@@ -563,7 +624,7 @@ function Onboarding() {
                   <Link
                     to="/store/$slug"
                     params={{ slug }}
-                    search={{ preview: "1" }}
+                    search={{ preview: 1 }}
                     className="font-medium text-primary underline-offset-2 hover:underline"
                   >
                     Open draft preview

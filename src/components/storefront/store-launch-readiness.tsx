@@ -150,7 +150,7 @@ export function StoreLaunchReadiness({
         ) : null}
         {storeSlug ? (
           <Button asChild size="sm" variant="outline">
-            <Link to="/store/$slug" params={{ slug: storeSlug }} search={{ preview: "1" }}>
+            <Link to="/store/$slug" params={{ slug: storeSlug }} search={{ preview: 1 }}>
               Preview store
             </Link>
           </Button>

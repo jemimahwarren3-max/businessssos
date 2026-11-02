@@ -293,7 +293,7 @@ function StorefrontEditor({
             </span>
           ) : null}
           {" · "}
-          <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: "1" }}>
+          <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: 1 }}>
             Customer preview
           </Link>
         </p>

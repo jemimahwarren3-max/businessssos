@@ -29,7 +29,10 @@ const FILES = [
   "20261027220000_order_notification_stage7.sql",
   "20261027230000_order_fulfilment_stage8.sql",
   "20261031080000_fix_outbox_branding.sql",
+  "20261031090000_product_category_rpc.sql",
   "20261031163000_create_business_idempotent.sql",
+  "20261102010000_fix_browse_marketplace_readonly.sql",
+  "20261102120000_storefront_template_allowlist.sql",
 ];
 
 describe("staging migration manifest", () => {
@@ -40,5 +43,19 @@ describe("staging migration manifest", () => {
       const sql = readFileSync(path, "utf8");
       expect(sql.length).toBeGreaterThan(20);
     }
+  });
+
+  it("installs a save_storefront wrapper that accepts food-counter", () => {
+    const sql = readFileSync(
+      join(
+        process.cwd(),
+        "supabase/migrations",
+        "20261102120000_storefront_template_allowlist.sql",
+      ),
+      "utf8",
+    );
+    expect(sql).toContain("food-counter");
+    expect(sql).toContain("save_storefront_allowlist_base");
+    expect(sql).toMatch(/\^https:\/\//);
   });
 });

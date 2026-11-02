@@ -22,6 +22,7 @@ import {
   dbFail,
   type Db,
 } from "@/lib/business.server";
+import { persistedCoverUrl } from "@/lib/storefront/theme";
 import { attributeStoreOrderAnalytics } from "@/lib/growth.server";
 import {
   adminOrderSchema,
@@ -117,8 +118,7 @@ export async function loadPublicStore(input: {
   if (data == null) return null;
   const store = await parseRpc("load public store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: input.slug });
-  if (offered.error) rpcFail("check public shop Paynow availability", offered.error);
-  store.payments.paynow = offered.data === true;
+  if (!offered.error) store.payments.paynow = offered.data === true;
   return store;
 }
 
@@ -128,8 +128,7 @@ export async function loadStorePreview(supabase: Db, slug: string): Promise<Publ
   if (data == null) return null;
   const store = await parseRpc("preview store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: slug });
-  if (offered.error) rpcFail("check preview shop Paynow availability", offered.error);
-  store.payments.paynow = offered.data === true;
+  if (!offered.error) store.payments.paynow = offered.data === true;
   return store;
 }
 
@@ -307,12 +306,24 @@ export async function loadAdminStore(supabase: Db, businessId: string): Promise<
   );
 }
 
+function withPersistedCover(patch: Json): Json {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return patch;
+  const theme = (patch as { theme?: unknown }).theme;
+  if (!theme || typeof theme !== "object" || Array.isArray(theme)) return patch;
+  const coverUrl = persistedCoverUrl((theme as { coverUrl?: unknown }).coverUrl);
+  if (coverUrl === (theme as { coverUrl?: unknown }).coverUrl) return patch;
+  return {
+    ...(patch as Record<string, Json>),
+    theme: { ...(theme as Record<string, Json>), coverUrl },
+  };
+}
+
 export async function saveStorefront(supabase: Db, businessId: string, patch: Json) {
   await assertCanWrite(supabase, businessId);
   await assertPermission(supabase, businessId, "business.settings");
   const result = await supabase.rpc("save_storefront", {
     _business_id: businessId,
-    _patch: patch,
+    _patch: withPersistedCover(patch),
   });
   return withShopPaynowFlag(
     await parseRpc("save storefront", result, adminStoreSchema),

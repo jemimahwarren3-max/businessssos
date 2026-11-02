@@ -1,31 +1,19 @@
 import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
-import { z } from "zod";
 import { StoreChrome, StorePreviewProvider } from "@/components/storefront/store-experience";
 import { StoreAnalyticsProvider } from "@/components/storefront/store-analytics";
+import { parseStorePreviewSearch } from "@/lib/storefront/preview-search";
 import { getPublicStoreFn, getStorePreviewFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 
-const searchSchema = z.object({
-  preview: z
-    .union([z.literal("1"), z.literal(1)])
-    .optional()
-    .catch(undefined),
-});
-
 export const Route = createFileRoute("/store/$slug")({
-  validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ preview: search.preview }),
+  validateSearch: parseStorePreviewSearch,
+  loaderDeps: ({ search }) => ({ preview: search.preview === 1 }),
   loader: async ({ params, deps }) => {
-    try {
-      const store = deps.preview
-        ? await getStorePreviewFn({ data: { slug: params.slug } })
-        : await getPublicStoreFn({ data: { slug: params.slug } });
-      if (!store) throw notFound();
-      return { store, preview: Boolean(deps.preview) };
-    } catch (error) {
-      if (deps.preview) throw notFound();
-      throw error;
-    }
+    const store = deps.preview
+      ? await getStorePreviewFn({ data: { slug: params.slug } })
+      : await getPublicStoreFn({ data: { slug: params.slug } });
+    if (!store) throw notFound();
+    return { store, preview: deps.preview };
   },
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Shop" }] };

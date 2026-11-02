@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
+import { parseStorePreviewSearch } from "@/lib/storefront/preview-search";
 import { quoteCartFn } from "@/lib/storefront/storefront.functions";
 import type { CartQuote } from "@/lib/storefront/contract";
 import { allowedFulfilments } from "@/lib/storefront/order-rules";
@@ -10,12 +10,7 @@ import { formatMoney, readableError } from "@/lib/format";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/cart")({
-  validateSearch: z.object({
-    preview: z
-      .union([z.literal("1"), z.literal(1)])
-      .optional()
-      .catch(undefined),
-  }),
+  validateSearch: parseStorePreviewSearch,
   head: () => ({ meta: [{ title: "Cart" }, { name: "robots", content: "noindex" }] }),
   component: CartPage,
 });
