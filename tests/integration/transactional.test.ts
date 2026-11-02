@@ -43,6 +43,41 @@ describeStaging("transactional business creation", () => {
     }
   }, 30_000);
 
+  it("returns the existing shop when the same user creates again", async () => {
+    const ownerId = await createTestUser(`atomic-again-${newId()}@example.com`);
+    const name = `Atomic Retry ${newId()}`;
+    const otherName = `Atomic Retry Other ${newId()}`;
+    try {
+      const first = await asUser<{ create_business_with_owner: string }>(
+        ownerId,
+        `select public.create_business_with_owner('${name}', 'other', 'USD', '', '') as create_business_with_owner;`,
+      );
+      const firstId = first[0]?.create_business_with_owner;
+      expect(firstId).toMatch(/^[0-9a-f-]{36}$/i);
+
+      const sameName = await asUser<{ create_business_with_owner: string }>(
+        ownerId,
+        `select public.create_business_with_owner('${name}', 'other', 'USD', '', '') as create_business_with_owner;`,
+      );
+      expect(sameName[0]?.create_business_with_owner).toBe(firstId);
+
+      const differentName = await asUser<{ create_business_with_owner: string }>(
+        ownerId,
+        `select public.create_business_with_owner('${otherName}', 'other', 'USD', '', '') as create_business_with_owner;`,
+      );
+      expect(differentName[0]?.create_business_with_owner).toBe(firstId);
+
+      const countRows = await sql<{ count: number }>(
+        `select count(*)::int as count from public.businesses where name in ('${name}', '${otherName}');`,
+      );
+      expect(countRows[0]?.count).toBe(1);
+    } finally {
+      await cleanupBusiness(name);
+      await cleanupBusiness(otherName);
+      await deleteTestUser(ownerId);
+    }
+  }, 30_000);
+
   it("rejects an unauthenticated call outright — no business is created", async () => {
     const name = `Atomic Unauth Test ${newId()}`;
     try {

@@ -245,10 +245,15 @@ export const createBusiness = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(createBusinessSchema, data))
   .handler(async ({ data, context }) => {
     try {
-      return await createBusinessRecord(context.supabase as Db, context.userId, data);
+      const businessId = await createBusinessRecord(context.supabase as Db, context.userId, data);
+      return { ok: true as const, businessId };
     } catch (error) {
-      if (error instanceof Error) throw error;
-      throw new Error("We couldn't create your business. Please try again.");
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "We couldn't create your business. Please try again.";
+      console.error("[createBusiness]", error);
+      return { ok: false as const, error: message };
     }
   });
 

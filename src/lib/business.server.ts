@@ -46,16 +46,38 @@ function fail(message: string): never {
   throw new AppError(message);
 }
 
+const USER_FACING_DB =
+  /already taken|already exists|already belong|signed in|choose another|does not allow|not allowed/i;
+
+function firstUserFacingLine(message: string): string {
+  return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
+}
+
+export function userFacingDbMessage(error: unknown): string {
+  const code = (error as { code?: string } | null)?.code;
+  const message = (error as { message?: string } | null)?.message?.trim() ?? "";
+  if (code === "23505") return "That value already exists. Please use a different one.";
+  if (code === "42501") return "You don't have permission to do that.";
+  // B0001/B0002 are our own RPC errors. PostgREST often remaps them to P0001.
+  if (
+    (code === "B0001" || code === "B0002" || code === "P0001") &&
+    message &&
+    USER_FACING_DB.test(message)
+  ) {
+    return firstUserFacingLine(message);
+  }
+  if (message && USER_FACING_DB.test(message)) {
+    return firstUserFacingLine(message);
+  }
+  if (code === "42883" || /schema cache|could not find the function/i.test(message)) {
+    return "Shop setup is out of date. Wait a minute and try again.";
+  }
+  return "Something went wrong saving your data. Please try again.";
+}
+
 export function dbFail(context: string, error: unknown): never {
   console.error(`[businessos] ${context}`, error);
-  const code = (error as { code?: string } | null)?.code;
-  const message = (error as { message?: string } | null)?.message;
-  if (code === "23505") fail("That value already exists. Please use a different one.");
-  if (code === "42501") fail("You don't have permission to do that.");
-  // B0001/B0002 are our own RPC validation/authorization errors — the message is
-  // hand-written and safe to show, unlike raw Postgres/RLS error text.
-  if ((code === "B0001" || code === "B0002") && message) fail(message);
-  fail("Something went wrong saving your data. Please try again.");
+  fail(userFacingDbMessage(error));
 }
 
 export type Workspace = {
@@ -333,8 +355,17 @@ export async function createBusinessRecord(
   userId: string,
   input: CreateBusinessInput,
 ) {
-  const existing = await loadWorkspace(supabase, userId);
-  if (existing) return existing.business.id;
+  // Do not call loadWorkspace here — that RPC-heavy path can fail on a missing
+  // feature-flag function and block first-time create. Membership is enough.
+  const { data: existingMember } = await supabase
+    .from("business_members")
+    .select("business_id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (existingMember?.business_id) return existingMember.business_id;
 
   const { data: businessId, error } = await supabase.rpc("create_business_with_owner", {
     _name: input.name,
