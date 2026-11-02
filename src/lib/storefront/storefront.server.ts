@@ -496,7 +496,7 @@ export async function transitionOrder(
           _reason: reason ?? null,
         } as never);
   const parsed = withProofUrl(await parseRpc("update online order", result, adminOrderSchema));
-  await flushNotificationOutboxForBusiness(supabase, businessId);
+  void flushNotificationOutboxForBusiness(supabase, businessId);
   return parsed;
 }
 

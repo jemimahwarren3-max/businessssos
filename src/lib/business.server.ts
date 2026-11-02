@@ -393,8 +393,6 @@ export async function markOnboardingComplete(supabase: Db, userId: string): Prom
 /* -------------------------------- billing -------------------------------- */
 
 export async function loadBillingSummary(supabase: Db, businessId: string) {
-  await assertMember(supabase, businessId);
-
   const [{ data: subscription, error: subError }, { data: payments, error: payError }] =
     await Promise.all([
       supabase
@@ -415,6 +413,45 @@ export async function loadBillingSummary(supabase: Db, businessId: string) {
   return { subscription: subscription ?? null, payments: payments ?? [] };
 }
 
+/* ------------------------------ categories ------------------------------ */
+
+export async function listCategories(supabase: Db, businessId: string) {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name")
+    .eq("business_id", businessId)
+    .order("name");
+  if (error) dbFail("list categories", error);
+  return data ?? [];
+}
+
+export async function createCategory(supabase: Db, businessId: string, name: string) {
+  await assertCanWrite(supabase, businessId);
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({ business_id: businessId, name: name.trim() })
+    .select("id, name")
+    .single();
+  if (error) dbFail("create category", error);
+  return data!;
+}
+
+/* ----------------------------- location stock ----------------------------- */
+
+export async function listLocationStock(
+  supabase: Db,
+  businessId: string,
+  locationId: string,
+) {
+  const { data, error } = await supabase
+    .from("product_stock")
+    .select("product_id, quantity")
+    .eq("business_id", businessId)
+    .eq("location_id", locationId);
+  if (error) dbFail("list location stock", error);
+  return data ?? [];
+}
+
 /* ------------------------------- products ------------------------------- */
 
 export async function listProducts(
@@ -423,11 +460,10 @@ export async function listProducts(
   search: string,
   supplierId?: string,
 ) {
-  await assertMember(supabase, businessId);
   let query = supabase
     .from("products")
     .select(
-      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url",
+      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
     )
     .eq("business_id", businessId)
     .is("deleted_at", null)
@@ -446,7 +482,6 @@ export async function listLocations(
   businessId: string,
   options?: { includeInactive?: boolean },
 ) {
-  await assertMember(supabase, businessId);
   let query = supabase
     .from("locations")
     .select("id, name, address, phone, is_active, is_default")
@@ -550,6 +585,7 @@ export async function createProduct(supabase: Db, input: ProductInput) {
       _tax_rate: input.taxRate,
       _description: input.description || "",
       _supplier_id: input.supplierId || null,
+      _category_id: input.categoryId || null,
     })
     .single();
   if (error || !data) dbFail("create product", error);
@@ -623,7 +659,6 @@ export async function adjustStock(supabase: Db, input: StockAdjustInput) {
 /* ------------------------------ customers ------------------------------ */
 
 export async function listCustomers(supabase: Db, businessId: string, search: string) {
-  await assertMember(supabase, businessId);
   let query = supabase
     .from("customers")
     .select("id, name, phone, email, outstanding_balance, created_at")
@@ -787,7 +822,7 @@ export async function createSale(supabase: Db, input: SaleInput) {
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("create sale", error);
-  await flushNotificationOutboxForBusiness(supabase, input.businessId);
+  void flushNotificationOutboxForBusiness(supabase, input.businessId);
   return { id: data as string };
 }
 
@@ -807,7 +842,6 @@ export async function listSales(
   businessId: string,
   search: string,
 ): Promise<SaleRow[]> {
-  await assertMember(supabase, businessId);
   let query = supabase
     .from("sales")
     .select(
@@ -833,7 +867,6 @@ export async function listSales(
 }
 
 export async function getSaleDetail(supabase: Db, businessId: string, saleId: string) {
-  await assertMember(supabase, businessId);
   const [saleRes, itemsRes, refundsRes] = await Promise.all([
     supabase
       .from("sales")
@@ -929,7 +962,6 @@ export async function listInvoices(
   businessId: string,
   search: string,
 ): Promise<InvoiceRow[]> {
-  await assertMember(supabase, businessId);
   let query = supabase
     .from("invoices")
     .select(
@@ -956,7 +988,6 @@ export async function listInvoices(
 }
 
 export async function getInvoiceDetail(supabase: Db, businessId: string, invoiceId: string) {
-  await assertMember(supabase, businessId);
   const [invoiceRes, itemsRes, paymentsRes] = await Promise.all([
     supabase
       .from("invoices")
@@ -1038,7 +1069,6 @@ export async function listRecurringInvoices(
   supabase: Db,
   businessId: string,
 ): Promise<RecurringInvoiceRow[]> {
-  await assertMember(supabase, businessId);
   const { data, error } = await supabase
     .from("recurring_invoices")
     .select(
@@ -1149,7 +1179,6 @@ export async function listQuotes(
   businessId: string,
   search: string,
 ): Promise<QuoteRow[]> {
-  await assertMember(supabase, businessId);
   let query = supabase
     .from("quotes")
     .select(
@@ -1176,7 +1205,6 @@ export async function listQuotes(
 }
 
 export async function getQuoteDetail(supabase: Db, businessId: string, quoteId: string) {
-  await assertMember(supabase, businessId);
   const [quoteRes, itemsRes] = await Promise.all([
     supabase
       .from("quotes")
@@ -1245,7 +1273,6 @@ export async function listPurchaseOrders(
   supabase: Db,
   businessId: string,
 ): Promise<PurchaseOrderRow[]> {
-  await assertMember(supabase, businessId);
   const { data, error } = await supabase
     .from("purchase_orders")
     .select("id, po_number, supplier_id, order_date, total, status, suppliers(name)")
@@ -1346,7 +1373,6 @@ export async function listExpenses(
   businessId: string,
   days: number,
 ): Promise<ExpenseRow[]> {
-  await assertMember(supabase, businessId);
   const since = new Date();
   since.setDate(since.getDate() - days);
   const { data, error } = await supabase
@@ -1630,8 +1656,6 @@ export async function loadDashboard(
   businessId: string,
   days: number,
 ): Promise<DashboardData> {
-  await assertMember(supabase, businessId);
-
   const now = new Date();
   const windowStart = new Date(now);
   windowStart.setDate(windowStart.getDate() - (days * 2 - 1));
@@ -1854,8 +1878,6 @@ export async function loadReports(
   businessId: string,
   days: number,
 ): Promise<ReportsData> {
-  await assertMember(supabase, businessId);
-
   const now = new Date();
   const windowStart = new Date(now);
   windowStart.setDate(windowStart.getDate() - (days - 1));

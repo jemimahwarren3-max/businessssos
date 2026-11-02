@@ -145,7 +145,7 @@ export async function retryOrderEmailDelivery(supabase: Db, businessId: string, 
     _outbox_id: outboxId,
   });
   if (result.error) dbFail("retry order email delivery", result.error);
-  await flushNotificationOutboxForBusiness(supabase, businessId);
+  void flushNotificationOutboxForBusiness(supabase, businessId);
   const parsed = orderEmailDeliverySchema.safeParse(result.data);
   if (!parsed.success) return [];
   return parsed.data;

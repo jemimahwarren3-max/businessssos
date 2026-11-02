@@ -1,4 +1,4 @@
-import { AppError, assertMember, listCustomers, listProducts, type Db } from "./business.server";
+import { AppError, listCustomers, listProducts, type Db } from "./business.server";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "./business.schemas";
 import { getAIProvider } from "./ai/get-provider.server";
 import type { ChatMessage } from "./ai/provider";
@@ -200,8 +200,6 @@ export async function parseQuickEntry(
   businessId: string,
   text: string,
 ): Promise<QuickEntryDraft> {
-  await assertMember(supabase, businessId);
-
   const withinDailyLimit = await checkRateLimit(
     `quick-entry-daily:business:${businessId}`,
     AI_LIMITS.quickEntryDaily,

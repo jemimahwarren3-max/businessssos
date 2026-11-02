@@ -39,6 +39,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   addInvoice,
   addPayment,
@@ -130,6 +131,7 @@ function Invoices() {
   const canRecordPayment = hasPermission(workspace.data, "payments.record");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [items, setItems] = useState<LineItemInput[]>([{ ...EMPTY_ITEM }]);
@@ -170,9 +172,9 @@ function Invoices() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const invoices = useQuery({
-    queryKey: ["invoices", businessId, search],
+    queryKey: ["invoices", businessId, debouncedSearch],
     enabled: Boolean(businessId),
-    queryFn: () => fetchInvoices({ data: { businessId: businessId!, search } }),
+    queryFn: () => fetchInvoices({ data: { businessId: businessId!, search: debouncedSearch } }),
   });
 
   const customers = useQuery({
