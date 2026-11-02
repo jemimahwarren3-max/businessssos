@@ -302,7 +302,7 @@ function Landing() {
               <div className="overflow-hidden rounded-2xl border border-border shadow-soft">
                 <TemplatePreview
                   template={template}
-                  className="aspect-[3/4] h-auto w-full rounded-none border-0"
+                  className="aspect-[4/5] h-auto w-full rounded-none border-0"
                 />
               </div>
               <p className="mt-3 font-display text-xl">{template.name}</p>
