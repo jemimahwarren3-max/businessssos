@@ -596,24 +596,40 @@ export async function deactivateLocation(
   if (error) dbFail("deactivate location", error);
 }
 
+type CreateProductRpcArgs = Database["public"]["Functions"]["create_product"]["Args"];
+
+/**
+ * Named args for create_product. Staging still has the 13-arg function
+ * (no _category_id). PostgREST rejects extra named parameters with PGRST202,
+ * which the UI shows as "Shop setup is out of date".
+ * Only send _category_id when the merchant actually chose one so onboarding
+ * and inventory add still match the current function.
+ */
+export function createProductRpcArgs(input: ProductInput): CreateProductRpcArgs {
+  const args: CreateProductRpcArgs = {
+    _business_id: input.businessId,
+    _name: input.name,
+    _sku: input.sku || "",
+    _barcode: input.barcode || "",
+    _unit: input.unit,
+    _cost_price: input.costPrice,
+    _selling_price: input.sellingPrice,
+    _stock: input.stock,
+    _min_stock: input.minStock,
+    _tax_rate: input.taxRate,
+    _description: input.description || "",
+    _supplier_id: input.supplierId || null,
+  };
+  if (input.categoryId) {
+    args._category_id = input.categoryId;
+  }
+  return args;
+}
+
 export async function createProduct(supabase: Db, input: ProductInput) {
   await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase
-    .rpc("create_product", {
-      _business_id: input.businessId,
-      _name: input.name,
-      _sku: input.sku || "",
-      _barcode: input.barcode || "",
-      _unit: input.unit,
-      _cost_price: input.costPrice,
-      _selling_price: input.sellingPrice,
-      _stock: input.stock,
-      _min_stock: input.minStock,
-      _tax_rate: input.taxRate,
-      _description: input.description || "",
-      _supplier_id: input.supplierId || null,
-      _category_id: input.categoryId || null,
-    })
+    .rpc("create_product", createProductRpcArgs(input))
     .single();
   if (error || !data) dbFail("create product", error);
   return data;
