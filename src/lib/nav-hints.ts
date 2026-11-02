@@ -14,6 +14,8 @@ export const MAIN_NAV_HINTS: Record<string, string> = {
   "/invoices": "Bill customers, track what's owed, and record when they pay.",
   "/quotes": "Send a price estimate before you turn it into an invoice or sale.",
   "/customers": "People you sell to — balances, contact info, and history.",
+  "/lay-by":
+    "Hold goods for a customer while they pay in instalments. Stock comes off only when they collect.",
   "/expenses": "Money going out: rent, stock, fuel, and other running costs.",
   "/reports": "Sales, profit, and tax-style summaries over a date range.",
   "/growth": "Draft campaigns and see how visitors and orders are trending.",

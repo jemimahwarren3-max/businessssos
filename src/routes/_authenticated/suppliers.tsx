@@ -28,11 +28,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { LineItemsEditor } from "@/components/line-items-editor";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   addPurchaseOrder,
   addSupplier,
+  addSupplierPayment,
   deleteSupplierFn,
   getProducts,
   getSuppliers,
@@ -40,11 +41,13 @@ import {
 } from "@/lib/business.functions";
 import {
   purchaseOrderSchema,
+  supplierPaymentSchema,
   supplierSchema,
   updateSupplierSchema,
   type LineItemInput,
 } from "@/lib/business.schemas";
-import { readableError } from "@/lib/format";
+import { formatMoney, readableError } from "@/lib/format";
+import { CREDIT_REPAYMENT_RAILS, railToPaymentMethod } from "@/lib/payment-rails";
 import { computeTotals } from "@/lib/invoice-calc";
 import { buildPurchaseOrderWhatsAppMessage, buildWhatsAppLink } from "@/lib/whatsapp";
 import { downloadXlsx } from "@/lib/xlsx-export";
@@ -80,6 +83,7 @@ type SupplierRow = {
   email: string | null;
   address: string | null;
   notes: string | null;
+  outstanding_amount: number;
 };
 
 const EMPTY = { name: "", contactPerson: "", phone: "", email: "", address: "", notes: "" };
@@ -92,6 +96,7 @@ function Suppliers() {
   const currency = workspace.data?.business.currency ?? "USD";
   const businessName = workspace.data?.business.name ?? "";
   const canManage = ["owner", "admin", "manager"].includes(workspace.data?.role ?? "");
+  const canPay = hasPermission(workspace.data, "payments.record");
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search);
@@ -100,6 +105,10 @@ function Suppliers() {
   const [form, setForm] = useState(EMPTY);
   const [orderTarget, setOrderTarget] = useState<SupplierRow | null>(null);
   const [orderItems, setOrderItems] = useState<LineItemInput[]>([{ ...EMPTY_ITEM }]);
+  const [payTarget, setPayTarget] = useState<SupplierRow | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payRail, setPayRail] = useState("cash");
+  const [payReference, setPayReference] = useState("");
 
   const fetchSuppliers = useServerFn(getSuppliers);
   const createSupplierFn = useServerFn(addSupplier);
@@ -107,6 +116,7 @@ function Suppliers() {
   const removeSupplierFn = useServerFn(deleteSupplierFn);
   const fetchProducts = useServerFn(getProducts);
   const createPurchaseOrderFn = useServerFn(addPurchaseOrder);
+  const paySupplierFn = useServerFn(addSupplierPayment);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -160,6 +170,28 @@ function Suppliers() {
     },
     onError: (error: Error) =>
       toast.error(readableError(error, "We couldn't create that purchase order.")),
+  });
+
+  const payMutation = useMutation({
+    mutationFn: async () => {
+      const parsed = supplierPaymentSchema.parse({
+        businessId,
+        supplierId: payTarget!.id,
+        amount: Number(payAmount),
+        method: railToPaymentMethod(payRail),
+        rail: payRail,
+        reference: payReference,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      return paySupplierFn({ data: parsed });
+    },
+    onSuccess: async () => {
+      setPayTarget(null);
+      toast.success("Supplier payment recorded.");
+      await queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "We couldn't record that supplier payment.")),
   });
 
   const saveMutation = useMutation({
@@ -226,13 +258,14 @@ function Suppliers() {
     downloadXlsx("suppliers", [
       {
         name: "Suppliers",
-        headers: ["Name", "Contact person", "Phone", "Email", "Address", "Notes"],
+        headers: ["Name", "Contact person", "Phone", "Email", "Address", "Outstanding", "Notes"],
         rows: rows.map((s) => [
           s.name,
           s.contact_person ?? "",
           s.phone ?? "",
           s.email ?? "",
           s.address ?? "",
+          s.outstanding_amount,
           s.notes ?? "",
         ]),
       },
@@ -247,7 +280,7 @@ function Suppliers() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Suppliers"
-      subtitle="Who you buy from, and how to reach them."
+      subtitle="Who you buy from, what you still owe them after receiving a purchase order, and how to reach them."
       actions={
         <>
           {rows.length > 0 ? (
@@ -303,55 +336,81 @@ function Suppliers() {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {rows.map((supplier) => (
-              <li
-                key={supplier.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-4"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{supplier.name}</p>
-                  <p className="truncate text-[13px] text-muted-foreground">
-                    {supplier.contact_person ? `${supplier.contact_person} · ` : ""}
-                    {supplier.phone || supplier.email || "No contact details"}
-                  </p>
-                </div>
-                {canManage ? (
-                  <div className="flex shrink-0 gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5"
-                      onClick={() => {
-                        setOrderItems([{ ...EMPTY_ITEM }]);
-                        setOrderTarget(supplier);
-                      }}
-                    >
-                      <MessageCircle className="size-3.5" aria-hidden="true" /> Order
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => openEdit(supplier)}
-                      aria-label="Edit supplier"
-                    >
-                      <Pencil className="size-4" aria-hidden="true" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => {
-                        if (confirm("Delete this supplier? This can't be undone.")) {
-                          deleteMutation.mutate(supplier.id);
-                        }
-                      }}
-                      aria-label="Delete supplier"
-                    >
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </Button>
+            {rows.map((supplier) => {
+              const owed = Number(supplier.outstanding_amount ?? 0);
+              return (
+                <li
+                  key={supplier.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{supplier.name}</p>
+                    <p className="truncate text-[13px] text-muted-foreground">
+                      {supplier.contact_person ? `${supplier.contact_person} · ` : ""}
+                      {supplier.phone || supplier.email || "No contact details"}
+                    </p>
                   </div>
-                ) : null}
-              </li>
-            ))}
+                  <span
+                    className={
+                      owed > 0
+                        ? "shrink-0 rounded-lg bg-warning-soft px-2.5 py-1 text-[13px] font-semibold tabular-nums text-warning-foreground"
+                        : "shrink-0 text-[13px] text-muted-foreground"
+                    }
+                  >
+                    {owed > 0 ? `You owe ${formatMoney(owed, currency)}` : "Settled"}
+                  </span>
+                  {canManage ? (
+                    <div className="flex shrink-0 gap-1.5">
+                      {canPay && owed > 0 ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPayAmount(String(owed));
+                            setPayRail("cash");
+                            setPayReference("");
+                            setPayTarget(supplier);
+                          }}
+                        >
+                          Pay
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => {
+                          setOrderItems([{ ...EMPTY_ITEM }]);
+                          setOrderTarget(supplier);
+                        }}
+                      >
+                        <MessageCircle className="size-3.5" aria-hidden="true" /> Order
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => openEdit(supplier)}
+                        aria-label="Edit supplier"
+                      >
+                        <Pencil className="size-4" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => {
+                          if (confirm("Delete this supplier? This can't be undone.")) {
+                            deleteMutation.mutate(supplier.id);
+                          }
+                        }}
+                        aria-label="Delete supplier"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -484,6 +543,73 @@ function Suppliers() {
                 <MessageCircle className="size-4" aria-hidden="true" />
               )}
               Create order &amp; message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(payTarget)}
+        onOpenChange={(next) => {
+          if (!next) setPayTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pay a supplier</DialogTitle>
+            <DialogDescription>
+              {payTarget
+                ? `You owe ${payTarget.name} ${formatMoney(Number(payTarget.outstanding_amount), currency)}. This reduces the supplier book. It does not confirm EcoCash or bank money left.`
+                : "Record a supplier payment."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="supplier-pay-amount">Amount</Label>
+              <Input
+                id="supplier-pay-amount"
+                inputMode="decimal"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="supplier-pay-rail">How you paid</Label>
+              <select
+                id="supplier-pay-rail"
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                value={payRail}
+                onChange={(e) => setPayRail(e.target.value)}
+              >
+                {CREDIT_REPAYMENT_RAILS.map((rail) => (
+                  <option key={rail.value} value={rail.value}>
+                    {rail.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="supplier-pay-ref">Reference (optional)</Label>
+              <Input
+                id="supplier-pay-ref"
+                value={payReference}
+                maxLength={120}
+                onChange={(e) => setPayReference(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPayTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => payMutation.mutate()}
+              disabled={payMutation.isPending || Number(payAmount) <= 0}
+            >
+              {payMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Save payment
             </Button>
           </DialogFooter>
         </DialogContent>

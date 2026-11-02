@@ -24,6 +24,7 @@ describe("Kwetuu public site contract", () => {
       logoUrl: null,
       address: "",
       currency: "USD",
+      verified: false,
     }));
     expect(featuredPublishedShops(shops)).toHaveLength(6);
     expect(featuredPublishedShops(shops).map((shop) => shop.slug)).toEqual(

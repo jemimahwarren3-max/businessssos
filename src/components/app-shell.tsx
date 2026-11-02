@@ -80,6 +80,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
       { to: "/inventory", label: "Inventory", icon: Boxes },
       { to: "/customers", label: "Customers", icon: Users },
+      { to: "/lay-by", label: "Lay-by", icon: Wallet },
       { to: "/invoices", label: "Invoices", icon: FileText },
       { to: "/quotes", label: "Quotes", icon: FileCheck2 },
       { to: "/expenses", label: "Expenses", icon: Receipt },

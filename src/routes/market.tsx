@@ -185,6 +185,10 @@ function MarketPage() {
           ) : (
             <div className="mt-4">
               <PublishedShopGrid shops={market.shops} />
+              <p className="mt-3 text-xs text-muted-foreground">
+                Verified on Kwetuu means the shop has a published verified-purchase review. It is
+                not a government licence or a KYC badge.
+              </p>
             </div>
           )}
         </section>

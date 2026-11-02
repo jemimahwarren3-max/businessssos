@@ -11,9 +11,14 @@ import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.ser
 import type {
   ConvertQuoteInput,
   CreateBusinessInput,
+  ApplyDepositInput,
+  CollectLaybyInput,
+  CreateLaybyInput,
   CreditPaymentInput,
+  CustomerDepositInput,
   CustomerImportRow,
   CustomerInput,
+  LaybyInstalmentInput,
   ExpenseImportRow,
   ExpenseInput,
   InvoiceInput,
@@ -33,6 +38,7 @@ import type {
   SaleLineImportRow,
   StockAdjustInput,
   SupplierInput,
+  SupplierPaymentInput,
   UpdateSupplierInput,
 } from "./business.schemas";
 
@@ -48,7 +54,7 @@ function fail(message: string): never {
 }
 
 const USER_FACING_DB =
-  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert/i;
+  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert|supplier|deposit|lay-by|collect-after|held deposit|not ready to collect|already paid in full/i;
 
 function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
@@ -527,7 +533,7 @@ export async function listProducts(
   let query = supabase
     .from("products")
     .select(
-      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
+      "id, name, sku, barcode, unit, cost_price, selling_price, wholesale_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
     )
     .eq("business_id", businessId)
     .is("deleted_at", null)
@@ -669,6 +675,14 @@ export async function createProduct(supabase: Db, input: ProductInput) {
     .rpc("create_product", createProductRpcArgs(input))
     .single();
   if (error || !data) dbFail("create product", error);
+  if (typeof input.wholesalePrice === "number") {
+    const { error: wholesaleError } = await supabase
+      .from("products")
+      .update({ wholesale_price: input.wholesalePrice })
+      .eq("id", data.id)
+      .eq("business_id", input.businessId);
+    if (wholesaleError) dbFail("save wholesale price", wholesaleError);
+  }
   return data;
 }
 
@@ -707,6 +721,16 @@ export async function importProducts(
           : "couldn't be saved";
       errors.push(`Row ${index + 2}: ${row.name || "unnamed product"}, ${reason}`);
       continue;
+    }
+    if (typeof row.wholesalePrice === "number") {
+      const productId = data[0]?.id;
+      if (productId) {
+        await supabase
+          .from("products")
+          .update({ wholesale_price: row.wholesalePrice })
+          .eq("id", productId)
+          .eq("business_id", input.businessId);
+      }
     }
     imported++;
   }
@@ -1301,6 +1325,160 @@ export async function recordCustomerCreditPayment(supabase: Db, input: CreditPay
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("record credit repayment", error);
+  return { id: data as string };
+}
+
+export async function recordSupplierPayment(supabase: Db, input: SupplierPaymentInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("record_supplier_payment", {
+    _business_id: input.businessId,
+    _supplier_id: input.supplierId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("record supplier payment", error);
+  return { id: data as string };
+}
+
+export async function takeCustomerDeposit(supabase: Db, input: CustomerDepositInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("take_customer_deposit", {
+    _business_id: input.businessId,
+    _customer_id: input.customerId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("take customer deposit", error);
+  return { id: data as string };
+}
+
+export async function refundCustomerDeposit(
+  supabase: Db,
+  input: { businessId: string; depositId: string },
+) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("refund_customer_deposit", {
+    _business_id: input.businessId,
+    _deposit_id: input.depositId,
+  });
+  if (error) dbFail("refund customer deposit", error);
+  return { id: data as string };
+}
+
+export async function applyCustomerDeposit(supabase: Db, input: ApplyDepositInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("apply_customer_deposit", {
+    _business_id: input.businessId,
+    _deposit_id: input.depositId,
+    _target: input.target,
+    _layby_id: (input.laybyId ?? null) as never,
+  });
+  if (error) dbFail("apply customer deposit", error);
+  return { id: data as string };
+}
+
+export async function listCustomerDeposits(supabase: Db, businessId: string, customerId?: string) {
+  let query = supabase
+    .from("customer_deposits")
+    .select(
+      "id, customer_id, amount, status, method, rail, reference, applied_to, layby_id, created_at, customers(name)",
+    )
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (customerId) query = query.eq("customer_id", customerId);
+  const { data, error } = await query;
+  if (error) dbFail("list customer deposits", error);
+  return data ?? [];
+}
+
+export async function listLaybys(supabase: Db, businessId: string) {
+  const { data, error } = await supabase
+    .from("laybys")
+    .select(
+      "id, layby_number, status, total, amount_paid, collect_after, notes, created_at, customer_id, sale_id, customers(name, phone)",
+    )
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) dbFail("list lay-bys", error);
+  return data ?? [];
+}
+
+export async function listLaybyItems(supabase: Db, businessId: string, laybyId: string) {
+  const { data, error } = await supabase
+    .from("layby_items")
+    .select("id, product_id, name, quantity, unit_price, tax, line_total")
+    .eq("business_id", businessId)
+    .eq("layby_id", laybyId)
+    .order("created_at", { ascending: true });
+  if (error) dbFail("list lay-by items", error);
+  return data ?? [];
+}
+
+export async function createLayby(supabase: Db, input: CreateLaybyInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
+  const { data, error } = await supabase.rpc("create_layby", {
+    _business_id: input.businessId,
+    _customer_id: input.customerId,
+    _items: input.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    })),
+    _collect_after: (input.collectAfter ?? null) as never,
+    _notes: (input.notes || null) as never,
+  });
+  if (error) dbFail("create lay-by", error);
+  return { id: data as string };
+}
+
+export async function recordLaybyInstalment(supabase: Db, input: LaybyInstalmentInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("record_layby_instalment", {
+    _business_id: input.businessId,
+    _layby_id: input.laybyId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("record lay-by instalment", error);
+  return { id: data as string };
+}
+
+export async function collectLayby(supabase: Db, input: CollectLaybyInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
+  const { data, error } = await supabase.rpc("collect_layby", {
+    _business_id: input.businessId,
+    _layby_id: input.laybyId,
+    _location_id: (input.locationId ?? null) as never,
+  });
+  if (error) dbFail("collect lay-by", error);
+  return { id: data as string };
+}
+
+export async function cancelLayby(supabase: Db, input: { businessId: string; laybyId: string }) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
+  const { data, error } = await supabase.rpc("cancel_layby", {
+    _business_id: input.businessId,
+    _layby_id: input.laybyId,
+  });
+  if (error) dbFail("cancel lay-by", error);
   return { id: data as string };
 }
 

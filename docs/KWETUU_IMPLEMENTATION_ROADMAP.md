@@ -1,7 +1,7 @@
 # Implementation roadmap
 
 **Date:** 2 November 2026  
-**Status:** Stage 2 (How people actually pay) implemented on this branch. Later stages still wait for approval.
+**Status:** Stage 3 (Notebook and delivery) implemented on this branch. Later stages still wait for approval.
 
 Do not implement all 100 items. Each stage below is a shippable slice with migrations, RLS, UI, empty/error states, tests, and a regression pass on POS + checkout.
 
@@ -57,14 +57,20 @@ No application behaviour change.
 
 **Out:** FX ledger / `fx_rates`, silent conversion, shop-order split pay, EcoCash APIs.
 
-## Stage 3 — Notebook and delivery
+## Stage 3 — Notebook and delivery (done in this PR)
 
-- Supplier outstanding hooked to POs.
-- Deposits.
-- Lay-by.
-- Harare / Bulawayo / Mutare zone presets (data).
-- Public verified-store badge on `/market`.
-- Optional wholesale price column.
+**Goal:** The morning notebook (who we owe, deposits, lay-by) and Zimbabwe delivery/market labels, without new vendors.
+
+**In:**
+
+- Supplier outstanding hooked to POs; `record_supplier_payment`.
+- Customer deposits (held / applied / refunded).
+- Lay-by with instalments; stock deducted only at collect; collect does not post cash again.
+- Harare / Bulawayo / Mutare zone presets (client data, fee 0).
+- Public verified-store badge on `/market` (verified-purchase review, not KYC).
+- Optional `products.wholesale_price` column. POS still uses `selling_price`.
+
+**Out:** FX ledger, EcoCash APIs, variants, posters, i18n, stock transfers, shop-order split pay.
 
 ## Stage 4 — Offline income protection
 
@@ -100,4 +106,4 @@ Copied from the brief; this is the bar:
 
 ## Decision needed
 
-Stage 1 and Stage 2 are implemented. Approve **Stage 3 — Notebook and delivery** before the next slice.
+Stage 1, Stage 2, and Stage 3 are implemented. Approve **Stage 4 — Offline income protection** before the next slice.

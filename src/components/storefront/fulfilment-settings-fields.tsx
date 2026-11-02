@@ -1,7 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { CollectionPoint, DeliveryZone } from "@/lib/storefront/delivery-zones";
+import {
+  mergeDeliveryZonePresets,
+  ZIMBABWE_DELIVERY_PRESETS,
+  type CollectionPoint,
+  type DeliveryZone,
+} from "@/lib/storefront/delivery-zones";
 
 function newZone(): DeliveryZone {
   return {
@@ -236,7 +241,7 @@ export function FulfilmentSettingsFields(props: {
 
           {!quoteRequired && pricingMethod === "zone" ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">Delivery areas</p>
                 <Button
                   type="button"
@@ -247,6 +252,27 @@ export function FulfilmentSettingsFields(props: {
                   Add area
                 </Button>
               </div>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  Object.keys(ZIMBABWE_DELIVERY_PRESETS) as Array<
+                    keyof typeof ZIMBABWE_DELIVERY_PRESETS
+                  >
+                ).map((city) => (
+                  <Button
+                    key={city}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => props.onZonesChange(mergeDeliveryZonePresets(zones, city))}
+                  >
+                    Add {city} areas
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Presets add suburb names with a fee of 0 for you to fill in. Existing areas with the
+                same name are kept. Up to 25 areas.
+              </p>
               {zones.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                   Add at least one enabled delivery area.
