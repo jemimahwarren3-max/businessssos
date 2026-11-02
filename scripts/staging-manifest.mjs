@@ -63,6 +63,7 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261027230000_order_fulfilment_stage8.sql" },
   { file: "20261031080000_fix_outbox_branding.sql" },
   { file: "20261031163000_create_business_idempotent.sql" },
+  { file: "20261102010000_fix_browse_marketplace_readonly.sql" },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
