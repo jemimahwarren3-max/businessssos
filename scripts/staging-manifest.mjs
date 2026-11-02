@@ -110,6 +110,11 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
+  {
+    // Older manifest entries recreate 8-arg create_sale on every apply.
+    // Always drop leftover overloads so 8-arg calls uniquely match Stage 2.
+    file: "20261102161000_create_sale_unique.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

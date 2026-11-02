@@ -21,8 +21,14 @@ comment on column public.payments.currency is
 comment on column public.payments.amount_original is
   'Amount handed over in payments.currency. amount is the business-currency allocation toward the sale.';
 
--- 9-arg create_sale from morning desk; 10th arg _tenders is optional.
+-- Drop every prior create_sale overload. Older staging-manifest files
+-- recreate the 8-arg body; leaving it next to the 10-arg function makes
+-- `create_sale(uuid, uuid, int, …)` ambiguous.
+drop function if exists public.create_sale(uuid, uuid, numeric, public.payment_method, text, jsonb);
+drop function if exists public.create_sale(uuid, uuid, numeric, public.payment_method, text, jsonb, text);
+drop function if exists public.create_sale(uuid, uuid, numeric, public.payment_method, text, jsonb, text, uuid);
 drop function if exists public.create_sale(uuid, uuid, numeric, public.payment_method, text, jsonb, text, uuid, text);
+drop function if exists public.create_sale(uuid, uuid, numeric, public.payment_method, text, jsonb, text, uuid, text, jsonb);
 
 create or replace function public.create_sale(
   _business_id uuid,
