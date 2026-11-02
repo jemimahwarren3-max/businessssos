@@ -115,6 +115,15 @@ export const STAGING_MIGRATION_MANIFEST = [
     // Always drop leftover overloads so 8-arg calls uniquely match Stage 2.
     file: "20261102161000_create_sale_unique.sql",
   },
+  {
+    file: "20261102180000_notebook_delivery.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'customer_deposits'
+      ) as skip
+    `,
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

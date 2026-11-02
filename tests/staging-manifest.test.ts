@@ -36,6 +36,7 @@ const FILES = [
   "20261102140000_morning_desk.sql",
   "20261102160000_split_tenders.sql",
   "20261102161000_create_sale_unique.sql",
+  "20261102180000_notebook_delivery.sql",
 ];
 
 describe("staging migration manifest", () => {
@@ -46,6 +47,20 @@ describe("staging migration manifest", () => {
       const sql = readFileSync(path, "utf8");
       expect(sql.length).toBeGreaterThan(20);
     }
+  });
+
+  it("installs notebook and delivery RPCs without rewriting create_sale", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261102180000_notebook_delivery.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("record_supplier_payment");
+    expect(sql).toContain("take_customer_deposit");
+    expect(sql).toContain("create_layby");
+    expect(sql).toContain("collect_layby");
+    expect(sql).toContain("storefront_attach_marketplace_verified");
+    expect(sql).toContain("wholesale_price");
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
   });
 
   it("installs a save_storefront wrapper that accepts food-counter", () => {

@@ -34,6 +34,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import {
   addCreditPayment,
   addCustomer,
+  addCustomerDeposit,
   addQuote,
   getCustomers,
   getProducts,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/business.functions";
 import {
   creditPaymentSchema,
+  customerDepositSchema,
   customerImportRowSchema,
   customerSchema,
   quoteSchema,
@@ -110,6 +112,10 @@ function Customers() {
   const [payAmount, setPayAmount] = useState("");
   const [payRail, setPayRail] = useState("cash");
   const [payReference, setPayReference] = useState("");
+  const [depositTarget, setDepositTarget] = useState<CustomerRow | null>(null);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositRail, setDepositRail] = useState("cash");
+  const [depositReference, setDepositReference] = useState("");
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search);
@@ -125,6 +131,7 @@ function Customers() {
   const createQuoteFn = useServerFn(addQuote);
   const importCustomersRows = useServerFn(importCustomersFn);
   const recordCreditFn = useServerFn(addCreditPayment);
+  const takeDepositFn = useServerFn(addCustomerDeposit);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -218,6 +225,32 @@ function Customers() {
     },
     onError: (error: Error) =>
       toast.error(readableError(error, "We couldn't record that repayment.")),
+  });
+
+  const depositMutation = useMutation({
+    mutationFn: async () => {
+      const parsed = customerDepositSchema.parse({
+        businessId,
+        customerId: depositTarget!.id,
+        amount: depositAmount,
+        method: railToPaymentMethod(depositRail),
+        rail: depositRail,
+        reference: depositReference,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      return takeDepositFn({ data: parsed });
+    },
+    onSuccess: async () => {
+      toast.success("Deposit held. Apply it to credit or a lay-by from Lay-by.");
+      setDepositTarget(null);
+      setDepositAmount("");
+      setDepositReference("");
+      setDepositRail("cash");
+      await queryClient.invalidateQueries({ queryKey: ["customer-deposits"] });
+      await queryClient.invalidateQueries({ queryKey: ["daily-takings"] });
+      await queryClient.invalidateQueries({ queryKey: ["cash-drawer"] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "We couldn't take that deposit.")),
   });
 
   if (!workspace.data) {
@@ -350,6 +383,21 @@ function Customers() {
                     {owed > 0 ? `Owes ${formatMoney(owed, currency)}` : "Settled"}
                   </span>
                   <div className="col-span-2 flex flex-wrap justify-end gap-2 sm:col-span-1">
+                    {canPay ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => {
+                          setDepositAmount("");
+                          setDepositRail("cash");
+                          setDepositReference("");
+                          setDepositTarget(customer);
+                        }}
+                      >
+                        Take deposit
+                      </Button>
+                    ) : null}
                     {canPay && owed > 0 ? (
                       <Button
                         size="sm"
@@ -567,6 +615,73 @@ function Customers() {
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
               ) : null}
               Save repayment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(depositTarget)}
+        onOpenChange={(next) => {
+          if (!next) setDepositTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Take a deposit</DialogTitle>
+            <DialogDescription>
+              {depositTarget
+                ? `Hold money from ${depositTarget.name} without creating a sale or invoice. Apply it later to credit or a lay-by.`
+                : "Take a deposit."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="deposit-amount">Amount</Label>
+              <Input
+                id="deposit-amount"
+                inputMode="decimal"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deposit-rail">How they paid</Label>
+              <select
+                id="deposit-rail"
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                value={depositRail}
+                onChange={(e) => setDepositRail(e.target.value)}
+              >
+                {CREDIT_REPAYMENT_RAILS.map((rail) => (
+                  <option key={rail.value} value={rail.value}>
+                    {rail.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deposit-ref">Reference (optional)</Label>
+              <Input
+                id="deposit-ref"
+                value={depositReference}
+                maxLength={120}
+                onChange={(e) => setDepositReference(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDepositTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => depositMutation.mutate()}
+              disabled={depositMutation.isPending || Number(depositAmount) <= 0}
+            >
+              {depositMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Hold deposit
             </Button>
           </DialogFooter>
         </DialogContent>

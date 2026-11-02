@@ -88,6 +88,12 @@ const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
     aliases: ["price", "sellprice", "retailprice", "retail", "unitprice"],
   },
   {
+    key: "wholesalePrice",
+    label: "Wholesale Price",
+    required: false,
+    aliases: ["wholesaleselling", "tradersprice", "caseprice"],
+  },
+  {
     key: "stock",
     label: "Stock",
     required: false,
@@ -125,6 +131,7 @@ type ProductRow = {
   unit: string;
   cost_price: number;
   selling_price: number;
+  wholesale_price: number | null;
   stock: number;
   min_stock: number;
   image_url: string | null;
@@ -358,6 +365,18 @@ function Inventory() {
         ),
       },
       {
+        accessorKey: "wholesale_price",
+        header: "Wholesale",
+        cell: ({ row }) =>
+          row.original.wholesale_price == null ? (
+            <span className="text-muted-foreground">—</span>
+          ) : (
+            <span className="tabular-nums text-muted-foreground">
+              {formatMoney(Number(row.original.wholesale_price), currency)}
+            </span>
+          ),
+      },
+      {
         accessorKey: "stock",
         header: "Stock",
         cell: ({ row }) => <StockBadge product={row.original} />,
@@ -500,13 +519,14 @@ function Inventory() {
     downloadXlsx("inventory", [
       {
         name: "Inventory",
-        headers: ["Name", "SKU", "Unit", "Cost", "Price", "Stock", "Min stock"],
+        headers: ["Name", "SKU", "Unit", "Cost", "Price", "Wholesale", "Stock", "Min stock"],
         rows: rows.map((p) => [
           p.name,
           p.sku ?? "",
           p.unit,
           p.cost_price,
           p.selling_price,
+          p.wholesale_price ?? "",
           p.stock,
           p.min_stock,
         ]),

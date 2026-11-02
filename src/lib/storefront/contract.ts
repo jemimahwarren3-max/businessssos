@@ -233,6 +233,7 @@ export const marketplaceSchema = z.object({
       logoUrl: z.string().nullable(),
       address: z.string(),
       currency: z.string(),
+      verified: z.boolean().catch(false),
     }),
   ),
   products: z.array(marketplaceProductSchema),
