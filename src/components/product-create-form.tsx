@@ -24,14 +24,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { productCreateFieldsSchema } from "@/lib/business.schemas";
 
 const NO_SUPPLIER = "none";
+const NO_CATEGORY = "none";
 
 export type ProductCreateFields = z.input<typeof productCreateFieldsSchema>;
 
-type SupplierOption = { id: string; name: string };
+type NamedOption = { id: string; name: string };
 
 type ProductCreateFormProps = {
   currency: string;
-  suppliers: SupplierOption[];
+  suppliers: NamedOption[];
+  categories: NamedOption[];
   pending: boolean;
   onCancel: () => void;
   onSubmit: (values: ProductCreateFields, photo: File | null) => void;
@@ -40,6 +42,7 @@ type ProductCreateFormProps = {
 export function ProductCreateForm({
   currency,
   suppliers,
+  categories,
   pending,
   onCancel,
   onSubmit,
@@ -59,6 +62,7 @@ export function ProductCreateForm({
       taxRate: 0,
       description: "",
       supplierId: "",
+      categoryId: "",
     },
   });
 
@@ -81,6 +85,36 @@ export function ProductCreateForm({
             </FormItem>
           )}
         />
+        {categories.length > 0 ? (
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Category (optional)</FormLabel>
+                <Select
+                  value={field.value ? field.value : NO_CATEGORY}
+                  onValueChange={(value) => field.onChange(value === NO_CATEGORY ? "" : value)}
+                >
+                  <FormControl>
+                    <SelectTrigger id="p-category">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_CATEGORY}>No category</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : null}
         <FormField
           control={form.control}
           name="sku"

@@ -71,6 +71,7 @@ export const productSchema = z.object({
   taxRate: z.coerce.number().min(0).max(100).default(0),
   description: z.string().trim().max(600).optional().or(z.literal("")),
   supplierId: z.string().uuid().optional().or(z.literal("")),
+  categoryId: z.string().uuid().optional().or(z.literal("")),
 });
 export type ProductInput = z.infer<typeof productSchema>;
 export const productCreateFieldsSchema = productSchema.omit({ businessId: true });

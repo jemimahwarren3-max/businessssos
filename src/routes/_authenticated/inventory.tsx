@@ -19,10 +19,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
+  addCategory,
   addProduct,
+  getCategories,
+  getLocationStock,
   getLocations,
   getProducts,
   getSuppliers,
@@ -106,6 +117,7 @@ type ProductRow = {
   stock: number;
   min_stock: number;
   image_url: string | null;
+  category_id: string | null;
 };
 
 type OnlineProduct = AdminStore["products"][number];
@@ -119,8 +131,13 @@ function Inventory() {
   const canEdit = ["owner", "admin", "manager"].includes(workspace.data?.role ?? "");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [stockTarget, setStockTarget] = useState<{
     product: ProductRow;
     mode: "in" | "out";
@@ -135,6 +152,9 @@ function Inventory() {
   const uploadPhoto = useServerFn(uploadProductImageFn);
   const adjustStock = useServerFn(updateStock);
   const importProductsRows = useServerFn(importProductsFn);
+  const fetchCategories = useServerFn(getCategories);
+  const createCategoryFn = useServerFn(addCategory);
+  const fetchLocationStock = useServerFn(getLocationStock);
   const fetchStorefront = useServerFn(getStorefrontAdminFn);
   const saveOnlineListing = useServerFn(saveListingFn);
   const canManageOnline = workspace.data?.permissions.includes("business.settings") ?? false;
@@ -146,14 +166,19 @@ function Inventory() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const products = useQuery({
-    queryKey: ["products", businessId, search],
+    queryKey: ["products", businessId, debouncedSearch],
     enabled: Boolean(businessId),
-    queryFn: () => fetchProducts({ data: { businessId: businessId!, search } }),
+    queryFn: () => fetchProducts({ data: { businessId: businessId!, search: debouncedSearch } }),
   });
   const storefront = useQuery({
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId),
     queryFn: () => fetchStorefront({ data: { businessId: businessId! } }),
+  });
+  const categories = useQuery({
+    queryKey: ["categories", businessId],
+    enabled: Boolean(businessId),
+    queryFn: () => fetchCategories({ data: { businessId: businessId! } }),
   });
   const onlineListingMutation = useMutation({
     mutationFn: (input: { product: OnlineProduct; published: boolean }) =>
@@ -184,10 +209,29 @@ function Inventory() {
     queryFn: () => fetchLocations({ data: { businessId: businessId! } }),
   });
 
+  const locationStock = useQuery({
+    queryKey: ["locationStock", businessId, locationFilter],
+    enabled: Boolean(businessId) && Boolean(locationFilter),
+    queryFn: () =>
+      fetchLocationStock({ data: { businessId: businessId!, locationId: locationFilter } }),
+  });
+
   const suppliers = useQuery({
     queryKey: ["suppliers", businessId],
     enabled: Boolean(businessId) && addOpen,
     queryFn: () => fetchSuppliers({ data: { businessId: businessId!, search: "" } }),
+  });
+
+  const addCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      return createCategoryFn({ data: { businessId: businessId!, name } });
+    },
+    onSuccess: () => {
+      setNewCategoryName("");
+      toast.success("Category added.");
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Couldn't add category.")),
   });
 
   const addMutation = useMutation({
@@ -243,7 +287,20 @@ function Inventory() {
     onError: (error: Error) => toast.error(readableError(error, "We couldn't update the stock.")),
   });
 
-  const rows = (products.data ?? []) as ProductRow[];
+  const allRows = (products.data ?? []) as ProductRow[];
+  const stockMap = useMemo(() => {
+    if (!locationFilter || !locationStock.data) return null;
+    const map = new Map<string, number>();
+    for (const row of locationStock.data) map.set(row.product_id, row.quantity);
+    return map;
+  }, [locationFilter, locationStock.data]);
+  const filteredRows = categoryFilter
+    ? allRows.filter((p) => p.category_id === categoryFilter)
+    : allRows;
+  const rows = stockMap
+    ? filteredRows.map((p) => ({ ...p, stock: stockMap.get(p.id) ?? 0 }))
+    : filteredRows;
+  const categoryList = categories.data ?? [];
   const columns = useMemo<ColumnDef<ProductRow, unknown>[]>(
     () => [
       {
@@ -435,6 +492,9 @@ function Inventory() {
           ) : null}
           {canEdit ? (
             <>
+              <Button variant="outline" className="gap-1.5" onClick={() => setCategoriesOpen(true)}>
+                Categories
+              </Button>
               <Button variant="outline" className="gap-1.5" onClick={() => setImportOpen(true)}>
                 <Upload className="size-4" aria-hidden="true" /> Import
               </Button>
@@ -446,26 +506,71 @@ function Inventory() {
         </>
       }
     >
-      <div className="relative max-w-sm">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, SKU or barcode"
-          className="pl-9"
-          aria-label="Search products"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm grow">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, SKU or barcode"
+            className="pl-9"
+            aria-label="Search products"
+          />
+        </div>
+        {categoryList.length > 0 ? (
+          <Select
+            value={categoryFilter || "all"}
+            onValueChange={(v) => setCategoryFilter(v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-44" aria-label="Filter by category">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categoryList.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+        {locations.data && locations.data.length > 1 ? (
+          <Select
+            value={locationFilter || "all"}
+            onValueChange={(v) => setLocationFilter(v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-48" aria-label="Filter by location">
+              <SelectValue placeholder="All locations (total)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All locations (total)</SelectItem>
+              {locations.data.map((loc) => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {loc.name}
+                  {loc.is_default ? " (default)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
       </div>
       {locations.data && locations.data.length > 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          Default location:{" "}
-          {locations.data.find((l) => l.is_default)?.name ?? locations.data[0]?.name}
-          {locations.data.length > 1
-            ? `. ${locations.data.length} active locations. Stock numbers here are the total.`
-            : ". Stock numbers here match this location."}
+          {locationFilter ? (
+            `Showing stock for: ${locations.data.find((l) => l.id === locationFilter)?.name ?? "selected location"}.`
+          ) : (
+            <>
+              Default location:{" "}
+              {locations.data.find((l) => l.is_default)?.name ?? locations.data[0]?.name}
+              {locations.data.length > 1
+                ? `. ${locations.data.length} active locations. Stock numbers here are the total.`
+                : ". Stock numbers here match this location."}
+            </>
+          )}
         </p>
       ) : null}
       {storefront.isLoading ? (
@@ -627,6 +732,7 @@ function Inventory() {
           <ProductCreateForm
             currency={currency}
             suppliers={suppliers.data ?? []}
+            categories={categoryList}
             pending={addMutation.isPending}
             onCancel={() => setAddOpen(false)}
             onSubmit={(values, photo) =>
@@ -730,6 +836,55 @@ function Inventory() {
           return outcome;
         }}
       />
+
+      <Dialog open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Product categories</DialogTitle>
+            <DialogDescription>
+              Organise products into categories. Categories are shared across your catalogue.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-60 space-y-1 overflow-y-auto">
+            {categoryList.length === 0 ? (
+              <li className="py-4 text-center text-sm text-muted-foreground">No categories yet</li>
+            ) : (
+              categoryList.map((cat) => (
+                <li key={cat.id} className="rounded-md px-3 py-2 text-sm odd:bg-muted/40">
+                  {cat.name}
+                </li>
+              ))
+            )}
+          </ul>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (newCategoryName.trim()) {
+                addCategoryMutation.mutate(newCategoryName.trim());
+              }
+            }}
+          >
+            <Input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="New category name"
+              maxLength={80}
+              className="grow"
+            />
+            <Button
+              type="submit"
+              disabled={addCategoryMutation.isPending || !newCategoryName.trim()}
+              className="gap-1.5"
+            >
+              {addCategoryMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Add
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

@@ -2379,6 +2379,7 @@ export type Database = {
         Args: {
           _barcode: string;
           _business_id: string;
+          _category_id?: string | null;
           _cost_price: number;
           _description: string;
           _location_id?: string | null;

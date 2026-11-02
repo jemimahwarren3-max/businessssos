@@ -4,6 +4,7 @@ import type { ChatMessage } from "./ai/provider";
 import { formatMoney } from "./format";
 import { checkRateLimit } from "./rate-limit.server";
 import { AI_LIMITS } from "./ai/limits.server";
+import { cacheGet, cacheSet } from "./cache/redis.server";
 
 const HISTORY_LIMIT = 12;
 
@@ -22,6 +23,10 @@ export async function buildBusinessSummary(
   businessId: string,
   days = 30,
 ): Promise<string> {
+  const cacheKey = `ai-summary:${businessId}:${days}`;
+  const cached = await cacheGet<string>(cacheKey);
+  if (cached) return cached;
+
   const [dashboard, reports] = await Promise.all([
     loadDashboard(supabase, businessId, days),
     loadReports(supabase, businessId, days),
@@ -77,7 +82,9 @@ export async function buildBusinessSummary(
     );
   }
 
-  return lines.join("\n");
+  const summary = lines.join("\n");
+  void cacheSet(cacheKey, summary, 120);
+  return summary;
 }
 
 export type AssistantMessage = { role: "user" | "assistant"; content: string };

@@ -10,6 +10,7 @@ import {
   Loader2,
   Minus,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   ShoppingCart,
@@ -37,6 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SaleReceiptPrintView, type SaleReceiptProps } from "@/components/sale-receipt-print-view";
+import { useDebounce } from "@/hooks/use-debounce";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { addSale, getCashDrawerFn, getCustomers, getProducts } from "@/lib/business.functions";
 import { PAYMENT_METHODS, saleSchema, type LineItemInput } from "@/lib/business.schemas";
@@ -129,6 +132,7 @@ function Sales() {
   const canSell = hasPermission(workspace.data, "sales.create");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState("");
@@ -138,6 +142,7 @@ function Sales() {
     number: string;
     total: number;
     offline: boolean;
+    printData: SaleReceiptProps | null;
   } | null>(null);
   // Stays the same across a failed submit so a retry can't double-book the sale;
   // only rotates once the sale actually succeeds or the cart is cleared.
@@ -163,17 +168,17 @@ function Sales() {
   const cashDrawerOpen = drawer.data?.open === true;
 
   const products = useQuery({
-    queryKey: ["products", businessId, search],
-    enabled: Boolean(businessId) && isOnline && search.trim().length > 0,
-    queryFn: () => fetchProducts({ data: { businessId: businessId!, search } }),
+    queryKey: ["products", businessId, debouncedSearch],
+    enabled: Boolean(businessId) && isOnline && debouncedSearch.trim().length > 0,
+    queryFn: () => fetchProducts({ data: { businessId: businessId!, search: debouncedSearch } }),
   });
 
   // Offline fallback for the same search, read from whatever was cached
   // while last online.
   const offlineProducts = useQuery({
-    queryKey: ["offline-products", businessId, search],
-    enabled: Boolean(businessId) && !isOnline && search.trim().length > 0,
-    queryFn: () => searchCachedProducts(businessId!, search),
+    queryKey: ["offline-products", businessId, debouncedSearch],
+    enabled: Boolean(businessId) && !isOnline && debouncedSearch.trim().length > 0,
+    queryFn: () => searchCachedProducts(businessId!, debouncedSearch),
   });
 
   // One-time-per-mount broad snapshot so offline search has more to work with
@@ -391,12 +396,37 @@ function Sales() {
       return { id: result.id, offline: false as const };
     },
     onSuccess: async (result) => {
+      const methodLabel =
+        PAYMENT_METHODS.find((m) => m.value === paymentMethod)?.label ?? paymentMethod;
+      const printData: SaleReceiptProps = {
+        businessName: workspace.data?.business.name ?? "",
+        receiptNumber: result.offline ? "Pending" : result.id.slice(0, 8),
+        date: new Date().toISOString(),
+        paymentMethod: methodLabel,
+        items: cart.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          lineTotal: item.unitPrice * item.quantity,
+        })),
+        subtotal: totals.subtotal,
+        discount: Number(discount) || 0,
+        tax: totals.tax,
+        total: totals.total,
+        currency,
+        customerName: customers.data?.find((c) => c.id === customerId)?.name,
+      };
       if (result.offline) {
         toast.success("Sale saved offline, it'll sync automatically once you're back online.");
-        setReceipt({ number: "Pending sync", total: totals.total, offline: true });
+        setReceipt({ number: "Pending sync", total: totals.total, offline: true, printData });
       } else {
         toast.success("Sale completed.");
-        setReceipt({ number: result.id.slice(0, 8), total: totals.total, offline: false });
+        setReceipt({
+          number: result.id.slice(0, 8),
+          total: totals.total,
+          offline: false,
+          printData,
+        });
       }
       await resetAfterSale();
       await queryClient.invalidateQueries({ queryKey: ["pending-sales"] });
@@ -790,13 +820,24 @@ function Sales() {
                 : `Receipt ${receipt?.number} · ${receipt ? formatMoney(receipt.total, currency) : ""}`}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            {receipt?.printData && !receipt.offline ? (
+              <Button variant="outline" className="w-full gap-1.5" onClick={() => window.print()}>
+                <Printer className="size-4" aria-hidden="true" /> Print receipt
+              </Button>
+            ) : null}
             <Button className="w-full" onClick={() => setReceipt(null)}>
               New sale
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {receipt?.printData ? (
+        <div className="hidden print:block print-area">
+          <SaleReceiptPrintView {...receipt.printData} />
+        </div>
+      ) : null}
     </AppShell>
   );
 }

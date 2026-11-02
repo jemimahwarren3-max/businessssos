@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useDebounce } from "@/hooks/use-debounce";
 import { getSale, getSales, refundSaleFn } from "@/lib/business.functions";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 
@@ -67,6 +68,7 @@ function SalesHistory() {
   const canRefund = ["owner", "admin", "manager"].includes(workspace.data?.role ?? "");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [activeSaleId, setActiveSaleId] = useState<string | null>(null);
   const [refunding, setRefunding] = useState(false);
   const [refundQuantities, setRefundQuantities] = useState<Record<string, string>>({});
@@ -83,9 +85,9 @@ function SalesHistory() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const sales = useQuery({
-    queryKey: ["sales-history", businessId, search],
+    queryKey: ["sales-history", businessId, debouncedSearch],
     enabled: Boolean(businessId),
-    queryFn: () => fetchSales({ data: { businessId: businessId!, search } }),
+    queryFn: () => fetchSales({ data: { businessId: businessId!, search: debouncedSearch } }),
   });
 
   const detail = useQuery({

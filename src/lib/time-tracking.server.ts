@@ -1,4 +1,4 @@
-import { assertMember, dbFail, type Db } from "./business.server";
+import { dbFail, type Db } from "./business.server";
 
 export type ActiveShift = {
   id: string;
@@ -25,7 +25,6 @@ export async function getMyActiveShift(
   businessId: string,
   userId: string,
 ): Promise<ActiveShift | null> {
-  await assertMember(supabase, businessId);
   const { data, error } = await supabase
     .from("time_entries")
     .select("id, clock_in, note")
@@ -60,7 +59,6 @@ export async function getMyRecentShifts(
   businessId: string,
   userId: string,
 ): Promise<{ id: string; clock_in: string; clock_out: string | null; note: string | null }[]> {
-  await assertMember(supabase, businessId);
   const { data, error } = await supabase
     .from("time_entries")
     .select("id, clock_in, clock_out, note")

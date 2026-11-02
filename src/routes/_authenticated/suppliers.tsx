@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { LineItemsEditor } from "@/components/line-items-editor";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   addPurchaseOrder,
   addSupplier,
@@ -93,6 +94,7 @@ function Suppliers() {
   const canManage = ["owner", "admin", "manager"].includes(workspace.data?.role ?? "");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY);
@@ -113,9 +115,9 @@ function Suppliers() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const suppliers = useQuery({
-    queryKey: ["suppliers", businessId, search],
+    queryKey: ["suppliers", businessId, debouncedSearch],
     enabled: Boolean(businessId),
-    queryFn: () => fetchSuppliers({ data: { businessId: businessId!, search } }),
+    queryFn: () => fetchSuppliers({ data: { businessId: businessId!, search: debouncedSearch } }),
   });
 
   const orderProducts = useQuery({

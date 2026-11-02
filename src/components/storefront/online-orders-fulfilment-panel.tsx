@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OrderEmailDeliveries } from "@/components/storefront/order-email-deliveries";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
+import { Label } from "@/components/ui/label";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
 import {
   ORDER_DESK_FILTER_LABEL,
@@ -20,6 +21,7 @@ import {
 import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
 import { ACTION_LABEL, fulfilmentActions, type OrderAction } from "@/lib/storefront/transitions";
 import type { AdminOrder, AdminStore } from "@/lib/storefront/contract";
+import { getSale, refundSaleFn } from "@/lib/business.functions";
 import {
   getAdminOrderFn,
   saveOrderCourierFn,
@@ -73,6 +75,38 @@ export function OnlineOrdersFulfilmentPanel({
   const [courierContact, setCourierContact] = useState("");
   const [courierTrackingUrl, setCourierTrackingUrl] = useState("");
   const [courierPending, setCourierPending] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundQuantities, setRefundQuantities] = useState<Record<string, string>>({});
+  const [refundReason, setRefundReason] = useState("");
+
+  const loadSale = useServerFn(getSale);
+  const refundFn = useServerFn(refundSaleFn);
+
+  const saleDetail = useQuery({
+    queryKey: ["sale-detail", businessId, selectedOrder?.saleId],
+    enabled: Boolean(selectedOrder?.saleId) && refundOpen,
+    queryFn: () => loadSale({ data: { businessId, saleId: selectedOrder!.saleId! } }),
+  });
+
+  const refundMutation = useMutation({
+    mutationFn: () => {
+      const items = Object.entries(refundQuantities)
+        .map(([saleItemId, qty]) => ({ saleItemId, quantity: Number(qty) }))
+        .filter((item) => item.quantity > 0);
+      return refundFn({
+        data: { businessId, saleId: selectedOrder!.saleId!, items, reason: refundReason },
+      });
+    },
+    onSuccess: async () => {
+      toast.success("Refund recorded, stock updated.");
+      setRefundOpen(false);
+      setRefundQuantities({});
+      setRefundReason("");
+      await queryClient.invalidateQueries({ queryKey: queryKeys });
+      await queryClient.invalidateQueries({ queryKey: ["sale-detail", businessId] });
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Couldn't process that refund.")),
+  });
 
   const visibleOrders = useMemo(
     () => sortOrderDeskRows(filterOrderDeskRows(orders, { query, filter })),
@@ -86,6 +120,9 @@ export function OnlineOrdersFulfilmentPanel({
       setPaymentReference("");
       setCancelReason("");
       setShowCancelForm(false);
+      setRefundOpen(false);
+      setRefundQuantities({});
+      setRefundReason("");
       setInternalNote(next.sellerInternalNote ?? "");
       setCourierName(next.courierName ?? "");
       setCourierReference(next.courierReference ?? "");
@@ -421,12 +458,22 @@ export function OnlineOrdersFulfilmentPanel({
               <Button
                 key={action}
                 size="sm"
-                variant={action === "cancel" || action === "reject_proof" ? "outline" : "default"}
+                variant={
+                  action === "cancel" || action === "reject_proof" || action === "refund"
+                    ? "outline"
+                    : "default"
+                }
                 disabled={action === "mark_paid" && !checkedAccount}
                 onClick={() => {
                   if (action === "cancel") {
                     setShowCancelForm(true);
                     if (cancelReason.trim()) void runTransition(action);
+                    return;
+                  }
+                  if (action === "refund") {
+                    setRefundOpen(true);
+                    setRefundQuantities({});
+                    setRefundReason("");
                     return;
                   }
                   void runTransition(action);
@@ -441,6 +488,90 @@ export function OnlineOrdersFulfilmentPanel({
               </Button>
             ))}
           </div>
+          {refundOpen && selectedOrder.saleId ? (
+            <div className="mt-3 space-y-3 rounded-md border p-3">
+              <p className="font-medium">Refund items</p>
+              {saleDetail.isLoading ? (
+                <p className="text-sm text-muted-foreground">Loading sale items…</p>
+              ) : saleDetail.isError ? (
+                <p className="text-sm text-destructive">
+                  {readableError(saleDetail.error as Error, "Could not load sale details.")}
+                </p>
+              ) : saleDetail.data ? (
+                <>
+                  <ul className="divide-y text-sm">
+                    {saleDetail.data.items.map((item) => {
+                      const remaining = item.quantity - item.refunded_quantity;
+                      return (
+                        <li key={item.id} className="py-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <span>
+                              {item.name} × {item.quantity}
+                              {item.refunded_quantity > 0 ? (
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  ({item.refunded_quantity} refunded)
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="tabular-nums">
+                              {formatMoney(Number(item.line_total), selectedOrder.currency)}
+                            </span>
+                          </div>
+                          {remaining > 0 ? (
+                            <div className="mt-2 flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground">Refund qty</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={remaining}
+                                step={1}
+                                className="w-20"
+                                value={refundQuantities[item.id] ?? ""}
+                                onChange={(e) =>
+                                  setRefundQuantities((prev) => ({
+                                    ...prev,
+                                    [item.id]: e.target.value,
+                                  }))
+                                }
+                              />
+                              <span className="text-xs text-muted-foreground">of {remaining}</span>
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-xs text-muted-foreground">Fully refunded</p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="refund-reason-online">Reason (optional)</Label>
+                    <Textarea
+                      id="refund-reason-online"
+                      value={refundReason}
+                      onChange={(e) => setRefundReason(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setRefundOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={
+                        !Object.values(refundQuantities).some((v) => Number(v) > 0) ||
+                        refundMutation.isPending
+                      }
+                      onClick={() => refundMutation.mutate()}
+                    >
+                      Confirm refund
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          ) : null}
           <ul className="mt-3 space-y-1 text-muted-foreground">
             {selectedOrder.events.map((event) => (
               <li key={event.createdAt + event.eventType}>

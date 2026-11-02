@@ -28,6 +28,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   addQuote,
   convertQuoteToInvoice,
@@ -114,6 +115,7 @@ function Quotes() {
   const canManage = hasPermission(workspace.data, "quotes.manage");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [items, setItems] = useState<LineItemInput[]>([{ ...EMPTY_ITEM }]);
@@ -135,9 +137,9 @@ function Quotes() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const quotes = useQuery({
-    queryKey: ["quotes", businessId, search],
+    queryKey: ["quotes", businessId, debouncedSearch],
     enabled: Boolean(businessId),
-    queryFn: () => fetchQuotes({ data: { businessId: businessId!, search } }),
+    queryFn: () => fetchQuotes({ data: { businessId: businessId!, search: debouncedSearch } }),
   });
 
   const customers = useQuery({

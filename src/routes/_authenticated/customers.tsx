@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { LineItemsEditor } from "@/components/line-items-editor";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   addCustomer,
   addQuote,
@@ -92,6 +93,7 @@ function Customers() {
   const canOrder = hasPermission(workspace.data, "customers.order");
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -111,9 +113,9 @@ function Customers() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const customers = useQuery({
-    queryKey: ["customers", businessId, search],
+    queryKey: ["customers", businessId, debouncedSearch],
     enabled: Boolean(businessId),
-    queryFn: () => fetchCustomers({ data: { businessId: businessId!, search } }),
+    queryFn: () => fetchCustomers({ data: { businessId: businessId!, search: debouncedSearch } }),
   });
 
   const orderProducts = useQuery({

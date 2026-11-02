@@ -198,7 +198,19 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+
+      if (
+        url.pathname.startsWith("/store/") &&
+        normalized.status === 200 &&
+        !normalized.headers.has("cache-control")
+      ) {
+        const cached = new Response(normalized.body, normalized);
+        cached.headers.set("cache-control", "public, s-maxage=60, stale-while-revalidate=300");
+        return cached;
+      }
+
+      return normalized;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
