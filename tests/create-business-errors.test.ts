@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { userFacingDbMessage } from "@/lib/business.server";
+import { isMissingDbFunction, userFacingDbMessage } from "@/lib/business.server";
 import { readableError } from "@/lib/format";
 
 describe("userFacingDbMessage", () => {
@@ -58,6 +58,17 @@ describe("userFacingDbMessage", () => {
           "Could not find the function public.create_product with parameter _category_id in the schema cache",
       }),
     ).toBe("Shop setup is out of date. Wait a minute and try again.");
+  });
+
+  it("treats missing optional RPCs as skippable instead of a wiped workspace", () => {
+    expect(
+      isMissingDbFunction({
+        code: "PGRST202",
+        message:
+          "Could not find the function public.get_business_feature_flags in the schema cache",
+      }),
+    ).toBe(true);
+    expect(isMissingDbFunction({ code: "42501", message: "permission denied" })).toBe(false);
   });
 });
 

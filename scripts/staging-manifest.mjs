@@ -157,4 +157,13 @@ export const STAGING_READINESS_CHECKS = [
         and '_category_id' = any (p.proargnames)
     ) as ok`,
   },
+  {
+    id: "business_feature_flags",
+    label: "get_business_feature_flags() (workspace load must not 404 onboarding)",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'get_business_feature_flags'
+    ) as ok`,
+  },
 ];
