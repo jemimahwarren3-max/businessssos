@@ -284,24 +284,59 @@ async function withProofUrl<T extends object>(order: T): Promise<T> {
   return { ...order, proofUrl: await signedPaymentProofUrl(terms?.paymentProof?.storagePath) };
 }
 
+function emptyAdminStore(): AdminStore {
+  return {
+    currency: "USD",
+    categories: [],
+    store: null,
+    checklist: {
+      name: false,
+      template: false,
+      products: false,
+      payments: false,
+      fulfilment: false,
+      policies: false,
+      previewed: false,
+      published: false,
+    },
+    products: [],
+    orders: [],
+    metrics: {
+      openOrders: 0,
+      unpaidOrders: 0,
+      outOfStockPublished: 0,
+      lowStockPublished: 0,
+      publishedProducts: 0,
+    },
+  };
+}
+
 async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promise<AdminStore> {
-  if (admin.store) {
+  if (!admin.store) return admin;
+  try {
     const connected = await shopPaynowConnected(businessId);
     const { data: available, error } = await supabaseAdmin.rpc("shop_offers_paynow_business", {
       _business_id: businessId,
     });
-    if (error) dbFail("shop Paynow availability", error);
+    if (error) {
+      console.error("[businessos] shop Paynow availability", error);
+    } else {
+      admin.store.payments.paynowAvailable = available;
+    }
     admin.store.payments.paynow = connected;
-    admin.store.payments.paynowAvailable = available;
     admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
+  } catch (error) {
+    console.error("[businessos] shop Paynow flag", error);
   }
   return admin;
 }
 
 export async function loadAdminStore(supabase: Db, businessId: string): Promise<AdminStore> {
   const result = await supabase.rpc("get_storefront_admin", { _business_id: businessId });
+  if (result.error) rpcFail("load storefront", result.error);
+  if (result.data == null) return emptyAdminStore();
   return withShopPaynowFlag(
-    await parseRpc("load storefront", result, adminStoreSchema),
+    await parseRpc("load storefront", { data: result.data, error: null }, adminStoreSchema),
     businessId,
   );
 }
