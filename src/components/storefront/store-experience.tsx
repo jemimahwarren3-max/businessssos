@@ -91,7 +91,7 @@ export function StoreChrome({
   const fonts = fontPairStacks(theme.fontPair, template.fontFamily);
   const accent = theme.accent || store.accentColor || template.defaultAccent;
   const count = useCartCount(store.slug);
-  const previewSearch = preview ? { preview: "1" as const } : {};
+  const previewSearch = preview ? { preview: 1 as const } : {};
   const whatsapp = buildWhatsAppLink(
     store.whatsapp || store.phone,
     `Hello ${store.storeName}, I have a question about your shop.`,
@@ -116,21 +116,21 @@ export function StoreChrome({
       <Link
         to="/store/$slug/search"
         params={{ slug: store.slug }}
-        search={preview ? { q: "", preview: "1" } : { q: "" }}
+        search={preview ? { q: "", preview: 1 } : { q: "" }}
       >
         Search
       </Link>
       <Link
         to="/store/$slug/account"
         params={{ slug: store.slug }}
-        search={preview ? { preview: "1" } : {}}
+        search={preview ? { preview: 1 } : {}}
       >
         Orders
       </Link>
       <Link
         to="/store/$slug/cart"
         params={{ slug: store.slug }}
-        search={preview ? { preview: "1" } : {}}
+        search={preview ? { preview: 1 } : {}}
       >
         Cart{count > 0 ? ` (${count})` : ""}
       </Link>
@@ -353,7 +353,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
     <Link
       to="/store/$slug/products/$productSlug"
       params={{ slug: store.slug, productSlug: product.slug }}
-      search={preview ? { preview: "1" } : {}}
+      search={preview ? { preview: 1 } : {}}
       className={cn(
         "group block overflow-hidden border",
         template.cardStyle === "minimal" && "border-0",

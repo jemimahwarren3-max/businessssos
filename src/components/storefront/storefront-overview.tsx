@@ -159,7 +159,7 @@ export function StorefrontOverview({
         ) : null}
         {store?.slug ? (
           <Button asChild size="sm" variant="outline">
-            <Link to="/store/$slug" params={{ slug: store.slug }} search={{ preview: "1" }}>
+            <Link to="/store/$slug" params={{ slug: store.slug }} search={{ preview: 1 }}>
               Preview store
             </Link>
           </Button>

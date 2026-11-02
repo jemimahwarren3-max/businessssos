@@ -526,7 +526,7 @@ export function StoreBuilder({
           <Link
             to="/store/$slug"
             params={{ slug: store.slug }}
-            search={{ preview: "1" }}
+            search={{ preview: 1 }}
             className="text-sm font-medium underline"
           >
             Open full preview
