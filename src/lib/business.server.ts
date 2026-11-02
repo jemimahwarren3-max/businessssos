@@ -438,11 +438,7 @@ export async function createCategory(supabase: Db, businessId: string, name: str
 
 /* ----------------------------- location stock ----------------------------- */
 
-export async function listLocationStock(
-  supabase: Db,
-  businessId: string,
-  locationId: string,
-) {
+export async function listLocationStock(supabase: Db, businessId: string, locationId: string) {
   const { data, error } = await supabase
     .from("product_stock")
     .select("product_id, quantity")

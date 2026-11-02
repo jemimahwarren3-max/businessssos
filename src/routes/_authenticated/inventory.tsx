@@ -550,7 +550,8 @@ function Inventory() {
               <SelectItem value="all">All locations (total)</SelectItem>
               {locations.data.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>
-                  {loc.name}{loc.is_default ? " (default)" : ""}
+                  {loc.name}
+                  {loc.is_default ? " (default)" : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -559,15 +560,17 @@ function Inventory() {
       </div>
       {locations.data && locations.data.length > 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          {locationFilter
-            ? `Showing stock for: ${locations.data.find((l) => l.id === locationFilter)?.name ?? "selected location"}.`
-            : <>
-                Default location:{" "}
-                {locations.data.find((l) => l.is_default)?.name ?? locations.data[0]?.name}
-                {locations.data.length > 1
-                  ? `. ${locations.data.length} active locations. Stock numbers here are the total.`
-                  : ". Stock numbers here match this location."}
-              </>}
+          {locationFilter ? (
+            `Showing stock for: ${locations.data.find((l) => l.id === locationFilter)?.name ?? "selected location"}.`
+          ) : (
+            <>
+              Default location:{" "}
+              {locations.data.find((l) => l.is_default)?.name ?? locations.data[0]?.name}
+              {locations.data.length > 1
+                ? `. ${locations.data.length} active locations. Stock numbers here are the total.`
+                : ". Stock numbers here match this location."}
+            </>
+          )}
         </p>
       ) : null}
       {storefront.isLoading ? (
@@ -844,15 +847,10 @@ function Inventory() {
           </DialogHeader>
           <ul className="max-h-60 space-y-1 overflow-y-auto">
             {categoryList.length === 0 ? (
-              <li className="py-4 text-center text-sm text-muted-foreground">
-                No categories yet
-              </li>
+              <li className="py-4 text-center text-sm text-muted-foreground">No categories yet</li>
             ) : (
               categoryList.map((cat) => (
-                <li
-                  key={cat.id}
-                  className="rounded-md px-3 py-2 text-sm odd:bg-muted/40"
-                >
+                <li key={cat.id} className="rounded-md px-3 py-2 text-sm odd:bg-muted/40">
                   {cat.name}
                 </li>
               ))

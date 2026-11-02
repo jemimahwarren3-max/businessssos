@@ -85,8 +85,7 @@ export function OnlineOrdersFulfilmentPanel({
   const saleDetail = useQuery({
     queryKey: ["sale-detail", businessId, selectedOrder?.saleId],
     enabled: Boolean(selectedOrder?.saleId) && refundOpen,
-    queryFn: () =>
-      loadSale({ data: { businessId, saleId: selectedOrder!.saleId! } }),
+    queryFn: () => loadSale({ data: { businessId, saleId: selectedOrder!.saleId! } }),
   });
 
   const refundMutation = useMutation({
@@ -459,7 +458,11 @@ export function OnlineOrdersFulfilmentPanel({
               <Button
                 key={action}
                 size="sm"
-                variant={action === "cancel" || action === "reject_proof" || action === "refund" ? "outline" : "default"}
+                variant={
+                  action === "cancel" || action === "reject_proof" || action === "refund"
+                    ? "outline"
+                    : "default"
+                }
                 disabled={action === "mark_paid" && !checkedAccount}
                 onClick={() => {
                   if (action === "cancel") {
@@ -506,7 +509,8 @@ export function OnlineOrdersFulfilmentPanel({
                               {item.name} × {item.quantity}
                               {item.refunded_quantity > 0 ? (
                                 <span className="text-muted-foreground">
-                                  {" "}({item.refunded_quantity} refunded)
+                                  {" "}
+                                  ({item.refunded_quantity} refunded)
                                 </span>
                               ) : null}
                             </span>

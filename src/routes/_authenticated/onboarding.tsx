@@ -294,7 +294,9 @@ function Onboarding() {
             className="flex flex-col items-start gap-3 rounded-xl border-2 border-transparent bg-card p-6 text-left transition hover:border-primary"
             onClick={() => setModeChosen(true)}
           >
-            <span className="text-3xl" aria-hidden="true">🛒</span>
+            <span className="text-3xl" aria-hidden="true">
+              🛒
+            </span>
             <span className="text-lg font-semibold">Sell online</span>
             <span className="text-sm text-muted-foreground">
               Set up a storefront so customers can browse and order from you online.
@@ -305,7 +307,9 @@ function Onboarding() {
             className="flex flex-col items-start gap-3 rounded-xl border-2 border-transparent bg-card p-6 text-left transition hover:border-primary"
             onClick={() => void exitToDashboard()}
           >
-            <span className="text-3xl" aria-hidden="true">📋</span>
+            <span className="text-3xl" aria-hidden="true">
+              📋
+            </span>
             <span className="text-lg font-semibold">Business tools only</span>
             <span className="text-sm text-muted-foreground">
               Use POS, inventory, sales tracking, expenses and reports — no online store needed.

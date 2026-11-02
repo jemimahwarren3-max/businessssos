@@ -341,17 +341,12 @@ export const deactivateLocationFn = createServerFn({ method: "POST" })
 export const getCategories = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
-  .handler(async ({ data, context }) =>
-    listCategories(context.supabase as Db, data.businessId),
-  );
+  .handler(async ({ data, context }) => listCategories(context.supabase as Db, data.businessId));
 
 export const addCategory = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) =>
-    parseAndSanitize(
-      businessIdSchema.extend({ name: z.string().trim().min(1).max(80) }),
-      data,
-    ),
+    parseAndSanitize(businessIdSchema.extend({ name: z.string().trim().min(1).max(80) }), data),
   )
   .handler(async ({ data, context }) =>
     createCategory(context.supabase as Db, data.businessId, data.name),
@@ -360,10 +355,7 @@ export const addCategory = createServerFn({ method: "POST" })
 export const getLocationStock = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) =>
-    parseAndSanitize(
-      businessIdSchema.extend({ locationId: z.string().uuid() }),
-      data,
-    ),
+    parseAndSanitize(businessIdSchema.extend({ locationId: z.string().uuid() }), data),
   )
   .handler(async ({ data, context }) =>
     listLocationStock(context.supabase as Db, data.businessId, data.locationId),

@@ -421,7 +421,12 @@ function Sales() {
         setReceipt({ number: "Pending sync", total: totals.total, offline: true, printData });
       } else {
         toast.success("Sale completed.");
-        setReceipt({ number: result.id.slice(0, 8), total: totals.total, offline: false, printData });
+        setReceipt({
+          number: result.id.slice(0, 8),
+          total: totals.total,
+          offline: false,
+          printData,
+        });
       }
       await resetAfterSale();
       await queryClient.invalidateQueries({ queryKey: ["pending-sales"] });
@@ -817,11 +822,7 @@ function Sales() {
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             {receipt?.printData && !receipt.offline ? (
-              <Button
-                variant="outline"
-                className="w-full gap-1.5"
-                onClick={() => window.print()}
-              >
+              <Button variant="outline" className="w-full gap-1.5" onClick={() => window.print()}>
                 <Printer className="size-4" aria-hidden="true" /> Print receipt
               </Button>
             ) : null}
