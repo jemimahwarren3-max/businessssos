@@ -49,7 +49,8 @@ export function DailyTakingsList({
         </p>
       ) : null}
       <p className="text-[12px] text-muted-foreground">
-        These are recorded tenders, not confirmed EcoCash or bank deposits.
+        These are recorded tenders, not confirmed EcoCash or bank deposits. Cash-up expected cash is
+        cash tenders only.
         {showCashUpLink ? (
           <>
             {" "}

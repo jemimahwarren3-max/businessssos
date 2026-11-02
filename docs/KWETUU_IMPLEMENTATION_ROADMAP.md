@@ -1,7 +1,7 @@
 # Implementation roadmap
 
 **Date:** 2 November 2026  
-**Status:** Stage 1 (Morning desk) implemented on this branch. Later stages still wait for approval.
+**Status:** Stage 2 (How people actually pay) implemented on this branch. Later stages still wait for approval.
 
 Do not implement all 100 items. Each stage below is a shippable slice with migrations, RLS, UI, empty/error states, tests, and a regression pass on POS + checkout.
 
@@ -43,12 +43,19 @@ No application behaviour change.
 
 **Estimate of invasiveness:** mostly `business.server.ts`, `sales.tsx`, `dashboard.tsx`, `cash-drawer.tsx`, `customers.tsx`, `store-experience.tsx`, one small RPC migration + staging-manifest entry.
 
-## Stage 2 — How people actually pay
+## Stage 2 — How people actually pay (done in this PR)
 
-- Split tenders on POS (`payments` rows sum to sale total).
-- Cash-up expected cash = cash tenders only.
-- Optional `payments.currency` + original amount (still no silent FX).
-- Shop checkout stays single-method until POS split is stable.
+**Goal:** A cashier can take cash + EcoCash (or other rails) on one sale, and cash-up still expects only the cash that went in the till.
+
+**In:**
+
+- Split tenders on POS (`payments` rows sum to sale total; unique rails; max 8).
+- Cash-up expected cash = cash tenders only (`cash_post_movement` for the cash part).
+- Optional `payments.currency` + `amount_original` stored as typed. No `platform_fx` conversion.
+- Refunds of mixed sales put cash back first, then digital, then reduce credit.
+- Shop checkout stays single-method.
+
+**Out:** FX ledger / `fx_rates`, silent conversion, shop-order split pay, EcoCash APIs.
 
 ## Stage 3 — Notebook and delivery
 
@@ -93,6 +100,4 @@ Copied from the brief; this is the bar:
 
 ## Decision needed
 
-Approve **Stage 1 — Morning desk**, a smaller subset, or a different first slice.
-
-Until then, no feature PRs from this audit.
+Stage 1 and Stage 2 are implemented. Approve **Stage 3 — Notebook and delivery** before the next slice.

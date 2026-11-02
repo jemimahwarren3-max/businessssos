@@ -100,6 +100,16 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
+  {
+    file: "20261102160000_split_tenders.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'payments'
+          and column_name = 'amount_original'
+      ) as skip
+    `,
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

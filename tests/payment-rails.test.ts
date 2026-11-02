@@ -4,6 +4,10 @@ import {
   railToPaymentMethod,
   defaultRailForMethod,
   isPosPaymentRail,
+  tendersAllocated,
+  tendersLabel,
+  tendersNeedCashDrawer,
+  tendersNeedCustomer,
 } from "../src/lib/payment-rails";
 
 describe("POS payment rails", () => {
@@ -29,5 +33,16 @@ describe("POS payment rails", () => {
     expect(defaultRailForMethod("mobile_money")).toBe("mobile_money");
     expect(isPosPaymentRail("ecocash")).toBe(true);
     expect(isPosPaymentRail("paypal")).toBe(false);
+  });
+
+  it("treats a cash+EcoCash split as needing a drawer but not as all-credit", () => {
+    const tenders = [
+      { rail: "cash", amount: 4 },
+      { rail: "ecocash", amount: 6 },
+    ];
+    expect(tendersNeedCashDrawer(tenders)).toBe(true);
+    expect(tendersNeedCustomer(tenders)).toBe(false);
+    expect(tendersAllocated(tenders)).toBe(10);
+    expect(tendersLabel(tenders)).toBe("Cash + EcoCash");
   });
 });

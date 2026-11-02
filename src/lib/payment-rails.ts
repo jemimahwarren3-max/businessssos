@@ -56,3 +56,33 @@ export function paymentRailLabel(rail: string | null | undefined, method?: strin
 }
 
 export const CREDIT_REPAYMENT_RAILS = POS_PAYMENT_RAILS.filter((rail) => rail.value !== "credit");
+
+export type SaleTenderDraft = {
+  rail: string;
+  amount: number;
+  currency?: string;
+  amountOriginal?: number;
+};
+
+export function tendersNeedCashDrawer(tenders: { rail: string }[]): boolean {
+  return tenders.some((tender) => railToPaymentMethod(tender.rail) === "cash");
+}
+
+export function tendersNeedCustomer(tenders: { rail: string }[]): boolean {
+  return tenders.some((tender) => railToPaymentMethod(tender.rail) === "credit");
+}
+
+export function tendersAllocated(tenders: { amount: number }[]): number {
+  return tenders.reduce((sum, tender) => sum + (Number(tender.amount) || 0), 0);
+}
+
+export function tendersLabel(
+  tenders: { rail: string; amount?: number }[],
+  fallback?: string,
+): string {
+  const labels = tenders
+    .filter((tender) => tender.rail)
+    .map((tender) => paymentRailLabel(tender.rail));
+  if (labels.length === 0) return fallback || "Payment";
+  return [...new Set(labels)].join(" + ");
+}

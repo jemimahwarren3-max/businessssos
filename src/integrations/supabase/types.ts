@@ -941,6 +941,8 @@ export type Database = {
           method: Database["public"]["Enums"]["payment_method"];
           paid_at: string;
           rail: string | null;
+          currency: string | null;
+          amount_original: number | null;
           reference: string | null;
           sale_id: string | null;
         };
@@ -956,6 +958,8 @@ export type Database = {
           method?: Database["public"]["Enums"]["payment_method"];
           paid_at?: string;
           rail?: string | null;
+          currency?: string | null;
+          amount_original?: number | null;
           reference?: string | null;
           sale_id?: string | null;
         };
@@ -971,6 +975,8 @@ export type Database = {
           method?: Database["public"]["Enums"]["payment_method"];
           paid_at?: string;
           rail?: string | null;
+          currency?: string | null;
+          amount_original?: number | null;
           reference?: string | null;
           sale_id?: string | null;
         };
@@ -2470,6 +2476,7 @@ export type Database = {
           _notes: string;
           _payment_method: Database["public"]["Enums"]["payment_method"];
           _rail?: string | null;
+          _tenders?: Json | null;
         };
         Returns: string;
       };

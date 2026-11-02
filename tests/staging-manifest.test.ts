@@ -34,6 +34,7 @@ const FILES = [
   "20261102010000_fix_browse_marketplace_readonly.sql",
   "20261102120000_storefront_template_allowlist.sql",
   "20261102140000_morning_desk.sql",
+  "20261102160000_split_tenders.sql",
 ];
 
 describe("staging migration manifest", () => {
