@@ -1,7 +1,7 @@
 # Implementation roadmap
 
 **Date:** 2 November 2026  
-**Status:** Stage 3 (Notebook and delivery) implemented on this branch. Later stages still wait for approval.
+**Status:** Stage 4 (Offline income protection) implemented on this branch. Later stages still wait for approval.
 
 Do not implement all 100 items. Each stage below is a shippable slice with migrations, RLS, UI, empty/error states, tests, and a regression pass on POS + checkout.
 
@@ -72,12 +72,25 @@ No application behaviour change.
 
 **Out:** FX ledger, EcoCash APIs, variants, posters, i18n, stock transfers, shop-order split pay.
 
-## Stage 4 — Offline income protection
+## Stage 4 — Offline income protection (done in this PR)
 
-- Snapshot in-progress POS cart for power loss.
+**Goal:** A power cut or a failed sync does not take the day’s income, and a metered phone does not burn data on product photos.
+
+**In:**
+
+- Snapshot in-progress POS cart in IndexedDB `posDrafts` (version bump only; do not rewrite `pendingSales`).
 - Offline stock honesty in the UI (“estimate”).
-- Sync dead-letter that a cashier can retry without a developer.
-- Low-data mode (defer images).
+- Sync dead-letter: **These sales need you** + Retry this sale.
+- Low-data mode (defer product photos; logos/auth/MFA still load).
+
+**Out:** SQL migrations, WhatsApp Cloud, rewriting IndexedDB, FX, EcoCash APIs.
+
+**Acceptance:**
+
+- Refreshing POS with items in the cart restores them with a power-cut banner.
+- Offline search says the stock figure is an estimate.
+- A failed queued sale can be retried one-by-one after the cashier fixes the cause (e.g. opens the drawer).
+- Account → Low-data mode defers product photos until tap.
 
 ## Stage 5 — Messaging as a channel (vendor required)
 
@@ -88,7 +101,7 @@ Only after Meta eligibility and legal:
 - Order status templates.
 - Still no fake “sent” state.
 
-## Later (do not schedule until Stages 1–3 are used in anger)
+## Later (do not schedule until Stages 1–4 are used in anger)
 
 Coupons, loyalty, abandoned cart, posters, voice, diaspora, B2B marketplace, peer benchmarks, academy, Shona/Ndebele, branch transfers, product variants/bundles, EcoCash/InnBucks APIs.
 
@@ -96,7 +109,7 @@ Coupons, loyalty, abandoned cart, posters, voice, diaspora, B2B marketplace, pee
 
 Copied from the brief; this is the bar:
 
-- Database migration + staging-manifest `skipIf`
+- Database migration + staging-manifest `skipIf` (skip when the slice is client-only, as Stage 4)
 - RLS / security-definer RPCs
 - Full UI workflow, including mobile width
 - Validation, loading, empty, failure
@@ -106,4 +119,4 @@ Copied from the brief; this is the bar:
 
 ## Decision needed
 
-Stage 1, Stage 2, and Stage 3 are implemented. Approve **Stage 4 — Offline income protection** before the next slice.
+Stage 1–4 are implemented. Approve **Stage 5 — Messaging as a channel** only after Meta eligibility and legal; do not start it from this slice.

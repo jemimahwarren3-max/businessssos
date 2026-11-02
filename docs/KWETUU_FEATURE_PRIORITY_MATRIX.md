@@ -7,7 +7,7 @@ Priority list from the brief (1–15) is scored against **current code**, not a 
 
 | Pri | Item | Status now | Value | Revenue | Complexity | Risk | Now? | Why |
 | --- | ---- | ---------- | ----- | ------- | ---------- | ---- | ---- | --- |
-| 1 | Offline POS | Partial | 5 | 4 | 4 | 4 | **Stage 1 polish, not rewrite** | Queue exists. Closed drawer and in-progress cart still lose the day. |
+| 1 | Offline POS | Partial | 5 | 4 | 4 | 4 | **Stage 4 done** | Queue, closed-drawer retry, cart snapshot, estimate labels. Still not a rewrite. |
 | 2 | Multi-currency records | Partial | 5 | 4 | 4 | 5 | **Stage 2** | Needs a money ledger. Do not overload `platform_fx`. |
 | 3 | WhatsApp product sharing | Partial | 5 | 5 | 2 | 1 | **Stage 1** | `wa.me` + product fields. No Cloud API. |
 | 4 | Digital credit book | Partial | 5 | 4 | 3 | 3 | **Stage 1** | Balance exists; notebook UI and repayments do not. |
@@ -34,7 +34,7 @@ Priority list from the brief (1–15) is scored against **current code**, not a 
 | 5 Trust | 6 | 4 | 0 | Marketplace verified badge |
 | 6 Money-making | 4 | 5 | 1 | Home: low stock + debts + yesterday |
 | 7 Marketing | 2 | 2 | 6 | Leave coupons/loyalty |
-| 8 Zimbabwe support | 2 | 6 | 2 | Offline POS hardening |
+| 8 Zimbabwe support | 2 | 7 | 1 | Offline POS hardening |
 | 9 Established | 7 | 1 | 2 | Do not rebuild staff |
 | 10 Standout | 5 | 1 | 4 | Do not start diaspora/academy |
 

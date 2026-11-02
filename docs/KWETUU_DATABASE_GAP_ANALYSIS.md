@@ -69,6 +69,10 @@ Integrity: repayment amount > 0, amount ≤ outstanding, idempotency_key unique,
 | Country packs | `platform_country_settings` (see market requirements) |
 | Multi-business | Stop collapsing memberships in `loadWorkspace`; add `active_business_id` on profile |
 
+### Stage 4 — client only
+
+No Postgres. IndexedDB `businessos-offline` version 2 adds `posDrafts`. Do not drop `pendingSales`. Low-data preference is `localStorage`.
+
 ## Existing columns that look like features but are idle
 
 | Column | Issue |

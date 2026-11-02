@@ -14,6 +14,7 @@ import {
   Upload,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { DeferredImage } from "@/components/deferred-image";
 import { DataTable, type ColumnDef } from "@/components/data-table";
 import { ImportDialog } from "@/components/import-dialog";
 import { ProductCreateForm } from "@/components/product-create-form";
@@ -327,7 +328,7 @@ function Inventory() {
         cell: ({ row }) => (
           <div className="flex max-w-[280px] items-center gap-3">
             {row.original.image_url ? (
-              <img
+              <DeferredImage
                 src={row.original.image_url}
                 alt=""
                 className="size-10 shrink-0 rounded-md object-cover"
@@ -730,7 +731,7 @@ function Inventory() {
                     </div>
                     <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
                       {product.image_url ? (
-                        <img
+                        <DeferredImage
                           src={product.image_url}
                           alt=""
                           className="size-12 rounded-md object-cover"

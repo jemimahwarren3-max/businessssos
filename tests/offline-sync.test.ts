@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { syncPendingSales, type SubmitSale } from "@/lib/offline/sync";
+import { syncOnePendingSale, syncPendingSales, type SubmitSale } from "@/lib/offline/sync";
 import type { PendingSale } from "@/lib/offline/db";
 
 vi.mock("@/lib/offline/db", () => {
@@ -87,5 +87,51 @@ describe("offline sale sync", () => {
     expect(result).toEqual({ synced: 0, failed: 1 });
     expect(seed.__all()[0]?.isClosedDrawer).toBe(true);
     expect(seed.__all()[0]?.error).toMatch(/cash drawer/i);
+  });
+
+  it("retries one failed sale without submitting later rows", async () => {
+    const db = await import("@/lib/offline/db");
+    const seed = db as typeof db & {
+      __seed: (rows: PendingSale[]) => void;
+      __all: () => PendingSale[];
+    };
+    const failed: PendingSale = { ...sale("a"), status: "failed", error: "Open the cash drawer" };
+    seed.__seed([failed, sale("b")]);
+    const seen: string[] = [];
+    const submit: SubmitSale = async (row) => {
+      seen.push(row.localId);
+      return { id: row.localId };
+    };
+    const result = await syncOnePendingSale("biz", "a", submit);
+    expect(result).toEqual({ synced: 1, failed: 0 });
+    expect(seen).toEqual(["a"]);
+    expect(seed.__all().map((row) => row.localId)).toEqual(["b"]);
+  });
+
+  it("keeps a single retry that still fails", async () => {
+    const db = await import("@/lib/offline/db");
+    const seed = db as typeof db & {
+      __seed: (rows: PendingSale[]) => void;
+      __all: () => PendingSale[];
+    };
+    seed.__seed([{ ...sale("cash-1"), status: "failed" }]);
+    const submit: SubmitSale = async () => {
+      throw new Error("Open the cash drawer before taking cash.");
+    };
+    const result = await syncOnePendingSale("biz", "cash-1", submit);
+    expect(result).toEqual({ synced: 0, failed: 1 });
+    expect(seed.__all()[0]?.status).toBe("failed");
+    expect(seed.__all()[0]?.isClosedDrawer).toBe(true);
+  });
+
+  it("no-ops when the sale is already gone", async () => {
+    const db = await import("@/lib/offline/db");
+    const seed = db as typeof db & {
+      __seed: (rows: PendingSale[]) => void;
+    };
+    seed.__seed([sale("a")]);
+    const submit: SubmitSale = async () => ({ id: "x" });
+    const result = await syncOnePendingSale("biz", "missing", submit);
+    expect(result).toEqual({ synced: 0, failed: 0 });
   });
 });
