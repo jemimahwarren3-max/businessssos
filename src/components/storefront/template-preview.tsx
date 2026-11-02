@@ -3,20 +3,29 @@ import type { StoreTemplate } from "@/lib/storefront/templates";
 import { sampleProductsForCategory } from "@/lib/storefront/template-placeholders";
 import { themeFromPalette } from "@/lib/storefront/theme";
 
+function Swatch({ accent, className }: { accent: string; className?: string }) {
+  return (
+    <span
+      className={cn("block", className)}
+      style={{
+        background: `linear-gradient(135deg, ${accent} 0%, ${accent}88 100%)`,
+      }}
+    />
+  );
+}
+
 function ProductTile({
   name,
   price,
   accent,
   surface,
   cardStyle,
-  imageUrl,
 }: {
   name: string;
   price: number;
   accent: string;
   surface: string;
   cardStyle: StoreTemplate["cardStyle"];
-  imageUrl: string;
 }) {
   if (cardStyle === "line") {
     return (
@@ -24,7 +33,7 @@ function ProductTile({
         className="flex items-center gap-1.5 border-b py-1"
         style={{ borderColor: `${accent}35` }}
       >
-        <img src={imageUrl} alt="" className="size-5 rounded-sm object-cover" />
+        <Swatch accent={accent} className="size-5 shrink-0 rounded-sm" />
         <span className="min-w-0 flex-1 truncate text-[7px] font-medium">{name}</span>
         <span className="text-[7px]" style={{ color: accent }}>
           ${price}
@@ -35,7 +44,7 @@ function ProductTile({
   if (cardStyle === "overlay") {
     return (
       <span className="relative block overflow-hidden">
-        <img src={imageUrl} alt="" className="h-10 w-full object-cover" />
+        <Swatch accent={accent} className="h-10 w-full" />
         <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 px-1 py-0.5 text-[6px] text-white">
           {name}
         </span>
@@ -53,7 +62,7 @@ function ProductTile({
       )}
       style={{ background: surface, borderColor: `${accent}40` }}
     >
-      <img src={imageUrl} alt="" className="h-8 w-full object-cover" />
+      <Swatch accent={accent} className="h-8 w-full" />
       <span className="block truncate px-1 py-0.5 text-[6px] font-medium">{name}</span>
     </span>
   );
@@ -64,13 +73,11 @@ function Hero({
   title,
   accent,
   surface,
-  imageUrl,
 }: {
   template: StoreTemplate;
   title: string;
   accent: string;
   surface: string;
-  imageUrl: string;
 }) {
   const copy = (
     <span className="block min-w-0">
@@ -92,7 +99,7 @@ function Hero({
   if (template.heroStyle === "split") {
     return (
       <div className="grid grid-cols-2 items-stretch" style={{ background: surface }}>
-        <img src={imageUrl} alt="" className="h-16 w-full object-cover" />
+        <Swatch accent={accent} className="h-16 w-full" />
         <div className="flex items-center p-2">{copy}</div>
       </div>
     );
@@ -100,8 +107,8 @@ function Hero({
   if (template.heroStyle === "full-bleed") {
     return (
       <div className="relative h-16 overflow-hidden">
-        <img src={imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
-        <div className="absolute inset-0 bg-black/35" />
+        <Swatch accent={accent} className="absolute inset-0 size-full" />
+        <div className="absolute inset-0 bg-black/25" />
         <div className="relative flex h-full items-end p-2 text-white">{copy}</div>
       </div>
     );
@@ -117,7 +124,7 @@ function Hero({
     return (
       <div className="flex items-center gap-2 px-2 py-1.5" style={{ background: surface }}>
         <div className="min-w-0 flex-1">{copy}</div>
-        <img src={imageUrl} alt="" className="h-10 w-14 rounded-sm object-cover" />
+        <Swatch accent={accent} className="h-10 w-14 shrink-0 rounded-sm" />
       </div>
     );
   }
@@ -125,7 +132,7 @@ function Hero({
     return (
       <div className="grid grid-cols-[0.9fr_1.1fr]" style={{ background: surface }}>
         <div className="flex items-center p-2">{copy}</div>
-        <img src={imageUrl} alt="" className="h-16 w-full object-cover" />
+        <Swatch accent={accent} className="h-16 w-full" />
       </div>
     );
   }
@@ -136,7 +143,7 @@ function Hero({
   );
 }
 
-/** Miniature shop website for pickers — header, hero, and catalogue, not a photo card. */
+/** Miniature shop website for pickers — header, hero, and catalogue. */
 export function TemplatePreview({
   template,
   className,
@@ -199,13 +206,7 @@ export function TemplatePreview({
           <span>Cart</span>
         </span>
       </header>
-      <Hero
-        template={template}
-        title={title}
-        accent={theme.primary}
-        surface={theme.surface}
-        imageUrl={template.previewImageUrl}
-      />
+      <Hero template={template} title={title} accent={theme.primary} surface={theme.surface} />
       <div
         className={cn(
           "gap-1 p-1.5",
@@ -223,7 +224,6 @@ export function TemplatePreview({
             accent={theme.primary}
             surface={theme.surface}
             cardStyle={template.cardStyle}
-            imageUrl={template.previewImageUrl}
           />
         ))}
       </div>

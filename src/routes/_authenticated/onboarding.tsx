@@ -436,8 +436,8 @@ function Onboarding() {
               description="Each option is a full shop site — header, homepage, and product grid. You can switch later without losing products."
             />
             <p className="mt-2 text-sm text-muted-foreground">
-              Sample photos and prices are layout only. Replace them with your catalogue in
-              Storefront settings.
+              Each card is a miniature shop website. The live store uses this header, homepage, and
+              product grid with your catalogue.
             </p>
             <div className="mt-6 grid max-h-[36rem] gap-4 overflow-y-auto sm:grid-cols-2">
               {templateChoices.map((template) => (
