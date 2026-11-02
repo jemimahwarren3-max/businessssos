@@ -77,6 +77,18 @@ export const STAGING_MIGRATION_MANIFEST = [
   },
   { file: "20261031163000_create_business_idempotent.sql" },
   { file: "20261102010000_fix_browse_marketplace_readonly.sql" },
+  {
+    file: "20261102120000_storefront_template_allowlist.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'save_storefront'
+          and pg_get_functiondef(p.oid) like '%save_storefront_allowlist_base%'
+      ) as skip
+    `,
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
@@ -164,6 +176,15 @@ export const STAGING_READINESS_CHECKS = [
       select 1 from pg_proc p
       join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and p.proname = 'get_business_feature_flags'
+    ) as ok`,
+  },
+  {
+    id: "storefront_template_allowlist",
+    label: "save_storefront() accepts 60 website templates",
+    sql: `select exists (
+      select 1 from pg_constraint
+      where conname = 'storefronts_template_check'
+        and pg_get_constraintdef(oid) like '%food-counter%'
     ) as ok`,
   },
 ];

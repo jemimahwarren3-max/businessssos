@@ -23,7 +23,12 @@ import {
   isTemplateId,
   templateForBusinessType,
 } from "@/lib/storefront/templates";
-import { STORE_PALETTES, themeContrastWarnings, themeFromPalette } from "@/lib/storefront/theme";
+import {
+  persistedCoverUrl,
+  STORE_PALETTES,
+  themeContrastWarnings,
+  themeFromPalette,
+} from "@/lib/storefront/theme";
 import { RESERVED_HOST_LABELS } from "@/lib/storefront/host";
 import { recentProductIds, toggleProductId } from "@/lib/storefront/shopper-tools";
 import { allowedFulfilments, allowedPayments, cashPolicyLines } from "@/lib/storefront/order-rules";
@@ -231,11 +236,23 @@ describe("storefront templates", () => {
     });
 
     expect(saveStoreSchema.parse(patch).theme).toEqual(patch.theme);
+    expect(patch.theme.coverUrl).toBe("");
+    expect(
+      defaultShopPatch({
+        businessId: patch.businessId,
+        storeName: "Takeaway",
+        templateId: "food-counter",
+      }).theme.coverUrl,
+    ).toBe("");
     expect(patch.delivery.pickupEnabled).toBe(true);
     expect(patch.payments.acceptPaynow).toBe(false);
     expect(patch.payments.manualMethods).toEqual([]);
     expect(RESERVED_HOST_LABELS.has("templates")).toBe(true);
     expect(RESERVED_HOST_LABELS.has("features")).toBe(true);
+    expect(persistedCoverUrl("/marketing/bakery.jpg")).toBe("");
+    expect(persistedCoverUrl("https://cdn.example.com/hero.jpg")).toBe(
+      "https://cdn.example.com/hero.jpg",
+    );
   });
 
   it("provides readable contrast by default and detects low-contrast customization", () => {

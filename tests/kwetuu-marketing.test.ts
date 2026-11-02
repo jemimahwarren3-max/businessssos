@@ -41,7 +41,9 @@ describe("Kwetuu public site contract", () => {
       ),
     ).toBe(true);
     expect(
-      STORE_TEMPLATES.every((template) => template.sampleLabel.includes("not your products")),
+      STORE_TEMPLATES.every((template) =>
+        template.sampleLabel.toLowerCase().includes("sample catalogue"),
+      ),
     ).toBe(true);
   });
 });
