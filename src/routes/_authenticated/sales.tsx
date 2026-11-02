@@ -43,9 +43,17 @@ import { SaleReceiptPrintView, type SaleReceiptProps } from "@/components/sale-r
 import { useDebounce } from "@/hooks/use-debounce";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { addSale, getCashDrawerFn, getCustomers, getProducts } from "@/lib/business.functions";
-import { saleSchema, type LineItemInput } from "@/lib/business.schemas";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
-import { POS_PAYMENT_RAILS, paymentRailLabel, railToPaymentMethod } from "@/lib/payment-rails";
+import {
+  POS_PAYMENT_RAILS,
+  paymentRailLabel,
+  railToPaymentMethod,
+  tendersAllocated,
+  tendersLabel,
+  tendersNeedCashDrawer,
+  tendersNeedCustomer,
+} from "@/lib/payment-rails";
+import { CURRENCIES, saleSchema, type LineItemInput } from "@/lib/business.schemas";
 import { buildSaleReceiptWhatsAppMessage, buildWhatsAppShareUrl } from "@/lib/whatsapp";
 import { computeTotals } from "@/lib/invoice-calc";
 import {
@@ -78,6 +86,26 @@ export const Route = createFileRoute("/_authenticated/sales")({
 });
 
 const NONE = "__none";
+
+type TenderDraft = {
+  key: string;
+  rail: string;
+  amount: string;
+  currency: string;
+  amountOriginal: string;
+  showOriginal: boolean;
+};
+
+function newTenderDraft(rail: string, amount: string, currency: string): TenderDraft {
+  return {
+    key: crypto.randomUUID(),
+    rail,
+    amount,
+    currency,
+    amountOriginal: "",
+    showOriginal: false,
+  };
+}
 
 type CartItem = {
   productId: string;
@@ -141,7 +169,8 @@ function Sales() {
   const [customerId, setCustomerId] = useState("");
   const [discount, setDiscount] = useState("0");
   const [paymentRail, setPaymentRail] = useState("cash");
-  const paymentMethod = railToPaymentMethod(paymentRail);
+  const [splitPay, setSplitPay] = useState(false);
+  const [tenders, setTenders] = useState<TenderDraft[]>([]);
   const [receipt, setReceipt] = useState<{
     number: string;
     total: number;
@@ -227,6 +256,7 @@ function Sales() {
         discount: sale.discount,
         paymentMethod: sale.paymentMethod,
         rail: sale.rail ?? sale.paymentMethod,
+        tenders: sale.tenders,
         items: sale.items,
         idempotencyKey: sale.idempotencyKey,
       });
@@ -348,11 +378,47 @@ function Sales() {
     [cart, discount],
   );
 
+  const activeTenders = useMemo((): {
+    rail: string;
+    amount: number;
+    currency: string;
+    amountOriginal?: number;
+  }[] => {
+    if (splitPay) {
+      return tenders.map((tender) => {
+        const row: {
+          rail: string;
+          amount: number;
+          currency: string;
+          amountOriginal?: number;
+        } = {
+          rail: tender.rail,
+          amount: Number(tender.amount) || 0,
+          currency: tender.showOriginal && tender.currency ? tender.currency : currency,
+        };
+        if (tender.showOriginal && tender.amountOriginal) {
+          row.amountOriginal = Number(tender.amountOriginal);
+        }
+        return row;
+      });
+    }
+    return [{ rail: paymentRail, amount: totals.total, currency }];
+  }, [splitPay, tenders, paymentRail, totals.total, currency]);
+
+  const remaining = Math.round((totals.total - tendersAllocated(activeTenders)) * 100) / 100;
+  const needsDrawer = tendersNeedCashDrawer(activeTenders);
+  const needsCustomer = tendersNeedCustomer(activeTenders);
+  const hasUnconfirmedRail = activeTenders.some(
+    (tender) => tender.rail === "ecocash" || tender.rail === "innbucks" || tender.rail === "zipit",
+  );
+
   async function resetAfterSale() {
     setCart([]);
     setDiscount("0");
     setCustomerId("");
     setPaymentRail("cash");
+    setSplitPay(false);
+    setTenders([]);
     setIdempotencyKey(crypto.randomUUID());
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["products"] }),
@@ -367,8 +433,22 @@ function Sales() {
         businessId,
         customerId: customerId === NONE ? "" : customerId,
         discount: discount || 0,
-        paymentMethod,
-        rail: paymentRail,
+        paymentMethod: railToPaymentMethod(activeTenders[0]?.rail ?? paymentRail),
+        rail: activeTenders[0]?.rail ?? paymentRail,
+        tenders: activeTenders.map((tender) => {
+          const row: {
+            rail: string;
+            amount: number;
+            currency: string;
+            amountOriginal?: number;
+          } = {
+            rail: tender.rail,
+            amount: tender.amount,
+            currency: tender.currency,
+          };
+          if (tender.amountOriginal) row.amountOriginal = tender.amountOriginal;
+          return row;
+        }),
         items: cart.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -378,14 +458,13 @@ function Sales() {
       });
 
       if (!isOnline) {
-        await addPendingSale({
+        const pending: PendingSale = {
           localId: crypto.randomUUID(),
           businessId: parsed.businessId,
           idempotencyKey: parsed.idempotencyKey,
           customerId: parsed.customerId ?? "",
           discount: parsed.discount,
           paymentMethod: parsed.paymentMethod,
-          rail: parsed.rail || paymentRail,
           items: parsed.items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -393,7 +472,20 @@ function Sales() {
           })),
           createdAt: new Date().toISOString(),
           status: "pending",
-        });
+        };
+        if (parsed.rail) pending.rail = parsed.rail;
+        if (parsed.tenders && parsed.tenders.length > 0) {
+          pending.tenders = parsed.tenders.map((tender) => {
+            const row: NonNullable<PendingSale["tenders"]>[number] = {
+              rail: tender.rail,
+              amount: tender.amount,
+            };
+            if (tender.currency) row.currency = tender.currency;
+            if (tender.amountOriginal) row.amountOriginal = tender.amountOriginal;
+            return row;
+          });
+        }
+        await addPendingSale(pending);
         for (const item of parsed.items) {
           await decrementCachedStock(parsed.businessId, item.productId, item.quantity);
         }
@@ -404,7 +496,7 @@ function Sales() {
       return { id: result.id, offline: false as const };
     },
     onSuccess: async (result) => {
-      const methodLabel = paymentRailLabel(paymentRail, paymentMethod);
+      const methodLabel = tendersLabel(activeTenders, paymentRailLabel(paymentRail));
       const printData: SaleReceiptProps = {
         businessName: workspace.data?.business.name ?? "",
         receiptNumber: result.offline ? "Pending" : result.id.slice(0, 8),
@@ -670,20 +762,39 @@ function Sales() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="sale-discount">Discount</Label>
+              <Input
+                id="sale-discount"
+                type="number"
+                min={0}
+                step="0.01"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+              />
+            </div>
+
+            {!splitPay ? (
               <div className="space-y-1.5">
-                <Label htmlFor="sale-discount">Discount</Label>
-                <Input
-                  id="sale-discount"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sale-payment">Payment</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="sale-payment">Payment</Label>
+                  <button
+                    type="button"
+                    className="text-[12px] text-muted-foreground underline"
+                    onClick={() => {
+                      setTenders([
+                        newTenderDraft(
+                          paymentRail,
+                          totals.total ? String(totals.total) : "",
+                          currency,
+                        ),
+                      ]);
+                      setSplitPay(true);
+                    }}
+                  >
+                    Split payment
+                  </button>
+                </div>
                 <Select value={paymentRail} onValueChange={setPaymentRail}>
                   <SelectTrigger id="sale-payment">
                     <SelectValue />
@@ -697,31 +808,207 @@ function Sales() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Split payment</Label>
+                  <button
+                    type="button"
+                    className="text-[12px] text-muted-foreground underline"
+                    onClick={() => {
+                      setPaymentRail(tenders[0]?.rail ?? "cash");
+                      setSplitPay(false);
+                      setTenders([]);
+                    }}
+                  >
+                    One method
+                  </button>
+                </div>
+                <ul className="space-y-2">
+                  {tenders.map((tender) => {
+                    const used = new Set(tenders.map((row) => row.rail));
+                    return (
+                      <li
+                        key={tender.key}
+                        className="space-y-1.5 rounded-lg border border-border p-2.5"
+                      >
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          <Select
+                            value={tender.rail}
+                            onValueChange={(value) =>
+                              setTenders((prev) =>
+                                prev.map((row) =>
+                                  row.key === tender.key ? { ...row, rail: value } : row,
+                                ),
+                              )
+                            }
+                          >
+                            <SelectTrigger aria-label="Payment method">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {POS_PAYMENT_RAILS.filter(
+                                (rail) => rail.value === tender.rail || !used.has(rail.value),
+                              ).map((rail) => (
+                                <SelectItem key={rail.value} value={rail.value}>
+                                  {rail.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {tenders.length > 1 ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-9 text-muted-foreground"
+                              aria-label="Remove method"
+                              onClick={() =>
+                                setTenders((prev) => prev.filter((row) => row.key !== tender.key))
+                              }
+                            >
+                              <Trash2 className="size-3.5" aria-hidden="true" />
+                            </Button>
+                          ) : null}
+                        </div>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          inputMode="decimal"
+                          aria-label={`${paymentRailLabel(tender.rail)} amount`}
+                          value={tender.amount}
+                          onChange={(e) =>
+                            setTenders((prev) =>
+                              prev.map((row) =>
+                                row.key === tender.key ? { ...row, amount: e.target.value } : row,
+                              ),
+                            )
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="text-[12px] text-muted-foreground underline"
+                          onClick={() =>
+                            setTenders((prev) =>
+                              prev.map((row) =>
+                                row.key === tender.key
+                                  ? { ...row, showOriginal: !row.showOriginal }
+                                  : row,
+                              ),
+                            )
+                          }
+                        >
+                          {tender.showOriginal
+                            ? "Hide other currency"
+                            : "Recorded as another currency"}
+                        </button>
+                        {tender.showOriginal ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <Select
+                              value={tender.currency}
+                              onValueChange={(value) =>
+                                setTenders((prev) =>
+                                  prev.map((row) =>
+                                    row.key === tender.key ? { ...row, currency: value } : row,
+                                  ),
+                                )
+                              }
+                            >
+                              <SelectTrigger aria-label="Recorded currency">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CURRENCIES.map((code) => (
+                                  <SelectItem key={code} value={code}>
+                                    {code === "ZWG" ? "ZiG" : code}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              inputMode="decimal"
+                              aria-label="Original amount"
+                              placeholder="Amount handed over"
+                              value={tender.amountOriginal}
+                              onChange={(e) =>
+                                setTenders((prev) =>
+                                  prev.map((row) =>
+                                    row.key === tender.key
+                                      ? { ...row, amountOriginal: e.target.value }
+                                      : row,
+                                  ),
+                                )
+                              }
+                            />
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {tenders.length < POS_PAYMENT_RAILS.length ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      const used = new Set(tenders.map((row) => row.rail));
+                      const next = POS_PAYMENT_RAILS.find((rail) => !used.has(rail.value));
+                      if (!next) return;
+                      const leftover = remaining > 0 ? String(remaining) : "";
+                      setTenders((prev) => [
+                        ...prev,
+                        newTenderDraft(next.value, leftover, currency),
+                      ]);
+                    }}
+                  >
+                    <Plus className="size-3.5" aria-hidden="true" /> Add method
+                  </Button>
+                ) : null}
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-muted-foreground">Left to allocate</span>
+                  <span
+                    className={`tabular-nums font-medium ${remaining === 0 ? "text-foreground" : "text-warning-foreground"}`}
+                  >
+                    {formatMoney(remaining, currency)}
+                  </span>
+                </div>
+                <p className="text-[12px] text-muted-foreground">
+                  Amounts in another currency are stored as typed. Kwetuu does not convert USD and
+                  ZiG.
+                </p>
+              </div>
+            )}
 
-            {paymentMethod === "credit" && !customerId ? (
+            {needsCustomer && !customerId ? (
               <p className="text-[13px] text-warning-foreground">
                 Select a customer for credit sales, it's added to what they owe.
               </p>
             ) : null}
-            {paymentRail === "cash" && isOnline && !cashDrawerOpen ? (
+            {needsDrawer && isOnline && !cashDrawerOpen ? (
               <p className="text-[13px] text-warning-foreground">
                 Open the{" "}
                 <Link to="/cash-drawer" className="underline">
                   cash drawer
                 </Link>{" "}
-                before taking cash. EcoCash, InnBucks, ZIPIT, bank, card and credit still work.
+                before taking cash. EcoCash, InnBucks, ZIPIT, bank, card and credit still work, and
+                only the cash part goes in the till.
               </p>
             ) : null}
-            {paymentRail === "cash" && !isOnline ? (
+            {needsDrawer && !isOnline ? (
               <p className="text-[13px] text-warning-foreground">
                 This cash sale will sync after you open the cash drawer.
               </p>
             ) : null}
-            {paymentRail === "ecocash" || paymentRail === "innbucks" || paymentRail === "zipit" ? (
+            {hasUnconfirmedRail ? (
               <p className="text-[12px] text-muted-foreground">
-                Recording {paymentRailLabel(paymentRail)} here does not confirm the money arrived.
-                Check the customer&apos;s statement before you treat it as paid.
+                Recording EcoCash, InnBucks or ZIPIT here does not confirm the money arrived. Check
+                the customer&apos;s statement before you treat it as paid.
               </p>
             ) : null}
 
@@ -753,8 +1040,10 @@ function Sales() {
               disabled={
                 saleMutation.isPending ||
                 cart.length === 0 ||
-                (paymentMethod === "credit" && !customerId) ||
-                (paymentRail === "cash" && isOnline && !cashDrawerOpen)
+                (needsCustomer && !customerId) ||
+                (needsDrawer && isOnline && !cashDrawerOpen) ||
+                (splitPay &&
+                  (remaining !== 0 || activeTenders.some((tender) => tender.amount <= 0)))
               }
             >
               {saleMutation.isPending ? (

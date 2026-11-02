@@ -100,6 +100,21 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
+  {
+    file: "20261102160000_split_tenders.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'payments'
+          and column_name = 'amount_original'
+      ) as skip
+    `,
+  },
+  {
+    // Older manifest entries recreate 8-arg create_sale on every apply.
+    // Always drop leftover overloads so 8-arg calls uniquely match Stage 2.
+    file: "20261102161000_create_sale_unique.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

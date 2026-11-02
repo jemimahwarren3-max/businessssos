@@ -22,6 +22,12 @@ export type PendingSale = {
   discount: number;
   paymentMethod: string;
   rail?: string;
+  tenders?: {
+    rail: string;
+    amount: number;
+    currency?: string;
+    amountOriginal?: number;
+  }[];
   items: PendingSaleItem[];
   createdAt: string;
   status: "pending" | "syncing" | "failed";

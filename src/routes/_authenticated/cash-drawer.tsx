@@ -160,7 +160,7 @@ function CashDrawerPage() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Cash drawer"
-      subtitle="A signed ledger of float, cash sales, refunds, and pay in or out. Closing stores counted versus expected."
+      subtitle="A signed ledger of float, cash tenders, refunds, and pay in or out. EcoCash and bank stay on today's takings, not in this till."
     >
       <section className="mb-6 rounded-lg border p-4">
         <h2 className="text-base font-semibold">Today&apos;s takings</h2>
@@ -190,7 +190,9 @@ function CashDrawerPage() {
             <p className="mt-2 text-3xl font-semibold tabular-nums">
               {formatMoney(drawer.data?.expected ?? 0, currency)}
             </p>
-            <p className="text-sm text-muted-foreground">Expected in the drawer from the ledger</p>
+            <p className="text-sm text-muted-foreground">
+              Expected cash — cash tenders only, not EcoCash, InnBucks, ZIPIT or bank
+            </p>
             <p className="mt-2 text-sm">
               Opening float {formatMoney(drawer.data?.openingFloat ?? 0, currency)}
             </p>
@@ -278,8 +280,9 @@ function CashDrawerPage() {
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Cash sales and cash refunds are refused until a drawer is open. EcoCash, InnBucks,
-            ZIPIT, bank, card and credit still work. Online shop cash is not in this till.
+            Cash sales, the cash part of a split sale, and cash refunds are refused until a drawer
+            is open. EcoCash, InnBucks, ZIPIT, bank, card and credit still work. Online shop cash is
+            not in this till.
           </p>
           {canDrawer ? (
             <form

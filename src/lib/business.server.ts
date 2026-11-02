@@ -48,7 +48,7 @@ function fail(message: string): never {
 }
 
 const USER_FACING_DB =
-  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found/i;
+  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert/i;
 
 function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
@@ -922,6 +922,15 @@ export async function createSale(supabase: Db, input: SaleInput) {
     })) as never,
     _idempotency_key: input.idempotencyKey,
     _rail: (input.rail || null) as never,
+    _tenders: (input.tenders && input.tenders.length > 0
+      ? input.tenders.map((tender) => ({
+          rail: tender.rail,
+          amount: tender.amount,
+          currency: tender.currency || null,
+          amountOriginal: tender.amountOriginal ?? null,
+          reference: tender.reference || null,
+        }))
+      : null) as never,
   });
   if (error) dbFail("create sale", error);
   void flushNotificationOutboxForBusiness(supabase, input.businessId);
@@ -969,7 +978,7 @@ export async function listSales(
 }
 
 export async function getSaleDetail(supabase: Db, businessId: string, saleId: string) {
-  const [saleRes, itemsRes, refundsRes] = await Promise.all([
+  const [saleRes, itemsRes, refundsRes, paymentsRes] = await Promise.all([
     supabase
       .from("sales")
       .select("*, customers(name, phone, email)")
@@ -992,11 +1001,18 @@ export async function getSaleDetail(supabase: Db, businessId: string, saleId: st
       .eq("sale_id", saleId)
       .eq("business_id", businessId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("payments")
+      .select("id, amount, method, rail, currency, amount_original, reference, paid_at")
+      .eq("sale_id", saleId)
+      .eq("business_id", businessId)
+      .order("paid_at", { ascending: true }),
   ]);
   if (saleRes.error) dbFail("load sale", saleRes.error);
   if (!saleRes.data) fail("That sale could not be found.");
   if (itemsRes.error) dbFail("load sale items", itemsRes.error);
   if (refundsRes.error) dbFail("load sale refunds", refundsRes.error);
+  if (paymentsRes.error) dbFail("load sale payments", paymentsRes.error);
 
   const refundedByItem = new Map<string, number>();
   for (const refund of refundsRes.data ?? []) {
@@ -1018,6 +1034,16 @@ export async function getSaleDetail(supabase: Db, businessId: string, saleId: st
       refunded_quantity: refundedByItem.get(item.id) ?? 0,
     })),
     refunds: refundsRes.data ?? [],
+    payments: (paymentsRes.data ?? []).map((row) => ({
+      id: row.id,
+      amount: Number(row.amount),
+      method: row.method,
+      rail: row.rail,
+      currency: row.currency,
+      amount_original: row.amount_original == null ? null : Number(row.amount_original),
+      reference: row.reference,
+      paid_at: row.paid_at,
+    })),
   };
 }
 

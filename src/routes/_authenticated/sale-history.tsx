@@ -22,6 +22,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { useDebounce } from "@/hooks/use-debounce";
 import { getSale, getSales, refundSaleFn } from "@/lib/business.functions";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { paymentRailLabel } from "@/lib/payment-rails";
 
 export const Route = createFileRoute("/_authenticated/sale-history")({
   head: () => ({
@@ -310,6 +311,36 @@ function SalesHistory() {
               </ul>
 
               <div className="surface space-y-1.5 p-4 text-sm">
+                {(detail.data.payments ?? []).length > 0 ? (
+                  <ul className="space-y-1 text-[13px] text-muted-foreground">
+                    {detail.data.payments.map((payment) => (
+                      <li key={payment.id} className="flex justify-between gap-3">
+                        <span>
+                          {paymentRailLabel(payment.rail, payment.method)}
+                          {payment.currency &&
+                          payment.amount_original != null &&
+                          payment.currency !== currency
+                            ? ` · recorded ${formatMoney(payment.amount_original, payment.currency)}`
+                            : ""}
+                        </span>
+                        <span className="tabular-nums">
+                          {formatMoney(payment.amount, currency)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : detail.data.sale.payment_method === "credit" ? (
+                  <p className="text-[13px] text-muted-foreground">On account</p>
+                ) : null}
+                {Number(detail.data.sale.amount_paid) < Number(detail.data.sale.total) ? (
+                  <p className="text-[13px] text-muted-foreground">
+                    On account{" "}
+                    {formatMoney(
+                      Number(detail.data.sale.total) - Number(detail.data.sale.amount_paid),
+                      currency,
+                    )}
+                  </p>
+                ) : null}
                 <div className="flex justify-between border-t border-border pt-1.5 text-base font-semibold">
                   <span>Total</span>
                   <span className="tabular-nums">
