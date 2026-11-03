@@ -38,7 +38,10 @@ test.describe("failure and recovery", () => {
     await button.dblclick();
 
     await page.waitForTimeout(3_000);
-    const crashed = await page.getByText(/unhandled|crash|500|internal server/i).isVisible().catch(() => false);
+    const crashed = await page
+      .getByText(/unhandled|crash|500|internal server/i)
+      .isVisible()
+      .catch(() => false);
     expect(crashed).toBe(false);
   });
 });

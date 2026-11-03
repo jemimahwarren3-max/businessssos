@@ -24,7 +24,9 @@ test.describe("product management", () => {
     }
     await addButton.click();
 
-    await expect(page.getByRole("heading", { name: /add a product/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("heading", { name: /add a product/i })).toBeVisible({
+      timeout: 5_000,
+    });
 
     const nameInput = page.getByLabel(/product name/i);
     await nameInput.fill(`E2E Test Product ${Date.now()}`);
@@ -56,8 +58,15 @@ test.describe("POS / sales", () => {
     await page.goto("/sales");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
 
-    const hasProducts = await page.getByText(/product|item|search/i).first().isVisible({ timeout: 10_000 }).catch(() => false);
-    const hasRoleBlock = await page.getByText(/role.*can't|not.*permitted/i).isVisible().catch(() => false);
+    const hasProducts = await page
+      .getByText(/product|item|search/i)
+      .first()
+      .isVisible({ timeout: 10_000 })
+      .catch(() => false);
+    const hasRoleBlock = await page
+      .getByText(/role.*can't|not.*permitted/i)
+      .isVisible()
+      .catch(() => false);
     expect(hasProducts || hasRoleBlock).toBe(true);
   });
 
