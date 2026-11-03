@@ -26,6 +26,7 @@ import {
   paynowCredentialsConfigured,
   paynowIntegrationId,
   paynowIntegrationKey,
+  platformPaynowCredentialPairs,
   type SubscriptionBillingCurrency,
 } from "./paynow-credentials.server";
 import { userFacingPaynowInitError } from "./paynow-init-error";
@@ -281,4 +282,17 @@ export async function checkSubscriptionPayment(
 
   const result = await pollAndConfirmPayment(row.reference, row.poll_url);
   return { status: result };
+}
+
+export function verifyPlatformPaynowWebhookBody(raw: string): string | null {
+  for (const pair of platformPaynowCredentialPairs()) {
+    try {
+      const status = new Paynow(pair.integrationId, pair.integrationKey).parseStatusUpdate(raw);
+      const reference = status.reference?.trim();
+      if (reference) return reference;
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }

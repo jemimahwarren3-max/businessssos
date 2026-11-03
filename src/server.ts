@@ -77,19 +77,12 @@ function isH3SwallowedErrorBody(body: string): boolean {
 // wire: always re-poll Paynow ourselves via our own stored poll_url before
 // crediting anything. See src/lib/payments/paynow.server.ts for why.
 async function verifyPlatformPaynowWebhookBody(raw: string): Promise<string | null> {
-  const integrationId = process.env["PAYNOW_INTEGRATION_ID"];
-  const integrationKey = process.env["PAYNOW_INTEGRATION_KEY"];
-  if (!integrationId || !integrationKey) return null;
-
-  const { Paynow } = await import("paynow");
-  const paynow = new Paynow(integrationId, integrationKey);
-  try {
-    const status = paynow.parseStatusUpdate(raw);
-    return status.reference ?? null;
-  } catch (error) {
-    console.error("[paynow webhook] platform hash verification failed", error);
-    return null;
+  const { verifyPlatformPaynowWebhookBody: verify } = await import("./lib/payments/paynow.server");
+  const reference = verify(raw);
+  if (!reference) {
+    console.error("[paynow webhook] platform hash verification failed");
   }
+  return reference;
 }
 
 async function handlePaynowWebhook(request: Request): Promise<Response> {

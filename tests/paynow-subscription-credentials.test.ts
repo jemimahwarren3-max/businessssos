@@ -3,6 +3,7 @@ import {
   paynowCredentialsConfigured,
   paynowIntegrationId,
   paynowIntegrationKey,
+  platformPaynowCredentialPairs,
 } from "@/lib/payments/paynow-credentials.server";
 
 afterEach(() => {
@@ -22,5 +23,18 @@ describe("platform Paynow subscription credentials", () => {
     expect(paynowIntegrationKey("ZWG")).toBe("zig-key");
     expect(paynowCredentialsConfigured("USD")).toBe(true);
     expect(paynowCredentialsConfigured("ZWG")).toBe(true);
+  });
+
+  it("strips wrapping quotes copied from dashboards", () => {
+    vi.stubEnv("PAYNOW_INTEGRATION_ID", `"12345"`);
+    vi.stubEnv("PAYNOW_INTEGRATION_KEY", `'usd-key'`);
+    vi.stubEnv("PAYNOW_INTEGRATION_ID_ZIG", "");
+    vi.stubEnv("PAYNOW_INTEGRATION_KEY_ZIG", "");
+
+    expect(paynowIntegrationId("USD")).toBe("12345");
+    expect(paynowIntegrationKey("USD")).toBe("usd-key");
+    expect(platformPaynowCredentialPairs()).toEqual([
+      { currency: "USD", integrationId: "12345", integrationKey: "usd-key" },
+    ]);
   });
 });
