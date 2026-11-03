@@ -257,12 +257,31 @@ function StorefrontEditor({
   const publicUrl = store ? storePublicUrl(store.slug) : "";
 
   useEffect(() => {
-    const id = window.location.hash.replace(/^#/, "");
-    if (!id) return;
-    const timer = window.setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 150);
-    return () => window.clearTimeout(timer);
+    let attempts = 0;
+    let timer = 0;
+    const scrollToHash = () => {
+      const id = window.location.hash.replace(/^#/, "");
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      if (attempts < 12) {
+        attempts += 1;
+        timer = window.setTimeout(scrollToHash, 80);
+      }
+    };
+    timer = window.setTimeout(scrollToHash, 80);
+    const onHashChange = () => {
+      attempts = 0;
+      scrollToHash();
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("hashchange", onHashChange);
+    };
   }, []);
 
   return (

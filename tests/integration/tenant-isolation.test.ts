@@ -172,6 +172,12 @@ describeStaging("cross-tenant isolation", () => {
       ).rejects.toThrow(/does not allow this action|permission denied/i);
     });
 
+    it("cannot read setup progress for business A", async () => {
+      await expect(
+        asUser(getAttacker(), `select public.get_setup_progress('${bizA}');`),
+      ).rejects.toThrow(/not a member of this business|permission denied/i);
+    });
+
     it("cannot record a sale against business A", async () => {
       await expect(
         asUser(
@@ -227,6 +233,14 @@ describeStaging("cross-tenant isolation", () => {
       );
       expect(check!.count).toBe(1);
     });
+  });
+
+  it("owner can read their own setup progress", async () => {
+    const rows = await asUser<{ get_setup_progress: unknown }>(
+      ownerA,
+      `select public.get_setup_progress('${bizA}');`,
+    );
+    expect(rows[0]?.get_setup_progress).toBeTruthy();
   });
 
   it("business B's owner CAN operate normally within their own business (isolation isn't over-broad)", async () => {

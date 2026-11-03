@@ -78,9 +78,23 @@ export type LaunchStep = {
   title: string;
   description: string;
   done: boolean;
-  href: string;
-  external?: boolean;
+  to: "/storefront" | "/notifications";
+  hash?: string;
 };
+
+/** Maps storefront URL hashes to Store builder tabs so the target is mounted. */
+export const STORE_BUILDER_TAB_BY_HASH: Record<string, string> = {
+  "store-builder": "branding",
+  "launch-design": "design",
+  "launch-products": "products",
+  "launch-payments": "info",
+  "launch-fulfilment": "info",
+};
+
+export function storeBuilderTabFromHash(hash: string | undefined | null): string | null {
+  const id = (hash ?? "").replace(/^#/, "");
+  return STORE_BUILDER_TAB_BY_HASH[id] ?? null;
+}
 
 export function buildLaunchSteps(
   checklist: AdminStore["checklist"],
@@ -95,7 +109,8 @@ export function buildLaunchSteps(
       title: "Set up your store",
       description: "Name, contact details, and where customers find you.",
       done: checklist.name,
-      href: "#store-builder",
+      to: "/storefront",
+      hash: "store-builder",
     },
     {
       id: "design",
@@ -103,7 +118,8 @@ export function buildLaunchSteps(
       title: "Choose your design",
       description: "Pick a template, colours, and preview the customer view.",
       done: checklist.template && checklist.previewed,
-      href: "#launch-design",
+      to: "/storefront",
+      hash: "launch-design",
     },
     {
       id: "products",
@@ -111,7 +127,8 @@ export function buildLaunchSteps(
       title: "Add products",
       description: "Choose which catalogue items appear on the public shop.",
       done: checklist.products,
-      href: "#launch-products",
+      to: "/storefront",
+      hash: "launch-products",
     },
     {
       id: "payments",
@@ -119,7 +136,8 @@ export function buildLaunchSteps(
       title: "Set up payments",
       description: "Turn on cash, manual pay-in, or seller Paynow when approved.",
       done: checklist.payments,
-      href: "#launch-payments",
+      to: "/storefront",
+      hash: "launch-payments",
     },
     {
       id: "fulfilment",
@@ -127,7 +145,8 @@ export function buildLaunchSteps(
       title: "Delivery or collection",
       description: "Pickup, delivery zones, fees, and opening hours for checkout.",
       done: checklist.fulfilment,
-      href: "#launch-fulfilment",
+      to: "/storefront",
+      hash: "launch-fulfilment",
     },
     {
       id: "notifications",
@@ -135,8 +154,7 @@ export function buildLaunchSteps(
       title: "Order alerts",
       description: "In-app alerts and email — configure who gets notified.",
       done: notificationsConfigured,
-      href: "/notifications",
-      external: true,
+      to: "/notifications",
     },
     {
       id: "launch",
@@ -144,7 +162,8 @@ export function buildLaunchSteps(
       title: "Review and launch",
       description: "Save your draft, check the checklist, then publish the shop link.",
       done: checklist.published,
-      href: "#launch-publish",
+      to: "/storefront",
+      hash: "launch-publish",
     },
   ];
 }

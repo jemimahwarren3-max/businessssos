@@ -54,7 +54,7 @@ function fail(message: string): never {
 }
 
 const USER_FACING_DB =
-  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert|supplier|deposit|lay-by|collect-after|held deposit|not ready to collect|already paid in full/i;
+  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|not a member of this business|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert|supplier|deposit|lay-by|collect-after|held deposit|not ready to collect|already paid in full/i;
 
 function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
@@ -477,6 +477,7 @@ export async function markOnboardingComplete(supabase: Db, userId: string): Prom
 }
 
 export async function getSetupProgress(supabase: Db, businessId: string) {
+  await assertMember(supabase, businessId);
   const { data, error } = await supabase.rpc("get_setup_progress", {
     _business_id: businessId,
   });

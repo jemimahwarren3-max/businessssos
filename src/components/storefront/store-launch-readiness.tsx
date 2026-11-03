@@ -81,11 +81,15 @@ export function StoreLaunchReadiness({
   });
 
   if (eligibility.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading launch requirements…</p>;
+    return (
+      <p id="launch-publish" className="scroll-mt-24 text-sm text-muted-foreground">
+        Loading launch requirements…
+      </p>
+    );
   }
   if (eligibility.isError || !eligibility.data) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p id="launch-publish" className="scroll-mt-24 text-sm text-muted-foreground">
         {readableError(
           eligibility.error as Error,
           "Launch requirements could not be loaded. Apply the latest database migration.",
@@ -99,7 +103,11 @@ export function StoreLaunchReadiness({
   const headline = launchEligibilityHeadline(state);
 
   return (
-    <section className="space-y-3 rounded-xl border p-4" aria-labelledby="launch-readiness-heading">
+    <section
+      id="launch-publish"
+      className="scroll-mt-24 space-y-3 rounded-xl border p-4"
+      aria-labelledby="launch-readiness-heading"
+    >
       <div>
         <h3 id="launch-readiness-heading" className="font-semibold">
           Launch readiness

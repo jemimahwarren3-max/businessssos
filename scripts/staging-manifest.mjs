@@ -146,6 +146,9 @@ export const STAGING_MIGRATION_MANIFEST = [
     // so Create shop uniquely matches the jsonb signature.
     file: "20261103020000_create_business_unique.sql",
   },
+  {
+    file: "20261103100000_get_setup_progress_member.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
@@ -242,6 +245,17 @@ export const STAGING_READINESS_CHECKS = [
       select 1 from pg_constraint
       where conname = 'storefronts_template_check'
         and pg_get_constraintdef(oid) like '%food-counter%'
+    ) as ok`,
+  },
+  {
+    id: "get_setup_progress_member",
+    label: "get_setup_progress() requires business membership",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'get_setup_progress'
+        and pg_get_functiondef(p.oid) like '%is_business_member%'
     ) as ok`,
   },
 ];

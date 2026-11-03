@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -56,6 +56,7 @@ import {
   type StorefrontTheme,
 } from "@/lib/storefront/theme";
 import { snapshotsEqual, type StoreBuilderSnapshot } from "@/lib/storefront/store-builder-state";
+import { storeBuilderTabFromHash } from "@/lib/storefront/launch-status";
 
 function snapshotFromState(input: {
   storeName: string;
@@ -116,6 +117,20 @@ export function StoreBuilder({
 }) {
   const store = initial.store!;
   const queryClient = useQueryClient();
+  const [builderTab, setBuilderTab] = useState(
+    () =>
+      storeBuilderTabFromHash(typeof window === "undefined" ? "" : window.location.hash) ??
+      "design",
+  );
+  useEffect(() => {
+    const syncTab = () => {
+      const tab = storeBuilderTabFromHash(window.location.hash);
+      if (tab) setBuilderTab(tab);
+    };
+    window.addEventListener("hashchange", syncTab);
+    syncTab();
+    return () => window.removeEventListener("hashchange", syncTab);
+  }, []);
   const save = useServerFn(saveStorefrontFn);
   const publish = useServerFn(publishStorefrontFn);
   const uploadBranding = useServerFn(uploadStorefrontBrandingFn);
@@ -549,7 +564,7 @@ export function StoreBuilder({
         </p>
       ) : null}
 
-      <Tabs defaultValue="design" className="space-y-4">
+      <Tabs value={builderTab} onValueChange={setBuilderTab} className="space-y-4">
         <TabsList className="flex h-auto flex-wrap gap-1">
           <TabsTrigger value="design">Design</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
@@ -558,7 +573,7 @@ export function StoreBuilder({
           <TabsTrigger value="preview">Preview</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="design" className="space-y-4">
+        <TabsContent id="launch-design" value="design" className="scroll-mt-24 space-y-4">
           <p className="text-sm text-muted-foreground">
             Each design is a shop website — header, homepage, and product grid. Switching keeps your
             products.
@@ -828,7 +843,7 @@ export function StoreBuilder({
           </Button>
         </TabsContent>
 
-        <TabsContent value="products">
+        <TabsContent id="launch-products-tab" value="products" className="scroll-mt-24">
           <OnlineProductsManager
             businessId={businessId}
             currency={initial.currency}
@@ -980,7 +995,10 @@ export function StoreBuilder({
             cutoffTime={cutoffTime}
             onCutoffTime={setCutoffTime}
           />
-          <div className="space-y-2 rounded-lg border p-4 text-sm">
+          <div
+            id="launch-payments"
+            className="scroll-mt-24 space-y-2 rounded-lg border p-4 text-sm"
+          >
             <p className="font-medium">Payment instructions (seller-confirmed, not automatic)</p>
             <p className="text-muted-foreground">
               Customers pay you directly. Kwetuu does not verify EcoCash, bank, or cash payments.

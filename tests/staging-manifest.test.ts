@@ -40,6 +40,7 @@ const FILES = [
   "20261102210000_whatsapp_channel.sql",
   "20261103080000_onboarding_journey.sql",
   "20261103020000_create_business_unique.sql",
+  "20261103100000_get_setup_progress_member.sql",
 ];
 
 describe("staging migration manifest", () => {
@@ -85,6 +86,16 @@ describe("staging migration manifest", () => {
     );
     expect(journey).toContain("setup_completed_at");
     expect(journey).toContain("_onboarding_config jsonb");
+  });
+
+  it("requires membership on get_setup_progress", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261103100000_get_setup_progress_member.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("is_business_member");
+    expect(sql).toContain("Not a member of this business.");
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
   });
 
   it("drops leftover 7-arg create_business_with_owner so Create shop is unique", () => {

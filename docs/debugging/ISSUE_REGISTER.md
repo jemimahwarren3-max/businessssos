@@ -24,13 +24,24 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `supabase/migrations/20261103080000_onboarding_journey.sql` (function at `get_setup_progress`); `src/lib/business.server.ts` (`getSetupProgress`); `src/lib/business.functions.ts` (`getSetupProgressFn`)
 - **Proposed fix:** Small additive migration: `CREATE OR REPLACE` with `is_business_member(_business_id, auth.uid())` (or owner-only, matching writes). Raise on failure. Add `assertMember` in `getSetupProgress`. Do **not** disable RLS. Add a staging isolation assertion.
 - **Verification test:** Staging: user A cannot `rpc get_setup_progress` for user B’s business. Unit: handler calls `assertMember`.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 - **DB change:** Yes — non-destructive `CREATE OR REPLACE FUNCTION`
 - **External dependency:** None
 
 ---
 
 ## P1 — High
+
+### KW-036 — Dashboard launch steps only change the URL hash
+
+- **Module:** Storefront / dashboard
+- **Severity:** P1
+- **Description:** The launch centre on `/dashboard` used `<a href="#launch-publish">` (and similar). Those section ids live on `/storefront`, and several (`launch-design`, `launch-payments`, `launch-publish`) did not exist at all. Clicking a step left the merchant on `https://mykwetuu.com/dashboard#launch-publish` with no navigation.
+- **Root cause:** Same component on dashboard and storefront; hashes assumed in-page targets.
+- **Affected files:** `src/lib/storefront/launch-status.ts`, `src/components/storefront/store-launch-centre.tsx`, `src/components/storefront/store-builder.tsx`, `src/components/storefront/store-launch-readiness.tsx`, `src/routes/_authenticated/storefront.tsx`
+- **Proposed fix:** Each step is a TanStack `Link` to `/storefront` (or `/notifications`) with a hash. Add missing ids. Open the matching builder tab before scrolling.
+- **Verification test:** `tests/store-launch-status.test.ts` — steps `to` `/storefront` with hashes; tab map for each hash.
+- **Status:** In progress (repair branch)
 
 ### KW-002 — Production schema is not applied by deploy
 
@@ -76,7 +87,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `.github/workflows/flush-mail.yml`, `src/routes/api.internal.flush-mail.ts`
 - **Proposed fix:** Parse nested `{email,whatsapp}`; succeed if both sides are unconfigured (no-op) or sent; fail only on unauthorized / send failures. Do not mark rows sent in the parser.
 - **Verification test:** Feed a fixture JSON through the same Python; unit-test the route shape.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 - **External dependency:** `APP_URL` / `MAIL_FLUSH_SECRET` / Resend / WhatsApp Cloud still required for **actual** delivery (KW-016)
 
 ### KW-010 — Google OAuth `next` is ignored after callback
