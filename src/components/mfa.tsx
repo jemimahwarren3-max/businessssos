@@ -74,14 +74,11 @@ export function MfaEnroll({
         </Button>
       ) : (
         <>
-          <img
-            src={qrCode}
-            alt="Scan this QR code with your authenticator app"
-            className="mx-auto size-40"
-          />
-          <p className="break-all text-[11px] text-muted-foreground">
-            Or enter manually: <span className="font-mono">{secret}</span>
+          {qrCode ? <img src={qrCode} alt="" className="mx-auto size-40 bg-white p-1" /> : null}
+          <p className="text-sm text-muted-foreground">
+            Can&apos;t scan? In Google Authenticator tap + then Enter a setup key, and paste:
           </p>
+          <p className="break-all rounded-md bg-muted px-3 py-2 font-mono text-sm">{secret}</p>
           <div className="space-y-1.5 text-left">
             <Label htmlFor="mfa-code">6-digit code</Label>
             <Input

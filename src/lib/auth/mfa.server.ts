@@ -48,11 +48,15 @@ export async function enrollTotp(tokens: SupabaseTokens) {
     friendlyName: ADMIN_TOTP_NAME,
   });
   if (error || !data) throw new Error(error?.message ?? "Couldn't start MFA enrollment.");
-  // Returned as a data: URI for an <img> tag rather than raw SVG markup —
-  // an <img src="data:image/svg+xml..."> never executes embedded scripts,
-  // unlike injecting the SVG into the DOM directly would.
-  const qrCodeDataUri = `data:image/svg+xml;base64,${Buffer.from(data.totp.qr_code).toString("base64")}`;
-  return { factorId: data.id, qrCode: qrCodeDataUri, secret: data.totp.secret };
+  return { factorId: data.id, qrCode: totpQrSrc(data.totp.qr_code), secret: data.totp.secret };
+}
+
+/** Safe <img src> for Supabase's TOTP QR (raw SVG or an existing data URI). */
+export function totpQrSrc(qrCode: string): string {
+  const raw = qrCode.trim();
+  if (!raw) return "";
+  if (/^data:/i.test(raw)) return raw;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(raw)}`;
 }
 
 /** Confirms a freshly-enrolled factor by verifying one code — Supabase
