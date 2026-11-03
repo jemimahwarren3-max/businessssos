@@ -284,7 +284,12 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
 
   const { getActiveImpersonation, loadWorkspaceWhileImpersonating } =
     await import("@/lib/admin/impersonation.server");
-  const impersonation = await getActiveImpersonation(userId);
+  let impersonation: Awaited<ReturnType<typeof getActiveImpersonation>> = null;
+  try {
+    impersonation = await getActiveImpersonation(userId);
+  } catch (error) {
+    console.error("[businessos] impersonation lookup failed", error);
+  }
   if (impersonation) {
     const workspace = await loadWorkspaceWhileImpersonating(
       supabase,

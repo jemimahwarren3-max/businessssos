@@ -48,6 +48,8 @@ import {
 } from "@/lib/storefront/templates";
 import { storePublicUrl } from "@/lib/storefront/host";
 import {
+  ONBOARDING_LOAD_TIMEOUT_MS,
+  onboardingLoadGate,
   onboardingShopStepStorageKey,
   readOnboardingShopStep,
   resumeOnboardingShopStep,
@@ -109,6 +111,7 @@ function Onboarding() {
   const [delivery, setDelivery] = useState(false);
   const [modeChosen, setModeChosen] = useState(false);
   const [shopStep, setShopStep] = useState(0);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
   const hydratedShopStepFor = useRef<string | null>(null);
 
   const fx = useQuery({
@@ -139,7 +142,28 @@ function Onboarding() {
   const admin = useQuery({
     queryKey: ["storefront", activeBusinessId],
     enabled: Boolean(activeBusinessId),
+    retry: 1,
     queryFn: () => loadAdmin({ data: { businessId: activeBusinessId! } }),
+  });
+  useEffect(() => {
+    const blocked =
+      workspace.isLoading ||
+      Boolean(activeBusinessId && admin.isLoading && !admin.data && !admin.isError);
+    if (!blocked) {
+      setLoadTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setLoadTimedOut(true), ONBOARDING_LOAD_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [workspace.isLoading, activeBusinessId, admin.isLoading, admin.data, admin.isError]);
+  const loadGate = onboardingLoadGate({
+    workspaceLoading: workspace.isLoading,
+    workspaceError: workspace.isError,
+    businessId: activeBusinessId,
+    adminLoading: admin.isLoading,
+    hasAdminData: Boolean(admin.data),
+    adminError: admin.isError,
+    timedOut: loadTimedOut,
   });
   useEffect(() => {
     if (!activeBusinessId || typeof sessionStorage === "undefined") return;
@@ -319,7 +343,7 @@ function Onboarding() {
     </div>
   );
 
-  if (workspace.isLoading || (activeBusinessId && admin.isLoading && !admin.data)) {
+  if (loadGate === "spinner") {
     return (
       <OnboardingShell step={0} totalSteps={SHOP_STEP_TITLES.length} stepTitle="Your shop">
         <OnboardingHeading
@@ -327,25 +351,52 @@ function Onboarding() {
           description="We're picking up where you left off. Your products and settings are still saved."
         />
         <Loader2 className="mt-8 size-8 animate-spin text-primary" aria-label="Loading" />
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Button
+            className="rounded-full"
+            variant="outline"
+            onClick={() => {
+              setLoadTimedOut(false);
+              void workspace.refetch();
+              if (activeBusinessId) void admin.refetch();
+            }}
+          >
+            Try again
+          </Button>
+          <Button variant="ghost" className="rounded-full" onClick={() => void exitToDashboard()}>
+            Go to dashboard
+          </Button>
+        </div>
       </OnboardingShell>
     );
   }
 
-  if (workspace.isError) {
+  if (loadGate === "workspace-error") {
     return (
       <OnboardingShell step={0} totalSteps={1} stepTitle="Your shop">
         <OnboardingHeading
           title="We couldn't load your shop"
           description="Nothing was deleted. This page failed to open your existing shop."
         />
-        <Button className="mt-6 rounded-full" onClick={() => void workspace.refetch()}>
-          Try again
-        </Button>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button
+            className="rounded-full"
+            onClick={() => {
+              setLoadTimedOut(false);
+              void workspace.refetch();
+            }}
+          >
+            Try again
+          </Button>
+          <Button variant="outline" className="rounded-full" onClick={() => void exitToDashboard()}>
+            Go to dashboard
+          </Button>
+        </div>
       </OnboardingShell>
     );
   }
 
-  if (activeBusinessId && admin.isError) {
+  if (loadGate === "admin-error") {
     return (
       <OnboardingShell step={0} totalSteps={SHOP_STEP_TITLES.length} stepTitle="Your shop">
         <OnboardingHeading

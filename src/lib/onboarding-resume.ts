@@ -1,3 +1,27 @@
+/** How long the onboarding spinner may block before we show an error or continue. */
+export const ONBOARDING_LOAD_TIMEOUT_MS = 8_000;
+
+/** Decide whether the shop-setup spinner may keep blocking the page. */
+export function onboardingLoadGate(input: {
+  workspaceLoading: boolean;
+  workspaceError: boolean;
+  businessId: string | null;
+  adminLoading: boolean;
+  hasAdminData: boolean;
+  adminError: boolean;
+  timedOut: boolean;
+}): "spinner" | "workspace-error" | "admin-error" | "ready" {
+  if (input.workspaceError || (input.workspaceLoading && input.timedOut)) {
+    return "workspace-error";
+  }
+  if (input.adminError && input.businessId) return "admin-error";
+  if (input.workspaceLoading) return "spinner";
+  if (input.businessId && input.adminLoading && !input.hasAdminData && !input.timedOut) {
+    return "spinner";
+  }
+  return "ready";
+}
+
 /** Pick the shop-setup step so a returning merchant does not start over. */
 export function resumeOnboardingShopStep(input: {
   slug?: string | null;
