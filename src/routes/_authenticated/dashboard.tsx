@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, isRedirect, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -40,12 +40,18 @@ import { getDailyBusinessBriefingFn } from "@/lib/growth.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   beforeLoad: async () => {
-    const workspace = await getWorkspace();
-    if (!workspace) {
-      throw redirect({ to: "/onboarding", replace: true });
-    }
-    if (!workspace.business.setup_completed_at) {
-      throw redirect({ to: "/setup", replace: true });
+    try {
+      const workspace = await getWorkspace();
+      if (!workspace) {
+        throw redirect({ to: "/onboarding", replace: true });
+      }
+      if (!workspace.business.setup_completed_at) {
+        throw redirect({ to: "/setup", replace: true });
+      }
+    } catch (error) {
+      if (isRedirect(error)) throw error;
+      // A failed workspace load must not bounce an existing shop back into
+      // onboarding. The page shows retry instead.
     }
   },
   head: () => ({
@@ -130,6 +136,26 @@ function Dashboard() {
     staleTime: 60 * 60 * 1000,
     queryFn: () => fetchBriefing({ data: { businessId: businessId! } }),
   });
+
+  if (workspace.isError) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
+        <h1 className="text-2xl font-semibold">We couldn't open your dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Nothing was deleted. Try again, or open shop setup if you still need to finish creating
+          your store.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button className="rounded-full" onClick={() => void workspace.refetch()}>
+            Try again
+          </Button>
+          <Button asChild variant="outline" className="rounded-full">
+            <Link to="/onboarding">Open shop setup</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!workspace.data) {
     return (

@@ -136,6 +136,16 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
+  {
+    // Always re-apply: ADD COLUMN IF NOT EXISTS + CREATE OR REPLACE. Skipping
+    // on setup_completed_at left staging without the jsonb Create shop RPC.
+    file: "20261103080000_onboarding_journey.sql",
+  },
+  {
+    // After the journey file, drop leftover 5-arg / timezone 7-arg overloads
+    // so Create shop uniquely matches the jsonb signature.
+    file: "20261103020000_create_business_unique.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

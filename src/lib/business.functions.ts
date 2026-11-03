@@ -298,9 +298,7 @@ export const completeOnboarding = createServerFn({ method: "POST" })
 export const getSetupProgressFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
-  .handler(async ({ data, context }) =>
-    getSetupProgress(context.supabase as Db, data.businessId),
-  );
+  .handler(async ({ data, context }) => getSetupProgress(context.supabase as Db, data.businessId));
 
 export const saveOnboardingConfigFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)

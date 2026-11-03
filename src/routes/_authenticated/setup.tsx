@@ -194,9 +194,7 @@ function Setup() {
                   </span>
                 ) : null}
               </span>
-              <span className="mt-0.5 block text-sm text-muted-foreground">
-                {item.description}
-              </span>
+              <span className="mt-0.5 block text-sm text-muted-foreground">{item.description}</span>
             </span>
             {item.done ? (
               <CheckCircle2 className="size-5 shrink-0 text-green-500" aria-label="Done" />

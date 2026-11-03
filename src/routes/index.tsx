@@ -206,6 +206,17 @@ function Landing() {
               Start your store <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Already have a Kwetuu store?{" "}
+            <Link
+              to="/auth"
+              search={{ mode: "signin" }}
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Sign in
+            </Link>{" "}
+            to manage your business.
+          </p>
         </div>
         <HeroVisual shops={featuredShops} />
       </section>

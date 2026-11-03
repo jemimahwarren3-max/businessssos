@@ -1,5 +1,5 @@
-import type { Db } from "@/lib/business.server";
-import { loadWorkspace } from "@/lib/business.server";
+import { destinationAfterAuth, type PostAuthAppPath } from "@/lib/auth/post-auth-destination";
+import { loadWorkspace, type Db } from "@/lib/business.server";
 import {
   createAnonClient,
   createExchangeClient,
@@ -58,25 +58,64 @@ export async function completeOAuthCallback(input: { code: string }): Promise<{
   throw new Error("That sign-in link is invalid or has expired.");
 }
 
-export type PostAuthPath = "/auth" | "/onboarding" | "/dashboard";
+export type PostAuthPath = "/auth" | PostAuthAppPath;
+
+async function peekOnboardingCompleted(
+  supabase: ReturnType<typeof createTokenScopedClient>,
+  userId: string,
+): Promise<boolean | null> {
+  const { data: membership, error: memberError } = await supabase
+    .from("business_members")
+    .select("business_id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (memberError) throw memberError;
+  if (!membership) return null;
+
+  const { data: business, error: bizError } = await supabase
+    .from("businesses")
+    .select("onboarding_completed")
+    .eq("id", membership.business_id)
+    .maybeSingle();
+  if (bizError) throw bizError;
+  if (!business) return null;
+  return business.onboarding_completed;
+}
 
 export async function resolvePostAuthPathForUser(
   accessToken: string,
   userId: string,
-): Promise<"/onboarding" | "/dashboard"> {
+): Promise<PostAuthAppPath> {
   const supabase = createTokenScopedClient(accessToken);
+  let onboardingCompleted: boolean | null = null;
   try {
     const workspace = await loadWorkspace(supabase as Db, userId);
-    if (!workspace || !workspace.business.onboarding_completed) {
-      return "/onboarding";
-    }
-    return "/dashboard";
+    onboardingCompleted = workspace ? workspace.business.onboarding_completed : null;
   } catch (error) {
-    // New merchants have no business row yet; a transient DB/RPC error should
-    // still land them in shop setup, not back on the sign-in page.
-    console.error("[auth] resolvePostAuthPathForUser", error);
-    return "/onboarding";
+    // A transient workspace RPC (feature flags, impersonation, limiter) must
+    // not dump a returning merchant onto the onboarding error screen.
+    console.error("[auth] resolvePostAuthPathForUser workspace", error);
+    try {
+      onboardingCompleted = await peekOnboardingCompleted(supabase, userId);
+    } catch (fallbackError) {
+      console.error("[auth] resolvePostAuthPathForUser membership", fallbackError);
+    }
   }
+
+  let isPlatformAdmin = false;
+  if (onboardingCompleted === null) {
+    try {
+      const { isPlatformAdmin: checkAdmin } = await import("@/lib/admin/admin.server");
+      isPlatformAdmin = await checkAdmin(userId);
+    } catch (adminError) {
+      console.error("[auth] resolvePostAuthPathForUser admin", adminError);
+    }
+  }
+
+  return destinationAfterAuth({ onboardingCompleted, isPlatformAdmin });
 }
 
 export async function resolvePostAuthPath(): Promise<PostAuthPath> {

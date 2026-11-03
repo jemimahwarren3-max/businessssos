@@ -75,7 +75,9 @@ function CartPage() {
       ) : (
         <ul className="mt-6 divide-y">
           {lines.map((line) => {
-            const product = store.products.find((item: PublicProduct) => item.id === line.productId);
+            const product = store.products.find(
+              (item: PublicProduct) => item.id === line.productId,
+            );
             const pricedLine = priced?.lines.find((item) => item.productId === line.productId);
             return (
               <li key={line.productId} className="flex items-start justify-between gap-3 py-4">
