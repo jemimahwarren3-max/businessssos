@@ -50,6 +50,9 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       // A failed workspace load must not bounce an existing shop back into
       // onboarding. The page shows retry instead.
     }
+    if (!workspace.business.setup_completed_at) {
+      throw redirect({ to: "/setup", replace: true });
+    }
   },
   head: () => ({
     meta: [
@@ -104,6 +107,8 @@ function Dashboard() {
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
       navigate({ to: "/onboarding", replace: true });
+    } else if (workspace.data && !workspace.data.business.setup_completed_at) {
+      navigate({ to: "/setup", replace: true });
     }
   }, [workspace.isLoading, workspace.data, navigate]);
 

@@ -119,7 +119,7 @@ export async function loadWorkspaceWhileImpersonating(
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id, name, business_type, currency, onboarding_completed, logo_url")
+      .select("id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at")
       .eq("id", businessId)
       .maybeSingle(),
     supabase
