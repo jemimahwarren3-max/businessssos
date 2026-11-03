@@ -324,7 +324,9 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at")
+      .select(
+        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
+      )
       .eq("id", membership.business_id)
       .maybeSingle(),
     supabase
@@ -424,7 +426,8 @@ export async function createBusinessRecord(
     _phone: input.phone ?? "",
     _address: input.address ?? "",
     _business_path: (input as { businessPath?: string }).businessPath ?? "management",
-    _onboarding_config: ((input as { onboardingConfig?: Record<string, unknown> }).onboardingConfig ?? {}) as Json,
+    _onboarding_config: ((input as { onboardingConfig?: Record<string, unknown> })
+      .onboardingConfig ?? {}) as Json,
   });
   if (error) dbFail("create business", error);
   const businessIdStr =

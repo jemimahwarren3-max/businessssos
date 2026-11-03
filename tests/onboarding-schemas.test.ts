@@ -41,9 +41,7 @@ describe("onboardingConfigSchema", () => {
   });
 
   it("rejects invalid pricingModel", () => {
-    expect(() =>
-      onboardingConfigSchema.parse({ pricingModel: "auction" }),
-    ).toThrow();
+    expect(() => onboardingConfigSchema.parse({ pricingModel: "auction" })).toThrow();
   });
 });
 
