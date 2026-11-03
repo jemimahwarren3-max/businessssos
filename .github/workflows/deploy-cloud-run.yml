@@ -159,7 +159,7 @@ jobs:
             --build-arg "VITE_SENTRY_DSN=${VITE_SENTRY_DSN}" \
             --build-arg "VITE_SENTRY_DSN_BACKEND=${VITE_SENTRY_DSN_BACKEND}" \
             --build-arg "APP_URL=${APP_URL}" \
-            --build-arg "SHOP_HOSTS=true" \
+            --build-arg "SHOP_HOSTS=false" \
             --tag "${IMAGE}" \
             .
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
@@ -219,7 +219,7 @@ jobs:
           pairs = {
               "NODE_ENV": "production",
               "HOST": "0.0.0.0",
-              "SHOP_HOSTS": "true",
+              "SHOP_HOSTS": "false",
               "BILLING_ENABLED": "false",
               "APP_URL": os.environ["APP_URL"],
               "SUPABASE_URL": os.environ["SUPABASE_URL"],
