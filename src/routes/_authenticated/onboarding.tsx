@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { createBusiness, completeOnboarding, getWorkspace } from "@/lib/business.functions";
 import { onboardingPageDestination } from "@/lib/auth/post-auth-destination";
-import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import { PLAN_MONTHLY_USD, TRIAL_LENGTH_LABEL, planAmountZig } from "@/lib/billing-plans";
 import {
   BUSINESS_TYPES,
   BUSINESS_SUBCATEGORIES,
@@ -541,7 +541,7 @@ function Onboarding() {
         <>
           <OnboardingHeading
             title="How would you like to use Kwetuu?"
-            description={`Both options cost the same ($${PLAN_MONTHLY_USD.pro}/month${zigMonthly != null ? ` or ZiG ${zigMonthly}` : ""} after your 14-day free trial). You can always add an online store later.`}
+            description={`Both options cost the same ($${PLAN_MONTHLY_USD.pro}/month${zigMonthly != null ? ` or ZiG ${zigMonthly}` : " or ZiG"} after your ${TRIAL_LENGTH_LABEL} free trial). You can always add an online store later.`}
           />
           <div className="mt-6 grid gap-4">
             <button
@@ -746,7 +746,7 @@ function Onboarding() {
         <>
           <OnboardingHeading
             title={`Create ${form.name.trim() || "your business"}`}
-            description="We'll set up your workspace and start your 14-day free trial. No card needed."
+            description={`We'll set up your workspace and start your ${TRIAL_LENGTH_LABEL} free trial. No card needed.`}
           />
           <OnboardingCard>
             <dl className="divide-y divide-border">
@@ -780,7 +780,7 @@ function Onboarding() {
               </div>
               <div className="flex justify-between gap-4 py-2.5">
                 <dt className="text-sm text-muted-foreground">Trial</dt>
-                <dd className="text-sm font-medium">14 days free</dd>
+                <dd className="text-sm font-medium">1 month free</dd>
               </div>
               <div className="flex justify-between gap-4 py-2.5">
                 <dt className="text-sm text-muted-foreground">After trial</dt>

@@ -17,6 +17,7 @@ import {
   type SubscriptionBillingCurrency,
 } from "./paynow-credentials.server";
 import type { PaynowPollResult } from "./paynow.server";
+import { userFacingPaynowInitError } from "./paynow-init-error";
 
 function getAppUrl(): string {
   const url = process.env["APP_URL"];
@@ -108,12 +109,12 @@ export async function initiateStoreLaunchCheckout(
     response = await paynow.send(payment);
   } catch (error) {
     console.error("[paynow] launch fee initiation threw", error);
-    throw new AppError("Paynow couldn't start this payment. Please try again in a moment.");
+    throw new AppError(userFacingPaynowInitError(undefined, error));
   }
 
   if (!response || !response.success || !response.pollUrl) {
     console.error("[paynow] launch fee initiation failed", response);
-    throw new AppError("Paynow couldn't start this payment. Please try again in a moment.");
+    throw new AppError(userFacingPaynowInitError(response));
   }
 
   const { error: rpcError } = await supabase.rpc(

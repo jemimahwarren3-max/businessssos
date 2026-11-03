@@ -7,6 +7,7 @@ import {
   canWriteWithPlatformEntitlement,
 } from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
+import { paynowCredentialsConfigured } from "@/lib/payments/paynow-credentials.server";
 import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
   ConvertQuoteInput,
@@ -466,7 +467,7 @@ export async function createBusinessRecord(
     type: "welcome",
     title: "Welcome to Kwetuu",
     message: isBillingEnabled()
-      ? "Your 14-day Pro trial has started. Add your first products to begin."
+      ? "Your 1-month Pro trial has started. Add your first products to begin."
       : "You're in! Kwetuu is free during our beta — add your first products to begin.",
     severity: "info",
   });
@@ -580,7 +581,12 @@ export async function loadBillingSummary(supabase: Db, businessId: string) {
   if (subError) dbFail("load subscription", subError);
   if (payError) dbFail("load subscription payments", payError);
 
-  return { subscription: subscription ?? null, payments: payments ?? [] };
+  return {
+    subscription: subscription ?? null,
+    payments: payments ?? [],
+    paynowUsdConfigured: paynowCredentialsConfigured("USD"),
+    paynowZigConfigured: paynowCredentialsConfigured("ZWG"),
+  };
 }
 
 /* ------------------------------ categories ------------------------------ */

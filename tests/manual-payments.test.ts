@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import {
+  PLAN_MONTHLY_USD,
+  TRIAL_LENGTH_LABEL,
+  billingChargeChoices,
+  planAmountZig,
+} from "@/lib/billing-plans";
 import { sniffPaymentProof } from "@/lib/storefront/payment-proof.server";
 import { CURRENCIES } from "@/lib/business.schemas";
 import { formatMoney } from "@/lib/format";
@@ -33,6 +38,16 @@ describe("ZiG display", () => {
         notice: "",
       }),
     ).toBe(213.5);
+  });
+
+  it("always offers USD and ZiG charge choices", () => {
+    expect(TRIAL_LENGTH_LABEL).toBe("1-month");
+    const withoutRate = billingChargeChoices({ usd: 7, zig: null });
+    expect(withoutRate.map((c) => c.currency)).toEqual(["USD", "ZWG"]);
+    expect(withoutRate.find((c) => c.currency === "USD")?.canCharge).toBe(true);
+    expect(withoutRate.find((c) => c.currency === "ZWG")?.canCharge).toBe(false);
+    const withRate = billingChargeChoices({ usd: 7, zig: 210 });
+    expect(withRate.find((c) => c.currency === "ZWG")?.canCharge).toBe(true);
   });
 });
 

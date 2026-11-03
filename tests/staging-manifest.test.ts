@@ -43,6 +43,7 @@ const FILES = [
   "20261103080000_onboarding_journey.sql",
   "20261103020000_create_business_unique.sql",
   "20261103100000_get_setup_progress_member.sql",
+  "20261103120000_one_month_trial.sql",
 ];
 
 describe("staging migration manifest", () => {
@@ -90,6 +91,17 @@ describe("staging migration manifest", () => {
     expect(journey).toContain("_onboarding_config jsonb");
   });
 
+  it("extends the Pro trial to one calendar month", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261103120000_one_month_trial.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("interval '1 month'");
+    expect(sql).toContain("status = 'trialing'");
+    expect(sql).not.toMatch(/interval '14 days'/);
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
+  });
+
   it("requires membership on get_setup_progress", () => {
     const sql = readFileSync(
       join(process.cwd(), "supabase/migrations", "20261103100000_get_setup_progress_member.sql"),
@@ -118,6 +130,7 @@ describe("staging migration manifest", () => {
         "create_sale_tenders",
         "create_business_with_owner_unique",
         "setup_completed_at",
+        "one_month_trial",
         "get_setup_progress_member",
       ]),
     );

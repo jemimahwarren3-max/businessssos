@@ -149,6 +149,9 @@ export const STAGING_MIGRATION_MANIFEST = [
   {
     file: "20261103100000_get_setup_progress_member.sql",
   },
+  {
+    file: "20261103120000_one_month_trial.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
@@ -250,6 +253,17 @@ export const STAGING_READINESS_CHECKS = [
       where n.nspname = 'public'
         and p.proname = 'create_sale'
         and (p.proargnames is null or not ('_tenders' = any (p.proargnames)))
+    ) as ok`,
+  },
+  {
+    id: "one_month_trial",
+    label: "create_business_with_owner() starts a 1-month trial",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_business_with_owner'
+        and pg_get_functiondef(p.oid) like '%interval ''1 month''%'
     ) as ok`,
   },
   {
