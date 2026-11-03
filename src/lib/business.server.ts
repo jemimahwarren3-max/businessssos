@@ -171,6 +171,18 @@ export async function assertPermission(supabase: Db, businessId: string, permiss
   if (!data) fail("Your role doesn't allow this action.");
 }
 
+export async function assertAnyPermission(supabase: Db, businessId: string, permissions: string[]) {
+  for (const permission of permissions) {
+    const { data, error } = await supabase.rpc("has_permission", {
+      _business_id: businessId,
+      _permission: permission,
+    });
+    if (error) dbFail("permission check", error);
+    if (data) return;
+  }
+  fail("Your role doesn't allow this action.");
+}
+
 const READ_ONLY_MESSAGE =
   "Your trial has ended. Upgrade to Pro to keep creating and editing, your existing data is still safe and visible.";
 
@@ -1775,6 +1787,7 @@ export async function listExpenses(
   businessId: string,
   days: number,
 ): Promise<ExpenseRow[]> {
+  await assertAnyPermission(supabase, businessId, ["reports.financial", "expenses.create"]);
   const since = new Date();
   since.setDate(since.getDate() - days);
   const { data, error } = await supabase
@@ -2347,6 +2360,7 @@ export async function loadReports(
   businessId: string,
   days: number,
 ): Promise<ReportsData> {
+  await assertPermission(supabase, businessId, "reports.financial");
   const now = new Date();
   const windowStart = new Date(now);
   windowStart.setDate(windowStart.getDate() - (days - 1));

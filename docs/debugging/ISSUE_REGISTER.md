@@ -144,7 +144,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `src/lib/business.server.ts`, `src/lib/business.functions.ts`, foundation RLS policies
 - **Proposed fix:** `assertPermission` on those handlers. Do **not** drop member SELECT in this batch (POS still needs to read products/customers). Optional later: tighter SELECT policies.
 - **Verification test:** Staging cashier JWT cannot call `getReports`.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 
 ### KW-015 — Preview failures send users to `/onboarding`
 
