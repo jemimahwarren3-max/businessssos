@@ -1,9 +1,54 @@
 import { describe, expect, it } from "vitest";
 import {
+  onboardingLoadGate,
   onboardingShopStepStorageKey,
   readOnboardingShopStep,
   resumeOnboardingShopStep,
 } from "@/lib/onboarding-resume";
+
+describe("onboardingLoadGate", () => {
+  const idle = {
+    workspaceLoading: false,
+    workspaceError: false,
+    businessId: null as string | null,
+    adminLoading: false,
+    hasAdminData: false,
+    adminError: false,
+    timedOut: false,
+  };
+
+  it("spins while the workspace is loading", () => {
+    expect(onboardingLoadGate({ ...idle, workspaceLoading: true })).toBe("spinner");
+  });
+
+  it("does not leave a returning merchant on a spinner after the timeout", () => {
+    expect(
+      onboardingLoadGate({
+        ...idle,
+        workspaceLoading: true,
+        timedOut: true,
+      }),
+    ).toBe("workspace-error");
+    expect(
+      onboardingLoadGate({
+        ...idle,
+        businessId: "biz",
+        adminLoading: true,
+        timedOut: true,
+      }),
+    ).toBe("ready");
+  });
+
+  it("shows the storefront error once that query fails", () => {
+    expect(
+      onboardingLoadGate({
+        ...idle,
+        businessId: "biz",
+        adminError: true,
+      }),
+    ).toBe("admin-error");
+  });
+});
 
 describe("resumeOnboardingShopStep", () => {
   it("starts at the template picker when the shop has no slug yet", () => {

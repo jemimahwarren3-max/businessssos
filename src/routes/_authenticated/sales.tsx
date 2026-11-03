@@ -8,6 +8,7 @@ import {
   Camera,
   History,
   Loader2,
+  MessageCircle,
   Minus,
   Plus,
   Printer,
@@ -42,21 +43,37 @@ import { SaleReceiptPrintView, type SaleReceiptProps } from "@/components/sale-r
 import { useDebounce } from "@/hooks/use-debounce";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { addSale, getCashDrawerFn, getCustomers, getProducts } from "@/lib/business.functions";
-import { PAYMENT_METHODS, saleSchema, type LineItemInput } from "@/lib/business.schemas";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
+import {
+  POS_PAYMENT_RAILS,
+  paymentRailLabel,
+  railToPaymentMethod,
+  tendersAllocated,
+  tendersLabel,
+  tendersNeedCashDrawer,
+  tendersNeedCustomer,
+} from "@/lib/payment-rails";
+import { CURRENCIES, saleSchema, type LineItemInput } from "@/lib/business.schemas";
+import { buildSaleReceiptWhatsAppMessage, buildWhatsAppShareUrl } from "@/lib/whatsapp";
 import { computeTotals } from "@/lib/invoice-calc";
 import {
   addPendingSale,
+  clearPosDraft,
   decrementCachedStock,
+  getPosDraft,
   listPendingSales,
   removePendingSale,
   replaceCachedProducts,
+  savePosDraft,
   searchCachedProducts,
   upsertCachedProducts,
   type CachedProduct,
   type PendingSale,
+  type PosDraftCartItem,
+  type PosDraftTender,
 } from "@/lib/offline/db";
-import { syncPendingSales } from "@/lib/offline/sync";
+import { syncOnePendingSale, syncPendingSales } from "@/lib/offline/sync";
+import { formatStockLeftLabel, OFFLINE_STOCK_HINT } from "@/lib/offline/stock-label";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 
 export const Route = createFileRoute("/_authenticated/sales")({
@@ -76,15 +93,20 @@ export const Route = createFileRoute("/_authenticated/sales")({
 
 const NONE = "__none";
 
-type CartItem = {
-  productId: string;
-  name: string;
-  sku: string | null;
-  unitPrice: number;
-  taxRate: number;
-  quantity: number;
-  stock: number;
-};
+type TenderDraft = PosDraftTender;
+
+function newTenderDraft(rail: string, amount: string, currency: string): TenderDraft {
+  return {
+    key: crypto.randomUUID(),
+    rail,
+    amount,
+    currency,
+    amountOriginal: "",
+    showOriginal: false,
+  };
+}
+
+type CartItem = PosDraftCartItem;
 
 function toLineItems(cart: CartItem[]): LineItemInput[] {
   return cart.map((item) => ({
@@ -120,6 +142,7 @@ function toCachedProduct(businessId: string, product: SearchResultProduct): Cach
     selling_price: Number(product.selling_price),
     tax_rate: Number(product.tax_rate),
     stock: Number(product.stock),
+    cachedAt: new Date().toISOString(),
   };
 }
 
@@ -137,16 +160,21 @@ function Sales() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [discount, setDiscount] = useState("0");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentRail, setPaymentRail] = useState("cash");
+  const [splitPay, setSplitPay] = useState(false);
+  const [tenders, setTenders] = useState<TenderDraft[]>([]);
   const [receipt, setReceipt] = useState<{
     number: string;
     total: number;
     offline: boolean;
     printData: SaleReceiptProps | null;
+    customerPhone: string | null;
   } | null>(null);
   // Stays the same across a failed submit so a retry can't double-book the sale;
   // only rotates once the sale actually succeeds or the cart is cleared.
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const [draftReady, setDraftReady] = useState(false);
+  const [restoredBanner, setRestoredBanner] = useState(false);
 
   const isOnline = useOnlineStatus();
   const fetchProducts = useServerFn(getProducts);
@@ -214,18 +242,71 @@ function Sales() {
     refetchInterval: 5000,
   });
 
-  async function runSync(currentBusinessId: string) {
-    const result = await syncPendingSales(currentBusinessId, async (sale: PendingSale) => {
-      const parsed = saleSchema.parse({
-        businessId: sale.businessId,
-        customerId: sale.customerId,
-        discount: sale.discount,
-        paymentMethod: sale.paymentMethod,
-        items: sale.items,
-        idempotencyKey: sale.idempotencyKey,
-      });
-      return createSaleFn({ data: parsed });
+  useEffect(() => {
+    if (!businessId) return;
+    let cancelled = false;
+    setDraftReady(false);
+    void (async () => {
+      try {
+        const draft = await getPosDraft(businessId);
+        if (cancelled) return;
+        if (draft && draft.cart.length > 0) {
+          setCart(draft.cart);
+          setCustomerId(draft.customerId);
+          setDiscount(draft.discount);
+          setPaymentRail(draft.paymentRail);
+          setSplitPay(draft.splitPay);
+          setTenders(draft.tenders);
+          setRestoredBanner(true);
+        }
+      } catch {
+        // Private browsing / IndexedDB blocked — POS still works in memory.
+      } finally {
+        if (!cancelled) setDraftReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
+
+  useEffect(() => {
+    if (!businessId || !draftReady) return;
+    const handle = window.setTimeout(() => {
+      if (cart.length === 0) {
+        void clearPosDraft(businessId).catch(() => undefined);
+        return;
+      }
+      void savePosDraft({
+        businessId,
+        cart,
+        customerId,
+        discount,
+        paymentRail,
+        splitPay,
+        tenders,
+        updatedAt: new Date().toISOString(),
+      }).catch(() => undefined);
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [businessId, draftReady, cart, customerId, discount, paymentRail, splitPay, tenders]);
+
+  async function submitQueuedSale(sale: PendingSale) {
+    const parsed = saleSchema.parse({
+      businessId: sale.businessId,
+      customerId: sale.customerId,
+      discount: sale.discount,
+      paymentMethod: sale.paymentMethod,
+      rail: sale.rail ?? sale.paymentMethod,
+      tenders: sale.tenders,
+      items: sale.items,
+      idempotencyKey: sale.idempotencyKey,
     });
+    return createSaleFn({ data: parsed });
+  }
+
+  async function runSync(currentBusinessId: string) {
+    const result = await syncPendingSales(currentBusinessId, submitQueuedSale);
     if (result.synced > 0) {
       toast.success(`Synced ${result.synced} offline sale${result.synced === 1 ? "" : "s"}.`);
     }
@@ -266,6 +347,20 @@ function Sales() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pending-sales"] }),
   });
 
+  const retryOneMutation = useMutation({
+    mutationFn: (localId: string) => syncOnePendingSale(businessId!, localId, submitQueuedSale),
+    onSuccess: async (result) => {
+      if (result.synced > 0) toast.success("Sale synced.");
+      if (result.failed > 0) {
+        toast.error("This sale still couldn't sync, review below.");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["pending-sales"] });
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+
   const customers = useQuery({
     queryKey: ["customers", businessId, ""],
     enabled: Boolean(businessId),
@@ -273,6 +368,7 @@ function Sales() {
   });
 
   function addToCart(product: SearchResultProduct) {
+    if (!draftReady) return;
     setCart((prev) => {
       const existing = prev.find((item) => item.productId === product.id);
       if (existing) {
@@ -317,6 +413,7 @@ function Sales() {
         : await searchCachedProducts(businessId, code);
       const match = results.find((p) => p.barcode === code);
       if (match) {
+        if (!draftReady) return;
         addToCart(match);
         toast.success(`Added ${match.name}`);
       } else {
@@ -342,12 +439,50 @@ function Sales() {
     [cart, discount],
   );
 
+  const activeTenders = useMemo((): {
+    rail: string;
+    amount: number;
+    currency: string;
+    amountOriginal?: number;
+  }[] => {
+    if (splitPay) {
+      return tenders.map((tender) => {
+        const row: {
+          rail: string;
+          amount: number;
+          currency: string;
+          amountOriginal?: number;
+        } = {
+          rail: tender.rail,
+          amount: Number(tender.amount) || 0,
+          currency: tender.showOriginal && tender.currency ? tender.currency : currency,
+        };
+        if (tender.showOriginal && tender.amountOriginal) {
+          row.amountOriginal = Number(tender.amountOriginal);
+        }
+        return row;
+      });
+    }
+    return [{ rail: paymentRail, amount: totals.total, currency }];
+  }, [splitPay, tenders, paymentRail, totals.total, currency]);
+
+  const remaining = Math.round((totals.total - tendersAllocated(activeTenders)) * 100) / 100;
+  const needsDrawer = tendersNeedCashDrawer(activeTenders);
+  const needsCustomer = tendersNeedCustomer(activeTenders);
+  const hasUnconfirmedRail = activeTenders.some(
+    (tender) => tender.rail === "ecocash" || tender.rail === "innbucks" || tender.rail === "zipit",
+  );
+
   async function resetAfterSale() {
     setCart([]);
     setDiscount("0");
     setCustomerId("");
-    setPaymentMethod("cash");
+    setPaymentRail("cash");
+    setSplitPay(false);
+    setTenders([]);
     setIdempotencyKey(crypto.randomUUID());
+    setRestoredBanner(false);
+    if (businessId) await clearPosDraft(businessId).catch(() => undefined);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["products"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
@@ -361,7 +496,22 @@ function Sales() {
         businessId,
         customerId: customerId === NONE ? "" : customerId,
         discount: discount || 0,
-        paymentMethod,
+        paymentMethod: railToPaymentMethod(activeTenders[0]?.rail ?? paymentRail),
+        rail: activeTenders[0]?.rail ?? paymentRail,
+        tenders: activeTenders.map((tender) => {
+          const row: {
+            rail: string;
+            amount: number;
+            currency: string;
+            amountOriginal?: number;
+          } = {
+            rail: tender.rail,
+            amount: tender.amount,
+            currency: tender.currency,
+          };
+          if (tender.amountOriginal) row.amountOriginal = tender.amountOriginal;
+          return row;
+        }),
         items: cart.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -371,7 +521,7 @@ function Sales() {
       });
 
       if (!isOnline) {
-        await addPendingSale({
+        const pending: PendingSale = {
           localId: crypto.randomUUID(),
           businessId: parsed.businessId,
           idempotencyKey: parsed.idempotencyKey,
@@ -385,7 +535,20 @@ function Sales() {
           })),
           createdAt: new Date().toISOString(),
           status: "pending",
-        });
+        };
+        if (parsed.rail) pending.rail = parsed.rail;
+        if (parsed.tenders && parsed.tenders.length > 0) {
+          pending.tenders = parsed.tenders.map((tender) => {
+            const row: NonNullable<PendingSale["tenders"]>[number] = {
+              rail: tender.rail,
+              amount: tender.amount,
+            };
+            if (tender.currency) row.currency = tender.currency;
+            if (tender.amountOriginal) row.amountOriginal = tender.amountOriginal;
+            return row;
+          });
+        }
+        await addPendingSale(pending);
         for (const item of parsed.items) {
           await decrementCachedStock(parsed.businessId, item.productId, item.quantity);
         }
@@ -396,8 +559,7 @@ function Sales() {
       return { id: result.id, offline: false as const };
     },
     onSuccess: async (result) => {
-      const methodLabel =
-        PAYMENT_METHODS.find((m) => m.value === paymentMethod)?.label ?? paymentMethod;
+      const methodLabel = tendersLabel(activeTenders, paymentRailLabel(paymentRail));
       const printData: SaleReceiptProps = {
         businessName: workspace.data?.business.name ?? "",
         receiptNumber: result.offline ? "Pending" : result.id.slice(0, 8),
@@ -416,9 +578,16 @@ function Sales() {
         currency,
         customerName: customers.data?.find((c) => c.id === customerId)?.name,
       };
+      const customerPhone = customers.data?.find((c) => c.id === customerId)?.phone ?? null;
       if (result.offline) {
         toast.success("Sale saved offline, it'll sync automatically once you're back online.");
-        setReceipt({ number: "Pending sync", total: totals.total, offline: true, printData });
+        setReceipt({
+          number: "Pending sync",
+          total: totals.total,
+          offline: true,
+          printData,
+          customerPhone,
+        });
       } else {
         toast.success("Sale completed.");
         setReceipt({
@@ -426,6 +595,7 @@ function Sales() {
           total: totals.total,
           offline: false,
           printData,
+          customerPhone,
         });
       }
       await resetAfterSale();
@@ -468,6 +638,8 @@ function Sales() {
   const results = isOnline ? (products.data ?? []) : (offlineProducts.data ?? []);
   const resultsLoading = isOnline ? products.isLoading : offlineProducts.isLoading;
   const pendingList = pendingSales.data ?? [];
+  const failedList = pendingList.filter((sale) => sale.status === "failed");
+  const waitingList = pendingList.filter((sale) => sale.status !== "failed");
 
   return (
     <AppShell
@@ -488,11 +660,26 @@ function Sales() {
         </Button>
       }
     >
+      {restoredBanner ? (
+        <div className="surface mb-4 flex items-start justify-between gap-3 border-warning/40 bg-warning-soft p-3.5 text-[13px] text-warning-foreground">
+          <p>Restored cart from before the power cut. Check it before charging.</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-warning-foreground"
+            onClick={() => setRestoredBanner(false)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      ) : null}
+
       {!isOnline ? (
         <div className="surface mb-4 flex items-center gap-2.5 border-warning/40 bg-warning-soft p-3.5 text-[13px] text-warning-foreground">
           <WifiOff className="size-4 shrink-0" aria-hidden="true" />
           You're offline. Sales are saved on this device and will sync automatically once you're
-          back online.
+          back online. {OFFLINE_STOCK_HINT}.
         </div>
       ) : null}
 
@@ -526,7 +713,11 @@ function Sales() {
           </div>
 
           <div className="surface overflow-hidden">
-            {!search.trim() ? (
+            {businessId && !draftReady ? (
+              <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+                Checking for a saved cart…
+              </div>
+            ) : !search.trim() ? (
               <div className="px-6 py-16 text-center text-sm text-muted-foreground">
                 Start typing a product name, SKU, or scan a barcode to add it to the cart.
               </div>
@@ -542,6 +733,11 @@ function Sales() {
               </div>
             ) : (
               <ul className="divide-y divide-border">
+                {!isOnline ? (
+                  <li className="px-5 py-2 text-[12px] text-muted-foreground">
+                    {OFFLINE_STOCK_HINT}.
+                  </li>
+                ) : null}
                 {results.map((product) => {
                   const stock = Number(product.stock);
                   return (
@@ -555,9 +751,7 @@ function Sales() {
                           <p className="truncate text-sm font-semibold">{product.name}</p>
                           <p className="truncate text-[13px] text-muted-foreground">
                             {product.sku ? `${product.sku} · ` : ""}
-                            {stock <= 0
-                              ? "Out of stock"
-                              : `${formatNumber(stock)} ${product.unit} left`}
+                            {formatStockLeftLabel(stock, product.unit, formatNumber, !isOnline)}
                           </p>
                         </div>
                         <span className="shrink-0 text-sm font-semibold tabular-nums">
@@ -580,7 +774,11 @@ function Sales() {
                 variant="ghost"
                 size="sm"
                 className="gap-1 text-muted-foreground"
-                onClick={() => setCart([])}
+                onClick={() => {
+                  setCart([]);
+                  setRestoredBanner(false);
+                  if (businessId) void clearPosDraft(businessId).catch(() => undefined);
+                }}
               >
                 <Trash2 className="size-3.5" aria-hidden="true" /> Clear
               </Button>
@@ -655,47 +853,253 @@ function Sales() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="sale-discount">Discount</Label>
+              <Input
+                id="sale-discount"
+                type="number"
+                min={0}
+                step="0.01"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+              />
+            </div>
+
+            {!splitPay ? (
               <div className="space-y-1.5">
-                <Label htmlFor="sale-discount">Discount</Label>
-                <Input
-                  id="sale-discount"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sale-payment">Payment</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="sale-payment">Payment</Label>
+                  <button
+                    type="button"
+                    className="text-[12px] text-muted-foreground underline"
+                    onClick={() => {
+                      setTenders([
+                        newTenderDraft(
+                          paymentRail,
+                          totals.total ? String(totals.total) : "",
+                          currency,
+                        ),
+                      ]);
+                      setSplitPay(true);
+                    }}
+                  >
+                    Split payment
+                  </button>
+                </div>
+                <Select value={paymentRail} onValueChange={setPaymentRail}>
                   <SelectTrigger id="sale-payment">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
+                    {POS_PAYMENT_RAILS.map((rail) => (
+                      <SelectItem key={rail.value} value={rail.value}>
+                        {rail.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Split payment</Label>
+                  <button
+                    type="button"
+                    className="text-[12px] text-muted-foreground underline"
+                    onClick={() => {
+                      setPaymentRail(tenders[0]?.rail ?? "cash");
+                      setSplitPay(false);
+                      setTenders([]);
+                    }}
+                  >
+                    One method
+                  </button>
+                </div>
+                <ul className="space-y-2">
+                  {tenders.map((tender) => {
+                    const used = new Set(tenders.map((row) => row.rail));
+                    return (
+                      <li
+                        key={tender.key}
+                        className="space-y-1.5 rounded-lg border border-border p-2.5"
+                      >
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          <Select
+                            value={tender.rail}
+                            onValueChange={(value) =>
+                              setTenders((prev) =>
+                                prev.map((row) =>
+                                  row.key === tender.key ? { ...row, rail: value } : row,
+                                ),
+                              )
+                            }
+                          >
+                            <SelectTrigger aria-label="Payment method">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {POS_PAYMENT_RAILS.filter(
+                                (rail) => rail.value === tender.rail || !used.has(rail.value),
+                              ).map((rail) => (
+                                <SelectItem key={rail.value} value={rail.value}>
+                                  {rail.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {tenders.length > 1 ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-9 text-muted-foreground"
+                              aria-label="Remove method"
+                              onClick={() =>
+                                setTenders((prev) => prev.filter((row) => row.key !== tender.key))
+                              }
+                            >
+                              <Trash2 className="size-3.5" aria-hidden="true" />
+                            </Button>
+                          ) : null}
+                        </div>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          inputMode="decimal"
+                          aria-label={`${paymentRailLabel(tender.rail)} amount`}
+                          value={tender.amount}
+                          onChange={(e) =>
+                            setTenders((prev) =>
+                              prev.map((row) =>
+                                row.key === tender.key ? { ...row, amount: e.target.value } : row,
+                              ),
+                            )
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="text-[12px] text-muted-foreground underline"
+                          onClick={() =>
+                            setTenders((prev) =>
+                              prev.map((row) =>
+                                row.key === tender.key
+                                  ? { ...row, showOriginal: !row.showOriginal }
+                                  : row,
+                              ),
+                            )
+                          }
+                        >
+                          {tender.showOriginal
+                            ? "Hide other currency"
+                            : "Recorded as another currency"}
+                        </button>
+                        {tender.showOriginal ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <Select
+                              value={tender.currency}
+                              onValueChange={(value) =>
+                                setTenders((prev) =>
+                                  prev.map((row) =>
+                                    row.key === tender.key ? { ...row, currency: value } : row,
+                                  ),
+                                )
+                              }
+                            >
+                              <SelectTrigger aria-label="Recorded currency">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CURRENCIES.map((code) => (
+                                  <SelectItem key={code} value={code}>
+                                    {code === "ZWG" ? "ZiG" : code}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              inputMode="decimal"
+                              aria-label="Original amount"
+                              placeholder="Amount handed over"
+                              value={tender.amountOriginal}
+                              onChange={(e) =>
+                                setTenders((prev) =>
+                                  prev.map((row) =>
+                                    row.key === tender.key
+                                      ? { ...row, amountOriginal: e.target.value }
+                                      : row,
+                                  ),
+                                )
+                              }
+                            />
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {tenders.length < POS_PAYMENT_RAILS.length ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      const used = new Set(tenders.map((row) => row.rail));
+                      const next = POS_PAYMENT_RAILS.find((rail) => !used.has(rail.value));
+                      if (!next) return;
+                      const leftover = remaining > 0 ? String(remaining) : "";
+                      setTenders((prev) => [
+                        ...prev,
+                        newTenderDraft(next.value, leftover, currency),
+                      ]);
+                    }}
+                  >
+                    <Plus className="size-3.5" aria-hidden="true" /> Add method
+                  </Button>
+                ) : null}
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-muted-foreground">Left to allocate</span>
+                  <span
+                    className={`tabular-nums font-medium ${remaining === 0 ? "text-foreground" : "text-warning-foreground"}`}
+                  >
+                    {formatMoney(remaining, currency)}
+                  </span>
+                </div>
+                <p className="text-[12px] text-muted-foreground">
+                  Amounts in another currency are stored as typed. Kwetuu does not convert USD and
+                  ZiG.
+                </p>
+              </div>
+            )}
 
-            {paymentMethod === "credit" && !customerId ? (
+            {needsCustomer && !customerId ? (
               <p className="text-[13px] text-warning-foreground">
                 Select a customer for credit sales, it's added to what they owe.
               </p>
             ) : null}
-            {paymentMethod === "cash" && isOnline && !cashDrawerOpen ? (
+            {needsDrawer && isOnline && !cashDrawerOpen ? (
               <p className="text-[13px] text-warning-foreground">
                 Open the{" "}
                 <Link to="/cash-drawer" className="underline">
                   cash drawer
                 </Link>{" "}
-                before taking cash. Card and credit still work.
+                before taking cash. EcoCash, InnBucks, ZIPIT, bank, card and credit still work, and
+                only the cash part goes in the till.
+              </p>
+            ) : null}
+            {needsDrawer && !isOnline ? (
+              <p className="text-[13px] text-warning-foreground">
+                This cash sale will sync after you open the cash drawer.
+              </p>
+            ) : null}
+            {hasUnconfirmedRail ? (
+              <p className="text-[12px] text-muted-foreground">
+                Recording EcoCash, InnBucks or ZIPIT here does not confirm the money arrived. Check
+                the customer&apos;s statement before you treat it as paid.
               </p>
             ) : null}
 
@@ -726,9 +1130,12 @@ function Sales() {
               onClick={() => saleMutation.mutate()}
               disabled={
                 saleMutation.isPending ||
+                !draftReady ||
                 cart.length === 0 ||
-                (paymentMethod === "credit" && !customerId) ||
-                (paymentMethod === "cash" && isOnline && !cashDrawerOpen)
+                (needsCustomer && !customerId) ||
+                (needsDrawer && isOnline && !cashDrawerOpen) ||
+                (splitPay &&
+                  (remaining !== 0 || activeTenders.some((tender) => tender.amount <= 0)))
               }
             >
               {saleMutation.isPending ? (
@@ -738,16 +1145,85 @@ function Sales() {
             </Button>
           </div>
 
-          {pendingList.length > 0 ? (
+          {failedList.length > 0 ? (
+            <div className="space-y-2 border-t border-border pt-3">
+              <h3 className="text-sm font-semibold">These sales need you ({failedList.length})</h3>
+              <p className="text-[12px] text-muted-foreground">
+                They stayed on this device. Retry after you fix the problem — no developer needed.
+              </p>
+              <ul className="space-y-1.5">
+                {failedList.map((sale) => (
+                  <li
+                    key={sale.localId}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-destructive/30 p-2 text-[13px]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate">
+                        {sale.items.length} item{sale.items.length === 1 ? "" : "s"} ·{" "}
+                        {formatMoney(
+                          sale.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0) -
+                            sale.discount,
+                          currency,
+                        )}
+                      </p>
+                      <p className="flex items-center gap-1 text-destructive">
+                        <AlertTriangle className="size-3 shrink-0" aria-hidden="true" />
+                        {sale.isClosedDrawer ? (
+                          <>
+                            Open the{" "}
+                            <Link to="/cash-drawer" className="underline">
+                              cash drawer
+                            </Link>
+                            , then retry this sale.
+                          </>
+                        ) : (
+                          (sale.error ?? "Couldn't sync")
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      {isOnline ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={retryOneMutation.isPending || syncMutation.isPending}
+                          onClick={() => retryOneMutation.mutate(sale.localId)}
+                        >
+                          {retryOneMutation.isPending &&
+                          retryOneMutation.variables === sale.localId ? (
+                            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <RefreshCw className="size-3.5" aria-hidden="true" />
+                          )}
+                          Retry this sale
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        disabled={discardPendingMutation.isPending}
+                        onClick={() => discardPendingMutation.mutate(sale.localId)}
+                      >
+                        Discard
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {waitingList.length > 0 ? (
             <div className="space-y-2 border-t border-border pt-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Queued sales ({pendingList.length})</h3>
+                <h3 className="text-sm font-semibold">Queued sales ({waitingList.length})</h3>
                 {isOnline ? (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="gap-1 text-muted-foreground"
-                    disabled={syncMutation.isPending}
+                    disabled={syncMutation.isPending || retryOneMutation.isPending}
                     onClick={() => businessId && syncMutation.mutate()}
                   >
                     {syncMutation.isPending ? (
@@ -760,7 +1236,7 @@ function Sales() {
                 ) : null}
               </div>
               <ul className="space-y-1.5">
-                {pendingList.map((sale) => (
+                {waitingList.map((sale) => (
                   <li
                     key={sale.localId}
                     className="flex items-center justify-between gap-2 rounded-lg border border-border p-2 text-[13px]"
@@ -774,28 +1250,12 @@ function Sales() {
                           currency,
                         )}
                       </p>
-                      {sale.status === "failed" ? (
-                        <p className="flex items-center gap-1 text-destructive">
-                          <AlertTriangle className="size-3 shrink-0" aria-hidden="true" />
-                          {sale.error ?? "Couldn't sync"}
-                        </p>
-                      ) : sale.status === "syncing" ? (
+                      {sale.status === "syncing" ? (
                         <p className="text-muted-foreground">Syncing…</p>
                       ) : (
                         <p className="text-muted-foreground">Waiting to sync</p>
                       )}
                     </div>
-                    {sale.status === "failed" ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="shrink-0 text-destructive"
-                        disabled={discardPendingMutation.isPending}
-                        onClick={() => discardPendingMutation.mutate(sale.localId)}
-                      >
-                        Discard
-                      </Button>
-                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -824,6 +1284,27 @@ function Sales() {
             {receipt?.printData && !receipt.offline ? (
               <Button variant="outline" className="w-full gap-1.5" onClick={() => window.print()}>
                 <Printer className="size-4" aria-hidden="true" /> Print receipt
+              </Button>
+            ) : null}
+            {receipt?.printData && !receipt.offline ? (
+              <Button variant="outline" className="w-full gap-1.5" asChild>
+                <a
+                  href={buildWhatsAppShareUrl(
+                    buildSaleReceiptWhatsAppMessage({
+                      businessName: receipt.printData.businessName,
+                      receiptNumber: receipt.printData.receiptNumber,
+                      items: receipt.printData.items,
+                      total: receipt.printData.total,
+                      currency: receipt.printData.currency,
+                      paymentMethod: receipt.printData.paymentMethod,
+                    }),
+                    receipt.customerPhone,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle className="size-4" aria-hidden="true" /> Send on WhatsApp
+                </a>
               </Button>
             ) : null}
             <Button className="w-full" onClick={() => setReceipt(null)}>

@@ -976,8 +976,12 @@ export type Database = {
           invoice_id: string | null;
           method: Database["public"]["Enums"]["payment_method"];
           paid_at: string;
+          rail: string | null;
+          currency: string | null;
+          amount_original: number | null;
           reference: string | null;
           sale_id: string | null;
+          supplier_id: string | null;
         };
         Insert: {
           amount: number;
@@ -990,8 +994,12 @@ export type Database = {
           invoice_id?: string | null;
           method?: Database["public"]["Enums"]["payment_method"];
           paid_at?: string;
+          rail?: string | null;
+          currency?: string | null;
+          amount_original?: number | null;
           reference?: string | null;
           sale_id?: string | null;
+          supplier_id?: string | null;
         };
         Update: {
           amount?: number;
@@ -1004,8 +1012,12 @@ export type Database = {
           invoice_id?: string | null;
           method?: Database["public"]["Enums"]["payment_method"];
           paid_at?: string;
+          rail?: string | null;
+          currency?: string | null;
+          amount_original?: number | null;
           reference?: string | null;
           sale_id?: string | null;
+          supplier_id?: string | null;
         };
         Relationships: [
           {
@@ -1036,7 +1048,219 @@ export type Database = {
             referencedRelation: "sales";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "payments_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
+          },
         ];
+      };
+      customer_deposits: {
+        Row: {
+          amount: number;
+          applied_to: string | null;
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          customer_id: string;
+          id: string;
+          idempotency_key: string | null;
+          layby_id: string | null;
+          method: Database["public"]["Enums"]["payment_method"];
+          payment_id: string | null;
+          rail: string | null;
+          reference: string | null;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          applied_to?: string | null;
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id: string;
+          id?: string;
+          idempotency_key?: string | null;
+          layby_id?: string | null;
+          method: Database["public"]["Enums"]["payment_method"];
+          payment_id?: string | null;
+          rail?: string | null;
+          reference?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount?: number;
+          applied_to?: string | null;
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          layby_id?: string | null;
+          method?: Database["public"]["Enums"]["payment_method"];
+          payment_id?: string | null;
+          rail?: string | null;
+          reference?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_deposits_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      laybys: {
+        Row: {
+          amount_paid: number;
+          business_id: string;
+          collect_after: number;
+          created_at: string;
+          created_by: string | null;
+          customer_id: string;
+          id: string;
+          layby_number: string;
+          notes: string | null;
+          sale_id: string | null;
+          status: string;
+          subtotal: number;
+          tax: number;
+          total: number;
+          updated_at: string;
+        };
+        Insert: {
+          amount_paid?: number;
+          business_id: string;
+          collect_after?: number;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id: string;
+          id?: string;
+          layby_number: string;
+          notes?: string | null;
+          sale_id?: string | null;
+          status?: string;
+          subtotal?: number;
+          tax?: number;
+          total?: number;
+          updated_at?: string;
+        };
+        Update: {
+          amount_paid?: number;
+          business_id?: string;
+          collect_after?: number;
+          created_at?: string;
+          created_by?: string | null;
+          customer_id?: string;
+          id?: string;
+          layby_number?: string;
+          notes?: string | null;
+          sale_id?: string | null;
+          status?: string;
+          subtotal?: number;
+          tax?: number;
+          total?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "laybys_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      layby_items: {
+        Row: {
+          business_id: string;
+          created_at: string;
+          id: string;
+          layby_id: string;
+          line_total: number;
+          name: string;
+          product_id: string;
+          quantity: number;
+          tax: number;
+          unit_price: number;
+        };
+        Insert: {
+          business_id: string;
+          created_at?: string;
+          id?: string;
+          layby_id: string;
+          line_total: number;
+          name: string;
+          product_id: string;
+          quantity: number;
+          tax?: number;
+          unit_price: number;
+        };
+        Update: {
+          business_id?: string;
+          created_at?: string;
+          id?: string;
+          layby_id?: string;
+          line_total?: number;
+          name?: string;
+          product_id?: string;
+          quantity?: number;
+          tax?: number;
+          unit_price?: number;
+        };
+        Relationships: [];
+      };
+      layby_instalments: {
+        Row: {
+          amount: number;
+          business_id: string;
+          created_at: string;
+          created_by: string | null;
+          deposit_id: string | null;
+          id: string;
+          layby_id: string;
+          method: Database["public"]["Enums"]["payment_method"];
+          payment_id: string | null;
+          rail: string | null;
+          reference: string | null;
+        };
+        Insert: {
+          amount: number;
+          business_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          deposit_id?: string | null;
+          id?: string;
+          layby_id: string;
+          method: Database["public"]["Enums"]["payment_method"];
+          payment_id?: string | null;
+          rail?: string | null;
+          reference?: string | null;
+        };
+        Update: {
+          amount?: number;
+          business_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          deposit_id?: string | null;
+          id?: string;
+          layby_id?: string;
+          method?: Database["public"]["Enums"]["payment_method"];
+          payment_id?: string | null;
+          rail?: string | null;
+          reference?: string | null;
+        };
+        Relationships: [];
       };
       permissions: {
         Row: { key: string; category: string; label: string };
@@ -1098,6 +1322,7 @@ export type Database = {
           tax_rate: number;
           unit: string;
           updated_at: string;
+          wholesale_price: number | null;
         };
         Insert: {
           barcode?: string | null;
@@ -1119,6 +1344,7 @@ export type Database = {
           tax_rate?: number;
           unit?: string;
           updated_at?: string;
+          wholesale_price?: number | null;
         };
         Update: {
           barcode?: string | null;
@@ -1140,6 +1366,7 @@ export type Database = {
           tax_rate?: number;
           unit?: string;
           updated_at?: string;
+          wholesale_price?: number | null;
         };
         Relationships: [
           {
@@ -2504,8 +2731,14 @@ export type Database = {
           _location_id?: string | null;
           _notes: string;
           _payment_method: Database["public"]["Enums"]["payment_method"];
+          _rail?: string | null;
+          _tenders?: Json | null;
         };
         Returns: string;
+      };
+      get_daily_takings: {
+        Args: { _business_id: string; _day?: string | null };
+        Returns: Json;
       };
       get_cash_drawer: { Args: { _business_id: string }; Returns: Json };
       open_cash_session: {
@@ -2830,6 +3063,89 @@ export type Database = {
           _reference: string;
         };
         Returns: undefined;
+      };
+      record_customer_credit_payment: {
+        Args: {
+          _amount: number;
+          _business_id: string;
+          _customer_id: string;
+          _idempotency_key?: string | null;
+          _method: Database["public"]["Enums"]["payment_method"];
+          _rail?: string | null;
+          _reference?: string | null;
+        };
+        Returns: string;
+      };
+      record_supplier_payment: {
+        Args: {
+          _amount: number;
+          _business_id: string;
+          _idempotency_key?: string | null;
+          _method: Database["public"]["Enums"]["payment_method"];
+          _rail?: string | null;
+          _reference?: string | null;
+          _supplier_id: string;
+        };
+        Returns: string;
+      };
+      take_customer_deposit: {
+        Args: {
+          _amount: number;
+          _business_id: string;
+          _customer_id: string;
+          _idempotency_key?: string | null;
+          _method: Database["public"]["Enums"]["payment_method"];
+          _rail?: string | null;
+          _reference?: string | null;
+        };
+        Returns: string;
+      };
+      refund_customer_deposit: {
+        Args: { _business_id: string; _deposit_id: string };
+        Returns: string;
+      };
+      apply_customer_deposit: {
+        Args: {
+          _business_id: string;
+          _deposit_id: string;
+          _layby_id?: string | null;
+          _target: string;
+        };
+        Returns: string;
+      };
+      create_layby: {
+        Args: {
+          _business_id: string;
+          _collect_after?: number | null;
+          _customer_id: string;
+          _items: Json;
+          _notes?: string | null;
+        };
+        Returns: string;
+      };
+      record_layby_instalment: {
+        Args: {
+          _amount: number;
+          _business_id: string;
+          _idempotency_key?: string | null;
+          _layby_id: string;
+          _method: Database["public"]["Enums"]["payment_method"];
+          _rail?: string | null;
+          _reference?: string | null;
+        };
+        Returns: string;
+      };
+      collect_layby: {
+        Args: {
+          _business_id: string;
+          _layby_id: string;
+          _location_id?: string | null;
+        };
+        Returns: string;
+      };
+      cancel_layby: {
+        Args: { _business_id: string; _layby_id: string };
+        Returns: string;
       };
       record_invoice_payment: {
         Args: {

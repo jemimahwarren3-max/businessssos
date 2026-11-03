@@ -25,6 +25,12 @@ export function PublishedShopCard({ shop }: { shop: Shop }) {
           <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{shop.tagline}</p>
         ) : null}
         {shop.address ? <p className="mt-2 text-sm text-muted-foreground">{shop.address}</p> : null}
+        {shop.verified ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Verified on Kwetuu</span>
+            {" — "}has a verified-purchase review. Not a government licence.
+          </p>
+        ) : null}
       </div>
     </a>
   );

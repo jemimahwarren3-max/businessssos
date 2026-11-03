@@ -83,6 +83,8 @@ function CheckoutPage() {
     deliveryPricingMethod(store.delivery) === "zone" &&
     deliveryZones.length > 0;
   const [messagesConsent, setMessagesConsent] = useState(false);
+  const [whatsappUpdates, setWhatsappUpdates] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const fetchUser = useServerFn(getCurrentUser);
   const slots = useMemo(
     () => (fulfilment === "pickup" ? upcomingCollectionSlots(store.delivery) : []),
@@ -172,7 +174,8 @@ function CheckoutPage() {
             email: email.trim() || undefined,
             address,
             notes,
-            ...(shopper ? { messagesConsent } : {}),
+            ...(shopper ? { messagesConsent, marketingConsent } : {}),
+            whatsappUpdates,
           },
           items: lines,
           collectAt: collectAt || undefined,
@@ -540,19 +543,44 @@ function CheckoutPage() {
               enabled.
             </p>
           ) : null}
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={whatsappUpdates}
+              onChange={(event) => setWhatsappUpdates(event.target.checked)}
+            />
+            <span>
+              WhatsApp me order updates on this number. They stay queued until WhatsApp Cloud is
+              connected — Kwetuu will not mark them sent without Meta&apos;s message id. This is not
+              marketing.
+            </span>
+          </label>
           {shopper ? (
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={messagesConsent}
-                onChange={(event) => setMessagesConsent(event.target.checked)}
-              />
-              <span>
-                {store.storeName} may send extra shop messages to my account. A receipt and order
-                status emails still go to the address entered at checkout. This is not a marketing
-                list.
-              </span>
-            </label>
+            <>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={messagesConsent}
+                  onChange={(event) => setMessagesConsent(event.target.checked)}
+                />
+                <span>
+                  {store.storeName} may send extra shop messages to my account. A receipt and order
+                  status emails still go to the address entered at checkout. This is not a marketing
+                  list.
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(event) => setMarketingConsent(event.target.checked)}
+                />
+                <span>
+                  Add me to this shop&apos;s WhatsApp news list. I can turn this off in my account.
+                  Nothing is sent until WhatsApp Cloud is connected.
+                </span>
+              </label>
+            </>
           ) : null}
           <label className="block text-sm">
             Notes

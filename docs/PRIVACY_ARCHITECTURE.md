@@ -92,9 +92,10 @@ gated by a required checkbox enforced server-side (not just a disabled
 button — `signUpSchema` in `src/lib/auth/auth.functions.ts` rejects the
 request entirely if `acceptedTerms` isn't `true`). The same gate applies to
 Google OAuth sign-up via a flag carried through the redirect round-trip.
-There is currently no separate marketing-consent or analytics-consent
-mechanism, because there is no marketing email sending and no analytics
-tool to consent to — see `docs/THIRD_PARTY_SERVICES.md`'s "deliberately not
-integrated" section. If either is added later, it needs its own,
-separate consent capture — not folded into the existing Terms/Privacy
-checkbox.
+Shopper marketing consent is separate from the Terms/Privacy checkbox:
+transactional WhatsApp order updates are `store_orders.whatsapp_updates`
+(per order, guests included); WhatsApp news is
+`shopper_shop_consents.marketing` (signed-in, per shop). Extra shop
+messages remain `shopper_shop_consents.messages`. There is still no
+analytics-consent product and no marketing email/SMS send. Do not fold
+new marketing channels into the sign-up Terms checkbox.

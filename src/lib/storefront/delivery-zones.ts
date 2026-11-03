@@ -1,5 +1,44 @@
 /** Client-side helpers for delivery zones and collection points (server recomputes fees). */
 
+export const ZIMBABWE_DELIVERY_PRESETS = {
+  Harare: [
+    "Harare CBD",
+    "Avondale",
+    "Borrowdale",
+    "Mbare",
+    "Waterfalls",
+    "Hatfield",
+    "Mount Pleasant",
+    "Glen View",
+  ],
+  Bulawayo: ["Bulawayo CBD", "Hillside", "Suburbs", "Nkulumane", "Cowdray Park", "Entumbane"],
+  Mutare: ["Mutare CBD", "Dangamvura", "Sakubva", "Murahwa"],
+} as const;
+
+const MAX_DELIVERY_ZONES = 25;
+
+export function mergeDeliveryZonePresets(existing: DeliveryZone[], city: string): DeliveryZone[] {
+  const names = ZIMBABWE_DELIVERY_PRESETS[city as keyof typeof ZIMBABWE_DELIVERY_PRESETS];
+  if (!names) return existing;
+  const have = new Set(existing.map((zone) => zone.name.trim().toLowerCase()).filter(Boolean));
+  const next = [...existing];
+  for (const name of names) {
+    if (have.has(name.toLowerCase())) continue;
+    if (next.length >= MAX_DELIVERY_ZONES) break;
+    next.push({
+      id: crypto.randomUUID().slice(0, 8),
+      name,
+      enabled: true,
+      fee: 0,
+      freeOver: null,
+      minOrder: 0,
+      estimate: "",
+    });
+    have.add(name.toLowerCase());
+  }
+  return next;
+}
+
 export type DeliveryZone = {
   id: string;
   name: string;

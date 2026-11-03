@@ -7,7 +7,13 @@ import {
   createBusinessSchema,
   createInviteSchema,
   createStaffAccountSchema,
+  applyDepositSchema,
+  collectLaybySchema,
+  createLaybySchema,
+  creditPaymentSchema,
+  customerDepositSchema,
   customerSchema,
+  depositIdSchema,
   expenseIdSchema,
   expenseSchema,
   generateInvoiceDraftSchema,
@@ -22,6 +28,8 @@ import {
   markAllNotificationsReadSchema,
   markNotificationReadSchema,
   notifyEmailSchema,
+  laybyIdSchema,
+  laybyInstalmentSchema,
   invoiceIdSchema,
   invoiceSchema,
   invoiceStatusSchema,
@@ -63,6 +71,7 @@ import {
   stockAdjustSchema,
   subscriptionCheckoutSchema,
   supplierIdSchema,
+  supplierPaymentSchema,
   supplierSchema,
   updateSupplierSchema,
   updateTeamMemberRoleSchema,
@@ -169,6 +178,7 @@ import {
   listQuotes,
   listSuppliers,
   loadBillingSummary,
+  loadDailyTakings,
   loadDashboard,
   loadReports,
   loadWorkspace,
@@ -177,7 +187,19 @@ import {
   saveOnboardingConfig,
   saveOnboardingSettings,
   markSetupComplete,
+  applyCustomerDeposit,
+  cancelLayby,
+  collectLayby,
+  createLayby,
+  listCustomerDeposits,
+  listLaybyItems,
+  listLaybys,
+  recordCustomerCreditPayment,
   recordInvoicePayment,
+  recordLaybyInstalment,
+  recordSupplierPayment,
+  refundCustomerDeposit,
+  takeCustomerDeposit,
   setInvoiceStatus,
   setQuoteStatus,
   updateSupplier,
@@ -303,6 +325,11 @@ export const markSetupCompleteFn = createServerFn({ method: "POST" })
     await markSetupComplete(context.supabase as Db, data.businessId);
     return { ok: true as const };
   });
+
+export const getDailyTakingsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => loadDailyTakings(context.supabase as Db, data.businessId));
 
 export const getDashboard = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
@@ -566,6 +593,72 @@ export const addPayment = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) => parseAndSanitize(paymentSchema, data))
   .handler(async ({ data, context }) => recordInvoicePayment(context.supabase as Db, data));
+
+export const addCreditPayment = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(creditPaymentSchema, data))
+  .handler(async ({ data, context }) => recordCustomerCreditPayment(context.supabase as Db, data));
+
+export const addSupplierPayment = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(supplierPaymentSchema, data))
+  .handler(async ({ data, context }) => recordSupplierPayment(context.supabase as Db, data));
+
+export const addCustomerDeposit = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(customerDepositSchema, data))
+  .handler(async ({ data, context }) => takeCustomerDeposit(context.supabase as Db, data));
+
+export const refundCustomerDepositFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(depositIdSchema, data))
+  .handler(async ({ data, context }) => refundCustomerDeposit(context.supabase as Db, data));
+
+export const applyCustomerDepositFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(applyDepositSchema, data))
+  .handler(async ({ data, context }) => applyCustomerDeposit(context.supabase as Db, data));
+
+export const getCustomerDeposits = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(businessIdSchema.extend({ customerId: z.string().uuid().optional() }), data),
+  )
+  .handler(async ({ data, context }) =>
+    listCustomerDeposits(context.supabase as Db, data.businessId, data.customerId),
+  );
+
+export const getLaybys = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => listLaybys(context.supabase as Db, data.businessId));
+
+export const getLaybyItems = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(laybyIdSchema, data))
+  .handler(async ({ data, context }) =>
+    listLaybyItems(context.supabase as Db, data.businessId, data.laybyId),
+  );
+
+export const addLayby = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(createLaybySchema, data))
+  .handler(async ({ data, context }) => createLayby(context.supabase as Db, data));
+
+export const addLaybyInstalment = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(laybyInstalmentSchema, data))
+  .handler(async ({ data, context }) => recordLaybyInstalment(context.supabase as Db, data));
+
+export const collectLaybyFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(collectLaybySchema, data))
+  .handler(async ({ data, context }) => collectLayby(context.supabase as Db, data));
+
+export const cancelLaybyFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(laybyIdSchema, data))
+  .handler(async ({ data, context }) => cancelLayby(context.supabase as Db, data));
 
 /* -------------------------------- quotes -------------------------------- */
 

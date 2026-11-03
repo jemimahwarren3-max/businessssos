@@ -166,6 +166,10 @@ export const productSchema = z.object({
   description: z.string().trim().max(600).optional().or(z.literal("")),
   supplierId: z.string().uuid().optional().or(z.literal("")),
   categoryId: z.string().uuid().optional().or(z.literal("")),
+  wholesalePrice: z.preprocess(
+    (value) => (value === "" || value === null || value === undefined ? undefined : value),
+    z.coerce.number().min(0, "Wholesale price cannot be negative").max(99999999).optional(),
+  ),
 });
 export type ProductInput = z.infer<typeof productSchema>;
 export const productCreateFieldsSchema = productSchema.omit({ businessId: true });
@@ -255,16 +259,97 @@ export const saleItemSchema = z.object({
 });
 export type SaleItemInput = z.infer<typeof saleItemSchema>;
 
+export const saleTenderSchema = z.object({
+  rail: z.string().trim().min(1, "Each tender needs a payment method").max(32),
+  amount: z.coerce.number().positive("Each tender needs an amount greater than zero").max(99999999),
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code")
+    .optional()
+    .or(z.literal("")),
+  amountOriginal: z.coerce
+    .number()
+    .positive("Original amount must be greater than zero")
+    .max(99999999)
+    .optional(),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
+});
+export type SaleTenderInput = z.infer<typeof saleTenderSchema>;
+
 export const saleSchema = z.object({
   businessId: z.string().uuid(),
   customerId: z.string().uuid().optional().or(z.literal("")),
   discount: z.coerce.number().min(0, "Discount cannot be negative").max(99999999).default(0),
   paymentMethod: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
+  tenders: z.array(saleTenderSchema).max(8).optional(),
   notes: z.string().trim().max(600).optional().or(z.literal("")),
   items: z.array(saleItemSchema).min(1, "Add at least one item"),
   idempotencyKey: z.string().uuid(),
 });
 export type SaleInput = z.infer<typeof saleSchema>;
+
+export const creditPaymentSchema = z.object({
+  businessId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  amount: z.coerce.number().positive("Payment amount must be greater than zero").max(99999999),
+  method: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
+  idempotencyKey: z.string().uuid(),
+});
+export type CreditPaymentInput = z.infer<typeof creditPaymentSchema>;
+
+export const supplierPaymentSchema = creditPaymentSchema
+  .omit({ customerId: true })
+  .extend({ supplierId: z.string().uuid() });
+export type SupplierPaymentInput = z.infer<typeof supplierPaymentSchema>;
+
+export const customerDepositSchema = creditPaymentSchema;
+export type CustomerDepositInput = z.infer<typeof customerDepositSchema>;
+
+export const depositIdSchema = z.object({
+  businessId: z.string().uuid(),
+  depositId: z.string().uuid(),
+});
+
+export const applyDepositSchema = depositIdSchema.extend({
+  target: z.enum(["credit", "layby"]),
+  laybyId: z.string().uuid().optional(),
+});
+export type ApplyDepositInput = z.infer<typeof applyDepositSchema>;
+
+export const createLaybySchema = z.object({
+  businessId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  notes: z.string().trim().max(600).optional().or(z.literal("")),
+  collectAfter: z.coerce.number().min(0).max(99999999).optional(),
+  items: z.array(saleItemSchema).min(1, "Add at least one item").max(20),
+});
+export type CreateLaybyInput = z.infer<typeof createLaybySchema>;
+
+export const laybyIdSchema = z.object({
+  businessId: z.string().uuid(),
+  laybyId: z.string().uuid(),
+});
+
+export const laybyInstalmentSchema = z.object({
+  businessId: z.string().uuid(),
+  laybyId: z.string().uuid(),
+  amount: z.coerce.number().positive("Payment amount must be greater than zero").max(99999999),
+  method: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
+  idempotencyKey: z.string().uuid(),
+});
+export type LaybyInstalmentInput = z.infer<typeof laybyInstalmentSchema>;
+
+export const collectLaybySchema = laybyIdSchema.extend({
+  locationId: z.string().uuid().optional(),
+});
+export type CollectLaybyInput = z.infer<typeof collectLaybySchema>;
 
 export const listSalesSchema = z.object({
   businessId: z.string().uuid(),
@@ -456,6 +541,10 @@ export const productImportRowSchema = z.object({
   stock: z.coerce.number().min(0, "Stock cannot be negative").max(99999999).default(0),
   minStock: z.coerce.number().min(0).max(99999999).default(0),
   taxRate: z.coerce.number().min(0).max(100).default(0),
+  wholesalePrice: z.preprocess(
+    (value) => (value === "" || value === null || value === undefined ? undefined : value),
+    z.coerce.number().min(0, "Wholesale price cannot be negative").max(99999999).optional(),
+  ),
 });
 export type ProductImportRow = z.infer<typeof productImportRowSchema>;
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
+import { DeferredImage } from "@/components/deferred-image";
 import { CustomerShoppingShell } from "@/components/storefront/customer-shopping-shell";
 import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { Button } from "@/components/ui/button";
@@ -185,6 +186,10 @@ function MarketPage() {
           ) : (
             <div className="mt-4">
               <PublishedShopGrid shops={market.shops} />
+              <p className="mt-3 text-xs text-muted-foreground">
+                Verified on Kwetuu means the shop has a published verified-purchase review. It is
+                not a government licence or a KYC badge.
+              </p>
             </div>
           )}
         </section>
@@ -272,7 +277,11 @@ function ProductSection({
               className="overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
             >
               {product.imageUrl ? (
-                <img src={product.imageUrl} alt="" className="aspect-square w-full object-cover" />
+                <DeferredImage
+                  src={product.imageUrl}
+                  alt=""
+                  className="aspect-square w-full object-cover"
+                />
               ) : (
                 <div className="aspect-square bg-muted" />
               )}

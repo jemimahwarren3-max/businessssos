@@ -7,6 +7,7 @@ import {
   submitOrderPaymentNoteFn,
 } from "@/lib/storefront/storefront.functions";
 import type { CustomerOrder } from "@/lib/storefront/contract";
+import { DeferredImage } from "@/components/deferred-image";
 import { StoreComplaintForm } from "@/components/storefront/complaint-form";
 import { OrderReceipt } from "@/components/storefront/order-receipt";
 import { StoreReviewForm } from "@/components/storefront/review-form";
@@ -193,7 +194,7 @@ function OrderPage() {
                     View the file you sent
                   </a>
                 ) : (
-                  <img
+                  <DeferredImage
                     alt="Payment screenshot you sent"
                     className="max-h-64 rounded border"
                     src={order.proofUrl}

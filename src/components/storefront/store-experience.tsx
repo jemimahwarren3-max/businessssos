@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
+import { DeferredImage } from "@/components/deferred-image";
 import { ListingReportForm } from "@/components/storefront/listing-report-form";
 import { ProductReviewsBlock } from "@/components/storefront/product-reviews";
 import { StoreReviewForm } from "@/components/storefront/review-form";
@@ -9,7 +10,12 @@ import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefron
 import { getProductReviewsFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 import { storeSurface } from "@/lib/storefront/store-surface";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { storePublicUrl } from "@/lib/storefront/host";
+import {
+  buildProductWhatsAppMessage,
+  buildWhatsAppLink,
+  buildWhatsAppShareUrl,
+} from "@/lib/whatsapp";
 import {
   readRecentlyViewed,
   readWishlist,
@@ -388,12 +394,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
         style={{ backgroundColor: theme.surface }}
       >
         {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
+          <DeferredImage src={product.imageUrl} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-neutral-400">
             No photo
@@ -800,7 +801,11 @@ export function ProductView({
         style={{ backgroundColor: theme.surface }}
       >
         {selectedImage ? (
-          <img src={selectedImage} alt={product.name} className="h-full w-full object-cover" />
+          <DeferredImage
+            src={selectedImage}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex h-full min-h-64 items-center justify-center text-sm text-neutral-400">
             No photo
@@ -821,7 +826,7 @@ export function ProductView({
                 aria-pressed={selectedImage === image}
                 onClick={() => setSelectedImage(image)}
               >
-                <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <DeferredImage src={image} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -913,6 +918,23 @@ export function ProductView({
             Copy product link
           </button>
         ) : null}
+        <a
+          className="ml-4 mt-4 inline-block text-sm underline"
+          href={buildWhatsAppShareUrl(
+            buildProductWhatsAppMessage({
+              businessName: store.storeName,
+              productName: product.name,
+              price: product.price,
+              currency: product.currency,
+              availability: product.stockLabel,
+              url: share || storePublicUrl(store.slug, `/products/${product.slug}`),
+            }),
+          )}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Share on WhatsApp
+        </a>
         <button
           type="button"
           className="ml-4 mt-4 text-sm underline"

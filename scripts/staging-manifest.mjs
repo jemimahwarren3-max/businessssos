@@ -89,6 +89,53 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
+  {
+    file: "20261102140000_morning_desk.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'record_customer_credit_payment'
+      ) as skip
+    `,
+  },
+  {
+    file: "20261102160000_split_tenders.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'payments'
+          and column_name = 'amount_original'
+      ) as skip
+    `,
+  },
+  {
+    // Older manifest entries recreate 8-arg create_sale on every apply.
+    // Always drop leftover overloads so 8-arg calls uniquely match Stage 2.
+    file: "20261102161000_create_sale_unique.sql",
+  },
+  {
+    file: "20261102180000_notebook_delivery.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'customer_deposits'
+      ) as skip
+    `,
+  },
+  {
+    file: "20261102210000_whatsapp_channel.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'complete_notification_outbox'
+          and pg_get_functiondef(p.oid) like '%provider message id%'
+      ) as skip
+    `,
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */

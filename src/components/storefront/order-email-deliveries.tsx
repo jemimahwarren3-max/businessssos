@@ -31,7 +31,7 @@ export function OrderEmailDeliveries({
   });
 
   if (deliveries.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading email delivery history…</p>;
+    return <p className="text-sm text-muted-foreground">Loading message delivery history…</p>;
   }
   if (deliveries.isError) {
     return (
@@ -44,20 +44,22 @@ export function OrderEmailDeliveries({
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No email deliveries recorded for this order yet. Messages stay queued until Resend is
-        configured and the outbox is flushed.
+        No message deliveries recorded for this order yet. Email stays queued until Resend is
+        configured. WhatsApp stays queued until WhatsApp Cloud is connected — it is not marked sent
+        without a Meta message id.
       </p>
     );
   }
 
   return (
     <div className="mt-4 space-y-2 rounded-md border p-3">
-      <p className="font-medium">Email delivery</p>
+      <p className="font-medium">Message delivery</p>
       <ul className="divide-y text-sm">
         {rows.map((row) => (
           <li key={row.id} className="flex flex-wrap items-start justify-between gap-2 py-2">
             <div>
               <p>
+                {row.channel === "whatsapp" ? "WhatsApp" : "Email"} ·{" "}
                 {row.recipientRole === "customer" ? "Customer" : "Staff"} ·{" "}
                 {STATUS_LABEL[row.status] ?? row.status}
               </p>
