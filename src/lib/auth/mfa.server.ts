@@ -1,3 +1,5 @@
+import QRCode from "qrcode";
+import { totpSecretRaw } from "./mfa-display";
 import { createMfaScopedClient, type SupabaseTokens } from "./session.server";
 
 export type MfaStatus = {
@@ -48,7 +50,23 @@ export async function enrollTotp(tokens: SupabaseTokens) {
     friendlyName: ADMIN_TOTP_NAME,
   });
   if (error || !data) throw new Error(error?.message ?? "Couldn't start MFA enrollment.");
-  return { factorId: data.id, qrCode: totpQrSrc(data.totp.qr_code), secret: data.totp.secret };
+  return {
+    factorId: data.id,
+    qrCode: await totpQrImage(data.totp.uri, data.totp.qr_code),
+    secret: totpSecretRaw(data.totp.secret),
+  };
+}
+
+async function totpQrImage(uri: string | undefined, qrCode: string): Promise<string> {
+  if (uri?.startsWith("otpauth://")) {
+    return QRCode.toDataURL(uri, {
+      type: "image/png",
+      width: 240,
+      margin: 2,
+      errorCorrectionLevel: "M",
+    });
+  }
+  return totpQrSrc(qrCode);
 }
 
 /** Safe <img src> for Supabase's TOTP QR (raw SVG or an existing data URI). */
@@ -122,7 +140,11 @@ export async function verifyTotpChallenge(
   code: string,
 ) {
   const client = await createMfaScopedClient(tokens);
-  const { data, error } = await client.auth.mfa.verify({ factorId, challengeId, code });
+  const { data, error } = await client.auth.mfa.verify({
+    factorId,
+    challengeId,
+    code: code.replace(/\s/g, ""),
+  });
   if (error || !data) throw new Error(error?.message ?? "That code didn't work. Try again.");
   return { accessToken: data.access_token, refreshToken: data.refresh_token };
 }

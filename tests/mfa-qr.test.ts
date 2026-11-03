@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { totpSecretGrouped, totpSecretRaw } from "@/lib/auth/mfa-display";
 import { totpQrSrc } from "@/lib/auth/mfa.server";
 
 describe("totpQrSrc", () => {
@@ -19,5 +20,14 @@ describe("totpQrSrc", () => {
     expect(src.startsWith("data:image/svg+xml;charset=utf-8,")).toBe(true);
     expect(src).not.toContain("#000");
     expect(src).toContain(encodeURIComponent("#000"));
+  });
+});
+
+describe("totp secret display", () => {
+  it("keeps the last character in the grouped key", () => {
+    const secret = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    expect(totpSecretRaw(` ${secret.toLowerCase()} \n`)).toBe(secret);
+    expect(totpSecretGrouped(secret).endsWith("ZOVN")).toBe(true);
+    expect(totpSecretGrouped(secret).split(" ")).toHaveLength(8);
   });
 });

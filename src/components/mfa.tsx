@@ -5,6 +5,7 @@ import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { totpSecretGrouped, totpSecretRaw } from "@/lib/auth/mfa-display";
 import { readableError } from "@/lib/format";
 
 type EnrollResult = { factorId: string; qrCode: string; secret: string };
@@ -39,7 +40,7 @@ export function MfaEnroll({
     onSuccess: (result: EnrollResult) => {
       setFactorId(result.factorId);
       setQrCode(result.qrCode);
-      setSecret(result.secret);
+      setSecret(totpSecretRaw(result.secret));
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't start MFA enrollment.")),
   });
@@ -82,12 +83,26 @@ export function MfaEnroll({
             />
           ) : null}
           <p className="text-sm text-muted-foreground">
-            Can&apos;t scan? In Google Authenticator tap + then Enter a setup key, and paste the
-            whole key (one line):
+            Microsoft Authenticator: + then Other account (not work or school), then enter the key
+            manually. Google Authenticator / Authy also work.
           </p>
-          <p className="overflow-x-auto whitespace-nowrap rounded-md bg-muted px-3 py-2 font-mono text-sm">
-            {secret}
+          <p className="select-all overflow-x-auto whitespace-nowrap rounded-md bg-muted px-3 py-2 font-mono text-sm">
+            {secret ? totpSecretGrouped(secret) : null}
           </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              if (!secret) return;
+              void navigator.clipboard.writeText(totpSecretRaw(secret)).then(
+                () => toast.success("Setup key copied."),
+                () => toast.error("Could not copy the setup key."),
+              );
+            }}
+          >
+            Copy setup key
+          </Button>
           <div className="space-y-1.5 text-left">
             <Label htmlFor="mfa-code">6-digit code</Label>
             <Input
