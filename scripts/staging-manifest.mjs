@@ -152,6 +152,11 @@ export const STAGING_MIGRATION_MANIFEST = [
   {
     file: "20261103120000_one_month_trial.sql",
   },
+  {
+    // Always re-apply: older manifest files recreate get_daily_takings
+    // without excluding supplier payouts.
+    file: "20261103121000_daily_takings_exclude_suppliers.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
@@ -253,6 +258,17 @@ export const STAGING_READINESS_CHECKS = [
       where n.nspname = 'public'
         and p.proname = 'create_sale'
         and (p.proargnames is null or not ('_tenders' = any (p.proargnames)))
+    ) as ok`,
+  },
+  {
+    id: "daily_takings_exclude_suppliers",
+    label: "get_daily_takings() excludes supplier payouts",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'get_daily_takings'
+        and pg_get_functiondef(p.oid) like '%supplier_id is null%'
     ) as ok`,
   },
   {

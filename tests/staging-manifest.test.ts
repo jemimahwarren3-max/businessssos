@@ -44,6 +44,7 @@ const FILES = [
   "20261103020000_create_business_unique.sql",
   "20261103100000_get_setup_progress_member.sql",
   "20261103120000_one_month_trial.sql",
+  "20261103121000_daily_takings_exclude_suppliers.sql",
 ];
 
 describe("staging migration manifest", () => {
@@ -91,6 +92,20 @@ describe("staging migration manifest", () => {
     expect(journey).toContain("_onboarding_config jsonb");
   });
 
+  it("keeps supplier payouts out of daily takings", () => {
+    const sql = readFileSync(
+      join(
+        process.cwd(),
+        "supabase/migrations",
+        "20261103121000_daily_takings_exclude_suppliers.sql",
+      ),
+      "utf8",
+    );
+    expect(sql).toContain("p.supplier_id is null");
+    expect(sql).toContain("create or replace function public.get_daily_takings");
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
+  });
+
   it("extends the Pro trial to one calendar month", () => {
     const sql = readFileSync(
       join(process.cwd(), "supabase/migrations", "20261103120000_one_month_trial.sql"),
@@ -131,6 +146,7 @@ describe("staging migration manifest", () => {
         "create_business_with_owner_unique",
         "setup_completed_at",
         "one_month_trial",
+        "daily_takings_exclude_suppliers",
         "get_setup_progress_member",
       ]),
     );
