@@ -84,6 +84,25 @@ function Setup() {
     onError: () => toast.error("Could not complete setup. Please try again."),
   });
 
+  if (workspace.isError) {
+    return (
+      <OnboardingShell step={0} totalSteps={1} stepTitle="Couldn't load">
+        <OnboardingHeading
+          title="We couldn't load your shop"
+          description="Nothing was deleted. Try again, or go back to the dashboard."
+        />
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button className="rounded-full" onClick={() => void workspace.refetch()}>
+            Try again
+          </Button>
+          <Button asChild variant="outline" className="rounded-full">
+            <Link to="/dashboard">Go to dashboard</Link>
+          </Button>
+        </div>
+      </OnboardingShell>
+    );
+  }
+
   if (!workspace.data || !businessId) {
     return (
       <OnboardingShell step={0} totalSteps={1} stepTitle="Loading">
@@ -175,35 +194,54 @@ function Setup() {
         description="Complete these steps to get the most out of Kwetuu. You can always come back to them later."
       />
 
-      <div className="mt-6 space-y-3">
-        {checklist.map((item) => (
-          <Link
-            key={item.key}
-            to={item.href as "/inventory"}
-            className="group flex items-center gap-4 rounded-2xl border bg-card p-4 transition hover:border-primary"
+      {progress.isError ? (
+        <div className="mt-6 space-y-3 rounded-2xl border bg-card p-4">
+          <p className="text-sm font-semibold">We couldn't load your setup checklist</p>
+          <p className="text-sm text-muted-foreground">
+            Nothing was deleted. Try again — you can still skip and open the dashboard.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => void progress.refetch()}
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10">
-              <item.icon className="size-5 text-primary" aria-hidden="true" />
-            </span>
-            <span className="flex-1">
-              <span className="flex items-center gap-2">
-                <span className="text-sm font-semibold">{item.title}</span>
-                {item.optional ? (
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                    Optional
-                  </span>
-                ) : null}
+            Try again
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-6 space-y-3">
+          {checklist.map((item) => (
+            <Link
+              key={item.key}
+              to={item.href as "/inventory"}
+              className="group flex items-center gap-4 rounded-2xl border bg-card p-4 transition hover:border-primary"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10">
+                <item.icon className="size-5 text-primary" aria-hidden="true" />
               </span>
-              <span className="mt-0.5 block text-sm text-muted-foreground">{item.description}</span>
-            </span>
-            {item.done ? (
-              <CheckCircle2 className="size-5 shrink-0 text-green-500" aria-label="Done" />
-            ) : (
-              <Circle className="size-5 shrink-0 text-muted-foreground/40" aria-label="To do" />
-            )}
-          </Link>
-        ))}
-      </div>
+              <span className="flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">{item.title}</span>
+                  {item.optional ? (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                      Optional
+                    </span>
+                  ) : null}
+                </span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">
+                  {item.description}
+                </span>
+              </span>
+              {item.done ? (
+                <CheckCircle2 className="size-5 shrink-0 text-green-500" aria-label="Done" />
+              ) : (
+                <Circle className="size-5 shrink-0 text-muted-foreground/40" aria-label="To do" />
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
     </OnboardingShell>
   );
 }

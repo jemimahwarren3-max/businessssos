@@ -318,7 +318,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const [
     { data: business, error: bizError },
     { data: subscription },
-    { data: permissions },
+    { data: permissions, error: permissionError },
     { data: hasOwnerBypass, error: entitlementError },
     { data: featureFlags, error: featureFlagError },
   ] = await Promise.all([
@@ -347,6 +347,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     ),
   ]);
   if (bizError) dbFail("load business", bizError);
+  if (permissionError) dbFail("load permissions", permissionError);
   if (
     entitlementError &&
     !skipMissingRpc("check platform subscription entitlement", entitlementError)
@@ -367,7 +368,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const workspace: Workspace = {
     business,
     role: membership.role,
-    permissions: permissions ?? [],
+    permissions: Array.isArray(permissions) ? permissions : [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
     isReadOnly: !canWriteWithPlatformEntitlement(

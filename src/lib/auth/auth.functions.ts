@@ -58,6 +58,7 @@ const oauthCallbackLimit = [
   ipRateLimit({ keyPrefix: "auth-oauth-callback", maxRequests: 10, windowSeconds: 60 }),
 ] as const;
 const updatePasswordLimit = [
+  allowAal1Session,
   authedRateLimit({ keyPrefix: "auth-update-password", maxRequests: 5, windowSeconds: 60 }),
 ] as const;
 // Same "authedRateLimit already composes requireSupabaseAuth" reasoning as

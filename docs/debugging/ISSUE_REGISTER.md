@@ -99,7 +99,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `src/routes/auth.tsx`, `src/lib/auth/google-oauth.ts`, `src/routes/auth_.callback.tsx`, `src/lib/auth/use-finish-pkce-code.ts`
 - **Proposed fix:** Keep DB-derived destination as authority (safer than client `next`). Drop unused `next` or honour it only when it is a subset of the safe list **and** consistent with membership. Document the rule.
 - **Verification test:** Existing `tests/google-oauth.test.ts` plus callback unit covering ignore-or-honour.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 
 ### KW-011 — MFA recovery may block password update
 
@@ -110,7 +110,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `src/lib/auth.functions.ts` (or `src/lib/auth/…` + `auth.functions.ts` `updatePassword`), `src/lib/integrations` auth-middleware
 - **Proposed fix:** Allow aal1 **only** on `updatePassword` after a recovery session; keep aal2 on the rest of the app.
 - **Verification test:** Unit around middleware flags; staging MFA user if available.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 - **Live proof:** UNVERIFIED
 
 ### KW-012 — `get_my_permissions` failure becomes an empty grant set
@@ -122,7 +122,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `src/lib/business.server.ts`
 - **Proposed fix:** If the RPC errors and is not a skippable missing-function case, fail the workspace load (retry UI). If the function is missing, treat as skip + owner-all / fail-closed — pick one and test.
 - **Verification test:** Mock RPC error → workspace error, not empty permissions.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 
 ### KW-013 — Dual onboarding flags (`onboarding_completed` vs `setup_completed_at`)
 
@@ -133,7 +133,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `src/lib/auth/post-auth-destination.ts`, `src/lib/auth/oauth-callback.server.ts`, `src/routes/staff-login.tsx`, `src/routes/_authenticated/dashboard.tsx`, `supabase/migrations/20261103080000_onboarding_journey.sql`
 - **Proposed fix:** Single function: no membership → onboarding; membership + no `setup_completed_at` → `/setup`; else `/dashboard`. Keep both columns; stop using them for different decisions.
 - **Verification test:** Extend `tests/post-auth-destination.test.ts`.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 
 ### KW-014 — Financial reads are not permission-gated
 
@@ -155,7 +155,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `src/lib/storefront/store-page.ts`, `src/routes/store.$slug.tsx`
 - **Proposed fix:** Preview miss → Shop-not-live or 403 “you cannot preview this shop”, never `/onboarding` for anonymous.
 - **Verification test:** Existing `tests/storefront.test.ts` cases.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 
 ### KW-016 — Transactional email and WhatsApp Cloud unverified in production
 
@@ -215,7 +215,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Affected files:** `src/routes/_authenticated/setup.tsx`
 - **Proposed fix:** Retry + readable error (same pattern as dashboard workspace-error).
 - **Verification test:** Component/unit on error branch.
-- **Status:** Open
+- **Status:** In progress (repair branch)
 
 ### KW-024 — Shop subdomain and custom domain ops gap
 

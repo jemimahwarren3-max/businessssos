@@ -1,6 +1,5 @@
 /** Decide what /store/$slug should do when the public or preview fetch is empty. */
-export type StorePageDecision =
-  { kind: "ok"; preview: boolean } | { kind: "setup" } | { kind: "unpublished" };
+export type StorePageDecision = { kind: "ok"; preview: boolean } | { kind: "unpublished" };
 
 export function decideStorePage(input: {
   preview: boolean;
@@ -9,7 +8,8 @@ export function decideStorePage(input: {
 }): StorePageDecision {
   if (input.preview) {
     if (input.storeFound && !input.previewFailed) return { kind: "ok", preview: true };
-    return { kind: "setup" };
+    // Wrong slug, anonymous user, or RPC error — never send shoppers to merchant onboarding.
+    return { kind: "unpublished" };
   }
   if (input.storeFound) return { kind: "ok", preview: false };
   return { kind: "unpublished" };

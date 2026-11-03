@@ -60,10 +60,10 @@ export async function completeOAuthCallback(input: { code: string }): Promise<{
 
 export type PostAuthPath = "/auth" | PostAuthAppPath;
 
-async function peekOnboardingCompleted(
+async function peekMembershipSetup(
   supabase: ReturnType<typeof createTokenScopedClient>,
   userId: string,
-): Promise<boolean | null> {
+): Promise<{ hasMembership: boolean; setupCompleted: boolean | null }> {
   const { data: membership, error: memberError } = await supabase
     .from("business_members")
     .select("business_id")
@@ -73,16 +73,16 @@ async function peekOnboardingCompleted(
     .limit(1)
     .maybeSingle();
   if (memberError) throw memberError;
-  if (!membership) return null;
+  if (!membership) return { hasMembership: false, setupCompleted: null };
 
   const { data: business, error: bizError } = await supabase
     .from("businesses")
-    .select("onboarding_completed")
+    .select("setup_completed_at")
     .eq("id", membership.business_id)
     .maybeSingle();
   if (bizError) throw bizError;
-  if (!business) return null;
-  return business.onboarding_completed;
+  if (!business) return { hasMembership: true, setupCompleted: null };
+  return { hasMembership: true, setupCompleted: Boolean(business.setup_completed_at) };
 }
 
 export async function resolvePostAuthPathForUser(
@@ -90,23 +90,31 @@ export async function resolvePostAuthPathForUser(
   userId: string,
 ): Promise<PostAuthAppPath> {
   const supabase = createTokenScopedClient(accessToken);
-  let onboardingCompleted: boolean | null = null;
+  let hasMembership: boolean | null = null;
+  let setupCompleted: boolean | null = null;
   try {
     const workspace = await loadWorkspace(supabase as Db, userId);
-    onboardingCompleted = workspace ? workspace.business.onboarding_completed : null;
+    if (workspace) {
+      hasMembership = true;
+      setupCompleted = Boolean(workspace.business.setup_completed_at);
+    } else {
+      hasMembership = false;
+    }
   } catch (error) {
     // A transient workspace RPC (feature flags, impersonation, limiter) must
     // not dump a returning merchant onto the onboarding error screen.
     console.error("[auth] resolvePostAuthPathForUser workspace", error);
     try {
-      onboardingCompleted = await peekOnboardingCompleted(supabase, userId);
+      const peek = await peekMembershipSetup(supabase, userId);
+      hasMembership = peek.hasMembership;
+      setupCompleted = peek.setupCompleted;
     } catch (fallbackError) {
       console.error("[auth] resolvePostAuthPathForUser membership", fallbackError);
     }
   }
 
   let isPlatformAdmin = false;
-  if (onboardingCompleted === null) {
+  if (hasMembership !== true) {
     try {
       const { isPlatformAdmin: checkAdmin } = await import("@/lib/admin/admin.server");
       isPlatformAdmin = await checkAdmin(userId);
@@ -115,7 +123,7 @@ export async function resolvePostAuthPathForUser(
     }
   }
 
-  return destinationAfterAuth({ onboardingCompleted, isPlatformAdmin });
+  return destinationAfterAuth({ hasMembership, setupCompleted, isPlatformAdmin });
 }
 
 export async function resolvePostAuthPath(): Promise<PostAuthPath> {

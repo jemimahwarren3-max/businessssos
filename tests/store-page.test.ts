@@ -6,11 +6,11 @@ import { BRAND } from "@/lib/brand";
 import { decideStorePage } from "@/lib/storefront/store-page";
 
 describe("unpublished shop pages", () => {
-  it("sends a failed draft preview back to setup instead of a 404", () => {
+  it("shows the not-live page for a failed draft preview instead of merchant onboarding", () => {
     expect(decideStorePage({ preview: true, storeFound: false, previewFailed: true })).toEqual({
-      kind: "setup",
+      kind: "unpublished",
     });
-    expect(decideStorePage({ preview: true, storeFound: false })).toEqual({ kind: "setup" });
+    expect(decideStorePage({ preview: true, storeFound: false })).toEqual({ kind: "unpublished" });
   });
 
   it("treats a missing public shop as unpublished, not gone", () => {

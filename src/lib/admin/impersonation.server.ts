@@ -114,7 +114,7 @@ export async function loadWorkspaceWhileImpersonating(
   const [
     { data: business, error: bizError },
     { data: subscription },
-    { data: permissions },
+    { data: permissions, error: permissionError },
     featureFlagsResult,
   ] = await Promise.all([
     supabase
@@ -133,6 +133,7 @@ export async function loadWorkspaceWhileImpersonating(
     untypedRpc("get_business_feature_flags", { _business_id: businessId }),
   ]);
   if (bizError) dbFail("load impersonated business", bizError);
+  if (permissionError) dbFail("load impersonated permissions", permissionError);
   if (!business) return null;
 
   const flagPayload = featureFlagsResult.data;
@@ -146,7 +147,7 @@ export async function loadWorkspaceWhileImpersonating(
   return {
     business,
     role: "owner",
-    permissions: permissions ?? [],
+    permissions: Array.isArray(permissions) ? permissions : [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
     isReadOnly: true,

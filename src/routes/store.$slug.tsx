@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { StoreChrome, StorePreviewProvider } from "@/components/storefront/store-experience";
 import { StoreAnalyticsProvider } from "@/components/storefront/store-analytics";
 import { ShopNotLive } from "@/components/storefront/shop-not-live";
@@ -28,7 +28,6 @@ export const Route = createFileRoute("/store/$slug")({
       storeFound: Boolean(store),
       previewFailed,
     });
-    if (page.kind === "setup") throw redirect({ to: "/onboarding", replace: true });
     if (page.kind === "unpublished" || !store) throw notFound();
     return { store, preview: page.preview };
   },
