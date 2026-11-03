@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
 import {
   canOperateWithPlatformEntitlement,
@@ -108,6 +108,8 @@ export type Workspace = {
     currency: string;
     onboarding_completed: boolean;
     logo_url: string | null;
+    business_path: string;
+    setup_completed_at: string | null;
   };
   role: string;
   permissions: string[];
@@ -310,7 +312,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id, name, business_type, currency, onboarding_completed, logo_url")
+      .select("id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at")
       .eq("id", membership.business_id)
       .maybeSingle(),
     supabase
@@ -409,6 +411,8 @@ export async function createBusinessRecord(
     _currency: input.currency,
     _phone: input.phone ?? "",
     _address: input.address ?? "",
+    _business_path: (input as { businessPath?: string }).businessPath ?? "management",
+    _onboarding_config: ((input as { onboardingConfig?: Record<string, unknown> }).onboardingConfig ?? {}) as Json,
   });
   if (error) dbFail("create business", error);
   const businessIdStr =
@@ -430,7 +434,7 @@ export async function createBusinessRecord(
     type: "welcome",
     title: "Welcome to Kwetuu",
     message: isBillingEnabled()
-      ? "Your 3-day Pro trial has started. Add your first products to begin."
+      ? "Your 14-day Pro trial has started. Add your first products to begin."
       : "You're in! Kwetuu is free during our beta — add your first products to begin.",
     severity: "info",
   });
@@ -455,6 +459,72 @@ export async function markOnboardingComplete(supabase: Db, userId: string): Prom
     .eq("id", workspace.business.id);
   if (error) dbFail("complete onboarding", error);
   await cacheDel(workspaceCacheKey(userId));
+}
+
+export async function getSetupProgress(supabase: Db, businessId: string) {
+  const { data, error } = await supabase.rpc("get_setup_progress", {
+    _business_id: businessId,
+  });
+  if (error) dbFail("load setup progress", error);
+  return data as unknown as {
+    business_path: string;
+    setup_completed_at: string | null;
+    has_products: boolean;
+    product_count: number;
+    has_sales: boolean;
+    sale_count: number;
+    storefront_enabled: boolean;
+    has_customers: boolean;
+    has_team: boolean;
+    onboarding_config: Record<string, string | number | boolean | null>;
+  };
+}
+
+export async function saveOnboardingConfig(
+  supabase: Db,
+  businessId: string,
+  config: Record<string, unknown>,
+) {
+  const { error } = await supabase.rpc("save_onboarding_config", {
+    _business_id: businessId,
+    _config: config as Json,
+  });
+  if (error) dbFail("save onboarding config", error);
+}
+
+export async function saveOnboardingSettings(
+  supabase: Db,
+  businessId: string,
+  settings: {
+    paymentMethods: string[];
+    allowsCredit: boolean;
+    allowsLayby: boolean;
+    tracksStock: boolean;
+    sellsServices: boolean;
+    pricingModel: string;
+    offersDelivery: boolean;
+    offersCollection: boolean;
+  },
+) {
+  const { error } = await supabase.rpc("save_onboarding_settings", {
+    _business_id: businessId,
+    _payment_methods: settings.paymentMethods,
+    _allows_credit: settings.allowsCredit,
+    _allows_layby: settings.allowsLayby,
+    _tracks_stock: settings.tracksStock,
+    _sells_services: settings.sellsServices,
+    _pricing_model: settings.pricingModel,
+    _offers_delivery: settings.offersDelivery,
+    _offers_collection: settings.offersCollection,
+  });
+  if (error) dbFail("save onboarding settings", error);
+}
+
+export async function markSetupComplete(supabase: Db, businessId: string) {
+  const { error } = await supabase.rpc("mark_setup_complete", {
+    _business_id: businessId,
+  });
+  if (error) dbFail("mark setup complete", error);
 }
 
 /* -------------------------------- billing -------------------------------- */

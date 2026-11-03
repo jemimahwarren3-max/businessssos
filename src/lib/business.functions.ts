@@ -67,6 +67,8 @@ import {
   updateSupplierSchema,
   updateTeamMemberRoleSchema,
   weeklyReportSchema,
+  saveOnboardingConfigSchema,
+  saveOnboardingSettingsSchema,
 } from "./business.schemas";
 import { z } from "zod";
 import { listAuditLogs } from "./audit.server";
@@ -171,6 +173,10 @@ import {
   loadReports,
   loadWorkspace,
   markOnboardingComplete,
+  getSetupProgress,
+  saveOnboardingConfig,
+  saveOnboardingSettings,
+  markSetupComplete,
   recordInvoicePayment,
   setInvoiceStatus,
   setQuoteStatus,
@@ -264,6 +270,37 @@ export const completeOnboarding = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .handler(async ({ context }) => {
     await markOnboardingComplete(context.supabase as Db, context.userId);
+    return { ok: true as const };
+  });
+
+export const getSetupProgressFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    getSetupProgress(context.supabase as Db, data.businessId),
+  );
+
+export const saveOnboardingConfigFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(saveOnboardingConfigSchema, data))
+  .handler(async ({ data, context }) => {
+    await saveOnboardingConfig(context.supabase as Db, data.businessId, data.config);
+    return { ok: true as const };
+  });
+
+export const saveOnboardingSettingsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(saveOnboardingSettingsSchema, data))
+  .handler(async ({ data, context }) => {
+    await saveOnboardingSettings(context.supabase as Db, data.businessId, data);
+    return { ok: true as const };
+  });
+
+export const markSetupCompleteFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) => {
+    await markSetupComplete(context.supabase as Db, data.businessId);
     return { ok: true as const };
   });
 

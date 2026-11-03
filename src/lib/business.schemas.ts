@@ -45,6 +45,81 @@ export const businessTypeSchema = z.enum([
   "other",
 ]);
 
+export const businessPathSchema = z.enum(["management", "full"]);
+export type BusinessPath = z.infer<typeof businessPathSchema>;
+
+export const BUSINESS_SUBCATEGORIES: Record<string, { value: string; label: string }[]> = {
+  grocery: [
+    { value: "grocery_general", label: "General grocery" },
+    { value: "grocery_spaza", label: "Spaza / tuckshop" },
+    { value: "grocery_superette", label: "Superette" },
+  ],
+  boutique: [
+    { value: "boutique_clothing", label: "Clothing" },
+    { value: "boutique_cosmetics", label: "Cosmetics & beauty" },
+    { value: "boutique_accessories", label: "Accessories" },
+  ],
+  salon: [
+    { value: "salon_hair", label: "Hair salon" },
+    { value: "salon_barber", label: "Barbershop" },
+    { value: "salon_nails", label: "Nails & beauty" },
+  ],
+  restaurant: [
+    { value: "restaurant_sitdown", label: "Sit-down restaurant" },
+    { value: "restaurant_takeaway", label: "Takeaway / fast food" },
+    { value: "restaurant_catering", label: "Catering" },
+  ],
+  wholesale: [
+    { value: "wholesale_general", label: "General goods" },
+    { value: "wholesale_food", label: "Food products" },
+    { value: "wholesale_hardware", label: "Hardware & building" },
+  ],
+  services: [
+    { value: "services_cleaning", label: "Cleaning" },
+    { value: "services_repairs", label: "Repairs & maintenance" },
+    { value: "services_consulting", label: "Consulting" },
+    { value: "services_other", label: "Other services" },
+  ],
+};
+
+export const SELLING_CHANNELS = [
+  { value: "physical", label: "Physical shop" },
+  { value: "online", label: "Online only" },
+  { value: "both", label: "Both physical and online" },
+  { value: "home", label: "From home" },
+  { value: "mobile", label: "Mobile / market-based" },
+] as const;
+
+export const PAYMENT_METHOD_OPTIONS = [
+  { value: "cash", label: "Cash" },
+  { value: "ecocash", label: "EcoCash" },
+  { value: "innbucks", label: "InnBucks" },
+  { value: "bank_transfer", label: "Bank transfer / ZIPIT" },
+  { value: "card", label: "Card payments" },
+  { value: "mobile_money", label: "Other mobile money" },
+] as const;
+
+export const onboardingConfigSchema = z.object({
+  sellingChannel: z.string().max(30).default("physical"),
+  isExistingBusiness: z.boolean().default(true),
+  hasPhysicalLocation: z.boolean().default(true),
+  subcategory: z.string().max(60).default(""),
+  businessPhone: z.string().max(40).default(""),
+  sellsProducts: z.boolean().default(true),
+  sellsServices: z.boolean().default(false),
+  paymentMethods: z.array(z.string().max(30)).default(["cash"]),
+  allowsCredit: z.boolean().default(false),
+  allowsLayby: z.boolean().default(false),
+  tracksStock: z.boolean().default(true),
+  pricingModel: z.enum(["retail", "wholesale", "both"]).default("retail"),
+  offersDelivery: z.boolean().default(false),
+  offersCollection: z.boolean().default(true),
+  hasMultipleBranches: z.boolean().default(false),
+  hasEmployees: z.boolean().default(false),
+  completedSteps: z.array(z.string()).default([]),
+});
+export type OnboardingConfig = z.infer<typeof onboardingConfigSchema>;
+
 export const createBusinessSchema = z.object({
   name: z.string().trim().min(2, "Business name is too short").max(120),
   businessType: businessTypeSchema,
@@ -55,8 +130,27 @@ export const createBusinessSchema = z.object({
     .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code"),
   phone: z.string().trim().max(40).default(""),
   address: z.string().trim().max(240).default(""),
+  businessPath: businessPathSchema.default("management"),
+  onboardingConfig: onboardingConfigSchema.default({}),
 });
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>;
+
+export const saveOnboardingConfigSchema = z.object({
+  businessId: z.string().uuid(),
+  config: onboardingConfigSchema,
+});
+
+export const saveOnboardingSettingsSchema = z.object({
+  businessId: z.string().uuid(),
+  paymentMethods: z.array(z.string().max(30)).default(["cash"]),
+  allowsCredit: z.boolean().default(false),
+  allowsLayby: z.boolean().default(false),
+  tracksStock: z.boolean().default(true),
+  sellsServices: z.boolean().default(false),
+  pricingModel: z.enum(["retail", "wholesale", "both"]).default("retail"),
+  offersDelivery: z.boolean().default(false),
+  offersCollection: z.boolean().default(true),
+});
 
 export const productSchema = z.object({
   businessId: z.string().uuid(),

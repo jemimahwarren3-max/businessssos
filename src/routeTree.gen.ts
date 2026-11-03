@@ -50,6 +50,7 @@ import { Route as AuthenticatedRecurringInvoicesRouteImport } from './routes/_au
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSaleHistoryRouteImport } from './routes/_authenticated/sale-history'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
+import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedStorefrontRouteImport } from './routes/_authenticated/storefront'
 import { Route as AuthenticatedSuppliersRouteImport } from './routes/_authenticated/suppliers'
 import { Route as AuthenticatedTimeClockRouteImport } from './routes/_authenticated/time-clock'
@@ -300,6 +301,11 @@ const AuthenticatedSaleHistoryRoute =
 const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedStorefrontRoute = AuthenticatedStorefrontRouteImport.update({
@@ -562,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
@@ -645,6 +652,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
@@ -730,6 +738,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
+  '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/storefront': typeof AuthenticatedStorefrontRoute
   '/_authenticated/suppliers': typeof AuthenticatedSuppliersRoute
   '/_authenticated/time-clock': typeof AuthenticatedTimeClockRoute
@@ -816,6 +825,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/sale-history'
     | '/sales'
+    | '/setup'
     | '/storefront'
     | '/suppliers'
     | '/time-clock'
@@ -899,6 +909,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/sale-history'
     | '/sales'
+    | '/setup'
     | '/storefront'
     | '/suppliers'
     | '/time-clock'
@@ -983,6 +994,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/sale-history'
     | '/_authenticated/sales'
+    | '/_authenticated/setup'
     | '/_authenticated/storefront'
     | '/_authenticated/suppliers'
     | '/_authenticated/time-clock'
@@ -1350,6 +1362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSalesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/setup': {
+      id: '/_authenticated/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof AuthenticatedSetupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/storefront': {
       id: '/_authenticated/storefront'
       path: '/storefront'
@@ -1670,6 +1689,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSaleHistoryRoute: typeof AuthenticatedSaleHistoryRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
+  AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedStorefrontRoute: typeof AuthenticatedStorefrontRoute
   AuthenticatedSuppliersRoute: typeof AuthenticatedSuppliersRoute
   AuthenticatedTimeClockRoute: typeof AuthenticatedTimeClockRoute
@@ -1704,6 +1724,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSaleHistoryRoute: AuthenticatedSaleHistoryRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
+  AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedStorefrontRoute: AuthenticatedStorefrontRoute,
   AuthenticatedSuppliersRoute: AuthenticatedSuppliersRoute,
   AuthenticatedTimeClockRoute: AuthenticatedTimeClockRoute,
@@ -1835,13 +1856,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

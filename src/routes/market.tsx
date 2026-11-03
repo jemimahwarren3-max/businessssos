@@ -81,7 +81,7 @@ function MarketPage() {
   const page = search.page ?? 1;
   const selectedShop = search.shop ?? "";
   const products = selectedShop
-    ? market.products.filter((product) => product.storeSlug === selectedShop)
+    ? market.products.filter((product: MarketplaceProduct) => product.storeSlug === selectedShop)
     : market.products;
   const filtering = Boolean(market.query || market.category || selectedShop);
   const emptyDirectory = market.shops.length === 0 && !filtering;
@@ -116,7 +116,7 @@ function MarketPage() {
               className="h-10 min-w-56 rounded-md border border-input bg-background px-3"
             >
               <option value="">All shops</option>
-              {market.shops.map((shop) => (
+              {market.shops.map((shop: Marketplace["shops"][number]) => (
                 <option key={shop.slug} value={shop.slug}>
                   {shop.storeName}
                 </option>
@@ -147,7 +147,7 @@ function MarketPage() {
           >
             All
           </Link>
-          {market.categories.map((category) => (
+          {market.categories.map((category: Marketplace["categories"][number]) => (
             <Link
               key={category.name}
               to="/market"
