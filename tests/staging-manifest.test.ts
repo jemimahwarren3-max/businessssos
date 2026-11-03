@@ -38,6 +38,7 @@ const FILES = [
   "20261102161000_create_sale_unique.sql",
   "20261102180000_notebook_delivery.sql",
   "20261102210000_whatsapp_channel.sql",
+  "20261103020000_create_business_unique.sql",
 ];
 
 describe("staging migration manifest", () => {
@@ -74,6 +75,16 @@ describe("staging migration manifest", () => {
     expect(sql).toContain("WhatsApp cannot be marked sent without a provider message id");
     expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
     expect(sql).not.toMatch(/Meta Groups/i);
+  });
+
+  it("drops leftover 7-arg create_business_with_owner so Create shop is unique", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261103020000_create_business_unique.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("drop function if exists public.create_business_with_owner(");
+    expect(sql).toContain("p.pronargs = 5");
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
   });
 
   it("installs a save_storefront wrapper that accepts food-counter", () => {

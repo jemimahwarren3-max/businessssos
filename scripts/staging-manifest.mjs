@@ -136,6 +136,11 @@ export const STAGING_MIGRATION_MANIFEST = [
       ) as skip
     `,
   },
+  {
+    // Staging still has the old 7-arg create_business_with_owner. Always drop
+    // it so 5-arg Create shop uniquely matches the current function.
+    file: "20261103020000_create_business_unique.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
