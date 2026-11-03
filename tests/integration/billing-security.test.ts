@@ -14,7 +14,7 @@ import {
 // Regression tests for the grant-leak bug found and fixed this session:
 // `revoke all on function X from public` does not remove grants Supabase's
 // default privileges separately hand to anon/authenticated on every new
-// function — paynow_confirm_payment and the admin_* functions were
+// function, paynow_confirm_payment and the admin_* functions were
 // callable by any signed-in (or anonymous) user until this was fixed.
 describeStaging("billing security", () => {
   let ownerId: string;
@@ -57,10 +57,10 @@ describeStaging("billing security", () => {
     ).rejects.toThrow(/permission denied/i);
   });
 
-  it("paynow_confirm_payment is idempotent — a second confirmation doesn't re-extend the period", async () => {
+  it("paynow_confirm_payment is idempotent, a second confirmation doesn't re-extend the period", async () => {
     // The Management API's own connection runs as the postgres superuser,
     // which bypasses grants but not this function's internal
-    // current_user = 'service_role' check — asServiceRole matches what
+    // current_user = 'service_role' check, asServiceRole matches what
     // production's supabaseAdmin (PostgREST + service-role key) actually is.
     await asServiceRole(
       `select public.paynow_confirm_payment('${reference}', 'prov-ref', 'Paid', true);`,

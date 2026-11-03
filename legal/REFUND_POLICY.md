@@ -1,4 +1,4 @@
-# Refund Policy — Kwetuu
+# Refund Policy: Kwetuu
 
 **Last updated:** 26 October 2026
 

@@ -1,5 +1,5 @@
 /**
- * Shared Supabase Management API helpers — STAGING ONLY.
+ * Shared Supabase Management API helpers, STAGING ONLY.
  * Production ref maidxfntfpnkcqnuhozo is rejected.
  */
 export const STAGING_PROJECT_REF = "slajanbsfqjnuuiohbmg";

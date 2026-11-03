@@ -2,7 +2,7 @@ import type { DeliveryZone } from "@/lib/storefront/delivery-zones";
 import { deliveryPricingMethod, findDeliveryZone } from "@/lib/storefront/delivery-zones";
 
 /** Mirrors storefront delivery pricing in the database. Checkout does not
- * trust this result — quote_store_cart / create_store_order recompute it. */
+ * trust this result, quote_store_cart / create_store_order recompute it. */
 export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }

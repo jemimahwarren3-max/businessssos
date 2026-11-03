@@ -4,7 +4,7 @@ function round2(value: number) {
   return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
 }
 
-/** Client-side preview only — the database function recomputes these
+/** Client-side preview only, the database function recomputes these
  * authoritatively on save, so a stale or tampered preview can't affect billing. */
 export function computeTotals(items: LineItemInput[], discount: number) {
   let subtotal = 0;

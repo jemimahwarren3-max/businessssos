@@ -4,15 +4,15 @@
 
 ### P0: Test accounts on staging
 Create two dedicated test accounts on staging Supabase (`slajanbsfqjnuuiohbmg`):
-- **Test Owner A**: `e2e-owner-a@test.kwetuu.local` — owns "E2E Test Shop A"
-- **Test Owner B**: `e2e-owner-b@test.kwetuu.local` — owns "E2E Test Shop B"
+- **Test Owner A**: `e2e-owner-a@test.kwetuu.local`, owns "E2E Test Shop A"
+- **Test Owner B**: `e2e-owner-b@test.kwetuu.local`, owns "E2E Test Shop B"
 - **Test Staff**: staff member of Shop A with cashier role + PIN
 
 Credentials stored as GitHub Actions secrets (`E2E_OWNER_A_EMAIL`, `E2E_OWNER_A_PASSWORD`, etc.). Never committed to code.
 
 ### P1: Auth fixtures and global setup
-- `e2e/auth.setup.ts` — Playwright global setup that signs in test accounts via Supabase auth API and saves `storageState` to `e2e/.auth/`
-- `e2e/fixtures.ts` — custom test fixtures exposing `ownerAPage`, `ownerBPage`, `staffPage` with pre-authenticated state
+- `e2e/auth.setup.ts`, Playwright global setup that signs in test accounts via Supabase auth API and saves `storageState` to `e2e/.auth/`
+- `e2e/fixtures.ts`, custom test fixtures exposing `ownerAPage`, `ownerBPage`, `staffPage` with pre-authenticated state
 - `.gitignore` entry for `e2e/.auth/`
 
 ### P2: Playwright config upgrade
@@ -41,7 +41,7 @@ Credentials stored as GitHub Actions secrets (`E2E_OWNER_A_EMAIL`, `E2E_OWNER_A_
 
 **Not testable automatically**: Google OAuth (requires real Google session), email confirmation (requires mailbox access), MFA TOTP (requires authenticator app). Mark as NOT ASSESSED.
 
-**Existing coverage**: Account registration is partially covered by integration test `transactional.test.ts` (RPC level). Multi-business is not applicable (one business per login — see memory).
+**Existing coverage**: Account registration is partially covered by integration test `transactional.test.ts` (RPC level). Multi-business is not applicable (one business per login, see memory).
 
 ---
 
@@ -130,7 +130,7 @@ Credentials stored as GitHub Actions secrets (`E2E_OWNER_A_EMAIL`, `E2E_OWNER_A_
 
 ## Implementation Priority
 
-### Wave 1 (Prerequisites + Auth) — do first
+### Wave 1 (Prerequisites + Auth): do first
 1. Create test accounts on staging
 2. Build auth fixtures (`auth.setup.ts`, `fixtures.ts`)
 3. Upgrade Playwright config (multi-browser, mobile, staging URL)
@@ -169,6 +169,6 @@ Credentials stored as GitHub Actions secrets (`E2E_OWNER_A_EMAIL`, `E2E_OWNER_A_
 ## Reporting
 
 After each wave, generate:
-- `docs/testing/PLAYWRIGHT_TEST_REPORT.md` — full results with PASS/FAIL/NOT ASSESSED
-- `docs/testing/FAILED_TESTS.md` — failures with screenshots, traces, and root cause
-- `docs/testing/REGRESSION_COVERAGE.md` — what regressions each test prevents
+- `docs/testing/PLAYWRIGHT_TEST_REPORT.md`, full results with PASS/FAIL/NOT ASSESSED
+- `docs/testing/FAILED_TESTS.md`, failures with screenshots, traces, and root cause
+- `docs/testing/REGRESSION_COVERAGE.md`, what regressions each test prevents

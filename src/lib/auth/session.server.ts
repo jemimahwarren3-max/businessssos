@@ -1,6 +1,6 @@
-// The session of record. The Supabase access/refresh token pair lives here —
+// The session of record. The Supabase access/refresh token pair lives here,
 // in a server-side, AES-encrypted + HMAC-signed, httpOnly cookie (TanStack
-// Start's built-in session primitive, the same mechanism as iron-session) —
+// Start's built-in session primitive, the same mechanism as iron-session),
 // and nowhere else. The browser never sees it, so there's nothing for an XSS
 // payload to steal.
 import { createClient } from "@supabase/supabase-js";
@@ -29,13 +29,13 @@ function sessionConfig(): SessionConfig {
   return {
     password,
     name: "businessos_session",
-    // 30 days — comfortably covers Supabase's refresh token lifetime; the
+    // 30 days, comfortably covers Supabase's refresh token lifetime; the
     // access token itself is refreshed well before it expires (see
     // getAuthedContext below), this just bounds how long a fully-idle
     // session can sit before needing a fresh sign-in.
     maxAge: 60 * 60 * 24 * 30,
     // The default cookie (httpOnly + secure + path "/") doesn't set
-    // SameSite explicitly — confirmed live via curl (missing from the
+    // SameSite explicitly, confirmed live via curl (missing from the
     // Set-Cookie header). Setting it ourselves rather than relying on
     // browsers' implicit Lax default, on top of the CSRF middleware in
     // start.ts (belt and suspenders, same reasoning as elsewhere this pass).
@@ -68,11 +68,11 @@ export function createAnonClient() {
 }
 
 // exchangeCodeForSession() reads the PKCE code_verifier from the client
-// instance's own configured `storage` — it never accepts it as a plain
+// instance's own configured `storage`, it never accepts it as a plain
 // argument. The browser wrote that verifier into a cookie (client.ts); this
 // adapter reads it back out of the *incoming request's* cookies via
 // TanStack's ambient getCookie(), which only works from inside real request
-// handling (a server fn, or — as used here — a route's beforeLoad during
+// handling (a server fn, or, as used here, a route's beforeLoad during
 // SSR). storageKey must match the browser client's exactly, hence the
 // shared constant.
 const requestCookieStorage = {
@@ -132,7 +132,7 @@ export type AuthedContext = {
 
 // The bearer-header client above (createTokenScopedClient) is enough for
 // every normal RLS-scoped query, but auth.mfa.* methods read the SDK's own
-// in-memory session state, not just a header — they need a client that's
+// in-memory session state, not just a header, they need a client that's
 // actually been through auth.setSession(). Kept separate from the default
 // path since most callers never touch MFA and don't need this extra
 // round-trip.
@@ -197,7 +197,7 @@ export async function getAuthedContext(): Promise<AuthedContext> {
   return { supabase: client, userId: data.claims.sub, claims: data.claims, tokens };
 }
 
-/** Same as getAuthedContext, but returns null instead of throwing — for
+/** Same as getAuthedContext, but returns null instead of throwing, for
  * places that need to know "is anyone logged in" without treating "no" as
  * an error (the auth pages' redirect-if-already-signed-in check, the
  * `_authenticated` route guard before it does its own redirect). */

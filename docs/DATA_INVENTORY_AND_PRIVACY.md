@@ -34,4 +34,4 @@ Technical inventory. Not a finding that Zimbabwean or other law is satisfied. Se
 
 Minimisation: public shop JSON omits cost, staff hash, unpublished products. Marketplace omits phone and email.
 
-Gaps: IndexedDB pending sales are not cleared on logout (shared tablet risk — intentional so a blip plus sign-out cannot destroy cash sales). Cart drafts are dropped on logout. WhatsApp marketing is a signed-in per-shop opt-in, not email/SMS. Retention for accounting vs deletion is a legal question, not implemented as timed purge. Backup copies live 14 days in GitHub Actions artifacts if the backup workflow secrets are set.
+Gaps: IndexedDB pending sales are not cleared on logout (shared tablet risk, intentional so a blip plus sign-out cannot destroy cash sales). Cart drafts are dropped on logout. WhatsApp marketing is a signed-in per-shop opt-in, not email/SMS. Retention for accounting vs deletion is a legal question, not implemented as timed purge. Backup copies live 14 days in GitHub Actions artifacts if the backup workflow secrets are set.

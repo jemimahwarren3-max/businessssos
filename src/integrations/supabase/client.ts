@@ -3,7 +3,7 @@ import { SUPABASE_AUTH_STORAGE_KEY } from "./auth-storage-key";
 import { createSupabaseFetch } from "./supabase-fetch";
 import type { Database } from "./types";
 
-// The real session (access + refresh token) never touches the browser —
+// The real session (access + refresh token) never touches the browser,
 // it lives server-side in an httpOnly, encrypted cookie (see
 // lib/auth/session.server.ts). This client only ever needs to (a) kick off
 // the Google OAuth redirect and (b) briefly hold the PKCE code_verifier that
@@ -11,12 +11,12 @@ import type { Database } from "./types";
 //
 // supabase-js ties both of those to the same `storage` option (keyed
 // `<storageKey>` for the session, `<storageKey>-code-verifier` for the
-// PKCE verifier) and — critically — only honors a custom `storage` adapter
+// PKCE verifier) and, critically, only honors a custom `storage` adapter
 // at all when `persistSession: true`; with it `false` it silently falls
 // back to an in-memory store that a full-page OAuth redirect would wipe,
 // breaking the flow. So persistSession has to stay true, and this adapter
 // selectively passes only the `-code-verifier` key through to a real
-// (short-lived, non-httpOnly — it's a single-use nonce, not a credential)
+// (short-lived, non-httpOnly, it's a single-use nonce, not a credential)
 // cookie; everything else, including the actual session object, is routed
 // to a plain in-memory Map that's discarded on reload instead.
 const ephemeralMemory = new Map<string, string>();
@@ -35,7 +35,7 @@ const authStorage = {
     }
     if (typeof document === "undefined") return;
     const secure = window.location.protocol === "https:" ? "; Secure" : "";
-    // Email confirm links are often opened hours after signup — keep the verifier long enough.
+    // Email confirm links are often opened hours after signup, keep the verifier long enough.
     document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax${secure}`;
   },
   removeItem(key: string) {

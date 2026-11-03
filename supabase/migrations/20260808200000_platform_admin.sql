@@ -1,14 +1,14 @@
 -- Platform-admin data access, for a single hardcoded operator account (see
 -- src/lib/admin/). There is no "admin" role or table anywhere in this
--- schema — authorization lives entirely in application code as an
+-- schema, authorization lives entirely in application code as an
 -- environment variable (PLATFORM_ADMIN_USER_ID), checked before any of
 -- these functions are ever called. These functions themselves are grantable
--- only to service_role, same as paynow_confirm_payment — an authenticated
+-- only to service_role, same as paynow_confirm_payment, an authenticated
 -- user's own RLS-scoped session can never call them directly, no matter
 -- what the app-layer check does.
 --
 -- Deliberately scoped to businesses + subscriptions + subscription_payments
--- only — never sales, customers, invoices, or inventory. This is a billing
+-- only, never sales, customers, invoices, or inventory. This is a billing
 -- and platform-health tool, not a way to browse tenant data.
 create table public.admin_audit_log (
   id uuid primary key default gen_random_uuid(),
@@ -19,7 +19,7 @@ create table public.admin_audit_log (
 );
 grant all on public.admin_audit_log to service_role;
 alter table public.admin_audit_log enable row level security;
--- No policies at all — RLS enabled with zero policies means every role
+-- No policies at all, RLS enabled with zero policies means every role
 -- except service_role (which bypasses RLS) is denied entirely, including
 -- read. Not even a business owner can see this table exists.
 
@@ -95,7 +95,7 @@ language sql stable security definer set search_path = public as $$
       select count(*) from public.subscription_payments where status = 'failed'
     ),
     'payments_stuck_count', (
-      -- "created" and older than an hour — past any reasonable checkout window.
+      -- "created" and older than an hour, past any reasonable checkout window.
       select count(*) from public.subscription_payments
       where status = 'created' and created_at < now() - interval '1 hour'
     )
@@ -124,7 +124,7 @@ begin
     raise exception 'No subscription found for that business.' using errcode = 'B0001';
   end if;
 
-  -- Deliberately no admin identity in a business-visible table — see the
+  -- Deliberately no admin identity in a business-visible table, see the
   -- file header. The self-audit trail (with the reason you gave) lives only
   -- in admin_audit_log, which nothing but this operator account can read.
   insert into public.subscription_events (business_id, event_type, payload)

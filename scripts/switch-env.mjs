@@ -1,6 +1,6 @@
 // Copies .env.<target> over .env so `npm run dev` / `npm run build` point at
 // that environment. Node/fs-based so it works identically on Windows and
-// Unix — no shell-specific `cp` vs `copy` issues.
+// Unix, no shell-specific `cp` vs `copy` issues.
 import { copyFileSync, existsSync } from "node:fs";
 
 const target = process.argv[2];

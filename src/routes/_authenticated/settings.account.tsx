@@ -39,11 +39,11 @@ export const Route = createFileRoute("/_authenticated/settings/account")({
 
 const CONFIRM_TEXT = "DELETE";
 
-/** Same TOTP flow as the (mandatory) admin panel — see src/components/mfa.tsx
- * — offered here as optional. Once enabled it's enforced app-wide by
+/** Same TOTP flow as the (mandatory) admin panel, see src/components/mfa.tsx,
+ * offered here as optional. Once enabled it's enforced app-wide by
  * _authenticated/route.tsx, not just gating this page, so by the time a
  * user reaches this section already enrolled they're already past that
- * gate this session — no re-challenge needed just to see the toggle. */
+ * gate this session, no re-challenge needed just to see the toggle. */
 function SecuritySection() {
   const queryClient = useQueryClient();
   const enrollFn = useServerFn(enrollMfaFn);
@@ -153,7 +153,7 @@ function SecuritySection() {
           ) : null}
         </div>
       ) : status.data.enrolled ? (
-        // Reached this page already enrolled but below aal2 this session —
+        // Reached this page already enrolled but below aal2 this session,
         // shouldn't normally happen (the app-wide gate in
         // _authenticated/route.tsx catches this first), but handle it
         // directly rather than leaving the toggle in a confusing state.
@@ -182,7 +182,7 @@ function SecuritySection() {
   );
 }
 
-/** Signs out every session but this one — the current browser's own
+/** Signs out every session but this one, the current browser's own
  * refresh token is deliberately untouched (Supabase's signOut({scope:
  * "others"}), confirmed live), so this can't accidentally lock the person
  * out of the device they're using to click it. */

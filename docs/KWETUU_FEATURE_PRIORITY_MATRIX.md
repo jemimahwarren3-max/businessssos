@@ -48,7 +48,7 @@ Priority list from the brief (1–15) is scored against **current code**, not a 
 
 ## Recommended Stage 1 (awaits approval)
 
-**Name:** Morning desk — till, notebook, WhatsApp share.
+**Name:** Morning desk, till, notebook, WhatsApp share.
 
 **Owner questions it must answer:**
 
@@ -60,7 +60,7 @@ Priority list from the brief (1–15) is scored against **current code**, not a 
 **In scope (reuse only):**
 
 1. Dashboard + cash-up: totals grouped by `payments.method` (and business currency). Still one currency per business until Stage 2.
-2. POS method labels: EcoCash / InnBucks / ZIPIT / Bank as display rails mapped onto existing enum or a thin `rail` text column — **no fake confirmation**.
+2. POS method labels: EcoCash / InnBucks / ZIPIT / Bank as display rails mapped onto existing enum or a thin `rail` text column, **no fake confirmation**.
 3. Customer credit book: list, running balance, record repayment (new RPC writing `payments` + decreasing `outstanding_balance`).
 4. WhatsApp product share + sale/order receipt prefill using `buildWhatsAppLink`.
 5. Home low-stock list (already computed) above the fold.

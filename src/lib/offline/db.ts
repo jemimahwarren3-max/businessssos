@@ -40,7 +40,7 @@ export type PendingSale = {
 };
 
 /** In-progress POS cart. Survives refresh and power loss on this device.
- * Not a completed sale — logout drops it so a shared tablet does not leave
+ * Not a completed sale, logout drops it so a shared tablet does not leave
  * the last ring-up on screen. */
 export type PosDraftCartItem = {
   productId: string;
@@ -96,7 +96,7 @@ function getDb() {
     throw new Error("IndexedDB isn't available in this environment.");
   }
   if (!dbPromise) {
-    // Version 2 adds posDrafts only. Do not drop or rebuild pendingSales —
+    // Version 2 adds posDrafts only. Do not drop or rebuild pendingSales,
     // unsynced cash sales from v1 must still be on this device after upgrade.
     dbPromise = openDB<OfflineSchema>("businessos-offline", 2, {
       upgrade(db, oldVersion) {
@@ -122,7 +122,7 @@ function withCacheMeta(product: CachedProduct): CachedProduct {
   };
 }
 
-/** Wholesale replace — used once to seed the cache with a broad product
+/** Wholesale replace, used once to seed the cache with a broad product
  * snapshot (not per-search, or a narrow search would evict everything else
  * already cached). */
 export async function replaceCachedProducts(businessId: string, products: CachedProduct[]) {
@@ -134,7 +134,7 @@ export async function replaceCachedProducts(businessId: string, products: Cached
   await tx.done;
 }
 
-/** Adds/updates individual products without touching the rest of the cache —
+/** Adds/updates individual products without touching the rest of the cache,
  * used after every live search so products found while online stay available
  * offline too, on top of the initial seed. */
 export async function upsertCachedProducts(businessId: string, products: CachedProduct[]) {
@@ -164,7 +164,7 @@ export async function searchCachedProducts(businessId: string, term: string) {
 }
 
 /** Optimistic local-only decrement so a second offline sale in the same
- * session sees reduced stock — the server re-checks for real at sync time. */
+ * session sees reduced stock, the server re-checks for real at sync time. */
 export async function decrementCachedStock(
   businessId: string,
   productId: string,

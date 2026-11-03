@@ -69,7 +69,7 @@ import { buildProductWhatsAppMessage, buildWhatsAppShareUrl } from "@/lib/whatsa
 // Aliases are matched after lowercasing and stripping spaces/underscores/
 // hyphens (see normalizeHeader in lib/spreadsheet.ts), so "Retail Price",
 // "retail_price" and "RetailPrice" all normalize to the same "retailprice"
-// candidate — only one form needs listing here. Terms below lean on common
+// candidate, only one form needs listing here. Terms below lean on common
 // Southern African retail/stock-take vocabulary (SOH, retail price, VAT)
 // since that's this app's actual user base, not just US/UK spreadsheet norms.
 const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
@@ -370,7 +370,7 @@ function Inventory() {
         header: "Wholesale",
         cell: ({ row }) =>
           row.original.wholesale_price == null ? (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground">-<//span>
           ) : (
             <span className="tabular-nums text-muted-foreground">
               {formatMoney(Number(row.original.wholesale_price), currency)}

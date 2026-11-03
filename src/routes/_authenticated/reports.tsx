@@ -54,7 +54,7 @@ const SALE_LINE_IMPORT_COLUMNS: ImportColumn[] = [
   },
 ];
 
-// The area chart below conveys this same trend purely visually — screen
+// The area chart below conveys this same trend purely visually, screen
 // reader users get this sentence instead via role="img"/aria-label.
 function salesChartSummary(
   series: { label: string; sales: number; profit: number }[],

@@ -8,7 +8,7 @@ setup("authenticate test owner", async ({ page }) => {
   const password = process.env.E2E_OWNER_PASSWORD;
 
   if (!email || !password) {
-    console.log("E2E_OWNER_EMAIL / E2E_OWNER_PASSWORD not set — skipping auth setup");
+    console.log("E2E_OWNER_EMAIL / E2E_OWNER_PASSWORD not set, skipping auth setup");
     return;
   }
 

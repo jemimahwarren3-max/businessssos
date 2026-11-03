@@ -39,7 +39,7 @@ import {
   tryGetAuthedContext,
 } from "./session.server";
 
-// Keyed by IP (there's no session yet at this point) — deliberately tight,
+// Keyed by IP (there's no session yet at this point), deliberately tight,
 // these are exactly the endpoints someone would script a credential-
 // stuffing or account-enumeration attempt against.
 const signInLimit = [
@@ -62,7 +62,7 @@ const updatePasswordLimit = [
   authedRateLimit({ keyPrefix: "auth-update-password", maxRequests: 5, windowSeconds: 60 }),
 ] as const;
 // Same "authedRateLimit already composes requireSupabaseAuth" reasoning as
-// admin.functions.ts — context.tokens is available with no other wiring.
+// admin.functions.ts, context.tokens is available with no other wiring.
 // Tighter than the general API limit: these accept a 6-digit TOTP code,
 // exactly the kind of surface that normally gets a tight attempt throttle.
 const mfaLimit = [
@@ -77,7 +77,7 @@ const emailSchema = z.string().trim().toLowerCase().email();
 const passwordSchema = z.string().min(8, "Use at least 8 characters.");
 
 const signInSchema = z.object({ email: emailSchema, password: z.string().min(1) });
-// Independent of signInLimit's per-IP cap above — this one follows the
+// Independent of signInLimit's per-IP cap above, this one follows the
 // account across IPs, so spreading guesses across many source addresses
 // doesn't help an attacker against a single targeted email.
 const ACCOUNT_LOCKOUT_THRESHOLD = 5;
@@ -96,7 +96,7 @@ const requestResetSchema = z.object({ email: emailSchema });
 const updatePasswordSchema = z.object({ password: passwordSchema });
 // Step-up re-authentication: re-checked right before a high-risk action
 // (deleting the account, turning off MFA) so a hijacked session cookie alone
-// isn't enough to perform it — the actor also has to know the password.
+// isn't enough to perform it, the actor also has to know the password.
 const stepUpSchema = z.object({
   currentPassword: z.string().min(1, "Enter your password to continue."),
 });
@@ -123,7 +123,7 @@ export const signIn = createServerFn({ method: "POST" })
       password: data.password,
     });
     // Deliberately the same message whether the email doesn't exist or the
-    // password is wrong — distinguishing the two tells an attacker which
+    // password is wrong, distinguishing the two tells an attacker which
     // emails have accounts.
     if (error || !result.session) {
       const goTrue = `${error?.code ?? ""} ${error?.message ?? ""}`;
@@ -197,7 +197,7 @@ export const signUp = createServerFn({ method: "POST" })
       return { needsEmailConfirmation: false, path };
     }
     // Whether this is a new signup awaiting confirmation or an email that
-    // already has an account, Supabase's response — and ours — look
+    // already has an account, Supabase's response, and ours, look
     // identical on purpose; see friendlySignUpError above.
     return { needsEmailConfirmation: true };
   });
@@ -210,7 +210,7 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
       redirectTo: `${getAppUrl()}/auth/recover`,
     });
     // Always looks the same to the caller, regardless of whether the email
-    // has an account — same reasoning as signUp above.
+    // has an account, same reasoning as signUp above.
     return { ok: true };
   });
 
@@ -234,7 +234,7 @@ export const resendSignupConfirmation = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-// Called from routes/auth.callback.tsx's beforeLoad — the server-side half
+// Called from routes/auth.callback.tsx's beforeLoad, the server-side half
 // of the PKCE OAuth/magic-link handoff. The browser holds the code_verifier
 // (see integrations/supabase/client.ts's cookie-backed storage adapter);
 // Supabase's SDK reads it back out of that same cookie via this request.
@@ -296,7 +296,7 @@ export const finishOAuthCallback = createServerFn({ method: "POST" })
     });
   });
 
-/** @deprecated Prefer finishOAuthCallback — kept for tests calling exchange only. */
+/** @deprecated Prefer finishOAuthCallback, kept for tests calling exchange only. */
 export const exchangeOAuthCode = createServerFn({ method: "POST" })
   .middleware(oauthCallbackLimit)
   .inputValidator((data: unknown) => oauthCallbackSchema.parse(data))
@@ -311,12 +311,12 @@ export const exchangeOAuthCode = createServerFn({ method: "POST" })
 // Deliberately unguarded: called via tryGetAuthedContext() on effectively
 // every authenticated page load/navigation, not just deliberate user
 // actions. A rate limit here would risk locking out normal browsing, not
-// attackers — the real security boundary for these is auth/RLS, not
+// attackers, the real security boundary for these is auth/RLS, not
 // throttling.
 export const signOutFn = createServerFn({ method: "POST" }).handler(async () => {
   const ctx = await tryGetAuthedContext();
   if (ctx) {
-    // ctx.supabase only ever carries the access token as a bearer header —
+    // ctx.supabase only ever carries the access token as a bearer header,
     // signOut() needs a client that's actually been through auth.setSession()
     // to know which refresh token to revoke (same requirement as the MFA
     // client below); without it, signOut() reports success but the refresh
@@ -345,7 +345,7 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(async ()
   return { userId: ctx.userId, email };
 });
 
-/** After OAuth or magic link — send new merchants to shop setup, not an empty dashboard. */
+/** After OAuth or magic link, send new merchants to shop setup, not an empty dashboard. */
 export const getPostAuthDestination = createServerFn({ method: "GET" }).handler(async () => {
   const path = await resolvePostAuthPath();
   return { path };
@@ -378,7 +378,7 @@ export const deleteAccountFn = createServerFn({ method: "POST" })
 
 /* -------------------------------- MFA -------------------------------- *
  * Same enroll/challenge/verify primitives the admin panel uses (see
- * src/lib/auth/mfa.server.ts and src/lib/admin/admin.functions.ts) — just
+ * src/lib/auth/mfa.server.ts and src/lib/admin/admin.functions.ts), just
  * offered to any signed-in user instead of gated to platform admins, and
  * optional rather than mandatory (see unenrollMfaFn, which admin has no
  * equivalent of on purpose). */
@@ -404,7 +404,7 @@ export const verifyMfaEnrollmentFn = createServerFn({ method: "POST" })
       data.factorId,
       data.code,
     );
-    // The verify call upgrades the session to aal2 — reseal the cookie with
+    // The verify call upgrades the session to aal2, reseal the cookie with
     // the new tokens now, or the next request would still read back aal1.
     await setServerSession({ accessToken, refreshToken });
     return { ok: true };

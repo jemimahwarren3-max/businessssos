@@ -12,10 +12,10 @@ type EnrollResult = { factorId: string; qrCode: string; secret: string };
 type ChallengeResult = { challengeId: string };
 
 /** Shared by the (mandatory) admin-panel MFA gate and the (optional)
- * business-account Security section — same TOTP enroll/verify flow either
+ * business-account Security section, same TOTP enroll/verify flow either
  * way, just pointed at different server functions and copy. Callers pass
  * the result of their own useServerFn(...) call, not the raw server
- * function — keeps the hook call at the normal top-level call site instead
+ * function, keeps the hook call at the normal top-level call site instead
  * of threading a dynamic prop value into a hook here. */
 export function MfaEnroll({
   onDone,
@@ -162,7 +162,7 @@ export function MfaChallenge({
 
   useEffect(() => {
     startMutation.mutate();
-    // Only ever run once, on mount — startMutation is a new object identity
+    // Only ever run once, on mount, startMutation is a new object identity
     // every render (useMutation doesn't memoize it), so including it would
     // re-trigger the challenge on every render instead of just once.
     // eslint-disable-next-line react-hooks/exhaustive-deps

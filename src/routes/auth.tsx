@@ -30,7 +30,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const searchSchema = z.object({
   mode: z.enum(["signin", "signup", "reset"]).default("signin").catch("signin"),
   reason: z.enum(["oauth"]).optional().catch(undefined),
-  // Only ever used to bounce back to an invite link after auth — deliberately
+  // Only ever used to bounce back to an invite link after auth, deliberately
   // narrow (not a general-purpose redirect target) to rule out open-redirect
   // abuse via a crafted /auth?redirect= link.
   redirect: z
@@ -38,7 +38,7 @@ const searchSchema = z.object({
     .regex(/^\/invite\/[a-zA-Z0-9]+$/)
     .optional()
     .catch(undefined),
-  // Supabase sometimes lands on /auth when Site URL is wrong — forward to the real handler.
+  // Supabase sometimes lands on /auth when Site URL is wrong, forward to the real handler.
   code: z.string().min(1).optional().catch(undefined),
   token_hash: z.string().min(1).optional().catch(undefined),
   type: z.string().optional().catch(undefined),
@@ -120,7 +120,7 @@ function AuthPage() {
           setBootState("ready");
           return;
         }
-        // OAuth failed — keep the form visible so the user can retry Google.
+        // OAuth failed, keep the form visible so the user can retry Google.
         if (reason === "oauth") {
           setBootState("ready");
           return;
@@ -605,7 +605,7 @@ function AuthPage() {
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-sand/85">
             Sign in with Google, then we walk you through naming your shop, choosing a design, and
-            adding your first product — still free until you publish.
+            adding your first product, still free until you publish.
           </p>
         </div>
         <ul className="relative space-y-2 text-sm text-sand/90">

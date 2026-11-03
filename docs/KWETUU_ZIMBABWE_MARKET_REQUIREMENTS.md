@@ -20,7 +20,7 @@ Kwetuu’s first complete market is Zimbabwe. Southern Africa is a **configurati
 
 | Capability | Zimbabwe launch | Must not hardcode forever |
 | ---------- | --------------- | ------------------------- |
-| Currency | USD + ZiG (`ZWG`) as first-class; ZAR as a business currency | Currency list already includes regional codes — keep it data, not UI copy |
+| Currency | USD + ZiG (`ZWG`) as first-class; ZAR as a business currency | Currency list already includes regional codes, keep it data, not UI copy |
 | Phone | `+263`, local `07…` → 263 in `src/lib/whatsapp.ts` | Country dial code in a pack |
 | Payments (shop) | Cash on collection, EcoCash/InnBucks/bank **instructions + proof**, Paynow when approved | Kind list per country |
 | Payments (POS) | Cash, mobile money (named), bank, card, credit | Enum today is generic; add a `rail` or display map, not a new app |
@@ -37,7 +37,7 @@ Kwetuu’s first complete market is Zimbabwe. Southern Africa is a **configurati
 | `src/lib/whatsapp.ts` | Leading 0 → 263 | Breaks a regional merchant with a local 0 prefix in another country |
 | `src/lib/storefront/onboarding-defaults.ts` | `Africa/Harare` | Fine as default if overridable |
 | `src/lib/storefront/manual-payments.ts` | `ecocash`, `innbucks` | Correct for ZW launch; make it a country pack |
-| `src/lib/payments/paynow-poll.ts` | `paynow.co.zw` | Zimbabwe-only provider — belongs in a provider adapter |
+| `src/lib/payments/paynow-poll.ts` | `paynow.co.zw` | Zimbabwe-only provider, belongs in a provider adapter |
 | Shop Paynow SQL | USD-only orders | Blocks ZiG shop checkout even if a provider later supports it |
 | Marketing (`src/routes/index.tsx`) | EcoCash / InnBucks copy | OK for ZW homepage |
 
@@ -62,13 +62,13 @@ Stage 1 may add a **rail label map** in application config (`ecocash` → “Eco
 - Fiscalisation, CDPA, and consumer-law compliance are **not** claimed (`KNOWN_LIMITATIONS.md`).
 - Privacy and Terms are drafts.
 - Screenshot proof is evidence for the seller, not a payment.
-- AI assistant sends aggregated totals to Gemini/Groq when keys exist — not a replacement for an accountant.
+- AI assistant sends aggregated totals to Gemini/Groq when keys exist, not a replacement for an accountant.
 
 ## Jobs to be done (Zimbabwe owner)
 
 If Kwetuu is loved, an owner can open one screen after load shedding and answer:
 
-1. How much money came in yesterday — cash USD, cash ZiG, EcoCash, bank?
+1. How much money came in yesterday, cash USD, cash ZiG, EcoCash, bank?
 2. Who owes me, and who do I owe?
 3. Which products will run out this week?
 4. Which orders are not collected or delivered?

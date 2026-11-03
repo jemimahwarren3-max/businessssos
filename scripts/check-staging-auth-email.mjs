@@ -20,12 +20,12 @@ console.log("");
 
 if (!summary.external_email_enabled) {
   console.warn(
-    "Email sign-in is OFF in GoTrue — enable Authentication → Email or run staging:apply.",
+    "Email sign-in is OFF in GoTrue, enable Authentication → Email or run staging:apply.",
   );
 }
 if (!summary.mailer_autoconfirm && !summary.smtpConfigured) {
   console.warn(
-    "No custom SMTP and autoconfirm is off — confirmation emails only reach Supabase org team addresses.",
+    "No custom SMTP and autoconfirm is off, confirmation emails only reach Supabase org team addresses.",
   );
   console.warn("Fix: docs/auth/SUPABASE_AUTH_EMAIL.md (Resend SMTP or enable autoconfirm).");
 }

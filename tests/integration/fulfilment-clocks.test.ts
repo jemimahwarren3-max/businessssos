@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { describeStaging, sql } from "./helpers";
 
-/** Monday 2026-10-19 in Africa/Harare — matches unit tests in tests/fulfilment-clocks.test.ts */
+/** Monday 2026-10-19 in Africa/Harare, matches unit tests in tests/fulfilment-clocks.test.ts */
 const deliveryRules =
   '{"prepMinutes":30,"timezone":"Africa/Harare","weeklyHours":[{"weekday":1,"open":"08:00","close":"17:00"}],"windows":[{"weekday":1,"start":"10:00","end":"12:00"}],"cutoffTime":"16:00"}';
 

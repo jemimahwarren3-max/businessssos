@@ -1,4 +1,4 @@
-/** Platform subscription Paynow keys — USD vs local ZiG (ZWG) integrations. */
+/** Platform subscription Paynow keys, USD vs local ZiG (ZWG) integrations. */
 export type SubscriptionBillingCurrency = "USD" | "ZWG";
 
 function readEnv(name: string): string | undefined {

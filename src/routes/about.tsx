@@ -28,8 +28,8 @@ function AboutPage() {
           business data.
         </p>
         <p className="mt-4 text-muted-foreground">
-          We build for shops that take cash, EcoCash, and collection windows — including businesses
-          in Zimbabwe — without pretending InnBucks or custom domains are live until they are.
+          We build for shops that take cash, EcoCash, and collection windows, including businesses
+          in Zimbabwe, without pretending InnBucks or custom domains are live until they are.
         </p>
         <Button asChild className="mt-8">
           <Link to="/auth" search={{ mode: "signup" }}>

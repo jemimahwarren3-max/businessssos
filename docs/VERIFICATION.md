@@ -18,9 +18,9 @@ Integration tests **never** target production. Staging ref is hard-coded in `scr
 
 Set these on the repository so CI can run the full staging suite:
 
-1. `SUPABASE_ACCESS_TOKEN` — account token from Supabase dashboard (not the DB password).
-2. `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_PUBLISHABLE_KEY`, `STAGING_SUPABASE_PROJECT_ID`, `STAGING_SUPABASE_SERVICE_ROLE_KEY` — staging project.
-3. `CI_SESSION_SECRET` — random string for build step.
+1. `SUPABASE_ACCESS_TOKEN`, account token from Supabase dashboard (not the DB password).
+2. `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_PUBLISHABLE_KEY`, `STAGING_SUPABASE_PROJECT_ID`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`, staging project.
+3. `CI_SESSION_SECRET`, random string for build step.
 4. For live email: `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL`, `MAIL_FLUSH_SECRET`.
 
 After migrations apply, bootstrap the platform owner per `docs/PLATFORM_OWNER_BOOTSTRAP.md`.
@@ -33,10 +33,10 @@ On each push/PR, CI runs `verify:local` steps individually (typecheck, lint, tes
 
 Gap analysis mapped to checklist §1–§23: `docs/MASTER_CHECKLIST_GAP.md`.  
 Twelve workflows mapped to tests: `docs/WORKFLOW_VERIFICATION.md`.  
-Execution table: `docs/EXECUTION_STATUS.md` — update after each verified slice.
+Execution table: `docs/EXECUTION_STATUS.md`, update after each verified slice.
 
 ## What “verified” means here
 
 - **Local verified:** commands above passed in this environment.
 - **Staging verified:** readiness checks green + integration tests passed with token.
-- **Production verified:** operator sign-off only — not automated by this repo.
+- **Production verified:** operator sign-off only, not automated by this repo.

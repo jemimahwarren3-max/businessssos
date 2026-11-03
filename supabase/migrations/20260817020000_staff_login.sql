@@ -1,6 +1,6 @@
 -- Name+password sign-in for staff without an email address. Supabase Auth
 -- still requires an email under the hood (generated internally, never sent
--- anywhere — see team.server.ts's createStaffAccount) — this migration only
+-- anywhere, see team.server.ts's createStaffAccount), this migration only
 -- adds what's needed to resolve a business code + name back to that email,
 -- and to keep names unique within one business.
 
@@ -36,7 +36,7 @@ begin
       update public.businesses set staff_code = _code where id = _business_id;
       exit;
     exception when unique_violation then
-      -- collision on the unique constraint — loop and try another code
+      -- collision on the unique constraint, loop and try another code
     end;
   end loop;
 
@@ -46,7 +46,7 @@ $$;
 revoke all on function public.get_or_create_staff_code(uuid) from public;
 grant execute on function public.get_or_create_staff_code(uuid) to authenticated;
 
--- ============ resolve_staff_login (anon-callable — deliberately minimal return) ============
+-- ============ resolve_staff_login (anon-callable, deliberately minimal return) ============
 create or replace function public.resolve_staff_login(_code text, _name text)
 returns text
 language plpgsql security definer set search_path = public as $$

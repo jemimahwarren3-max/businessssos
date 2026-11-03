@@ -1,4 +1,4 @@
-// Single source of truth for what the plan costs — imported by the
+// Single source of truth for what the plan costs, imported by the
 // marketing page (display) and the Paynow checkout flow (the actual amount
 // charged), so the two can never drift apart.
 export const PAID_PLANS = ["pro"] as const;

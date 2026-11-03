@@ -55,7 +55,7 @@ No route was deleted. Suspected gaps (no variants, no storefront, CI listening f
 
 ## 4. Database map
 
-Tenant root: `businesses` 1—n `business_members`. Catalogue: `categories`, `products` (one price, one `stock` number, `cost_price`, `image_url` text), `suppliers`. Stock history: `inventory_movements`. Commerce: `sales` + `sale_items` + `payments`, `sale_refunds`, `invoices`, `quotes`, `customers`. Purchasing: `purchase_orders`. Billing: `subscriptions`, `subscription_payments` (Paynow poll URL). Access: `permissions`, `business_role_permissions`.
+Tenant root: `businesses` 1-n `business_members`. Catalogue: `categories`, `products` (one price, one `stock` number, `cost_price`, `image_url` text), `suppliers`. Stock history: `inventory_movements`. Commerce: `sales` + `sale_items` + `payments`, `sale_refunds`, `invoices`, `quotes`, `customers`. Purchasing: `purchase_orders`. Billing: `subscriptions`, `subscription_payments` (Paynow poll URL). Access: `permissions`, `business_role_permissions`.
 
 There is no cart, variant, collection, delivery-zone, or customer-order table in the pre-storefront schema. `sale_status` is only `completed | refunded | partially_refunded | cancelled`.
 

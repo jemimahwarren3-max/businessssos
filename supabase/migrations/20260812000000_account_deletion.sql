@@ -4,7 +4,7 @@
 -- clears the handful of nullable auth.users references that would otherwise
 -- block auth.admin.deleteUser() from removing the login afterward.
 --
--- businesses.created_by has no cascade (deliberately — a business shouldn't
+-- businesses.created_by has no cascade (deliberately, a business shouldn't
 -- vanish just because whoever happened to create it is later removed by an
 -- admin elsewhere), so the caller's own businesses must be deleted here
 -- before their auth.users row can be deleted. business_members.invited_by

@@ -1,6 +1,6 @@
 -- Team invites: lets an owner/admin add teammates to their existing business.
 -- The existing business_members INSERT policy only allows an owner/admin to
--- add someone, or the original creator to bootstrap themselves — an invited
+-- add someone, or the original creator to bootstrap themselves, an invited
 -- stranger satisfies neither branch, so accepting needs a security definer
 -- RPC to bypass RLS safely (same reasoning as create_sale/import_sale_line).
 
@@ -53,7 +53,7 @@ $$;
 revoke all on function public.create_business_invite(uuid, public.app_role) from public;
 grant execute on function public.create_business_invite(uuid, public.app_role) to authenticated;
 
--- ============ get_invite_preview (anon-callable — no business data beyond name/role) ============
+-- ============ get_invite_preview (anon-callable, no business data beyond name/role) ============
 create or replace function public.get_invite_preview(_token text)
 returns table(business_name text, role public.app_role, valid boolean, reason text)
 language plpgsql security definer set search_path = public as $$
@@ -113,7 +113,7 @@ begin
   end if;
   -- Re-accepting your own business's invite (e.g. opening an invite link
   -- while already signed in) must never silently overwrite your existing
-  -- role — that's a real lockout footgun, not a no-op.
+  -- role, that's a real lockout footgun, not a no-op.
   if _existing_business = _invite.business_id then
     raise exception 'You already belong to this business.' using errcode = 'B0001';
   end if;

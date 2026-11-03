@@ -342,7 +342,7 @@ function Growth() {
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Create a channel-specific draft from your business and catalogue. AI will not publish or
-          send it for you. WhatsApp Cloud is not connected — queued WhatsApp stays pending and is
+          send it for you. WhatsApp Cloud is not connected, queued WhatsApp stays pending and is
           never marked sent without a Meta message id.
         </p>
         {canManageMarketing && audience.data ? (

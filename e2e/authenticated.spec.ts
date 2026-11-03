@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures";
 
 test.describe("authenticated session", () => {
-  test.skip(!process.env.E2E_OWNER_EMAIL, "E2E_OWNER_EMAIL not set — skipping authenticated tests");
+  test.skip(!process.env.E2E_OWNER_EMAIL, "E2E_OWNER_EMAIL not set, skipping authenticated tests");
 
   test("session persists after refresh", async ({ page }) => {
     await page.goto("/dashboard");

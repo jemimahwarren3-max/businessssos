@@ -55,7 +55,7 @@ export async function generateShopDraft(
   const prompt = [
     `Business name: ${business.name}`,
     `Business type: ${business.business_type}`,
-    `Existing catalogue items: ${products.length ? products.map((product) => `${product.name}${product.description ? ` — ${product.description}` : ""}`).join("; ") : "No products added yet."}`,
+    `Existing catalogue items: ${products.length ? products.map((product) => `${product.name}${product.description ? `, ${product.description}` : ""}`).join("; ") : "No products added yet."}`,
     `Allowed templates: ${TEMPLATE_IDS.join(", ")}`,
     "Allowed palettes: linen, botanical, rose, cobalt, market, midnight, plum, mono.",
     "Business owner's brief:",

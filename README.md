@@ -1825,7 +1825,7 @@ Build the product so that security is part of the architecture from the first da
 
 ## Development
 
-You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+You need Node.js and npm, [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
 git clone <this-repository-url>
@@ -1836,11 +1836,11 @@ npm run dev
 
 Copy `.env` and set your own Supabase project's `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
 `SUPABASE_PROJECT_ID` (and the `VITE_`-prefixed equivalents for the browser bundle). Google
-sign-in uses Supabase's own OAuth flow — enable the Google provider under Authentication →
+sign-in uses Supabase's own OAuth flow, enable the Google provider under Authentication →
 Providers in your Supabase project, with `<your Supabase URL>/auth/v1/callback` as the
 redirect URI in your Google Cloud OAuth client.
 
-`npm run build` produces a plain Node server in `.output/server` — run it with
+`npm run build` produces a plain Node server in `.output/server`, run it with
 `node .output/server/index.mjs`, or deploy it to Docker, Railway, Render, Fly.io, or any
 other Node host.
 
@@ -1851,8 +1851,8 @@ There are two Supabase projects: `businessos` (production, live data) and `busin
 hold the credentials for each so you can switch without hunting them down:
 
 ```sh
-npm run env:staging      # point .env at staging (the default — use this day to day)
-npm run env:production   # point .env at production — only when you deliberately mean to
+npm run env:staging      # point .env at staging (the default, use this day to day)
+npm run env:production   # point .env at production, only when you deliberately mean to
 ```
 
 Both projects run the same migrations in `supabase/migrations/`. When you add a new one, apply
@@ -1860,7 +1860,7 @@ it to staging first, verify it, then apply it to production the same way.
 
 ### Deploying
 
-Render's free tier only gives one service, so there's no separate staging *deployment* — the
+Render's free tier only gives one service, so there's no separate staging *deployment*, the
 single Render service (`businessos-ai` in `render.yaml`) is production, always. "Staging" is
 just the second Supabase project, tested by pointing your local `npm run dev` at it
 (`npm run env:staging`). Paying for a second Render service would give you a real staging
@@ -1871,7 +1871,7 @@ auto-deploys from):
 
 1. `.env` points at staging (`npm run env:staging`) while you build and test locally.
 2. New migration? Applied to staging and verified there first (see above).
-3. `.github/workflows/ci.yml` passes on the push — it runs the same tsc/lint/test/build checks
+3. `.github/workflows/ci.yml` passes on the push, it runs the same tsc/lint/test/build checks
    you'd otherwise have to remember to run by hand. Don't push to `main` with it red.
-4. Only then apply the migration to production and push — Render deploys whatever's on `main`
+4. Only then apply the migration to production and push, Render deploys whatever's on `main`
    automatically.

@@ -28,7 +28,7 @@ if (tokenAction === "fail") {
   process.exit(1);
 }
 if (tokenAction === "skip") {
-  console.log("SUPABASE_ACCESS_TOKEN is empty — skipping staging SQL.");
+  console.log("SUPABASE_ACCESS_TOKEN is empty, skipping staging SQL.");
   process.exit(0);
 }
 

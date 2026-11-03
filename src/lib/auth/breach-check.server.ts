@@ -11,12 +11,12 @@ async function sha1Hex(text: string): Promise<string> {
 
 /** Checks a password against HaveIBeenPwned's Pwned Passwords range API.
  * K-anonymity: only the first 5 hex characters of the SHA-1 hash ever leave
- * this server — never the password, never the full hash — so HIBP itself
+ * this server, never the password, never the full hash, so HIBP itself
  * has no way to learn what password was checked.
  *
  * Fails OPEN on purpose: if HIBP is slow, down, or unreachable, this
  * returns false (not breached) rather than blocking signup or a password
- * change on a third-party outage — same resilience stance as the Redis
+ * change on a third-party outage, same resilience stance as the Redis
  * cache (see cache/redis.server.ts's own "a cache outage must never become
  * an application outage"). A 3s timeout keeps a hung request from ever
  * being the reason a signup stalls. */
@@ -33,7 +33,7 @@ export async function isPasswordBreached(password: string): Promise<boolean> {
       response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
         signal: controller.signal,
         // Padded with decoy suffixes so response size can't be used to
-        // infer whether a hit occurred — see HIBP's own docs on this header.
+        // infer whether a hit occurred, see HIBP's own docs on this header.
         headers: { "Add-Padding": "true" },
       });
     } finally {

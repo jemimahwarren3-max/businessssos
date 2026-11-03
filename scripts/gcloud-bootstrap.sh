@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time GCP setup from the CLI. Do not use the Cloud Run "Create service"
-# console — GitHub Actions creates the service on the first deploy.
+# console: GitHub Actions creates the service on the first deploy.
 set -euo pipefail
 
 PROJECT="${GCP_PROJECT_ID:?Set GCP_PROJECT_ID to your Google Cloud project id}"

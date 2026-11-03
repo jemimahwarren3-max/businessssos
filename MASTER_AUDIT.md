@@ -15,7 +15,7 @@ Inspected: Vite 8 + React 19 + TanStack Start, Supabase staging `slajanbsfqjnuui
 ## 2. Broken or incomplete
 
 - Live Cloud Run image is older than this git stack.
-- Staging GoTrue: **Email provider disabled** — email sign-up fails until the dashboard toggle is on.
+- Staging GoTrue: **Email provider disabled**, email sign-up fails until the dashboard toggle is on.
 - `{slug}.mykwetuu.com` needs wildcard DNS/TLS. Cloud Run cannot map `*`.
 - Templates are layout variants, not ten cloned apps. Size/colour is description text, not SKU stock.
 - Dashboard titles still say BusinessOS in places.
@@ -31,7 +31,7 @@ Inspected: Vite 8 + React 19 + TanStack Start, Supabase staging `slajanbsfqjnuui
 | US$7 single plan | `PLAN_MONTHLY_USD.pro` is **$7**; beta `BILLING_ENABLED=false` |
 | ZiG as a first-class currency | `CURRENCIES` includes ZWG; `formatMoney` shows `ZiG`. No invented FX rate |
 | WhatsApp Business API | Not built (keep it that way). Click-to-chat + copy link exist. |
-| Automated Paynow for shops | **Already implemented** — kept, not expanded in this phase |
+| Automated Paynow for shops | **Already implemented**, kept, not expanded in this phase |
 | Image proof upload | Private bucket + signed URLs; merchant must tick “I checked my account” |
 
 ## 4. Risks

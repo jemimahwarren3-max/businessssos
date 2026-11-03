@@ -5,7 +5,7 @@ import { formatMoney } from "./format";
  * local Zimbabwe number (e.g. "0771234567"). A leading 0 is treated as the
  * trunk prefix and rewritten to 263. Numbers that already carry a country
  * code pass through as digits. A wrong guess on a wa.me link is a dead
- * chat, not a misfire — Cloud send still requires a Graph message id. */
+ * chat, not a misfire, Cloud send still requires a Graph message id. */
 export function toWhatsAppAddress(phone: string | null | undefined): string | null {
   if (!phone) return null;
   const digits = phone.replace(/[^\d]/g, "");
@@ -40,7 +40,7 @@ function itemLines(items: LineItemInput[], currency: string, priceLabel: string)
     .join("\n");
 }
 
-/** Customer-facing — sent after creating a real Quote. */
+/** Customer-facing, sent after creating a real Quote. */
 export function buildQuoteWhatsAppMessage(
   customerName: string,
   businessName: string,
@@ -57,7 +57,7 @@ export function buildQuoteWhatsAppMessage(
 }
 
 /** Sent by an owner/admin to a prospective teammate, alongside a generated
- * invite link — nothing is auto-sent, same as every other WhatsApp message
+ * invite link, nothing is auto-sent, same as every other WhatsApp message
  * built here. */
 export function buildInviteWhatsAppMessage(
   businessName: string,
@@ -70,7 +70,7 @@ export function buildInviteWhatsAppMessage(
   ].join("\n\n");
 }
 
-/** Supplier-facing — sent after creating a Purchase Order. Explicitly notes
+/** Supplier-facing, sent after creating a Purchase Order. Explicitly notes
  * prices are estimates, since a supplier's actual price may differ from
  * what's on file. */
 export function buildPurchaseOrderWhatsAppMessage(

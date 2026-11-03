@@ -208,7 +208,7 @@ describeStaging("cross-tenant isolation", () => {
 
     it("an UPDATE against business A's product silently affects zero rows, not an error", async () => {
       // RLS on a table with no matching row returns success-with-zero-rows
-      // for UPDATE, not a thrown error — asserting that explicitly here
+      // for UPDATE, not a thrown error, asserting that explicitly here
       // matters because "no error" alone would be a false negative if the
       // isolation were actually broken.
       const rows = await asUser<{ id: string }>(
@@ -253,7 +253,7 @@ describeStaging("cross-tenant isolation", () => {
     await sql(`delete from public.products where business_id = '${bizB}';`);
   });
 
-  it("querying a real ID vs. a random nonexistent one both return empty — existence isn't leaked", async () => {
+  it("querying a real ID vs. a random nonexistent one both return empty, existence isn't leaked", async () => {
     const realId = await asUser(
       outsider,
       `select * from public.products where id = '${productA}';`,

@@ -56,7 +56,7 @@ function statusHeadline(ctx: OrderEmailContext, audience: "customer" | "merchant
 function buildPlainItems(items: OrderEmailItem[], currency: string): string {
   if (items.length === 0) return "";
   return items
-    .map((line) => `${line.quantity} × ${line.name} — ${formatMoney(line.lineTotal, currency)}`)
+    .map((line) => `${line.quantity} × ${line.name}, ${formatMoney(line.lineTotal, currency)}`)
     .join("\n");
 }
 
@@ -85,7 +85,7 @@ export function renderOrderEmail(input: {
     `Order: ${ctx.orderReference}`,
     `Total: ${formatMoney(ctx.total, ctx.currency)}`,
     `Fulfilment: ${ctx.fulfilmentMethod} (${ctx.fulfilmentStatus})`,
-    `Payment: ${ctx.paymentMethod} — ${paidLabel}`,
+    `Payment: ${ctx.paymentMethod}, ${paidLabel}`,
   ];
   if (ctx.eventMessage) textParts.push("", ctx.eventMessage);
   if (itemsPlain) textParts.push("", "Items:", itemsPlain);
@@ -112,12 +112,12 @@ export function renderOrderEmail(input: {
   <p><strong>${escapeHtml(ctx.storeName)}</strong><br/>Order <strong>${escapeHtml(ctx.orderReference)}</strong></p>
   <p>Total: <strong>${escapeHtml(formatMoney(ctx.total, ctx.currency))}</strong><br/>
   Fulfilment: ${escapeHtml(ctx.fulfilmentMethod)} (${escapeHtml(ctx.fulfilmentStatus)})<br/>
-  Payment: ${escapeHtml(ctx.paymentMethod)} — ${escapeHtml(paidLabel)}</p>
+  Payment: ${escapeHtml(ctx.paymentMethod)}, ${escapeHtml(paidLabel)}</p>
   ${ctx.eventMessage ? `<p>${escapeHtml(ctx.eventMessage)}</p>` : ""}
   ${items.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #eee;margin-top:12px"><tbody>${htmlItems}</tbody></table>` : ""}
   ${ctx.orderUrl ? `<p style="margin-top:16px"><a href="${escapeHtml(ctx.orderUrl)}">View your order</a></p>` : ""}
   ${template === "customer.order.placed" && ctx.accessToken ? `<p style="margin-top:12px;font-size:13px"><strong>Access code (shown once):</strong> ${escapeHtml(ctx.accessToken)}</p>` : ""}
-  <p style="margin-top:24px;font-size:12px;color:#666">Transactional order message — not marketing.</p>
+  <p style="margin-top:24px;font-size:12px;color:#666">Transactional order message, not marketing.</p>
 </body></html>`;
 
   return { subject: subject.slice(0, 120), text: textParts.join("\n"), html };

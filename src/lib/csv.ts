@@ -1,5 +1,5 @@
 // Cells starting with these characters can be interpreted as formulas by
-// Excel/Sheets when the CSV is opened — prefixing with a quote forces them
+// Excel/Sheets when the CSV is opened, prefixing with a quote forces them
 // to render as literal text instead of executing. Only applies to strings;
 // legitimate numeric exports (revenue, quantities, negative amounts) are
 // never at risk since a JS `number` can't carry a formula.

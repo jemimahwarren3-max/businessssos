@@ -1,12 +1,12 @@
 -- Refunds/returns. sale_status has had 'refunded'/'partially_refunded' since
--- the schema was first created — nothing has ever set them (confirmed: no
+-- the schema was first created, nothing has ever set them (confirmed: no
 -- refund/void code anywhere in src/). This adds the real workflow: a ledger
--- of refund events (never mutating the original sale_items — that stays the
+-- of refund events (never mutating the original sale_items, that stays the
 -- true record of what was actually sold), stock restored per returned item,
 -- and the parent sale's totals reduced so it keeps meaning "what the
 -- customer actually ended up owing/paying" post-return.
 --
--- A refund can't touch public.payments — its amount column is `check
+-- A refund can't touch public.payments, its amount column is `check
 -- (amount > 0)`, payments is money coming in, not going out. Cash refunds
 -- instead reduce sales.amount_paid directly; credit-sale refunds reduce the
 -- customer's outstanding_balance. sale_refunds itself is the audit trail of
@@ -41,7 +41,7 @@ alter table public.sale_refunds enable row level security;
 alter table public.sale_refund_items enable row level security;
 
 -- Read: any member (same as sales itself). Write: only through
--- refund_sale() below (security definer, its own role check) — no direct
+-- refund_sale() below (security definer, its own role check), no direct
 -- insert/update policy, matching create_sale/create_purchase_order's own
 -- RPC-only write pattern for records with real financial/stock side effects.
 create policy "members read sale_refunds" on public.sale_refunds for select to authenticated
@@ -117,7 +117,7 @@ begin
       where sri.sale_item_id = _sale_item.id and sr.sale_id = _sale_id;
     _remaining := _sale_item.quantity - _already_refunded;
     if _qty > _remaining then
-      raise exception '% of % has already been refunded — % is left to refund.',
+      raise exception '% of % has already been refunded, % is left to refund.',
         _already_refunded, _sale_item.name, _remaining using errcode = 'B0001';
     end if;
 

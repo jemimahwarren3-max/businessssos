@@ -1,6 +1,6 @@
 # Kwetuu pre-launch production checklist
 
-**Purpose:** What must be **verified** before treating Kwetuu as production-ready — not a claim that items already pass.
+**Purpose:** What must be **verified** before treating Kwetuu as production-ready, not a claim that items already pass.
 
 **Statuses (use only these):**
 
@@ -18,7 +18,7 @@
 
 ## Release gate tracker (Section 25)
 
-Manual gates — tick only with attached evidence. **Current count: 0 / 21 passing.**
+Manual gates, tick only with attached evidence. **Current count: 0 / 21 passing.**
 
 | #   | Gate                                                            | Status                      | Evidence / blocker                                                                                                                                                                                                                                 |
 | --- | --------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -286,12 +286,12 @@ Manual gates — tick only with attached evidence. **Current count: 0 / 21 passi
 | ------------------------- | --------------------------------------------------------------------------------- |
 | **16 Reports**            | Reports exist; reconciliation not verified                                        |
 | **17 Reliability**        | No load test; duplicate-click idempotency partial                                 |
-| **18 Backups**            | **Blocked** — restore not demonstrated                                            |
+| **18 Backups**            | **Blocked**, restore not demonstrated                                            |
 | **19 Monitoring**         | Sentry wired; alerts not proven                                                   |
 | **20 Legal**              | Terms/privacy live; fiscalisation **Blocked**                                     |
 | **21 Accessibility**      | **Not verified**                                                                  |
 | **22 Automated tests**    | `verify:local` **Built and tested**; staging/E2E/desktop/android **Not verified** |
-| **23 Deployment**         | **Blocked** — paused deploy; `BILLING_ENABLED` operator                           |
+| **23 Deployment**         | **Blocked**, paused deploy; `BILLING_ENABLED` operator                           |
 | **24 Business readiness** | Pilot, support SLAs, finalized pricing ops **Not verified**                       |
 
 ---
@@ -300,7 +300,7 @@ Manual gates — tick only with attached evidence. **Current count: 0 / 21 passi
 
 | Phase                     | Focus                                                                         | Repo status                                       |
 | ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------- |
-| **1 Audit**               | Baseline                                                                      | **Done** — docs above                             |
+| **1 Audit**               | Baseline                                                                      | **Done**, docs above                             |
 | **2 Security + payments** | RLS tests, `BILLING_ENABLED`, SQL `business_can_operate`, launch-fee decision | **In progress** (#64 merged; RPC + prod env open) |
 | **3 Core workflows**      | E2E checkout, publish journey, mail                                           | **Not verified**                                  |
 | **4 Offline dependable**  | Acceptance test, entitlement JWT, background sync                             | **Partial**                                       |

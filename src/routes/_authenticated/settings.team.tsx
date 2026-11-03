@@ -55,7 +55,7 @@ export const Route = createFileRoute("/_authenticated/settings/team")({
 
 const TEAM_ROLES = ["owner", "admin", "manager", "cashier", "accountant"] as const;
 const INVITE_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
-// Owner is deliberately excluded — always has every permission, not editable.
+// Owner is deliberately excluded, always has every permission, not editable.
 const PERMISSION_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
 
 function Team() {
@@ -560,7 +560,7 @@ function Team() {
                     autoComplete="off"
                     // Chrome/Firefox otherwise treat the text field ahead of
                     // a password field as a "username" and autofill it with
-                    // your own saved login — confirmed happening here since
+                    // your own saved login, confirmed happening here since
                     // this form looks just like a sign-in form to the
                     // browser. off + a non-standard name field defeats that.
                     data-1p-ignore
@@ -670,7 +670,7 @@ function Team() {
                       inviteLink.link,
                     );
                     // No specific phone number to prefill for a general team
-                    // invite (unlike customer/supplier orders) — this opens
+                    // invite (unlike customer/supplier orders), this opens
                     // WhatsApp's own contact picker instead of a fixed chat.
                     window.open(
                       `https://wa.me/?text=${encodeURIComponent(message)}`,

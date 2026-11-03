@@ -1,14 +1,14 @@
 import type { Json } from "@/integrations/supabase/types";
 import { AppError, assertPermission, dbFail, recordAudit, type Db } from "./business.server";
 
-// Generous — far beyond what this app's target market (small/growing
-// businesses) would produce in any single table over years of use — but
+// Generous, far beyond what this app's target market (small/growing
+// businesses) would produce in any single table over years of use, but
 // bounds worst-case memory/time on a single request. Rejecting outright
 // beats silently truncating: a truncated export is an incomplete backup
 // the user has no way to notice, which is worse than an honest error.
 export const EXPORT_ROW_CAP = 100_000;
 
-/** Pure — split out so the reject-on-overflow branch is directly
+/** Pure, split out so the reject-on-overflow branch is directly
  * unit-testable with fixture data (see tests/data-export-cap.test.ts)
  * instead of needing a live 100k-row seed. */
 export function enforceExportRowCap<T>(table: string, rows: T[]): T[] {
@@ -21,7 +21,7 @@ export function enforceExportRowCap<T>(table: string, rows: T[]): T[] {
   return rows;
 }
 
-// Every business-owned table with operational (not billing-internal) data —
+// Every business-owned table with operational (not billing-internal) data,
 // exactly what a user would reasonably expect "export my data" to mean.
 // Excludes notifications (ephemeral UI state) and subscriptions/payments
 // (covered by the billing page's own payment history).

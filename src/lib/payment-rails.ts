@@ -1,7 +1,7 @@
 import { paymentMethodSchema } from "./business.schemas";
 
 /** Zimbabwe-launch POS rails mapped onto the existing payment_method enum.
- * Labels are not provider confirmation — EcoCash here means "recorded as EcoCash". */
+ * Labels are not provider confirmation, EcoCash here means "recorded as EcoCash". */
 export const POS_PAYMENT_RAILS = [
   { value: "cash", label: "Cash", method: "cash" as const },
   { value: "ecocash", label: "EcoCash", method: "mobile_money" as const },

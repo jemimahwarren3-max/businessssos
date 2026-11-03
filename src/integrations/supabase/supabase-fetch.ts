@@ -1,5 +1,5 @@
 // Shared by every Supabase client this app constructs (browser, RLS-scoped
-// server, service-role admin) — new-format Supabase API keys are opaque
+// server, service-role admin), new-format Supabase API keys are opaque
 // strings, not bearer JWTs, so a stray `Authorization: Bearer <apikey>`
 // header (which the SDK sets by default) has to be stripped and the key
 // sent as `apikey` instead.

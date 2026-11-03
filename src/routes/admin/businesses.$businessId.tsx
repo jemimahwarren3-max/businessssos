@@ -177,7 +177,7 @@ function AdminBusinessDetailPage() {
           id="impersonation-reason"
           value={impersonationReason}
           onChange={(event) => setImpersonationReason(event.target.value)}
-          placeholder="Ticket #1234 — checkout issue"
+          placeholder="Ticket #1234, checkout issue"
         />
         {impersonate.isError ? (
           <p className="text-sm text-destructive">
@@ -216,7 +216,7 @@ function AdminBusinessDetailPage() {
               checked={smsNotifications}
               onCheckedChange={(v) => setSmsNotifications(v === true)}
             />
-            SMS notifications (placeholder — manual ops)
+            SMS notifications (placeholder, manual ops)
           </label>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
@@ -353,13 +353,13 @@ function AdminBusinessDetailPage() {
                 Trial ends:{" "}
                 {data.subscription.trial_ends_at
                   ? friendlyDate(data.subscription.trial_ends_at)
-                  : "—"}
+                  : "-"}
               </p>
               <p className="text-muted-foreground">
                 Period ends:{" "}
                 {data.subscription.current_period_end
                   ? friendlyDate(data.subscription.current_period_end)
-                  : "—"}
+                  : "-"}
               </p>
               <Button asChild size="sm" variant="outline" className="mt-2">
                 <Link to="/admin/billing">Override in billing</Link>

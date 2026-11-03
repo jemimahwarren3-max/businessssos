@@ -11,7 +11,7 @@ Kwetuu ships in **three layers**. SQL alone does not update what merchants see i
 ## Common situation (October 2026)
 
 - **`master` on GitHub** includes the big merchant stack from **PR #73** (launch centre, online orders nav, Paynow ZiG, etc.) after deploy.
-- **Platform admin (phases 1–3)** is on **[PR #74](https://github.com/jemimahwarren3-max/businessssos/pull/74)** — **not merged to `master` yet**. Until that PR merges **and** production deploys that commit, **`/admin` and impersonation do not exist** on `mykwetuu.com`.
+- **Platform admin (phases 1–3)** is on **[PR #74](https://github.com/jemimahwarren3-max/businessssos/pull/74)**, **not merged to `master` yet**. Until that PR merges **and** production deploys that commit, **`/admin` and impersonation do not exist** on `mykwetuu.com`.
 - Running admin SQL on Supabase **without** deploying PR #74 only prepares the database; the Node app will not call the new RPCs from the admin UI.
 
 ## Checklist when “nothing changed”

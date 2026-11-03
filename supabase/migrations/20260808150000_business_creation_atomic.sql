@@ -1,5 +1,5 @@
 -- createBusinessRecord (src/lib/business.server.ts) did five sequential,
--- unguarded inserts across four tables plus an RPC call — a failure partway
+-- unguarded inserts across four tables plus an RPC call, a failure partway
 -- through (e.g. the subscription bootstrap) left an orphaned business with a
 -- membership row but no settings/subscription. Collapsing all of it into one
 -- SECURITY DEFINER function makes it one implicit transaction: all of it

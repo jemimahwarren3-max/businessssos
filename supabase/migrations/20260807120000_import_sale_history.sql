@@ -1,7 +1,7 @@
 -- Atomic per-row sale-number generation for historical sales imports, mirroring
 -- create_sale/create_invoice. Kept separate from create_sale because a bulk
 -- spreadsheet import must never touch current stock or create inventory
--- movements — these sales already happened before the business used this app.
+-- movements, these sales already happened before the business used this app.
 create or replace function public.import_sale_history_row(
   _business_id uuid,
   _sale_date timestamptz,

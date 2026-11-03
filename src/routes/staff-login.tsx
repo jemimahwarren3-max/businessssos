@@ -106,7 +106,7 @@ function StaffLogin() {
                 <Input
                   id="shop-business-name"
                   // Deliberately left autocomplete-able (unlike the personal
-                  // step below) — this is a shared device-level credential
+                  // step below), this is a shared device-level credential
                   // the owner may legitimately want the browser to remember,
                   // same as any normal login.
                   autoComplete="username"
@@ -173,7 +173,7 @@ function StaffLogin() {
                   <Input
                     id="person-password"
                     type="password"
-                    // Never offered for the browser to remember — this is a
+                    // Never offered for the browser to remember, this is a
                     // per-person credential on what's often a shared device,
                     // unlike the shop password above which is fine to save.
                     autoComplete="off"

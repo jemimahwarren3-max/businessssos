@@ -9,7 +9,7 @@ import {
 } from "./lib/storefront/host";
 import { captureError, initSentry } from "./lib/monitoring/sentry";
 
-// Browser-only — the server side of error reporting is error-capture.ts,
+// Browser-only, the server side of error reporting is error-capture.ts,
 // which is specifically about recovering h3-swallowed SSR errors and has no
 // equivalent concept client-side. This just catches whatever a global
 // window listener can: uncaught throws and unhandled promise rejections

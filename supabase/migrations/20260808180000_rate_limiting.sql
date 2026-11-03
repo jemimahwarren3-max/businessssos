@@ -9,7 +9,7 @@ create table public.rate_limit_hits (
   primary key (key, window_start)
 );
 -- Buckets are only ever looked up by their own (key, window_start) primary
--- key, and old ones are swept opportunistically below — no extra index
+-- key, and old ones are swept opportunistically below, no extra index
 -- needed.
 
 create or replace function public.check_rate_limit(
@@ -29,7 +29,7 @@ begin
   on conflict (key, window_start) do update set count = rate_limit_hits.count + 1
   returning count into v_count;
 
-  -- Opportunistic sweep of expired buckets — cheap (indexed PK range) and
+  -- Opportunistic sweep of expired buckets, cheap (indexed PK range) and
   -- means this table never needs a cron job just to stay small.
   delete from public.rate_limit_hits where window_start < now() - (_window_seconds * 3 || ' seconds')::interval;
 

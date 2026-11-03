@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/setup")({
       }
     } catch (error) {
       if (isRedirect(error)) throw error;
-      // Stay on /setup with retry — a load failure is not "no shop".
+      // Stay on /setup with retry, a load failure is not "no shop".
     }
   },
   head: () => ({
@@ -219,7 +219,7 @@ function Setup() {
         <div className="mt-6 space-y-3 rounded-2xl border bg-card p-4">
           <p className="text-sm font-semibold">We couldn't load your setup checklist</p>
           <p className="text-sm text-muted-foreground">
-            Nothing was deleted. Try again — you can still skip and open the dashboard.
+            Nothing was deleted. Try again, you can still skip and open the dashboard.
           </p>
           <Button
             type="button"

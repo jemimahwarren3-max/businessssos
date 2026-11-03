@@ -359,7 +359,7 @@ function CheckoutPage() {
                 {collectionPoints.map((point) => (
                   <option key={point.id} value={point.id}>
                     {point.name}
-                    {point.address ? ` — ${point.address}` : ""}
+                    {point.address ? `, ${point.address}` : ""}
                   </option>
                 ))}
               </select>
@@ -479,7 +479,7 @@ function CheckoutPage() {
                   }}
                 />{" "}
                 {MANUAL_PAYMENT_LABELS[method.kind]}
-                {method.accountName ? ` — ${method.accountName}` : ""}
+                {method.accountName ? `, ${method.accountName}` : ""}
               </label>
             ))}
           </fieldset>
@@ -551,7 +551,7 @@ function CheckoutPage() {
             />
             <span>
               WhatsApp me order updates on this number. They stay queued until WhatsApp Cloud is
-              connected — Kwetuu will not mark them sent without Meta&apos;s message id. This is not
+              connected, Kwetuu will not mark them sent without Meta&apos;s message id. This is not
               marketing.
             </span>
           </label>

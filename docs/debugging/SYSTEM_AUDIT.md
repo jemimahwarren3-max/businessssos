@@ -1,4 +1,4 @@
-# Kwetuu System Audit — Stage 1 Discovery
+# Kwetuu System Audit: Stage 1 Discovery
 
 **Date:** 3 November 2026 (Africa/Harare)  
 **Head:** `2606441` (origin/master after PR #115)  
@@ -6,7 +6,7 @@
 **Method:** Repository inspection of routes, server functions, migrations, RLS, CI/deploy workflows, and existing unit tests. GitHub Actions history for `master` was reviewed.  
 **Not done this pass:** Live browser walkthrough of every merchant/shopper flow; EcoCash/Paynow money movement; WhatsApp Cloud send; production SQL apply; destructive testing.
 
-This report **replaces** the 3 November onboarding-journey draft that marked almost every module WORKING and listed zero P0/P1 issues. That draft described intended architecture, not verified workflows. A feature is only WORKING here when the frontend, validation, database, permissions, and resulting state are all present in code **and** the remaining gap is configuration — not missing logic.
+This report **replaces** the 3 November onboarding-journey draft that marked almost every module WORKING and listed zero P0/P1 issues. That draft described intended architecture, not verified workflows. A feature is only WORKING here when the frontend, validation, database, permissions, and resulting state are all present in code **and** the remaining gap is configuration, not missing logic.
 
 **No application code was changed during discovery.**
 
@@ -39,9 +39,9 @@ Recent production pain (shop load hang, “We couldn’t load your shop”, Crea
 | ----- | ---------- | -------- | ------ |
 | Frontend | React 19, TanStack Router/Start, Vite 8, Tailwind v4, Radix | `package.json`, `src/routes/` (41 route files) | Sound |
 | Merchant API | TanStack Start server functions + Zod `parseAndSanitize` | `src/lib/business.functions.ts` (~143 handlers) | Sound |
-| Database | Supabase Postgres — staging `slajanbsfqjnuuiohbmg`, production `maidxfntfpnkcqnuhozo` | `scripts/staging-manifest.mjs`, `CONTRIBUTING.md` | Staging applied in CI; production **not** |
+| Database | Supabase Postgres, staging `slajanbsfqjnuuiohbmg`, production `maidxfntfpnkcqnuhozo` | `scripts/staging-manifest.mjs`, `CONTRIBUTING.md` | Staging applied in CI; production **not** |
 | Auth | Supabase Auth + AES httpOnly `businessos_session` + PKCE | `src/lib/auth/session.server.ts`, `src/integrations/supabase/client.ts` | Sound |
-| Authorization | `business_members` + `has_permission` / `get_my_permissions` + RLS | Foundation migration + `assertPermission` | Partial — some reads skip the permission key |
+| Authorization | `business_members` + `has_permission` / `get_my_permissions` + RLS | Foundation migration + `assertPermission` | Partial, some reads skip the permission key |
 | Rate limit | `rate_limit_hits` + `check_rate_limit` | `src/lib/rate-limit.server.ts` | Authed paths fail-open on RPC error (intentional after #115) |
 | Payments | Paynow SDK (subscription, shop, launch fee) + manual shop proofs | `src/lib/payments/*.server.ts` | Code present; live rails **unverified** |
 | Email | Resend + `notification_outbox` | `src/lib/notifications.mail.server.ts` | Code present; flush cron **broken** |
@@ -78,7 +78,7 @@ Session-scoped server functions for merchant writes. Anon RPCs for public catalo
 
 Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIALLY WORKING** (real logic, incomplete workflow or unsafe edge) · **BROKEN** (exists and fails, or ops path proven failing) · **MISSING** (no implementation) · **UNVERIFIED** (cannot establish without live credentials / browser).
 
-### A. Public landing page — WORKING (code)
+### A. Public landing page: WORKING (code)
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -89,7 +89,7 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Responsiveness / refresh / direct URLs | UNVERIFIED | Routes exist; no device pass this session |
 | External links | UNVERIFIED | |
 
-### B. Authentication — PARTIALLY WORKING
+### B. Authentication: PARTIALLY WORKING
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -104,18 +104,18 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Shopper vs merchant same session | PARTIALLY WORKING | Same cookie; storefront sign-in does not isolate merchants |
 | Live email confirmation / expired links | UNVERIFIED | Depends on GoTrue SMTP |
 
-### C. Profiles and business membership — PARTIALLY WORKING
+### C. Profiles and business membership: PARTIALLY WORKING
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
 | Membership scoped by `user_id` | WORKING | `loadWorkspace` uses `auth` user, not “first row in businesses” |
-| First membership only | WORKING (as coded) | `.order(created_at).limit(1)` — **no switcher** |
+| First membership only | WORKING (as coded) | `.order(created_at).limit(1)`, **no switcher** |
 | Second business | BLOCKED | `create_business_with_owner` returns existing id; `accept_business_invite` rejects a second shop |
 | Staff invites | WORKING | Token accept RPC |
 | Impersonation | WORKING | Platform admin; missing RPC is skipped |
 | Permissions load | PARTIALLY WORKING | `get_my_permissions` errors are swallowed → empty array (KW-012) |
 
-### D. Business onboarding — PARTIALLY WORKING
+### D. Business onboarding: PARTIALLY WORKING
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -127,7 +127,7 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Hang / retry | WORKING | 8s timeout + workspace-error UI (PR #114/#115) |
 | Live create against production schema | UNVERIFIED | Staging manifest always re-applies journey SQL; production does not |
 
-### E. Products and catalogue — PARTIALLY WORKING
+### E. Products and catalogue: PARTIALLY WORKING
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -138,7 +138,7 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Historical price integrity | WORKING | `create_sale` uses catalogue `selling_price`; client `unitPrice` ignored |
 | Wholesale second price | PARTIALLY WORKING | Column exists; POS/shop still sell at `selling_price` |
 
-### F. Inventory — PARTIALLY WORKING
+### F. Inventory: PARTIALLY WORKING
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -150,7 +150,7 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Concurrent same-SKU sales | WORKING | Row locks |
 | Offline stock | PARTIALLY WORKING | Device estimate; labelled |
 
-### G. Point of Sale — WORKING (with caveats)
+### G. Point of Sale: WORKING (with caveats)
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -160,11 +160,11 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Stock in same transaction | WORKING | Failed sale does not commit deduction |
 | Offline queue | WORKING | IndexedDB + sequential replay; same idempotency key |
 | Cash drawer | WORKING | Cash sales require open session |
-| POS EcoCash / InnBucks | PARTIALLY WORKING | Recorded as completed tenders — **cashier attestation**, not provider verify |
+| POS EcoCash / InnBucks | PARTIALLY WORKING | Recorded as completed tenders, **cashier attestation**, not provider verify |
 | Location on sale | PARTIALLY WORKING | `_location_id` omitted by Node |
 | Live POS on production | UNVERIFIED | |
 
-### H. Online storefronts — PARTIALLY WORKING
+### H. Online storefronts: PARTIALLY WORKING
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -176,7 +176,7 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Custom domains | MISSING | |
 | Correct seller catalogue | WORKING | `get_public_store` filters published + not suspended |
 
-### I. Orders and checkout — WORKING (code)
+### I. Orders and checkout: WORKING (code)
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
@@ -189,40 +189,40 @@ Status key: **WORKING** (complete in code, remaining risk is config) · **PARTIA
 | Merchant fulfilment | WORKING | `transition_store_order` |
 | Live Paynow | UNVERIFIED | |
 
-### J. Payments and subscriptions — PARTIALLY WORKING
+### J. Payments and subscriptions: PARTIALLY WORKING
 
 | Check | Status | Notes |
 | ----- | ------ | ----- |
 | Platform vs shop vs launch fee | WORKING | Separate clients and tables |
 | Success URL not trusted | WORKING | Poll + SHA512 + amount/reference match |
 | Webhook | WORKING | Hash + re-poll; IP rate-limit fail-closed |
-| `BILLING_ENABLED` | PARTIALLY WORKING | **Hard-coded false** in Cloud Run deploy — subscriptions will not enforce |
+| `BILLING_ENABLED` | PARTIALLY WORKING | **Hard-coded false** in Cloud Run deploy, subscriptions will not enforce |
 | SQL `billing_enforced` | PARTIALLY WORKING | Must be set independently of the Node flag |
 | Trial vs POS | PARTIALLY WORKING | When billing is on, trial **cannot** operate POS (`canOperateForSubscription`) |
 | Admin exemption | WORKING | Feature flags / platform bypass |
 | Live Paynow charges | UNVERIFIED | Do not test on production data |
 
-### K. Customers and CRM — WORKING (code)
+### K. Customers and CRM: WORKING (code)
 
 Isolated by `business_id` + RLS. Search, soft delete, credit repayment RPC, deposits/lay-by tables + UI. Live UX **unverified**.
 
-### L. Expenses and reporting — PARTIALLY WORKING
+### L. Expenses and reporting: PARTIALLY WORKING
 
-Server-side totals; revenue ≠ profit; no USD+ZiG blend. Payment mix on Reports is by **method**, not tender rail/currency (dashboard takings are better). **`getReports` and `listExpenses` do not `assertPermission`** — any member can read via RLS (KW-014).
+Server-side totals; revenue ≠ profit; no USD+ZiG blend. Payment mix on Reports is by **method**, not tender rail/currency (dashboard takings are better). **`getReports` and `listExpenses` do not `assertPermission`**, any member can read via RLS (KW-014).
 
-### M. Staff, branches, permissions — PARTIALLY WORKING
+### M. Staff, branches, permissions: PARTIALLY WORKING
 
 57+ permission keys; role matrix editable by owner; cashier defaults exclude `reports.financial`. Writes generally go through `assertPermission` + RPC `has_permission`. Reads (reports, expenses, dashboard) rely on “members can SELECT”. Branch UI exists; stock transfers **missing**. Multi-business switch **missing**. Cashier-as-owner has not been live-tested this pass.
 
-### N. Notifications and WhatsApp — PARTIALLY WORKING / BROKEN (ops)
+### N. Notifications and WhatsApp: PARTIALLY WORKING / BROKEN (ops)
 
 | Channel | Status | Notes |
 | ------- | ------ | ----- |
 | In-app | WORKING | Inserts on proofs/orders |
 | Email outbox | PARTIALLY WORKING | Real Resend send when configured; stays pending otherwise |
-| WhatsApp Cloud | PARTIALLY WORKING | Cannot mark sent without Meta message id — correct |
+| WhatsApp Cloud | PARTIALLY WORKING | Cannot mark sent without Meta message id, correct |
 | `wa.me` buttons | WORKING | Merchant must tap Send |
-| Flush cron | **BROKEN** | `.github/workflows/flush-mail.yml` expects `{sent,failed,configured}`; API returns `{email,whatsapp}` — GitHub runs are **failing** (KW-005) |
+| Flush cron | **BROKEN** | `.github/workflows/flush-mail.yml` expects `{sent,failed,configured}`; API returns `{email,whatsapp}`, GitHub runs are **failing** (KW-005) |
 
 ---
 
@@ -232,7 +232,7 @@ Server-side totals; revenue ≠ profit; no USD+ZiG blend. Payment mix on Reports
 | ------- | -------- | ------ |
 | `get_setup_progress` has no `auth.uid()` membership check | **P0** | SECURITY DEFINER, `GRANT` to `authenticated`. Any logged-in user (including a shopper) who knows a business UUID can read product/sale counts and `onboarding_config`. Sister RPCs (`mark_setup_complete`, `save_onboarding_*`) **do** check owner. |
 | Service-role key in frontend | None found | Browser client uses publishable key only. ESLint blocks static admin imports. Mail/WhatsApp use **dynamic** import (not on the allowlist). |
-| Tenant RLS | Generally sound | Foundation loop + later explicit enables. Isolation suite exists (`tests/integration/tenant-isolation.test.ts`) — staging-only. |
+| Tenant RLS | Generally sound | Foundation loop + later explicit enables. Isolation suite exists (`tests/integration/tenant-isolation.test.ts`), staging-only. |
 | Financial read permissions | P1 | Cashier member SELECT + unguarded `getReports` / `listExpenses` / `loadDashboard`. |
 | Paynow webhooks | Sound | Hash + re-poll; never credit from redirect alone. |
 | Authed rate-limit fail-open | P1 (accepted) | Prevents shop-load lockout when RPC is missing; abuse window if limiter is down. |
@@ -250,7 +250,7 @@ Server-side totals; revenue ≠ profit; no USD+ZiG blend. Payment mix on Reports
 - `create_sale` 10-arg (split tenders) + unique-guard migration exist in git. **Unverified** on production.  
 - `get_setup_progress` is the clear new SECURITY DEFINER hole.  
 - Indexes and FKs are generally present; dedicated perf migration exists.  
-- `auth.role()` still appears in older DEFINER functions in the safe `<> 'service_role'` pattern — P3.  
+- `auth.role()` still appears in older DEFINER functions in the safe `<> 'service_role'` pattern, P3.  
 - No automated production schema diff in CI.
 
 ---
@@ -327,7 +327,7 @@ These explain **multiple** symptoms. Fix the cause, not each screen.
 | POS EcoCash/InnBucks provider verify | Visual rail + bookkeeping only |
 | ZIPIT as a distinct rail | Missing |
 | Wholesale POS price | Column only |
-| `wa.me` share/receipt | Visual send — human taps |
+| `wa.me` share/receipt | Visual send, human taps |
 | WhatsApp Cloud / Resend | Code ready; flush cron broken; secrets unverified |
 | Shop Paynow | Gated; often off |
 | Platform subscription enforcement | Deployed with billing **off** |
@@ -345,13 +345,13 @@ See `ISSUE_REGISTER.md` and `REPAIR_PLAN.md`.
 
 | Batch | Goal | Approval needed? |
 | ----- | ---- | ---------------- |
-| 1 | Close `get_setup_progress` (P0) | No — additive SQL + `assertMember` |
+| 1 | Close `get_setup_progress` (P0) | No, additive SQL + `assertMember` |
 | 2 | CI concurrency + flush-mail parser + fail loudly if staging SQL skipped | Yes for concurrency (affects every PR) |
 | 3 | Auth/onboarding flag consistency, MFA reset, permission-load errors | No |
-| 4 | `assertPermission` on reports / expenses / dashboard reads | No — behaviour change for cashiers using API |
+| 4 | `assertPermission` on reports / expenses / dashboard reads | No, behaviour change for cashiers using API |
 | 5 | Production schema **diff only** (no apply) | Yes before any production SQL |
 | 6 | POS advisory lock + pass location id | No |
-| Deferred | Variants, transfers, switcher, custom domains, billing on, WhatsApp credentials, wildcard DNS | Yes — product / paid / irreversible |
+| Deferred | Variants, transfers, switcher, custom domains, billing on, WhatsApp credentials, wildcard DNS | Yes, product / paid / irreversible |
 
 **Stop conditions already hit:** production SQL apply, enabling billing, paying for WhatsApp Cloud / Resend / wildcard TLS, redesigning multi-business. None of those start without approval.
 

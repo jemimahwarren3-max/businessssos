@@ -56,7 +56,7 @@ export function coalesceServerFnData(data: unknown): unknown {
 }
 
 // Constraining on the schema type itself (not just its output) and
-// extracting via z.infer is required here — a bare `z.ZodType<T>` parameter
+// extracting via z.infer is required here, a bare `z.ZodType<T>` parameter
 // infers T from the wrong generic slot against schemas using `.default()`,
 // silently widening defaulted fields back to optional (confirmed via
 // isolated repro: identical schema, `.parse()` directly gives the correct

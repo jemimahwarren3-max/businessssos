@@ -33,10 +33,10 @@ KW-014 (report permissions)
 
 ---
 
-## Batch 1 — Close the cross-tenant read (P0)
+## Batch 1: Close the cross-tenant read (P0)
 
 **Issues:** KW-001  
-**Risk:** Low — additive `CREATE OR REPLACE` + Node `assertMember`  
+**Risk:** Low, additive `CREATE OR REPLACE` + Node `assertMember`  
 **Destructive?** No  
 **Approval:** Authorised as a clear, non-destructive bug once Stage 4 is approved
 
@@ -55,19 +55,19 @@ KW-014 (report permissions)
 
 ---
 
-## Batch 2 — Make mail flush and CI tell the truth
+## Batch 2: Make mail flush and CI tell the truth
 
 **Issues:** KW-005 (code), KW-003 / KW-004 (approval)  
 **Risk:** Low for parser; medium for CI contract
 
-### 2a — no extra approval
+### 2a: no extra approval
 
 1. Fix `.github/workflows/flush-mail.yml` to read `{email,whatsapp}`.
 2. Treat “both unconfigured” as a successful no-op (exit 0) so the cron is not a permanent red herring.
 3. Fail on HTTP 401 or `failed > 0`.
 4. Fixture test for the parser or a documented example JSON in `tests/`.
 
-### 2b — implemented on the repair branch (KW-003 / KW-004)
+### 2b: implemented on the repair branch (KW-003 / KW-004)
 
 1. CI concurrency: `github.workflow` + `github.ref`. Do not cancel `master`/`main`.
 2. On push to `master`/`main`, missing `SUPABASE_ACCESS_TOKEN` fails `check` (`REQUIRE_STAGING_SQL`).
@@ -77,10 +77,10 @@ KW-014 (report permissions)
 
 ---
 
-## Batch 3 — Auth and onboarding decisions use one rule
+## Batch 3: Auth and onboarding decisions use one rule
 
 **Issues:** KW-010, KW-011, KW-012, KW-013, KW-015, KW-023  
-**Risk:** Medium — redirect behaviour for every login
+**Risk:** Medium, redirect behaviour for every login
 
 1. Extend `destinationAfterAuth` to accept `setupCompletedAt` + membership.
    - no shop → `/onboarding`
@@ -100,21 +100,21 @@ KW-014 (report permissions)
 
 ---
 
-## Batch 4 — Staff cannot read finances through the API
+## Batch 4: Staff cannot read finances through the API
 
 **Issues:** KW-014  
-**Risk:** Medium — cashiers who bookmarked `/reports` will get a denied error
+**Risk:** Medium, cashiers who bookmarked `/reports` will get a denied error
 
 1. `assertPermission(..., 'reports.financial')` in `loadReports` and `getReports`.
 2. `assertPermission` for expense **list** (`expenses.view` if it exists, else `reports.financial`). Confirm the key in `granular_permissions` before inventing one.
-3. Dashboard: keep operational KPIs if cashiers are meant to see today-sales; if not, gate `getDashboard` the same way. **Confirm product intent** if unclear — default: cashiers keep POS dashboard numbers, lose `/reports` export.
+3. Dashboard: keep operational KPIs if cashiers are meant to see today-sales; if not, gate `getDashboard` the same way. **Confirm product intent** if unclear, default: cashiers keep POS dashboard numbers, lose `/reports` export.
 4. Staging test: cashier JWT denied on `getReports`.
 
 **Do not:** rewrite RLS SELECT policies in this batch.
 
 ---
 
-## Batch 5 — Production schema visibility (no apply)
+## Batch 5: Production schema visibility (no apply)
 
 **Issues:** KW-002  
 **Risk:** Low if read-only  
@@ -129,7 +129,7 @@ KW-014 (report permissions)
 
 ---
 
-## Batch 6 — POS correctness polish
+## Batch 6: POS correctness polish
 
 **Issues:** KW-020, KW-021, KW-022  
 **Depends on:** Batch 5 if production `create_sale` is still 8-arg
@@ -166,11 +166,11 @@ KW-014 (report permissions)
 | -------------------------------------------------- | -------- | -------------------------- | ------------------------------------- |
 | Replace `get_setup_progress` with membership check | 1        | No                         | Stage 4 go-ahead only                 |
 | Flush-mail workflow only                           | 2a       | No                         | Stage 4 go-ahead only                 |
-| CI concurrency / fail-on-missing-token             | 2b       | No                         | **Explicit** — affects all PRs        |
+| CI concurrency / fail-on-missing-token             | 2b       | No                         | **Explicit**, affects all PRs        |
 | `destinationAfterAuth` signature (Node only)       | 3        | No                         | Stage 4 go-ahead only                 |
 | `assertPermission` on reads                        | 4        | No                         | Stage 4 go-ahead only                 |
 | Production **probe**                               | 5        | No                         | **Explicit** (prod credentials)       |
-| Production **apply**                               | later    | Can lock/rebuild functions | **Stop — ask again**                  |
+| Production **apply**                               | later    | Can lock/rebuild functions | **Stop, ask again**                  |
 | `create_sale` advisory lock                        | 6        | No if body preserved       | Stage 4 + confirm 10-arg on target DB |
 | New tables (variants, transfers, switcher)         | deferred | Yes (new objects)          | Not proposed                          |
 
@@ -192,7 +192,7 @@ KW-014 (report permissions)
 1. `npx tsc --noEmit`
 2. `npm run lint`
 3. `npm test` (unit; integration if token present)
-4. Related UI path (setup, login destination, reports, POS — as applicable)
+4. Related UI path (setup, login destination, reports, POS, as applicable)
 5. Update this file and `ISSUE_REGISTER.md` status
 6. **Do not** claim production Paynow/WhatsApp/email work unless that batch’s live check ran
 

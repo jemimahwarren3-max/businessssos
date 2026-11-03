@@ -1,7 +1,7 @@
 name: Generate due recurring invoices
 
 # Runs the generator once a day against production. No user is driving this,
-# so it can't go through the app's own auth — it calls
+# so it can't go through the app's own auth: it calls
 # generate_due_recurring_invoices() directly via PostgREST using the service
 # role key (granted execute on that function alone; nothing else this key
 # can reach is exposed beyond what it can already do). See

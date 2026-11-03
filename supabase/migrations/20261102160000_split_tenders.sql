@@ -450,7 +450,7 @@ begin
       where sri.sale_item_id = _sale_item.id and sr.sale_id = _sale_id;
     _remaining := _sale_item.quantity - _already_refunded;
     if _qty > _remaining then
-      raise exception '% of % has already been refunded — % is left to refund.',
+      raise exception '% of % has already been refunded, % is left to refund.',
         _already_refunded, _sale_item.name, _remaining using errcode = 'B0001';
     end if;
 

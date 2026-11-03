@@ -259,7 +259,7 @@ function Onboarding() {
       <OnboardingShell step={0} totalSteps={1} stepTitle="Your shop">
         <OnboardingHeading
           title="We couldn't load your shop"
-          description="Nothing was deleted. This failed to open an existing shop — do not create a second one."
+          description="Nothing was deleted. This failed to open an existing shop, do not create a second one."
         />
         <div className="mt-6 flex flex-wrap gap-3">
           <Button

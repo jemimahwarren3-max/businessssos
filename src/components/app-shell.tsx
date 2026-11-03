@@ -109,7 +109,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 
 const NAV = NAV_GROUPS.flatMap((group) => group.items);
 
-// Bottom nav stays to four items so it's usable on a small screen —
+// Bottom nav stays to four items so it's usable on a small screen,
 // Dashboard, Sales, Inventory, Invoices are the highest-frequency actions.
 // Looked up by path rather than array index so inserting a new NAV entry
 // elsewhere (e.g. Suppliers) can never silently bump one of these out.
@@ -261,7 +261,7 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const signOutServerFn = useServerFn(signOutFn);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  // Reuses the ["workspace"] query every page already populates — no extra
+  // Reuses the ["workspace"] query every page already populates, no extra
   // network request in practice, just reading businessId back out of it.
   const workspace = useWorkspace();
   const endImpersonation = useServerFn(endImpersonationFn);

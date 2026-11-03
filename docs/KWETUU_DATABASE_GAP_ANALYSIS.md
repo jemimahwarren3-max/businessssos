@@ -27,7 +27,7 @@ RLS pattern that new money features must copy: authenticated **SELECT** for memb
 
 ## Gaps vs the 100 (schema only)
 
-### Stage 1 — prefer columns and RPCs, not new domains
+### Stage 1: prefer columns and RPCs, not new domains
 
 | Need             | Proposed change                                                                                                                  | Do not                                      |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
@@ -40,7 +40,7 @@ RLS pattern that new money features must copy: authenticated **SELECT** for memb
 
 Integrity: repayment amount > 0, amount ≤ outstanding, idempotency_key unique, permission `payments.record`, audit log.
 
-### Stage 2 — split tenders and multi-currency
+### Stage 2: split tenders and multi-currency
 
 | Need            | Proposed change                                                                                                              | Risk                                               |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
@@ -49,7 +49,7 @@ Integrity: repayment amount > 0, amount ≤ outstanding, idempotency_key unique,
 | FX ledger       | `fx_rates(business_id, base, quote, rate, source, captured_at)` + store `amount_original`, `currency_original` on `payments` | Never update historical rows when the rate changes |
 | ZiG shop Paynow | Drop or gate the USD-only trigger only after a real provider test                                                            | Money bugs                                         |
 
-### Stage 3 — deposits, lay-by, supplier book
+### Stage 3: deposits, lay-by, supplier book
 
 | Need          | Proposed change                                                                                                                |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -61,7 +61,7 @@ Integrity: repayment amount > 0, amount ≤ outstanding, idempotency_key unique,
 
 | Need                   | Proposed change                                                                              |
 | ---------------------- | -------------------------------------------------------------------------------------------- |
-| Variants               | `product_variants` with own sku/stock — large; isolate from money work                       |
+| Variants               | `product_variants` with own sku/stock, large; isolate from money work                       |
 | Bundles / price breaks | Child tables off `products`                                                                  |
 | Coupons / loyalty      | New domains; not Stage 1–3                                                                   |
 | Branch transfers       | `stock_transfers` + movements (`20261019180000` already warned this is missing)              |
@@ -69,7 +69,7 @@ Integrity: repayment amount > 0, amount ≤ outstanding, idempotency_key unique,
 | Country packs          | `platform_country_settings` (see market requirements)                                        |
 | Multi-business         | Stop collapsing memberships in `loadWorkspace`; add `active_business_id` on profile          |
 
-### Stage 4 — client only
+### Stage 4: client only
 
 No Postgres. IndexedDB `businessos-offline` version 2 adds `posDrafts`. Do not drop `pendingSales`. Low-data preference is `localStorage`.
 
@@ -78,13 +78,13 @@ No Postgres. IndexedDB `businessos-offline` version 2 adds `posDrafts`. Do not d
 | Column                         | Issue                                                        |
 | ------------------------------ | ------------------------------------------------------------ |
 | `suppliers.outstanding_amount` | Never updated in app SQL paths reviewed                      |
-| `platform_fx.usd_to_zwg`       | Easy to misuse for shop conversion — document in every FX PR |
+| `platform_fx.usd_to_zwg`       | Easy to misuse for shop conversion, document in every FX PR |
 | `businesses.timezone`          | Onboarding does not reliably set it                          |
 | `product_stock.location_id`    | POS still hits default location                              |
 
 ## Indexing / performance
 
-- `payments (business_id, paid_at desc)` already exists — daily takings can use it.
+- `payments (business_id, paid_at desc)` already exists, daily takings can use it.
 - Credit book: index `customers (business_id, outstanding_balance)` where balance > 0 if missing.
 - Do not add rate-limit INSERTs on public browse (already burned in `browse_marketplace`).
 
@@ -92,7 +92,7 @@ No Postgres. IndexedDB `businessos-offline` version 2 adds `posDrafts`. Do not d
 
 1. `auth.uid()` membership.
 2. Permission key (`payments.record`, `cash.drawer`, `sales.create`).
-3. Billing/operate gates already wrapping `create_sale` — do not bypass.
+3. Billing/operate gates already wrapping `create_sale`, do not bypass.
 4. Idempotency.
 5. `recordAudit`.
 6. No service-role in the browser.

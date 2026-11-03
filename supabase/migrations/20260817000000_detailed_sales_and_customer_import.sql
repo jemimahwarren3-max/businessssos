@@ -1,4 +1,4 @@
--- Bulk import of real line-item historical sales — one row = one product =
+-- Bulk import of real line-item historical sales, one row = one product =
 -- one sale, mirroring create_sale's per-item logic but kept as a separate
 -- function (same reason import_sale_history_row is separate: a bulk import
 -- must never be able to change behavior for the live POS path) and taking

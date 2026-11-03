@@ -336,7 +336,7 @@ function Landing() {
           <div>
             <h2 className="text-4xl md:text-5xl">Live shops</h2>
             <p className="mt-2 max-w-xl text-muted-foreground">
-              Published merchants from the database — never placeholder businesses pretending to be
+              Published merchants from the database, never placeholder businesses pretending to be
               real.
             </p>
           </div>
@@ -364,7 +364,7 @@ function Landing() {
         </div>
         <p className="mx-auto mt-6 max-w-md text-muted-foreground">
           Create your store, add products and preview everything for free. You only pay when you are
-          ready to publish — two fixed prices, not a hidden conversion rate.
+          ready to publish, two fixed prices, not a hidden conversion rate.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link

@@ -6,13 +6,13 @@
 
 Status values: **Open** · **Open (approval)** · **Open (ops)** · **Open (product)** · **Informational**.
 
-No issue is marked Fixed in this register — Stage 4 has not started.
+No issue is marked Fixed in this register, Stage 4 has not started.
 
 ---
 
-## P0 — Critical
+## P0: Critical
 
-### KW-001 — `get_setup_progress` leaks another business’s setup stats
+### KW-001: `get_setup_progress` leaks another business’s setup stats
 
 - **Module:** Onboarding / multi-tenant security
 - **Severity:** P0
@@ -25,14 +25,14 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Proposed fix:** Small additive migration: `CREATE OR REPLACE` with `is_business_member(_business_id, auth.uid())` (or owner-only, matching writes). Raise on failure. Add `assertMember` in `getSetupProgress`. Do **not** disable RLS. Add a staging isolation assertion.
 - **Verification test:** Staging: user A cannot `rpc get_setup_progress` for user B’s business. Unit: handler calls `assertMember`.
 - **Status:** In progress (repair branch)
-- **DB change:** Yes — non-destructive `CREATE OR REPLACE FUNCTION`
+- **DB change:** Yes, non-destructive `CREATE OR REPLACE FUNCTION`
 - **External dependency:** None
 
 ---
 
-## P1 — High
+## P1: High
 
-### KW-036 — Dashboard launch steps only change the URL hash
+### KW-036: Dashboard launch steps only change the URL hash
 
 - **Module:** Storefront / dashboard
 - **Severity:** P1
@@ -40,10 +40,10 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Root cause:** Same component on dashboard and storefront; hashes assumed in-page targets.
 - **Affected files:** `src/lib/storefront/launch-status.ts`, `src/components/storefront/store-launch-centre.tsx`, `src/components/storefront/store-builder.tsx`, `src/components/storefront/store-launch-readiness.tsx`, `src/routes/_authenticated/storefront.tsx`
 - **Proposed fix:** Each step is a TanStack `Link` to `/storefront` (or `/notifications`) with a hash. Add missing ids. Open the matching builder tab before scrolling.
-- **Verification test:** `tests/store-launch-status.test.ts` — steps `to` `/storefront` with hashes; every storefront hash maps to a builder tab or `#launch-publish`.
+- **Verification test:** `tests/store-launch-status.test.ts`, steps `to` `/storefront` with hashes; every storefront hash maps to a builder tab or `#launch-publish`.
 - **Status:** In progress (repair branch)
 
-### KW-002 — Production schema is not applied by deploy
+### KW-002: Production schema is not applied by deploy
 
 - **Module:** Deployment / database
 - **Severity:** P1
@@ -56,7 +56,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **DB change:** Probe only unless approved
 - **External dependency:** Production Management API or SQL access (operator)
 
-### KW-003 — Repo-wide CI `cancel-in-progress` can cancel master deploy
+### KW-003: Repo-wide CI `cancel-in-progress` can cancel master deploy
 
 - **Module:** CI
 - **Severity:** P1
@@ -67,7 +67,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** Workflow YAML uses per-ref concurrency; `cancel-in-progress` is false on master/main.
 - **Status:** In progress (repair branch)
 
-### KW-004 — CI can go green without staging SQL or integration tests
+### KW-004: CI can go green without staging SQL or integration tests
 
 - **Module:** CI
 - **Severity:** P1
@@ -75,10 +75,10 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Root cause:** Convenience defaults treated as success.
 - **Affected files:** `scripts/apply-staging-sql.mjs`, `tests/integration/helpers.ts`, `.github/workflows/ci.yml`, `.github/workflows/deploy-cloud-run.yml`
 - **Proposed fix:** On `master`/`main` push, missing token **fails** `check` (`REQUIRE_STAGING_SQL`). Keep skip-on-PR-from-fork. Manual Cloud Run dispatch remains break-glass.
-- **Verification test:** `tests/staging-sql-gate.test.ts` — empty token + required flag → `fail`; PR without token → `skip`.
+- **Verification test:** `tests/staging-sql-gate.test.ts`, empty token + required flag → `fail`; PR without token → `skip`.
 - **Status:** In progress (repair branch)
 
-### KW-005 — Mail/WhatsApp flush cron cannot parse the API response
+### KW-005: Mail/WhatsApp flush cron cannot parse the API response
 
 - **Module:** Notifications
 - **Severity:** P1
@@ -90,7 +90,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Status:** In progress (repair branch)
 - **External dependency:** `APP_URL` / `MAIL_FLUSH_SECRET` / Resend / WhatsApp Cloud still required for **actual** delivery (KW-016)
 
-### KW-010 — Google OAuth `next` is ignored after callback
+### KW-010: Google OAuth `next` is ignored after callback
 
 - **Module:** Authentication
 - **Severity:** P1
@@ -101,7 +101,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** Existing `tests/google-oauth.test.ts` plus callback unit covering ignore-or-honour.
 - **Status:** In progress (repair branch)
 
-### KW-011 — MFA recovery may block password update
+### KW-011: MFA recovery may block password update
 
 - **Module:** Authentication
 - **Severity:** P1
@@ -113,18 +113,18 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Status:** In progress (repair branch)
 - **Live proof:** UNVERIFIED
 
-### KW-012 — `get_my_permissions` failure becomes an empty grant set
+### KW-012: `get_my_permissions` failure becomes an empty grant set
 
 - **Module:** Membership
 - **Severity:** P1
 - **Description:** `loadWorkspace` assigns `permissions: permissions ?? []` and does not `dbFail` on the RPC error. UI hides actions; server writes still enforce RPC permissions. Operators see a “broken empty shop” rather than an error.
 - **Root cause:** Defensive default used for a security-sensitive list.
 - **Affected files:** `src/lib/business.server.ts`
-- **Proposed fix:** If the RPC errors and is not a skippable missing-function case, fail the workspace load (retry UI). If the function is missing, treat as skip + owner-all / fail-closed — pick one and test.
+- **Proposed fix:** If the RPC errors and is not a skippable missing-function case, fail the workspace load (retry UI). If the function is missing, treat as skip + owner-all / fail-closed, pick one and test.
 - **Verification test:** Mock RPC error → workspace error, not empty permissions.
 - **Status:** In progress (repair branch)
 
-### KW-013 — Dual onboarding flags (`onboarding_completed` vs `setup_completed_at`)
+### KW-013: Dual onboarding flags (`onboarding_completed` vs `setup_completed_at`)
 
 - **Module:** Onboarding / auth routing
 - **Severity:** P1
@@ -135,7 +135,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** `tests/post-auth-destination.test.ts` (`shouldSendToCreateShop`, `onboardingPageDestination`).
 - **Status:** In progress (repair branch)
 
-### KW-014 — Financial reads are not permission-gated
+### KW-014: Financial reads are not permission-gated
 
 - **Module:** Reports / expenses / staff
 - **Severity:** P1
@@ -146,7 +146,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** Staging cashier JWT cannot call `getReports`.
 - **Status:** In progress (repair branch)
 
-### KW-015 — Preview failures send users to `/onboarding`
+### KW-015: Preview failures send users to `/onboarding`
 
 - **Module:** Storefront
 - **Severity:** P1
@@ -157,7 +157,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** Existing `tests/storefront.test.ts` cases.
 - **Status:** In progress (repair branch)
 
-### KW-016 — Transactional email and WhatsApp Cloud unverified in production
+### KW-016: Transactional email and WhatsApp Cloud unverified in production
 
 - **Module:** Notifications
 - **Severity:** P1
@@ -171,9 +171,9 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 
 ---
 
-## P2 — Medium
+## P2: Medium
 
-### KW-020 — `create_sale` idempotency race
+### KW-020: `create_sale` idempotency race
 
 - **Module:** POS
 - **Severity:** P2
@@ -183,9 +183,9 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Proposed fix:** `pg_advisory_xact_lock` on `(business_id, idempotency_key)` before insert, matching shop orders.
 - **Verification test:** Staging parallel RPC; one uuid returned twice or second call returns existing id.
 - **Status:** Open
-- **DB change:** `CREATE OR REPLACE` of `create_sale` — requires review of the full 10-arg body (do not drop tenders)
+- **DB change:** `CREATE OR REPLACE` of `create_sale`, requires review of the full 10-arg body (do not drop tenders)
 
-### KW-021 — POS and inventory ignore location id
+### KW-021: POS and inventory ignore location id
 
 - **Module:** Inventory / POS
 - **Severity:** P2
@@ -196,7 +196,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** Sale at location B decrements `product_stock` for B.
 - **Status:** Open
 
-### KW-022 — Reports hide tender rail and original currency
+### KW-022: Reports hide tender rail and original currency
 
 - **Module:** Reporting
 - **Severity:** P2
@@ -207,7 +207,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** Unit on grouping helpers.
 - **Status:** Open
 
-### KW-023 — `/setup` has no progress-error state
+### KW-023: `/setup` has no progress-error state
 
 - **Module:** Onboarding
 - **Severity:** P2
@@ -217,7 +217,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Verification test:** Component/unit on error branch.
 - **Status:** In progress (repair branch)
 
-### KW-024 — Shop subdomain and custom domain ops gap
+### KW-024: Shop subdomain and custom domain ops gap
 
 - **Module:** Storefront
 - **Severity:** P2
@@ -228,7 +228,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Status:** Open (ops)
 - **External dependency:** DNS/TLS (Cloudflare or HTTPS LB)
 
-### KW-025 — Marketplace directory can list a shop with zero products
+### KW-025: Marketplace directory can list a shop with zero products
 
 - **Module:** Marketplace
 - **Severity:** P2
@@ -237,7 +237,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Proposed fix:** Filter shops with at least one published listing **or** keep and document “opening soon”.
 - **Status:** Open (product)
 
-### KW-026 — ESLint admin-import allowlist bypassed by dynamic import
+### KW-026: ESLint admin-import allowlist bypassed by dynamic import
 
 - **Module:** Security hygiene
 - **Severity:** P2
@@ -246,7 +246,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Proposed fix:** Static import + allowlist those two files (they already need admin for outbox claim).
 - **Status:** Open
 
-### KW-027 — Authed rate limit fail-open
+### KW-027: Authed rate limit fail-open
 
 - **Module:** Security / reliability
 - **Severity:** P2
@@ -255,7 +255,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Proposed fix:** Keep fail-open for `getWorkspace` / reads; consider fail-closed for money writes once production RPC is guaranteed (depends on KW-002).
 - **Status:** Open (product / ops)
 
-### KW-028 — Trial cannot operate POS when billing is enabled
+### KW-028: Trial cannot operate POS when billing is enabled
 
 - **Module:** Billing
 - **Severity:** P2
@@ -266,9 +266,9 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 
 ---
 
-## P3 — Low
+## P3: Low
 
-### KW-030 — Unused onboarding resume helpers
+### KW-030: Unused onboarding resume helpers
 
 - **Module:** Onboarding
 - **Severity:** P3
@@ -277,39 +277,39 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Proposed fix:** Wire them or delete in a later cleanup. Do not do this in a security batch.
 - **Status:** Open
 
-### KW-031 — Deprecated `auth.role()` in older DEFINER functions
+### KW-031: Deprecated `auth.role()` in older DEFINER functions
 
 - **Module:** Database
 - **Severity:** P3
 - **Description:** Safe `<> 'service_role'` pattern. Future replace with JWT claims.
 - **Status:** Informational
 
-### KW-032 — Admin SMS / legal-name placeholders
+### KW-032: Admin SMS / legal-name placeholders
 
 - **Module:** Admin / legal
 - **Severity:** P3
 - **Description:** Admin operations notes mention SMS as placeholder. `/privacy` and `/terms` still have operator legal-name slots.
 - **Status:** Open (ops)
 
-### KW-033 — No product variants; no stock transfers
+### KW-033: No product variants; no stock transfers
 
 - **Module:** Catalogue / inventory
 - **Severity:** P3 (as bugs) / **Missing features**
 - **Description:** Documented gaps. Do not invent tables in a stability audit.
 - **Status:** Open (product)
 
-### KW-034 — Multi-business switcher
+### KW-034: Multi-business switcher
 
 - **Module:** Membership
-- **Severity:** P3 (product) — **MISSING**
+- **Severity:** P3 (product), **MISSING**
 - **Description:** SQL blocks a second membership. `loadWorkspace` would only show the oldest if data existed. Building a switcher requires a product decision to lift the one-shop rule.
 - **Status:** Open (product)
 
-### KW-035 — CSP `unsafe-inline`
+### KW-035: CSP `unsafe-inline`
 
 - **Module:** Security
 - **Severity:** P3
-- **Description:** Documented in `src/start.ts`. Session is httpOnly. Not a silent ignore — known tradeoff.
+- **Description:** Documented in `src/start.ts`. Session is httpOnly. Not a silent ignore, known tradeoff.
 - **Status:** Informational
 
 ---

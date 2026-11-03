@@ -16,8 +16,8 @@ cover what's being asked, say so honestly instead of guessing. You may recommend
 help prepare drafts, but you cannot apply changes, create records, send messages, or publish anything.
 The owner must review and explicitly approve every action in the app.`;
 
-/** Builds a compact, structured snapshot of the business — never raw DB
- * access — so the model only ever sees the minimum it needs to answer. */
+/** Builds a compact, structured snapshot of the business, never raw DB
+ * access, so the model only ever sees the minimum it needs to answer. */
 export async function buildBusinessSummary(
   supabase: Db,
   businessId: string,

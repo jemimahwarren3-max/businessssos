@@ -1,13 +1,13 @@
 // Paynow doesn't do stored-card recurring billing on a standard merchant
-// account (per Paynow's own onboarding guidance — tokenisation has to be
-// asked for separately and isn't guaranteed) — so this is a "pay for one
+// account (per Paynow's own onboarding guidance, tokenisation has to be
+// asked for separately and isn't guaranteed), so this is a "pay for one
 // period at a time" model: initiate a payment for the chosen plan/interval,
 // confirm it, extend current_period_end. Renewal is the same flow run again
 // closer to the period's end, not an automatic charge.
 //
 // We never trust a status straight off the wire (the resulturl webhook body
 // is unauthenticated and, per the shipped SDK, only actually hash-verified
-// via parseStatusUpdate — see the note in src/types/paynow.d.ts). Instead we
+// via parseStatusUpdate, see the note in src/types/paynow.d.ts). Instead we
 // always re-fetch the stored poll_url ourselves and verify Paynow's SHA512
 // hash on that response before crediting anything.
 import { Paynow, type InitResponse } from "paynow";
@@ -155,7 +155,7 @@ export type PaynowPollResult = "paid" | "pending" | "failed";
 
 // Paynow's own status vocabulary beyond these isn't fully documented where
 // we could verify it, so we only ever treat a poll as a definite failure for
-// these known-terminal states — anything else (including states we don't
+// these known-terminal states, anything else (including states we don't
 // recognize) is left "pending" and safe to poll again later, rather than
 // risk closing out a payment that's actually still in progress.
 const FAILURE_STATUSES = new Set(["cancelled", "disputed"]);

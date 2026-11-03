@@ -13,6 +13,6 @@ Record of verified findings. No secret values or personal data in this file.
 | KW-SEC-007 | Medium | Staging schema drift | App ahead of deployed DB | `scripts/apply-staging-sql.mjs` list updated | Script exits 0 without token | Operator / MCP |
 | KW-SEC-008 | Medium | Platform owner bypass self-assign | Users grant own entitlements | `platform_owner_foundation.sql` RLS deny + service_role only | `platform-owner-security.test.ts` skipped | Bootstrap once |
 | KW-SEC-009 | Low | Rate limit fail-open | Postgres error allows request | Documented; monitor `rate_limit_hits` | By design | Ops monitoring |
-| KW-SEC-010 | Informational | No external pentest | — | — | — | Schedule before public launch |
+| KW-SEC-010 | Informational | No external pentest |, |, |, | Schedule before public launch |
 
 **Fixed in repo (Oct 2026, verify on staging):** shop credential encryption (`SHOP_PAYMENT_ENCRYPTION_KEY`), Paynow poll URL allowlist, seller Paynow global gate, platform entitlement RPC for owner subscription bypass, mail flush constant-time compare.

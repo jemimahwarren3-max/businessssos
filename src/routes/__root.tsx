@@ -21,7 +21,7 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This page is not live. If you were setting up a shop, nothing was deleted — continue setup
+          This page is not live. If you were setting up a shop, nothing was deleted, continue setup
           instead of starting over.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">

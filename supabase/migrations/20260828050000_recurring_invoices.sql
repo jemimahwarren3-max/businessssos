@@ -1,8 +1,8 @@
--- Recurring invoices — a template (customer, items, cadence) that generates
+-- Recurring invoices, a template (customer, items, cadence) that generates
 -- a real draft invoice each time it comes due. No cron/scheduler exists in
 -- this project yet; generate_due_recurring_invoices() is the function a
 -- daily GitHub Action (see .github/workflows/recurring-invoices.yml) calls
--- via the service role key, same trust model as supabaseAdmin elsewhere —
+-- via the service role key, same trust model as supabaseAdmin elsewhere,
 -- there's no authenticated user driving it, so it can't reuse create_invoice
 -- (which checks has_business_role against auth.uid()); it duplicates that
 -- function's numbering/item-insertion logic directly instead, rather than
@@ -33,7 +33,7 @@ create index recurring_invoices_due_idx on public.recurring_invoices(next_issue_
 alter table public.recurring_invoices enable row level security;
 create policy "members read recurring_invoices" on public.recurring_invoices for select to authenticated
   using (public.is_business_member(business_id));
--- No direct insert/update/delete policy — writes only through the RPCs
+-- No direct insert/update/delete policy, writes only through the RPCs
 -- below (security definer, their own role checks), same pattern as
 -- sale_refunds and the purchase-order status workflow.
 
@@ -125,7 +125,7 @@ $$;
 revoke all on function public.delete_recurring_invoice(uuid,uuid) from public, anon;
 grant execute on function public.delete_recurring_invoice(uuid,uuid) to authenticated;
 
--- System-only — no authenticated/anon grant. Callable solely with the
+-- System-only, no authenticated/anon grant. Callable solely with the
 -- service role key (PostgREST sets role to service_role for that key,
 -- which bypasses RLS entirely), matching the daily GitHub Action.
 create or replace function public.generate_due_recurring_invoices() returns int

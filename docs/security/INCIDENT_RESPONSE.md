@@ -21,7 +21,7 @@ Operational runbook for this codebase. **Not legal advice.** For Zimbabwe CDPA/P
 
 ## Contain
 
-- Rotate compromised secret (Supabase API, SESSION_SECRET, PAYNOW_*, SHOP_PAYMENT_ENCRYPTION_KEY, MAIL_FLUSH_SECRET) via dashboard/GitHub — update Cloud Run, redeploy.
+- Rotate compromised secret (Supabase API, SESSION_SECRET, PAYNOW_*, SHOP_PAYMENT_ENCRYPTION_KEY, MAIL_FLUSH_SECRET) via dashboard/GitHub, update Cloud Run, redeploy.
 - Disable seller Paynow gate if shop payments abused.
 - Revoke platform roles in SQL (service_role) if admin compromise suspected.
 - Set `BILLING_ENABLED=false` only if billing logic suspect (does not fix RLS issues).

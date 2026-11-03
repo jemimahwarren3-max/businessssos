@@ -1,10 +1,10 @@
 // Optional cache for hot, rarely-changing reads. Fails open on purpose: if
 // Upstash isn't configured (no env vars) or is unreachable, every function
-// here just no-ops and callers fall straight through to Postgres — exactly
+// here just no-ops and callers fall straight through to Postgres, exactly
 // the behavior this app already had before Redis existed. A cache outage
 // must never become an application outage.
 //
-// This is never a substitute for RLS or role checks — every actual data
+// This is never a substitute for RLS or role checks, every actual data
 // mutation still goes through Postgres's own security-definer role checks
 // on every call, regardless of what's cached here. This only saves
 // re-fetching the same read (e.g. "what business/role/plan is this user

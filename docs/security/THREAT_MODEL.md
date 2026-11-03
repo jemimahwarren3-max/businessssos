@@ -1,6 +1,6 @@
 # Threat model (STRIDE)
 
-**System:** Kwetuu — multi-tenant merchant OS, public storefronts, marketplace browse, platform billing.  
+**System:** Kwetuu, multi-tenant merchant OS, public storefronts, marketplace browse, platform billing.  
 **Trust boundaries:** Browser → Cloud Run (Node/TanStack Start) → Supabase (Auth, Postgres, Storage) → Paynow, Resend, Groq, optional Upstash/Sentry.
 
 ## Assets
@@ -29,11 +29,11 @@ Malicious shopper, malicious seller, fraudulent staff, compromised admin, anonym
 
 ## High-priority scenarios
 
-1. **Cross-seller order/product access** — Mitigated by RLS and security definer checks; must regression-test on staging.
-2. **Payment forgery** — Mitigated by no client-side paid flag; proof ≠ paid; Paynow poll constraints.
-3. **Platform privilege escalation** — `platform_roles` / `platform_entitlements` not writable by authenticated; bootstrap one-time.
-4. **Session theft** — httpOnly, Secure, SameSite Lax, CSRF on server functions.
-5. **AI prompt injection** — Assistant read-only; writes still pass permission checks; scope retrieval to business (see `SECURITY_ARCHITECTURE.md`).
+1. **Cross-seller order/product access**, Mitigated by RLS and security definer checks; must regression-test on staging.
+2. **Payment forgery**, Mitigated by no client-side paid flag; proof ≠ paid; Paynow poll constraints.
+3. **Platform privilege escalation**, `platform_roles` / `platform_entitlements` not writable by authenticated; bootstrap one-time.
+4. **Session theft**, httpOnly, Secure, SameSite Lax, CSRF on server functions.
+5. **AI prompt injection**, Assistant read-only; writes still pass permission checks; scope retrieval to business (see `SECURITY_ARCHITECTURE.md`).
 
 ## Out of scope (not built)
 

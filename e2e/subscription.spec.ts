@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures";
 
 test.describe("subscription and billing", () => {
-  test.skip(!process.env.E2E_OWNER_EMAIL, "E2E_OWNER_EMAIL not set — skipping authenticated tests");
+  test.skip(!process.env.E2E_OWNER_EMAIL, "E2E_OWNER_EMAIL not set, skipping authenticated tests");
 
   test("billing settings page loads", async ({ page }) => {
     await page.goto("/settings/billing");

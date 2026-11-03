@@ -1,4 +1,4 @@
-import{r as e}from"./useRouter-Bgqm0-yy.js";import{t}from"./legal-document-By_ejIrr.js";var n=`# Refund Policy — Kwetuu
+import{r as e}from"./useRouter-Bgqm0-yy.js";import{t}from"./legal-document-By_ejIrr.js";var n=`# Refund Policy: Kwetuu
 
 **Last updated:** 26 October 2026
 

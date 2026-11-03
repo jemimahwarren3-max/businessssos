@@ -530,7 +530,7 @@ export const STORE_TEMPLATES: readonly StoreTemplate[] = CATEGORIES.flatMap((cat
       imageRatio: direction.imageRatio,
       density: direction.density,
       configurationSchema: STOREFRONT_THEME_SCHEMA,
-      sampleLabel: "Website layout preview — your products replace this sample catalogue",
+      sampleLabel: "Website layout preview, your products replace this sample catalogue",
       previewImageUrl: categoryPlaceholderImage(category.id),
     };
   }),

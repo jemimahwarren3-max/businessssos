@@ -52,7 +52,7 @@ describeStaging("rate limiting", () => {
         sql(`set local role anon; delete from public.rate_limit_hits where key = '${key}';`),
       ).rejects.toThrow(/permission denied/i);
     } finally {
-      // Same defensive reset asUser()/asServiceRole() do — the Management
+      // Same defensive reset asUser()/asServiceRole() do, the Management
       // API's underlying connection can be reused across separate sql()
       // calls, so a role set by one must never leak into the next.
       await sql(`reset role;`).catch(() => {});

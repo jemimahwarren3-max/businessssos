@@ -83,7 +83,7 @@ function DataExport() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   // The print view has to actually be in the DOM before window.print() can
-  // pick it up — printData is only set once the export finishes loading, so
+  // pick it up, printData is only set once the export finishes loading, so
   // this fires right after that render commits. Cleared on "afterprint"
   // (fires once the browser's print/save-as-PDF dialog closes) rather than
   // immediately, since window.print() returns before the user is done with it.

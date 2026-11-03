@@ -84,7 +84,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           <div className="md:col-span-2">
             <p className="font-display text-3xl text-background">{BRAND.name}</p>
             <p className="mt-3 max-w-sm text-sand/80">
-              &ldquo;Kwetuu&rdquo; means <em>our home</em>. Discover independent shops — or open one
+              &ldquo;Kwetuu&rdquo; means <em>our home</em>. Discover independent shops, or open one
               of your own. Zimbabwe-first, honest about what is live and what is still in preview.
             </p>
           </div>

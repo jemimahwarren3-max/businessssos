@@ -1,12 +1,12 @@
 import type { AIProvider, ChatMessage } from "./provider";
 
 // llama-3.1-8b-instant was decommissioned from Groq's catalog (calls now
-// 404) — replaced with a current small/fast model. gpt-oss models reason
+// 404), replaced with a current small/fast model. gpt-oss models reason
 // before answering, so reasoning_effort is pinned to "low" below to keep
 // latency/cost close to what the old instant model gave us.
 const DEFAULT_MODEL = "openai/gpt-oss-20b";
 const TIMEOUT_MS = 60_000;
-// Every caller asks for a short answer (2-6 sentences) — this just bounds
+// Every caller asks for a short answer (2-6 sentences), this just bounds
 // the worst case (cost, latency) rather than shaping normal responses.
 const MAX_TOKENS = 400;
 
@@ -15,8 +15,8 @@ type GroqResponse = {
   error?: { message?: string };
 };
 
-// Groq's free tier needs no credit card or billing account — just an API
-// key from console.groq.com/keys — which Gemini's free tier does not
+// Groq's free tier needs no credit card or billing account, just an API
+// key from console.groq.com/keys, which Gemini's free tier does not
 // reliably offer outside a specific list of billing-supported countries.
 export class GroqProvider implements AIProvider {
   private apiKey: string;

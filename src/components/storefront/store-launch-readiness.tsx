@@ -58,7 +58,7 @@ export function StoreLaunchReadiness({
     },
     onSuccess: (result) => {
       if (result.status === "paid") {
-        toast.success("Launch fee verified — you can publish when ready.");
+        toast.success("Launch fee verified, you can publish when ready.");
       } else if (result.status === "failed") {
         toast.error("Payment verification failed. Start a new payment or contact support.");
       } else {
@@ -232,7 +232,7 @@ export function StoreLaunchReadiness({
       </div>
       <p className="text-xs text-muted-foreground">
         Kwetuu launch fees are separate from payments your customers make for products. Paynow
-        verification uses server-side polling with hash checks — the app never trusts a browser
+        verification uses server-side polling with hash checks, the app never trusts a browser
         redirect alone.
       </p>
     </section>

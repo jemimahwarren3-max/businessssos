@@ -2,11 +2,11 @@
 
 ## Layers
 
-1. **Browser** — Publishable Supabase key only (`VITE_*`). Session cookie httpOnly. CSRF token on server-fn POSTs.
-2. **Cloud Run** — Validates session, permissions, billing entitlements, rate limits; holds service role and payment secrets.
-3. **Supabase Postgres** — RLS for member-scoped clients; privileged mutations via security definer RPCs with explicit grants.
-4. **Storage** — Public product-media; private payment-proofs; signed URLs for authorized reads.
-5. **Providers** — Paynow (HTTPS poll allowlist), Resend (outbox + flush secret), Groq (server-only API key).
+1. **Browser**, Publishable Supabase key only (`VITE_*`). Session cookie httpOnly. CSRF token on server-fn POSTs.
+2. **Cloud Run**, Validates session, permissions, billing entitlements, rate limits; holds service role and payment secrets.
+3. **Supabase Postgres**, RLS for member-scoped clients; privileged mutations via security definer RPCs with explicit grants.
+4. **Storage**, Public product-media; private payment-proofs; signed URLs for authorized reads.
+5. **Providers**, Paynow (HTTPS poll allowlist), Resend (outbox + flush secret), Groq (server-only API key).
 
 ## Payment boundaries
 

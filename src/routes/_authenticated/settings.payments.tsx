@@ -50,7 +50,7 @@ function PaymentsSettingsPage() {
           <h2 className="text-base font-semibold">B. Shop payment methods</h2>
           <p className="text-sm text-muted-foreground">
             Cash, manual EcoCash or bank pay-in, and seller Paynow (when approved) for customer
-            orders. Credentials stay on the server — never in the browser.
+            orders. Credentials stay on the server, never in the browser.
           </p>
           <Button asChild size="sm" variant="outline">
             <Link to="/storefront" hash="launch-payments">

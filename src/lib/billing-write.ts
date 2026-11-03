@@ -1,9 +1,9 @@
 import { isBillingEnabled } from "@/lib/feature-flags.server";
 
-/** True if a subscription in this state is allowed to write — active, or
+/** True if a subscription in this state is allowed to write, active, or
  * still inside an unexpired trial. Shared by assertCanWrite (server-side
  * enforcement) and loadWorkspace (so the UI can show a read-only banner).
- * Always true while BILLING_ENABLED=false (free beta) — the underlying
+ * Always true while BILLING_ENABLED=false (free beta), the underlying
  * subscription/trial data keeps accumulating normally either way (see
  * create_business_with_owner), so re-enabling billing later doesn't need a
  * data migration, only flipping the flag back.
@@ -31,7 +31,7 @@ export function canWriteWithPlatformEntitlement(
 }
 
 /** Paid operations: publish shop, POS sales, cash drawer. Requires Pro
- * subscription status `active` when billing is on — trialing is setup-only
+ * subscription status `active` when billing is on, trialing is setup-only
  * (draft products, storefront design, preview). */
 export function canOperateForSubscription(
   subscription: {

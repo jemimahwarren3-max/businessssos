@@ -14,7 +14,7 @@ export type AuditLogEntry = {
 const PAGE_SIZE = 50;
 
 /** RLS on audit_logs stays on the coarse owner/admin role check (see the
- * migration) — this is the fine-grained, customizable-per-business gate on
+ * migration), this is the fine-grained, customizable-per-business gate on
  * top, same split as every other permission in this file's siblings. */
 export async function listAuditLogs(
   supabase: Db,

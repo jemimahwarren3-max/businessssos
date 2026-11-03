@@ -260,7 +260,7 @@ function Sales() {
           setRestoredBanner(true);
         }
       } catch {
-        // Private browsing / IndexedDB blocked — POS still works in memory.
+        // Private browsing / IndexedDB blocked, POS still works in memory.
       } finally {
         if (!cancelled) setDraftReady(true);
       }
@@ -401,7 +401,7 @@ function Sales() {
     }
   }
 
-  // A camera scan is a one-shot lookup, not a reactive search — done as a
+  // A camera scan is a one-shot lookup, not a reactive search, done as a
   // direct fetch rather than routing through the `search` state, since
   // updating `search` and waiting for the query to catch up would need its
   // own effect just to know when the scan's answer has actually arrived.
@@ -1149,7 +1149,7 @@ function Sales() {
             <div className="space-y-2 border-t border-border pt-3">
               <h3 className="text-sm font-semibold">These sales need you ({failedList.length})</h3>
               <p className="text-[12px] text-muted-foreground">
-                They stayed on this device. Retry after you fix the problem — no developer needed.
+                They stayed on this device. Retry after you fix the problem, no developer needed.
               </p>
               <ul className="space-y-1.5">
                 {failedList.map((sale) => (

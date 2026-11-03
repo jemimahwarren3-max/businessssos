@@ -43,19 +43,19 @@ Kwetuu is a TanStack Start + Supabase merchant OS with a real public storefront 
 
 ## 3. Payments (aligned with staged launch plan)
 
-### Phase 1 — Manual seller payments (launch now)
+### Phase 1: Manual seller payments (launch now)
 
 - **Done in code.** Sellers configure instructions; customers upload proof + reference; seller verifies real account then marks paid.
 - **Rule enforced:** uploads and Paynow redirects do not auto-mark `payment_status = paid` without verification path.
 - **You should not** route seller customer sales through your platform Paynow account.
 
-### Phase 2 — Kwetuu subscriptions (~US$7 / ZiG display)
+### Phase 2: Kwetuu subscriptions (~US$7 / ZiG display)
 
 - **Done in code:** `subscription_payments`, Settings → Billing, webhook + poll verify.
 - **Not live:** deploy sets `BILLING_ENABLED=false`; `PAYNOW_*` not in deploy workflow (set on Cloud Run when ready).
 - **Policy gap to decide:** publish during trial vs pay-before-first-publish (today: trial + read-only after expiry when billing on).
 
-### Phase 3 — Per-seller Paynow automation
+### Phase 3: Per-seller Paynow automation
 
 - **Code exists** (`shop-paynow.server.ts`); **rollout deferred** until Paynow confirms multi-merchant model and each seller has credentials.
 
@@ -66,7 +66,7 @@ Kwetuu is a TanStack Start + Supabase merchant OS with a real public storefront 
 | Item | Status |
 |------|--------|
 | Google sign-in | Fixed (#40); requires Supabase redirect URLs + OAuth client |
-| Email/password signup | UI exists; **staging GoTrue may disable email** — use Google or enable provider in Supabase |
+| Email/password signup | UI exists; **staging GoTrue may disable email**, use Google or enable provider in Supabase |
 | Staff login | Password on server; shop gate + per-staff password |
 | Shopper accounts | Guest checkout + optional account; access-code order tracking |
 | Session | httpOnly sealed cookie; `SESSION_SECRET` required |
@@ -85,11 +85,11 @@ Kwetuu is a TanStack Start + Supabase merchant OS with a real public storefront 
 | P1 | Wildcard DNS/TLS for shop hosts |
 | P2 | No product variants; single stock row per product |
 | P2 | One shop per cart; no marketplace commission / split cart |
-| P2 | Distance-based delivery fees, geocoding — not built |
+| P2 | Distance-based delivery fees, geocoding, not built |
 | P2 | Draft preview apex-only (cookie host scope) |
 | P3 | 200-feature roadmap mostly missing (`BUSINESSOS_AUDIT.md`) |
 | P3 | Accessibility not independently verified |
-| P3 | Marketing handoff branch (`copilot/storefront-marketing-handoff`) not merged — conflicts with current homepage/onboarding |
+| P3 | Marketing handoff branch (`copilot/storefront-marketing-handoff`) not merged, conflicts with current homepage/onboarding |
 
 ---
 
@@ -99,7 +99,7 @@ Kwetuu is a TanStack Start + Supabase merchant OS with a real public storefront 
 |------|--------|
 | RLS + security definer RPCs | Core pattern for storefront and billing |
 | Paynow webhook | Rate limit + hash verify + poll before credit |
-| `npm audit` | **Critical:** TanStack Start server-function XSS advisory (GHSA-qx66-fv34-fjm8) — run `npm audit fix` / upgrade when safe |
+| `npm audit` | **Critical:** TanStack Start server-function XSS advisory (GHSA-qx66-fv34-fjm8), run `npm audit fix` / upgrade when safe |
 | Legal pages | Draft `/privacy`, `/terms`; placeholders for operator name |
 | CDPA / fiscalisation | Not claimed |
 | Backups | Workflow exists; restore not proven here |
@@ -137,8 +137,8 @@ Audit-hardening branch changes (invite hashing, integration test gates, webhook 
 | Action | PRs / branches |
 |--------|----------------|
 | **Merged** | #42 verified reviews; #38 Resend; audit-hardening follow-ups on master |
-| **Close as superseded** | #1, #8–#34, #24 — zero commits ahead of `master` |
-| **Deferred** | `copilot/storefront-marketing-handoff` — rebase needed (conflicts with wonder UI / onboarding) |
+| **Close as superseded** | #1, #8–#34, #24, zero commits ahead of `master` |
+| **Deferred** | `copilot/storefront-marketing-handoff`, rebase needed (conflicts with wonder UI / onboarding) |
 
 ---
 
@@ -157,8 +157,8 @@ Audit-hardening branch changes (invite hashing, integration test gates, webhook 
 
 ## 10. Related docs
 
-- `KNOWN_LIMITATIONS.md` — honest product boundaries  
-- `PRODUCTION_GO_LIVE_CHECKLIST.md` — evidence-based go-live gate  
-- `BUSINESSOS_AUDIT.md` — feature-level 100/200 roadmap  
-- `ENVIRONMENT_SETUP.md` — secrets and local dev  
-- `STOREFRONT.md` — shopper/merchant storefront behaviour  
+- `KNOWN_LIMITATIONS.md`, honest product boundaries  
+- `PRODUCTION_GO_LIVE_CHECKLIST.md`, evidence-based go-live gate  
+- `BUSINESSOS_AUDIT.md`, feature-level 100/200 roadmap  
+- `ENVIRONMENT_SETUP.md`, secrets and local dev  
+- `STOREFRONT.md`, shopper/merchant storefront behaviour  

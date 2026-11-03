@@ -36,7 +36,7 @@ async function getServerEntry(): Promise<ServerEntry> {
 }
 
 // h3 swallows in-handler throws into a normal 500 Response with body
-// {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
+// {"unhandled":true,"message":"HTTPError"}, try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";
@@ -61,16 +61,16 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
-// Paynow's resulturl callback — a raw, unauthenticated x-www-form-urlencoded
+// Paynow's resulturl callback, a raw, unauthenticated x-www-form-urlencoded
 // POST, not a TanStack `createServerFn` call, so it has to be handled here
 // rather than as a route.
 //
-// Authenticity gate: Paynow doesn't send a signature header — it embeds a
+// Authenticity gate: Paynow doesn't send a signature header, it embeds a
 // SHA512 hash directly in the POST body, computed against our
 // PAYNOW_INTEGRATION_KEY (see node_modules/paynow's actual source; the
 // README documents a different, nonexistent API). parseStatusUpdate() below
 // verifies that hash and throws if it doesn't match, which is what proves
-// this request genuinely came from Paynow — reject with 401 before doing
+// this request genuinely came from Paynow, reject with 401 before doing
 // any DB lookup if it fails.
 //
 // Even once authenticated, we still never trust the status field on the

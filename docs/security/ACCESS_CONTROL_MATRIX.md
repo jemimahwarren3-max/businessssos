@@ -4,9 +4,9 @@
 
 | Resource / action | Anonymous | Shopper | Cashier | Manager | Owner | Platform admin |
 |-------------------|-----------|---------|---------|---------|-------|----------------|
-| Public shop catalog | ✓ RPC | ✓ | — | — | — | — |
-| Place store order | ✓ RPC + rate limit | ✓ | — | — | — | — |
-| View own order (token) | ✓ RPC | ✓ | — | — | — | — |
+| Public shop catalog | ✓ RPC | ✓ |, |, |, |, |
+| Place store order | ✓ RPC + rate limit | ✓ |, |, |, |, |
+| View own order (token) | ✓ RPC | ✓ |, |, |, |, |
 | Merchant products CRUD | ✗ | ✗ | permission | permission | ✓ | ✗ |
 | Mark order paid (manual) | ✗ | ✗ | payment perm | payment perm | ✓ | ✗ |
 | POS sale | ✗ | ✗ | ✓ | ✓ | ✓ | ✗ |

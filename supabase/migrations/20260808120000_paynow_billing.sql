@@ -1,6 +1,6 @@
 -- Paynow billing support, plus a pre-existing bug fix it depends on:
 -- `subscriptions` has RLS enabled with only a SELECT policy (see the
--- 20260807043649 migration's grant/RLS loop) — there was never an INSERT
+-- 20260807043649 migration's grant/RLS loop), there was never an INSERT
 -- policy, so createBusinessRecord's `supabase.from("subscriptions").insert(...)`
 -- (run with the RLS-enforced user client) has been silently failing for
 -- every business ever created. Confirmed live: the one real business on
@@ -9,7 +9,7 @@
 -- business_id, which is a no-op if the row was never created.
 
 -- ============ fix: route subscription bootstrap through a definer fn ============
--- (never let the browser client write plan/status directly — the marketing
+-- (never let the browser client write plan/status directly, the marketing
 -- page already promises "verified with the payment provider, never trusted
 -- from the browser"; this makes that literally true instead of accidental.)
 create or replace function public.bootstrap_business_subscription(_business_id uuid)
@@ -59,7 +59,7 @@ create table public.subscription_payments (
 create index subscription_payments_business_idx on public.subscription_payments(business_id, created_at desc);
 
 alter table public.subscription_payments enable row level security;
--- Deliberately no insert/update/delete grant to authenticated at all — every
+-- Deliberately no insert/update/delete grant to authenticated at all, every
 -- write goes through the definer functions below so a client can never mark
 -- its own payment "paid".
 grant select on public.subscription_payments to authenticated;
@@ -98,7 +98,7 @@ $$;
 revoke all on function public.record_subscription_payment(uuid, text, public.plan_tier, text, numeric, text, text) from public;
 grant execute on function public.record_subscription_payment(uuid, text, public.plan_tier, text, numeric, text, text) to authenticated;
 
--- Called only by our server's webhook/poll handler (service_role client) —
+-- Called only by our server's webhook/poll handler (service_role client),
 -- never by an end user. We only trust the _paid flag once it's been derived
 -- from Paynow's own verified pollTransaction() response, not from an
 -- unauthenticated webhook body directly (see src/lib/payments/paynow.server.ts).
@@ -119,7 +119,7 @@ begin
   end if;
 
   -- Idempotent: Paynow may call the result URL more than once, and we poll
-  -- independently too — only act on the first confirmation.
+  -- independently too, only act on the first confirmation.
   if v_payment.status != 'created' then
     return;
   end if;

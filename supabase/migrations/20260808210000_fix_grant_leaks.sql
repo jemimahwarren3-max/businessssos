@@ -1,7 +1,7 @@
 -- CRITICAL FIX: `revoke all on function X from public` does not remove
 -- grants Supabase's project-level default privileges separately hand to
 -- `anon`/`authenticated` on every newly created function in the public
--- schema — confirmed live via pg_proc.proacl. Every "service_role only"
+-- schema, confirmed live via pg_proc.proacl. Every "service_role only"
 -- function this session (paynow_confirm_payment, the four admin_* functions)
 -- was actually callable by any anon or authenticated caller the whole time.
 --
@@ -14,7 +14,7 @@
 -- too.
 --
 -- Two fixes, applied together: (1) explicitly revoke from anon AND
--- authenticated by name, not just public — the only way to actually close
+-- authenticated by name, not just public, the only way to actually close
 -- this; (2) add a belt-and-suspenders internal check (current_user must
 -- literally be service_role, which PostgREST sets per-request based on the
 -- JWT role claim) so this class of bug can't silently recur if a future
@@ -230,7 +230,7 @@ grant execute on function public.admin_override_subscription(uuid, public.plan_t
 
 -- Defense-in-depth for the rest: these all already fail closed for an
 -- anon/unidentified caller via their own internal auth.uid()-based role
--- checks, so this was never actually exploitable — but the grant should
+-- checks, so this was never actually exploitable, but the grant should
 -- still match intent exactly rather than relying solely on that.
 revoke all on function public.bootstrap_business_subscription(uuid) from anon;
 revoke all on function public.create_business_with_owner(text, public.business_type, text, text, text) from anon;

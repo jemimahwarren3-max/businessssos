@@ -10,7 +10,7 @@ export const allowAal1Session = createMiddleware({ type: "function" }).server(as
 
 // Every business.functions.ts server fn requires this. The session cookie
 // travels with the request automatically (it's a normal cookie, just
-// encrypted and httpOnly) — there's nothing for client code to attach
+// encrypted and httpOnly), there's nothing for client code to attach
 // anymore, unlike the old Authorization-header/localStorage approach.
 // If the user enrolled TOTP, writes and reads that use this middleware
 // require aal2. The React MFA gate is not enough on its own.

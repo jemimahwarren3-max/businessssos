@@ -116,13 +116,13 @@ function AdminBillingPage() {
         </h2>
         <p className="text-sm text-muted-foreground">
           Display-only rate for pricing pages. Paynow subscription checkout uses platform keys (USD
-          / ZiG) from environment — not edited here.
+          / ZiG) from environment, not edited here.
         </p>
         {overview.isLoading ? <Skeleton className="h-8" /> : null}
         {fx ? (
           <p className="text-sm">
             Current: 1 USD = {fx.usdToZwg} ZiG ({fx.source}, {fx.effectiveOn}). Listed Pro ≈{" "}
-            {zig != null ? formatMoney(zig, "ZWG") : "—"}.
+            {zig != null ? formatMoney(zig, "ZWG") : "-"}.
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">No rate stored.</p>

@@ -42,7 +42,7 @@ export async function completeOAuthCallback(input: { code: string }): Promise<{
   }
 
   // Email confirm / recovery links after server-side mail often have no PKCE
-  // verifier cookie — try Supabase OTP verify with the same `code` param.
+  // verifier cookie, try Supabase OTP verify with the same `code` param.
   const anon = createAnonClient();
   for (const type of ["signup", "email", "recovery"] as const) {
     const { data: otp, error: otpError } = await anon.auth.verifyOtp({

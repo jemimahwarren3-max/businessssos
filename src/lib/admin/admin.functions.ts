@@ -59,14 +59,14 @@ const adminStatusLimit = [
   authedRateLimit({ keyPrefix: "admin-status", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
 
-// Tighter — these three accept a 6-digit TOTP code, exactly the kind of
+// Tighter, these three accept a 6-digit TOTP code, exactly the kind of
 // code-guessing surface that normally gets a tight attempt throttle.
 const adminMfaRateLimit = [
   allowAal1Session,
   authedRateLimit({ keyPrefix: "admin-mfa", maxRequests: 8, windowSeconds: 60 }),
 ] as const;
 
-// Boolean-plus-MFA-status check, never throws — used by the /admin route's
+// Boolean-plus-MFA-status check, never throws, used by the /admin route's
 // beforeLoad to decide whether to render a real 404 (not admin), an MFA
 // gate (admin but not yet aal2 this session), or the real dashboard.
 export const checkPlatformAdmin = createServerFn({ method: "GET" })
@@ -99,7 +99,7 @@ export const verifyAdminMfaEnrollmentFn = createServerFn({ method: "POST" })
       data.factorId,
       data.code,
     );
-    // The verify call upgrades the session to aal2 — reseal the cookie with
+    // The verify call upgrades the session to aal2, reseal the cookie with
     // the new tokens now, or the next request would still read back aal1.
     await setServerSession({ accessToken, refreshToken });
     return { ok: true };
@@ -296,7 +296,7 @@ export const getAdminHealthFn = createServerFn({ method: "GET" })
   .middleware(adminRateLimit)
   .handler(async ({ context }) => getAdminHealth(context.userId, context.tokens));
 
-/** Merchant app banner — no admin required. */
+/** Merchant app banner, no admin required. */
 export const getPlatformAnnouncementFn = createServerFn({ method: "GET" }).handler(async () =>
   loadPlatformAnnouncement(),
 );

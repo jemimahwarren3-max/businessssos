@@ -6,7 +6,7 @@
 
 Track verification runs in `docs/EXECUTION_STATUS.md`. Run gates via `docs/VERIFICATION.md`.
 
-## P0 — verify before pilot
+## P0: verify before pilot
 
 | # | Item | Status | Action |
 |---|------|--------|--------|
@@ -48,7 +48,7 @@ Track verification runs in `docs/EXECUTION_STATUS.md`. Run gates via `docs/VERIF
 | 22 | Cursor rules | Done | Vertical slices, no fake complete |
 | 23 | Definition of done | Done | Documented in master prompt |
 
-## §21 — twelve workflows
+## §21: twelve workflows
 
 | # | Workflow | Status | Verification |
 |---|----------|--------|--------------|
@@ -67,8 +67,8 @@ Track verification runs in `docs/EXECUTION_STATUS.md`. Run gates via `docs/VERIF
 
 ## Recommended phase order
 
-1. **A — Truth:** `verify:staging` green (this PR’s tooling + your token).  
-2. **B — Manual-pay pilot:** DNS, Resend, seller playbook.  
-3. **C — Platform billing:** Paynow subs + owner bootstrapped.  
-4. **D — Seller Paynow:** Provider approval → enable gate.  
-5. **E — Long tail:** `docs/ROADMAP_REMAINING.md` batches 6–14.
+1. **A, Truth:** `verify:staging` green (this PR’s tooling + your token).  
+2. **B, Manual-pay pilot:** DNS, Resend, seller playbook.  
+3. **C, Platform billing:** Paynow subs + owner bootstrapped.  
+4. **D, Seller Paynow:** Provider approval → enable gate.  
+5. **E, Long tail:** `docs/ROADMAP_REMAINING.md` batches 6–14.

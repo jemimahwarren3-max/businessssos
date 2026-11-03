@@ -303,7 +303,7 @@ function Billing() {
                   <p className="text-[12px] text-muted-foreground">{fx.notice}</p>
                 ) : proZig == null ? (
                   <p className="text-[12px] text-muted-foreground">
-                    USD is ready now. ZiG uses the platform USD/ZiG rate — ask support to set it if
+                    USD is ready now. ZiG uses the platform USD/ZiG rate, ask support to set it if
                     you want to pay in ZiG.
                   </p>
                 ) : null}

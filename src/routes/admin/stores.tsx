@@ -30,7 +30,7 @@ function AdminStoresPage() {
   return (
     <AdminShell title="Storefronts">
       <p className="text-sm text-muted-foreground">
-        Every shop configured on Kwetuu — draft or live. Open the public URL only when status is
+        Every shop configured on Kwetuu, draft or live. Open the public URL only when status is
         published.
       </p>
       {list.isLoading ? <Skeleton className="h-64" /> : null}
@@ -72,7 +72,7 @@ function AdminStoresPage() {
                 <TableCell className="text-xs">{row.template_id}</TableCell>
                 <TableCell>{row.listing_count}</TableCell>
                 <TableCell>{row.order_count}</TableCell>
-                <TableCell>{row.published_at ? friendlyDate(row.published_at) : "—"}</TableCell>
+                <TableCell>{row.published_at ? friendlyDate(row.published_at) : "-"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

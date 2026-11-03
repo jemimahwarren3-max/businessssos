@@ -191,7 +191,7 @@ function CashDrawerPage() {
               {formatMoney(drawer.data?.expected ?? 0, currency)}
             </p>
             <p className="text-sm text-muted-foreground">
-              Expected cash — cash tenders only, not EcoCash, InnBucks, ZIPIT or bank
+              Expected cash: cash tenders only, not EcoCash, InnBucks, ZIPIT or bank
             </p>
             <p className="mt-2 text-sm">
               Opening float {formatMoney(drawer.data?.openingFloat ?? 0, currency)}

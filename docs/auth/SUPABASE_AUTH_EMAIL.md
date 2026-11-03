@@ -1,4 +1,4 @@
-# Supabase Auth email — why nothing arrives and how to fix it
+# Supabase Auth email: why nothing arrives and how to fix it
 
 Kwetuu uses **two different email systems**:
 
@@ -13,21 +13,21 @@ Setting `RESEND_API_KEY` on Cloud Run **does not** send signup confirmation emai
 
 ## Why confirmation emails never show up (most common)
 
-Supabase’s **default** mail server (when you have **not** configured custom SMTP) only delivers to **email addresses that belong to your Supabase organization team**. Random customer Gmail addresses are **not** sent mail — Auth logs may show a send failure, and the app stays on “Confirm your email”.
+Supabase’s **default** mail server (when you have **not** configured custom SMTP) only delivers to **email addresses that belong to your Supabase organization team**. Random customer Gmail addresses are **not** sent mail, Auth logs may show a send failure, and the app stays on “Confirm your email”.
 
 This is documented by Supabase: [Send emails with custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
 **Fix (pick one):**
 
-### Option A — Skip email on staging (fastest for beta)
+### Option A: Skip email on staging (fastest for beta)
 
 1. Open project **`businessos-staging`** (`slajanbsfqjnuuiohbmg`).
 2. **Authentication → Providers → Email** → disable “Confirm email” / enable **autoconfirm** (wording varies in UI).
 3. Or let CI apply it: ensure GitHub secret **`SUPABASE_ACCESS_TOKEN`** is set; every push to `master` runs `scripts/apply-staging-sql.mjs`, which sets `external_email_enabled` + `mailer_autoconfirm`.
 
-After autoconfirm, email signup returns a session immediately and the app sends users to **onboarding** — no inbox step.
+After autoconfirm, email signup returns a session immediately and the app sends users to **onboarding**, no inbox step.
 
-### Option B — Send real mail to any address (production-ready)
+### Option B: Send real mail to any address (production-ready)
 
 Use **Resend SMTP** in Supabase (same Resend account as order mail; domain must be verified).
 
@@ -78,12 +78,12 @@ That page is **Google OAuth**, not the mail server. It usually means the OAuth r
 
 Checklist for **`businessos-staging`**:
 
-1. **Authentication → Providers → Google** — Client ID and Client Secret filled in (from Google Cloud Console).
+1. **Authentication → Providers → Google**, Client ID and Client Secret filled in (from Google Cloud Console).
 2. **Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client (Web):**
    - **Authorized JavaScript origins:** `https://mykwetuu.com` (and `http://localhost:8080` for local dev).
    - **Authorized redirect URIs:** exactly  
      `https://slajanbsfqjnuuiohbmg.supabase.co/auth/v1/callback`  
-     (replace ref if you change projects — **not** `https://mykwetuu.com/auth/callback` on the Google side).
+     (replace ref if you change projects, **not** `https://mykwetuu.com/auth/callback` on the Google side).
 3. **Supabase → Authentication → URL configuration:**
    - **Site URL:** `https://mykwetuu.com`
    - **Redirect URLs:** include `https://mykwetuu.com/auth/callback` and `/auth/confirm`, `/auth/recover`.
@@ -94,12 +94,12 @@ If Google is broken, use **email signup with autoconfirm** (Option A) until OAut
 
 ## Resend confirmation from the app
 
-The “Resend confirmation email” button calls Supabase `auth.resend`. It still depends on the same GoTrue SMTP settings above — if SMTP is not configured, resend fails too.
+The “Resend confirmation email” button calls Supabase `auth.resend`. It still depends on the same GoTrue SMTP settings above, if SMTP is not configured, resend fails too.
 
 ---
 
 ## Related docs
 
-- `docs/auth/AUTH_SETUP_AND_TESTING.md` — redirect URLs, manual tests
-- `docs/auth/AUTH_DIAGNOSTIC_REPORT.md` — architecture notes
-- `.env.example` — `RESEND_*` is for **shop** mail, not Auth SMTP
+- `docs/auth/AUTH_SETUP_AND_TESTING.md`, redirect URLs, manual tests
+- `docs/auth/AUTH_DIAGNOSTIC_REPORT.md`, architecture notes
+- `.env.example`, `RESEND_*` is for **shop** mail, not Auth SMTP

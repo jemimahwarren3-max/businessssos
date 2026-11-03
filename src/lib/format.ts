@@ -63,7 +63,7 @@ function isInternalFrameworkError(message: string): boolean {
   );
 }
 
-/** Server errors are already user-friendly (see business.server.ts AppError) —
+/** Server errors are already user-friendly (see business.server.ts AppError),
  * anything else (network failures, framework errors) gets a generic fallback. */
 export function readableError(error: Error, fallback: string) {
   const message = error.message ?? "";

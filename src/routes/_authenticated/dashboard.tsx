@@ -78,7 +78,7 @@ const RANGES = [
   { key: "365", label: "1 year" },
 ];
 
-// The area chart below conveys this same trend purely visually — screen
+// The area chart below conveys this same trend purely visually, screen
 // reader users get this sentence instead via role="img"/aria-label.
 function salesChartSummary(
   series: { label: string; sales: number; profit: number }[],
@@ -149,7 +149,7 @@ function Dashboard() {
       <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
         <h1 className="text-2xl font-semibold">We couldn't open your dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Nothing was deleted. This is a load error, not a missing shop. Try again — do not create a
+          Nothing was deleted. This is a load error, not a missing shop. Try again, do not create a
           second store.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
@@ -216,7 +216,7 @@ function Dashboard() {
                 Your AI business briefing
               </h2>
               <p className="text-[13px] text-muted-foreground">
-                Optional. Sales numbers above come from your books — this only runs when you ask.
+                Optional. Sales numbers above come from your books, this only runs when you ask.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -205,7 +205,7 @@ function OrderPage() {
                 <p>
                   Last note sent: {order.terms.paymentProof.reference}
                   {order.terms.paymentProof.rejectReason
-                    ? ` — ${order.terms.paymentProof.rejectReason}`
+                    ? `, ${order.terms.paymentProof.rejectReason}`
                     : ""}
                 </p>
               ) : null}

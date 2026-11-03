@@ -16,7 +16,7 @@ This is a **stabilisation** document. It does not propose new features.
 | **Public launch** (anyone can sign up and pay)              | **No-Go**                                                                                       |
 | **Controlled pilot** (5–10 invited shops, operator on call) | **Conditional Go** after this repair stream is on production **and** production SQL matches git |
 
-You can launch a path-based shop (`/store/{slug}`) with some advanced features missing. You cannot launch while production schema can drift from the app, while transactional email may never flush, or while a logged-in stranger can read another shop’s setup stats (KW-001 — patched in this PR, not yet on production).
+You can launch a path-based shop (`/store/{slug}`) with some advanced features missing. You cannot launch while production schema can drift from the app, while transactional email may never flush, or while a logged-in stranger can read another shop’s setup stats (KW-001, patched in this PR, not yet on production).
 
 **Do not wait for:** automated WhatsApp, AI briefing, loyalty, courier APIs, custom domains, every storefront template tweak, variants, or a second-business switcher.
 
@@ -35,9 +35,9 @@ You can launch a path-based shop (`/store/{slug}`) with some advanced features m
 
 ### Three biggest problems actually seen in this engagement
 
-1. **Production/staging schema drift** — missing or overloaded RPCs looked like frontend bugs (“couldn’t load your shop”, Create shop failed).
-2. **Dashboard launch cards did nothing** — hashes like `#launch-publish` never opened the storefront builder.
-3. **Onboarding vs setup confusion** — two flags, so owners were sent to create-shop after they already had a business.
+1. **Production/staging schema drift**, missing or overloaded RPCs looked like frontend bugs (“couldn’t load your shop”, Create shop failed).
+2. **Dashboard launch cards did nothing**, hashes like `#launch-publish` never opened the storefront builder.
+3. **Onboarding vs setup confusion**, two flags, so owners were sent to create-shop after they already had a business.
 
 ---
 
@@ -67,9 +67,9 @@ Legend: **E2E** = frontend + validation + DB + permissions + resulting state in 
 | Create business / membership           | E2E          | Unverified on **production** SQL    | Staging manifest applies journey SQL                        |
 | Guided onboarding + `/setup`           | Partial      | Partial                             | Resume + error UI improved this PR                          |
 | Products CRUD, photos, categories      | E2E          | Unverified live                     | Shared POS + online catalogue                               |
-| Product variants                       | Missing      | —                                   | Postpone                                                    |
+| Product variants                       | Missing      |,                                   | Postpone                                                    |
 | Stock adjust + sale deduction          | E2E          | Unverified live                     | Default location                                            |
-| Branch transfers                       | Missing      | —                                   | Postpone                                                    |
+| Branch transfers                       | Missing      |,                                   | Postpone                                                    |
 | POS cart, sale, receipt, history       | E2E          | Unverified live                     | Split tenders in SQL                                        |
 | Offline POS queue                      | E2E (device) | Unverified power-loss               | Sequential replay, same idempotency key                     |
 | Cash drawer                            | E2E          | Unverified live                     | Cash sales need open session                                |
@@ -127,10 +127,10 @@ None of these should be advertised as connected integrations.
 
 Must be closed or accepted in writing:
 
-1. **KW-001** setup-progress leak — **patched in this PR**; must be applied to staging **and** production.
-2. **KW-002** production schema not in deploy — operator must confirm production function signatures after each release.
-3. **KW-003 / KW-004** CI can cancel master / skip staging SQL — **patched in this PR** (per-ref concurrency; master requires staging SQL). Production SQL still operator-only.
-4. Email/WhatsApp delivery — KW-005 parser **patched**; secrets still **unverified**.
+1. **KW-001** setup-progress leak, **patched in this PR**; must be applied to staging **and** production.
+2. **KW-002** production schema not in deploy, operator must confirm production function signatures after each release.
+3. **KW-003 / KW-004** CI can cancel master / skip staging SQL, **patched in this PR** (per-ref concurrency; master requires staging SQL). Production SQL still operator-only.
+4. Email/WhatsApp delivery, KW-005 parser **patched**; secrets still **unverified**.
 5. No second live account test (cashier vs owner) on staging in this session.
 
 Remaining P2 (idempotency lock, locations, report currency mix) should not delay a **pilot**. They should not be ignored before a **paid public** launch.
@@ -143,8 +143,8 @@ Remaining P2 (idempotency lock, locations, report currency mix) should not delay
 | --------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
 | `get_setup_progress` readable by any signed-in user | P0       | Patched in PR; not on production until merge + SQL apply                                                         |
 | Cashier `SELECT` via RLS on sales still exists      | P1       | API `getReports` / expense list now permission-gated; RLS member-read remains (POS needs product/customer reads) |
-| Service-role key in frontend                        | —        | Not found                                                                                                        |
-| Success URL activating payment                      | —        | Paynow poll + hash; shop manual stays pending                                                                    |
+| Service-role key in frontend                        |,        | Not found                                                                                                        |
+| Success URL activating payment                      |,        | Paynow poll + hash; shop manual stays pending                                                                    |
 | POS EcoCash marked completed without provider       | Trust    | Documented; cashier attestation                                                                                  |
 | Authed rate-limit fail-open                         | Accepted | Stops shop-load lockout                                                                                          |
 
@@ -183,7 +183,7 @@ There is **no public release date** until Gates 1–4 pass on staging with named
 - `get_setup_progress` requires membership.
 - Mail-flush cron parses `{ email, whatsapp }` and does not fail when unconfigured.
 - Post-login uses `setup_completed_at`. Existing shops never stay on create-shop (`beforeLoad` + load-error ≠ missing shop).
-- Schema-drift toasts say it is a server update, not a form error — do not create a second shop.
+- Schema-drift toasts say it is a server update, not a form error, do not create a second shop.
 - Master CI cannot be cancelled by a PR; master without `SUPABASE_ACCESS_TOKEN` fails instead of skipping SQL.
 - Staging readiness probes unique `create_sale` tenders, unique jsonb Create shop, and `setup_completed_at`.
 - MFA recovery can set a password.

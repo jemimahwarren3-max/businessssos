@@ -10,7 +10,7 @@ None known. All 30 unauthenticated tests pass locally. Authenticated tests (19) 
 
 | Test | Root Cause | Fix |
 |------|-----------|-----|
-| auth: "Welcome back" heading timeout | SSR off — page shows spinner before hydration | Wait for `#email` input with 30s timeout instead of heading text |
+| auth: "Welcome back" heading timeout | SSR off, page shows spinner before hydration | Wait for `#email` input with 30s timeout instead of heading text |
 | auth: signup "Create your account" timeout | Same SSR timing issue | Wait for `#fullName` input instead |
 | auth: dashboard/inventory redirect at 15s | Client-side auth gate slower than expected | Increased timeout to 30s |
 | auth: staff login strict mode | `getByText(/business name/i)` matched label + description | Use `getByLabel(/business name/i)` |

@@ -38,7 +38,7 @@ async function untypedRpc(
   )(fn, args)) as { data: Json | null; error: { message?: string } | null };
 }
 
-/** No assertPermission gate — unlike audit logs, notifications aren't
+/** No assertPermission gate, unlike audit logs, notifications aren't
  * owner/admin-only, they're personal-or-business-wide alerts every member
  * should see. RLS (see 20260807043649_...sql's "members read own
  * notifications"/"members update own notifications" policies) is the whole

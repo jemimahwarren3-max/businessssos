@@ -49,7 +49,7 @@ export default tseslint.config(
                 "@/integrations/supabase/client.server",
               ],
               message:
-                "supabaseAdmin bypasses RLS entirely — it's allowlisted for exactly the files that need it (see src/integrations/supabase/client.server.ts's header comment). Adding a new caller means widening that allowlist below, deliberately, not importing it here.",
+                "supabaseAdmin bypasses RLS entirely, it's allowlisted for exactly the files that need it (see src/integrations/supabase/client.server.ts's header comment). Adding a new caller means widening that allowlist below, deliberately, not importing it here.",
             },
           ],
         },
@@ -59,7 +59,7 @@ export default tseslint.config(
     },
   },
   {
-    // Allowlist for supabaseAdmin (service-role, bypasses RLS) — see the
+    // Allowlist for supabaseAdmin (service-role, bypasses RLS), see the
     // restricted-imports message above. Keep this list exactly as long as it
     // needs to be, no longer.
     files: [

@@ -47,7 +47,7 @@ export { canWriteForSubscription };
 
 export type Db = SupabaseClient<Database>;
 
-/** Friendly errors only — never leak Postgres details to the browser. */
+/** Friendly errors only, never leak Postgres details to the browser. */
 export class AppError extends Error {}
 
 function fail(message: string): never {
@@ -61,9 +61,9 @@ function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
 }
 
-/** Missing RPC / stale PostgREST cache — not a form-validation failure. */
+/** Missing RPC / stale PostgREST cache, not a form-validation failure. */
 export const SCHEMA_DRIFT_USER_MESSAGE =
-  "The shop server is still updating — this is not a problem with your form. Wait a minute and try again. Do not create a second shop.";
+  "The shop server is still updating, this is not a problem with your form. Wait a minute and try again. Do not create a second shop.";
 
 export function userFacingDbMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
@@ -132,7 +132,7 @@ export type Workspace = {
   isOperateLocked: boolean;
   isPlatformOwner: boolean;
   billingEnabled: boolean;
-  /** Platform admin support view — merchant data is read-only. */
+  /** Platform admin support view, merchant data is read-only. */
   isImpersonating?: boolean;
   impersonationExpiresAt?: string;
   impersonationBusinessName?: string;
@@ -162,11 +162,11 @@ export async function assertRole(supabase: Db, businessId: string, roles: string
   if (!data) fail("Your role doesn't allow this action.");
 }
 
-/** The data-driven successor to assertRole — checks a permission key against
+/** The data-driven successor to assertRole, checks a permission key against
  * business_role_permissions (owner always passes) instead of a hardcoded
  * role array. RLS policies and RPC-embedded has_business_role checks
  * throughout the schema are a separate, lower-level layer this doesn't
- * replace — only application-layer call sites use this. */
+ * replace, only application-layer call sites use this. */
 export async function assertPermission(supabase: Db, businessId: string, permission: string) {
   const { data, error } = await supabase.rpc("has_permission", {
     _business_id: businessId,
@@ -229,7 +229,7 @@ async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
   };
 }
 
-/** Gate for setup writes (products, drafts, storefront design) — trialing allowed. */
+/** Gate for setup writes (products, drafts, storefront design), trialing allowed. */
 export async function assertCanWrite(supabase: Db, businessId: string) {
   const { data: impersonating, error: impErr } = await supabase.rpc(
     "is_platform_impersonating" as never,
@@ -244,7 +244,7 @@ export async function assertCanWrite(supabase: Db, businessId: string) {
   if (!canWriteWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(READ_ONLY_MESSAGE);
 }
 
-/** Gate for publish, POS, and cash drawer — requires paid `active` subscription. */
+/** Gate for publish, POS, and cash drawer, requires paid `active` subscription. */
 export async function assertCanOperate(supabase: Db, businessId: string) {
   const { data: impersonating, error: impErr } = await supabase.rpc(
     "is_platform_impersonating" as never,
@@ -290,10 +290,10 @@ export async function recordAudit(
 }
 
 // Hit on essentially every authenticated page load, so it's the one query
-// in this app actually worth caching (see src/lib/cache/redis.server.ts —
+// in this app actually worth caching (see src/lib/cache/redis.server.ts,
 // no-ops entirely if Upstash isn't configured, so this is safe to ship
 // before you've set it up). Only the found-workspace case is cached, not
-// "no workspace yet" (the mid-onboarding case) — that's rare enough that
+// "no workspace yet" (the mid-onboarding case), that's rare enough that
 // re-checking it every time costs nothing, and caching a null would need
 // extra bookkeeping to tell apart from a genuine cache miss.
 export async function loadWorkspace(supabase: Db, userId: string): Promise<Workspace | null> {
@@ -351,7 +351,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
       .select("plan, status, trial_ends_at")
       .eq("business_id", membership.business_id)
       .maybeSingle(),
-    // Every member's own effective permission set — owner gets everything,
+    // Every member's own effective permission set, owner gets everything,
     // everyone else gets exactly what business_role_permissions grants
     // their role, defaulted to today's behavior on first access.
     supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
@@ -405,7 +405,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
 }
 
 /** Call after anything that changes a business's plan/status or a member's
- * role — every active member's cached workspace needs to reflect it, not
+ * role, every active member's cached workspace needs to reflect it, not
  * just whoever triggered the change. A 60s TTL bounds staleness even if a
  * future write path forgets this, but real writes shouldn't rely on that. */
 export async function invalidateWorkspaceCacheForBusiness(
@@ -425,7 +425,7 @@ export async function createBusinessRecord(
   userId: string,
   input: CreateBusinessInput,
 ) {
-  // Do not call loadWorkspace here — that RPC-heavy path can fail on a missing
+  // Do not call loadWorkspace here, that RPC-heavy path can fail on a missing
   // feature-flag function and block first-time create. Membership is enough.
   const { data: existingMember } = await supabase
     .from("business_members")
@@ -459,7 +459,7 @@ export async function createBusinessRecord(
         : null;
   if (!businessIdStr) dbFail("create business", new Error("Unexpected create business response."));
 
-  // Best-effort — the business itself is already fully committed above, so a
+  // Best-effort, the business itself is already fully committed above, so a
   // failure here shouldn't roll anything back or block the user.
   await supabase.from("notifications").insert({
     business_id: businessIdStr,
@@ -468,7 +468,7 @@ export async function createBusinessRecord(
     title: "Welcome to Kwetuu",
     message: isBillingEnabled()
       ? "Your 1-month Pro trial has started. Add your first products to begin."
-      : "You're in! Kwetuu is free during our beta — add your first products to begin.",
+      : "You're in! Kwetuu is free during our beta, add your first products to begin.",
     severity: "info",
   });
   await recordAudit(supabase, {
@@ -1118,7 +1118,7 @@ export async function getSaleDetail(supabase: Db, businessId: string, saleId: st
       .eq("business_id", businessId)
       .order("created_at", { ascending: true }),
     // sale_refund_items has no sale_id of its own (only its parent
-    // sale_refund does) — going through sale_refunds here is the only way
+    // sale_refund does), going through sale_refunds here is the only way
     // to scope this to one sale rather than pulling every refund in the
     // business.
     supabase
@@ -1729,7 +1729,7 @@ export async function createPurchaseOrder(supabase: Db, input: PurchaseOrderInpu
   return { id: data as string };
 }
 
-/** Receiving isn't just a label flip — set_purchase_order_status also adds a
+/** Receiving isn't just a label flip, set_purchase_order_status also adds a
  * stock_in movement per line item with a linked product, same as a manual
  * restock. Audit logging happens inside that function too (it needs the PO's
  * previous status either way, already has it from its own row lock). */
@@ -1909,7 +1909,7 @@ export async function importExpenses(
   return { imported, skipped: errors.length, errors };
 }
 
-/** Historical sales entered for reporting only — deliberately does NOT touch
+/** Historical sales entered for reporting only, deliberately does NOT touch
  * current stock or create inventory movements, since these sales already
  * happened before the business started using this system. */
 export async function importSalesHistory(
@@ -1992,12 +1992,12 @@ export async function importCustomers(
   return { imported, skipped: errors.length, errors };
 }
 
-/** Real line-item historical sales — one row = one product = one sale.
+/** Real line-item historical sales, one row = one product = one sale.
  * Resolves product/customer names against this business's own records
  * (same deterministic substring search Inventory/Customers search already
  * use) before calling import_sale_line, which decrements stock and writes
  * every timestamp as the row's own date rather than "now". Kept as its own
- * RPC rather than a create_sale parameter — see import_sale_line's own
+ * RPC rather than a create_sale parameter, see import_sale_line's own
  * comment for why. */
 export async function importSalesDetailed(
   supabase: Db,
@@ -2140,11 +2140,11 @@ export async function loadDashboard(
         .select("total, cost_total, discount, created_at")
         .eq("business_id", businessId)
         // partially_refunded sales still contribute their (already-reduced)
-        // remaining total — only fully refunded/cancelled sales are excluded.
+        // remaining total, only fully refunded/cancelled sales are excluded.
         .in("status", ["completed", "partially_refunded"])
         .gte("created_at", windowStart.toISOString()),
-      // No date filter is possible here by design — an unpaid invoice from
-      // last year is still "outstanding" today — so .limit() is the only
+      // No date filter is possible here by design, an unpaid invoice from
+      // last year is still "outstanding" today, so .limit() is the only
       // available bound. Safety net only: a business that somehow exceeds it
       // would see an understated outstanding total, not an error, but this is
       // far beyond realistic usage for this app's target market.
@@ -2386,7 +2386,7 @@ export async function loadReports(
         .in("status", ["completed", "partially_refunded"])
         .gte("created_at", windowStart.toISOString()),
       // Safety net only (see the invoices query in loadDashboard for the
-      // same tradeoff) — the highest-cardinality table in the schema, one
+      // same tradeoff), the highest-cardinality table in the schema, one
       // row per line item per sale.
       supabase
         .from("sale_items")

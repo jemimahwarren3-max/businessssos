@@ -19,7 +19,7 @@ import { getMfaStatus } from "@/lib/auth/mfa.server";
 import type { SupabaseTokens } from "@/lib/auth/session.server";
 
 // Thrown when the caller is the platform admin's user ID but hasn't
-// completed an MFA challenge this session — distinct from "not admin at
+// completed an MFA challenge this session, distinct from "not admin at
 // all" so the UI can show an MFA gate instead of a 404.
 export class MfaRequiredError extends AppError {}
 
@@ -61,7 +61,7 @@ export async function isPlatformAdmin(userId: string | undefined | null): Promis
 }
 
 // MFA is checked here, on every admin action, not just at the route's
-// beforeLoad — beforeLoad only guards page navigation, not the underlying
+// beforeLoad, beforeLoad only guards page navigation, not the underlying
 // server functions, which are the actual security boundary.
 export async function requireAdmin(userId: string, tokens: SupabaseTokens) {
   if (!(await isPlatformAdmin(userId))) {

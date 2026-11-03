@@ -8,7 +8,7 @@ import { getAccessToken, runStagingSql } from "./staging-api.mjs";
 
 const token = getAccessToken();
 if (!token) {
-  console.error("SUPABASE_ACCESS_TOKEN is not set — cannot check staging.");
+  console.error("SUPABASE_ACCESS_TOKEN is not set, cannot check staging.");
   console.error("Add it to GitHub Actions secrets or local .env, then re-run.");
   process.exit(1);
 }

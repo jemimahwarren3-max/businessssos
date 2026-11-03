@@ -1,7 +1,6 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
+# Render Blueprint: https://render.com/docs/blueprint-spec
 # "New +" -> "Blueprint" on Render, point it at this repo, and it reads this
-# file to set up the service. Secrets (sync: false) aren't stored here —
-# Render prompts for each one during setup; get the real values from
+# file to set up the service. Secrets (sync: false) aren't stored here: # Render prompts for each one during setup; get the real values from
 # .env.production (never commit that file).
 services:
   - type: web

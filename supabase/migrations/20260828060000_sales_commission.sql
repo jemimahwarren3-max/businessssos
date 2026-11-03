@@ -1,5 +1,5 @@
 -- Sales-commission tracking. sales.created_by already records who rang up
--- each sale (create_sale's own auth.uid() insert) — this adds a per-member
+-- each sale (create_sale's own auth.uid() insert), this adds a per-member
 -- commission rate and a report that joins the two, rather than needing any
 -- new attribution mechanism.
 
@@ -35,7 +35,7 @@ $$;
 revoke all on function public.set_member_commission_rate(uuid,uuid,numeric) from public, anon;
 grant execute on function public.set_member_commission_rate(uuid,uuid,numeric) to authenticated;
 
--- Owner/admin only — same gate as list_team_members, this is payroll-
+-- Owner/admin only, same gate as list_team_members, this is payroll-
 -- adjacent data. LEFT JOIN so every active member shows up even with zero
 -- sales in the period, not just ones who sold something.
 create or replace function public.get_commission_report(

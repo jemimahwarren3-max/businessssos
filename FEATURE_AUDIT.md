@@ -49,7 +49,7 @@ Protected merchant routes: `_authenticated/route.tsx` redirects unauthenticated 
 
 ## Stage 2 (public site)
 
-Homepage `/` and `/stores` load `getMarketplaceFn`. Featured and gallery cards are published shops from the database, or an empty state — never hardcoded demo shops. `/pricing` compares founding beta ($0) with Pro (`PLAN_MONTHLY_USD.pro` after notice). `/signup` and `/login` still redirect to `/auth`. `/market` remains product search.
+Homepage `/` and `/stores` load `getMarketplaceFn`. Featured and gallery cards are published shops from the database, or an empty state, never hardcoded demo shops. `/pricing` compares founding beta ($0) with Pro (`PLAN_MONTHLY_USD.pro` after notice). `/signup` and `/login` still redirect to `/auth`. `/market` remains product search.
 
 ## Do not rebuild
 

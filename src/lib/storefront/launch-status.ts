@@ -37,7 +37,7 @@ export function deriveStoreLaunchDisplay(input: {
     return {
       phase: "live",
       badge: "Live",
-      headline: "Your shop is published — share the link and manage online orders.",
+      headline: "Your shop is published, share the link and manage online orders.",
     };
   }
 
@@ -53,7 +53,7 @@ export function deriveStoreLaunchDisplay(input: {
     return {
       phase: "payment_required",
       badge: "Payment required",
-      headline: "Setup is complete — pay for Pro to publish and take online orders.",
+      headline: "Setup is complete, pay for Pro to publish and take online orders.",
     };
   }
 
@@ -68,7 +68,7 @@ export function deriveStoreLaunchDisplay(input: {
   return {
     phase: "draft",
     badge: "Draft",
-    headline: "Your shop is in draft — finish the steps below before going live.",
+    headline: "Your shop is in draft, finish the steps below before going live.",
   };
 }
 
@@ -162,7 +162,7 @@ export function buildLaunchSteps(
       id: "notifications",
       step: 6,
       title: "Order alerts",
-      description: "In-app alerts and email — configure who gets notified.",
+      description: "In-app alerts and email, configure who gets notified.",
       done: notificationsConfigured,
       to: "/notifications",
     },

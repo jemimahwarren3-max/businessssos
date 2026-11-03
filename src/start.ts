@@ -45,7 +45,7 @@ function buildCsp(): string {
 
 const CSP = buildCsp();
 
-// Applies to every response (pages and server-fn calls alike) — cheap
+// Applies to every response (pages and server-fn calls alike), cheap
 // insurance against clickjacking, MIME-sniffing, and third-party embedding,
 // on top of (not instead of) the app-layer auth/RLS boundaries.
 const securityHeadersMiddleware = createMiddleware().server(async ({ next, pathname }) => {
@@ -60,9 +60,9 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next, pathn
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("X-Frame-Options", "DENY");
     headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    // camera=(self) — the barcode scanner (src/components/barcode-scanner-dialog.tsx)
+    // camera=(self), the barcode scanner (src/components/barcode-scanner-dialog.tsx)
     // needs getUserMedia video access from this origin; still blocked for any
-    // third-party embed. Everything else here stays fully disabled — genuinely unused.
+    // third-party embed. Everything else here stays fully disabled, genuinely unused.
     headers.set("Permissions-Policy", "camera=(self), microphone=(), geolocation=(), payment=()");
     headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
     headers.set("Content-Security-Policy", CSP);
@@ -74,7 +74,7 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next, pathn
 // file opts out, so re-add it explicitly to keep server functions protected
 // from cross-site requests. This matters even more now that auth is a
 // cookie the browser attaches automatically (see lib/auth/session.server.ts)
-// rather than a token client code had to deliberately attach — without this,
+// rather than a token client code had to deliberately attach, without this,
 // a cookie-based session would be CSRF-exposed.
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",

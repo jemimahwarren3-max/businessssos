@@ -1,9 +1,9 @@
 name: Nightly production backup
 
 # Supabase's free tier ships with zero automated backups (pitr_enabled:
-# false, no scheduled snapshots) — confirmed live via the Management API
+# false, no scheduled snapshots): confirmed live via the Management API
 # against the production project. This is the free substitute: a logical
-# dump (public + auth schemas — auth is included so restored rows keep the
+# dump (public + auth schemas: auth is included so restored rows keep the
 # same user IDs business_members/etc. reference, not just the app's own
 # tables) taken nightly, encrypted, and kept as a workflow artifact for 14
 # days. See docs/disaster-recovery.md for how to actually restore from one.
