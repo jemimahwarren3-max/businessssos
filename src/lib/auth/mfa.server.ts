@@ -29,11 +29,23 @@ export async function getMfaStatus(tokens: SupabaseTokens): Promise<MfaStatus> {
   };
 }
 
+const ADMIN_TOTP_NAME = "Admin authenticator";
+
 export async function enrollTotp(tokens: SupabaseTokens) {
   const client = await createMfaScopedClient(tokens);
+  const { data: factorsData } = await client.auth.mfa.listFactors();
+  const leftovers = (factorsData?.all ?? []).filter(
+    (factor) =>
+      factor.factor_type === "totp" &&
+      factor.status !== "verified" &&
+      (factor.friendly_name === ADMIN_TOTP_NAME || !factor.friendly_name),
+  );
+  for (const factor of leftovers) {
+    await client.auth.mfa.unenroll({ factorId: factor.id });
+  }
   const { data, error } = await client.auth.mfa.enroll({
     factorType: "totp",
-    friendlyName: "Admin authenticator",
+    friendlyName: ADMIN_TOTP_NAME,
   });
   if (error || !data) throw new Error(error?.message ?? "Couldn't start MFA enrollment.");
   // Returned as a data: URI for an <img> tag rather than raw SVG markup —
