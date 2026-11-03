@@ -1,12 +1,13 @@
 import { getRequestIP } from "@tanstack/react-start/server";
-import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
+import type { PostAuthAppPath } from "@/lib/auth/post-auth-destination";
 import {
   completeOAuthCallback,
   resolvePostAuthPathForUser,
 } from "@/lib/auth/oauth-callback.server";
+import { recordLegalAcceptance } from "@/lib/legal-acceptance.server";
 
 export type AuthCallbackResult = {
-  path: "/onboarding" | "/dashboard";
+  path: PostAuthAppPath;
 };
 
 /** Exchange PKCE code and seal session in the current request (OAuth / email confirm). */

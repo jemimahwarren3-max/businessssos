@@ -3,13 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Logo } from "@/components/logo";
 import { BRAND } from "@/lib/brand";
-
-const NAV = [
-  { to: "/stores" as const, label: "Browse stores" },
-  { to: "/templates" as const, label: "Store designs" },
-  { to: "/pricing" as const, label: "Pricing" },
-  { to: "/faq" as const, label: "FAQ" },
-] as const;
+import { MARKETING_NAV } from "@/lib/marketing-nav";
 
 export function MarketingShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -19,7 +13,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between gap-4 px-5">
           <Logo to="/" />
           <nav className="hidden items-center gap-8 text-[15px] md:flex">
-            {NAV.map((item) => (
+            {MARKETING_NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -29,6 +23,13 @@ export function MarketingShell({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            <Link
+              to="/auth"
+              search={{ mode: "signin" }}
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Sign in
+            </Link>
             <Link
               to="/auth"
               search={{ mode: "signup" }}
@@ -48,7 +49,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
         </div>
         {menuOpen ? (
           <div className="border-t px-5 pb-6 pt-3 md:hidden">
-            {NAV.map((item) => (
+            {MARKETING_NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -98,6 +99,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </div>
           <div className="space-y-2 text-sm">
             <p className="font-semibold text-background">Sell</p>
+            <Link to="/auth" search={{ mode: "signin" }} className="block hover:text-background">
+              Sign in
+            </Link>
             <Link to="/auth" search={{ mode: "signup" }} className="block hover:text-background">
               Start a store
             </Link>

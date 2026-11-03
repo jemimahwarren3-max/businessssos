@@ -3,7 +3,7 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CircleAlert, Loader2, Mail } from "lucide-react";
+import { CircleAlert, Eye, EyeOff, Loader2, Mail } from "lucide-react";
 import {
   assertEmailSignUpAllowed,
   establishSessionFromAuthTokens,
@@ -86,6 +86,7 @@ function AuthPage() {
   const sealSessionFn = useServerFn(establishSessionFromAuthTokens);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [busy, setBusy] = useState<null | "email" | "google">(null);
@@ -251,7 +252,7 @@ function AuthPage() {
         provider: "google",
         options: {
           redirectTo: googleOAuthRedirectTo(window.location.origin, {
-            next: "/onboarding",
+            next: mode === "signup" ? "/onboarding" : "/dashboard",
             acceptedTerms: mode === "signup",
           }),
         },
@@ -448,17 +449,32 @@ function AuthPage() {
                           </Link>
                         ) : null}
                       </div>
-                      <Input
-                        id="password"
-                        type="password"
-                        autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                        required
-                        minLength={8}
-                        value={password}
-                        disabled={!emailEnabled}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="At least 8 characters"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                          required
+                          minLength={8}
+                          value={password}
+                          disabled={!emailEnabled}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="At least 8 characters"
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowPassword((visible) => !visible)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="size-4" aria-hidden="true" />
+                          ) : (
+                            <Eye className="size-4" aria-hidden="true" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ) : null}
                   {mode === "signup" ? (
