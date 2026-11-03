@@ -137,8 +137,18 @@ export const STAGING_MIGRATION_MANIFEST = [
     `,
   },
   {
-    // Staging still has the old 7-arg create_business_with_owner. Always drop
-    // it so 5-arg Create shop uniquely matches the current function.
+    file: "20261103080000_onboarding_journey.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'businesses'
+          and column_name = 'setup_completed_at'
+      ) as skip
+    `,
+  },
+  {
+    // After the journey file, drop leftover 5-arg / timezone 7-arg overloads
+    // so Create shop uniquely matches the jsonb signature.
     file: "20261103020000_create_business_unique.sql",
   },
 ];

@@ -45,13 +45,13 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       if (!workspace) {
         throw redirect({ to: "/onboarding", replace: true });
       }
+      if (!workspace.business.setup_completed_at) {
+        throw redirect({ to: "/setup", replace: true });
+      }
     } catch (error) {
       if (isRedirect(error)) throw error;
       // A failed workspace load must not bounce an existing shop back into
       // onboarding. The page shows retry instead.
-    }
-    if (!workspace.business.setup_completed_at) {
-      throw redirect({ to: "/setup", replace: true });
     }
   },
   head: () => ({

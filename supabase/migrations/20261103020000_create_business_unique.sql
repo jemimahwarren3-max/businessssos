@@ -1,8 +1,7 @@
--- Staging still has the old 7-arg create_business_with_owner (timezone/tax_mode)
--- beside the current 5-arg function. Five-arg calls then fail with
--- "function is not unique", so Create shop and master CI never finish, and
--- deploy of shop-load fixes never runs. Drop leftovers by identity so the
--- types match whatever Postgres actually stored.
+-- Staging can keep older create_business_with_owner signatures next to the
+-- current 7-arg function (5 required + business_path + onboarding_config jsonb).
+-- Five-arg calls then fail with "function is not unique". Keep only the jsonb
+-- signature from 20261103080000_onboarding_journey.sql.
 
 do $$
 declare
@@ -14,7 +13,7 @@ begin
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.proname = 'create_business_with_owner'
-      and p.pronargs <> 5
+      and pg_get_function_identity_arguments(p.oid) not like '%jsonb%'
   loop
     execute format(
       'drop function if exists public.create_business_with_owner(%s)',
@@ -28,9 +27,10 @@ begin
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.proname = 'create_business_with_owner'
-      and p.pronargs = 5
+      and p.pronargs = 7
+      and pg_get_function_identity_arguments(p.oid) like '%jsonb%'
   ) then
-    raise exception 'create_business_with_owner 5-arg is missing; apply 20261031163000_create_business_idempotent.sql first';
+    raise exception 'create_business_with_owner jsonb signature is missing; apply 20261103080000_onboarding_journey.sql first';
   end if;
 
   if exists (
@@ -39,12 +39,12 @@ begin
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.proname = 'create_business_with_owner'
-      and p.pronargs <> 5
+      and pg_get_function_identity_arguments(p.oid) not like '%jsonb%'
   ) then
     raise exception 'create_business_with_owner still has a leftover overload';
   end if;
 end
 $$;
 
-revoke all on function public.create_business_with_owner(text, public.business_type, text, text, text) from public, anon;
-grant execute on function public.create_business_with_owner(text, public.business_type, text, text, text) to authenticated;
+revoke all on function public.create_business_with_owner(text, public.business_type, text, text, text, text, jsonb) from public, anon;
+grant execute on function public.create_business_with_owner(text, public.business_type, text, text, text, text, jsonb) to authenticated;

@@ -38,6 +38,7 @@ const FILES = [
   "20261102161000_create_sale_unique.sql",
   "20261102180000_notebook_delivery.sql",
   "20261102210000_whatsapp_channel.sql",
+  "20261103080000_onboarding_journey.sql",
   "20261103020000_create_business_unique.sql",
 ];
 
@@ -83,8 +84,8 @@ describe("staging migration manifest", () => {
       "utf8",
     );
     expect(sql).toContain("pg_get_function_identity_arguments");
-    expect(sql).toContain("p.pronargs <> 5");
-    expect(sql).toContain("p.pronargs = 5");
+    expect(sql).toContain("%jsonb%");
+    expect(sql).toContain("p.pronargs = 7");
     expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
   });
 

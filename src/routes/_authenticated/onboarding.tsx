@@ -36,6 +36,7 @@ import { BRAND } from "@/lib/brand";
 import { readableError } from "@/lib/format";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
+import { ONBOARDING_LOAD_TIMEOUT_MS, onboardingLoadGate } from "@/lib/onboarding-resume";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -99,6 +100,7 @@ function Onboarding() {
   const existingId = workspace.data?.business.id ?? null;
 
   const [step, setStep] = useState(0);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [form, setForm] = useState<CreateBusinessInput>({
     name: "",
     businessType: "grocery",
@@ -135,10 +137,7 @@ function Onboarding() {
   );
 
   const fx = useQuery({ queryKey: ["platform-fx"], queryFn: () => loadFx() });
-  const zigMonthly = useMemo(
-    () => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null),
-    [fx.data],
-  );
+  const zigMonthly = useMemo(() => planAmountZig(PLAN_MONTHLY_USD.pro, fx.data ?? null), [fx.data]);
 
   const steps = getStepsForPath(form.businessPath);
   const totalSteps = steps.length;
@@ -148,6 +147,15 @@ function Onboarding() {
       navigate({ to: "/dashboard", replace: true });
     }
   }, [existingId, workspace.data, navigate]);
+
+  useEffect(() => {
+    if (!workspace.isLoading) {
+      setLoadTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setLoadTimedOut(true), ONBOARDING_LOAD_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [workspace.isLoading]);
 
   useEffect(() => {
     if (workspace.data?.business) {
@@ -194,6 +202,68 @@ function Onboarding() {
     navigate({ to: "/dashboard", replace: true });
   };
 
+  const loadGate = onboardingLoadGate({
+    workspaceLoading: workspace.isLoading,
+    workspaceError: workspace.isError,
+    businessId: existingId,
+    adminLoading: false,
+    hasAdminData: true,
+    adminError: false,
+    timedOut: loadTimedOut,
+  });
+
+  if (loadGate === "spinner") {
+    return (
+      <OnboardingShell step={0} totalSteps={1} stepTitle="Your shop">
+        <OnboardingHeading
+          title="Loading your shop"
+          description="We're picking up where you left off. Your products and settings are still saved."
+        />
+        <Loader2 className="mt-8 size-8 animate-spin text-primary" aria-label="Loading" />
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Button
+            className="rounded-full"
+            variant="outline"
+            onClick={() => {
+              setLoadTimedOut(false);
+              void workspace.refetch();
+            }}
+          >
+            Try again
+          </Button>
+          <Button variant="ghost" className="rounded-full" onClick={() => void exitToDashboard()}>
+            Go to dashboard
+          </Button>
+        </div>
+      </OnboardingShell>
+    );
+  }
+
+  if (loadGate === "workspace-error") {
+    return (
+      <OnboardingShell step={0} totalSteps={1} stepTitle="Your shop">
+        <OnboardingHeading
+          title="We couldn't load your shop"
+          description="Nothing was deleted. This page failed to open your existing shop."
+        />
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button
+            className="rounded-full"
+            onClick={() => {
+              setLoadTimedOut(false);
+              void workspace.refetch();
+            }}
+          >
+            Try again
+          </Button>
+          <Button variant="outline" className="rounded-full" onClick={() => void exitToDashboard()}>
+            Go to dashboard
+          </Button>
+        </div>
+      </OnboardingShell>
+    );
+  }
+
   if (existingId && !workspace.data?.business.setup_completed_at) {
     navigate({ to: "/setup", replace: true });
     return null;
@@ -202,14 +272,6 @@ function Onboarding() {
   if (existingId) {
     navigate({ to: "/dashboard", replace: true });
     return null;
-  }
-
-  if (workspace.isLoading) {
-    return (
-      <OnboardingShell step={0} totalSteps={1} stepTitle="Loading">
-        <Loader2 className="mt-8 size-8 animate-spin text-primary" aria-label="Loading" />
-      </OnboardingShell>
-    );
   }
 
   const canContinue = (() => {
@@ -362,7 +424,10 @@ function Onboarding() {
                   key={type.value}
                   type="button"
                   onClick={() => {
-                    setForm({ ...form, businessType: type.value as CreateBusinessInput["businessType"] });
+                    setForm({
+                      ...form,
+                      businessType: type.value as CreateBusinessInput["businessType"],
+                    });
                     if (type.value === "salon" || type.value === "services") {
                       setConfig({ sellsServices: true, sellsProducts: type.value !== "services" });
                     } else {
@@ -536,8 +601,7 @@ function Onboarding() {
                 </Select>
               </div>
 
-              {form.businessType === "wholesale" ||
-              form.businessType === "grocery" ? (
+              {form.businessType === "wholesale" || form.businessType === "grocery" ? (
                 <div className="space-y-1.5">
                   <Label>Pricing model</Label>
                   <div className="grid grid-cols-3 gap-2">
@@ -610,7 +674,9 @@ function Onboarding() {
                   </label>
                 ))}
                 <label className="flex items-center justify-between rounded-xl border bg-card p-4">
-                  <span className="text-sm font-medium">Do employees help you run the business?</span>
+                  <span className="text-sm font-medium">
+                    Do employees help you run the business?
+                  </span>
                   <input
                     type="checkbox"
                     className="size-5 accent-primary"
@@ -686,19 +752,14 @@ function Onboarding() {
               <div className="flex justify-between gap-4 py-2.5">
                 <dt className="text-sm text-muted-foreground">Plan</dt>
                 <dd className="text-sm font-medium">
-                  {form.businessPath === "full"
-                    ? "Business + online store"
-                    : "Business management"}
+                  {form.businessPath === "full" ? "Business + online store" : "Business management"}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 py-2.5">
                 <dt className="text-sm text-muted-foreground">Payments</dt>
                 <dd className="text-right text-sm font-medium">
                   {config.paymentMethods
-                    .map(
-                      (m) =>
-                        PAYMENT_METHOD_OPTIONS.find((o) => o.value === m)?.label ?? m,
-                    )
+                    .map((m) => PAYMENT_METHOD_OPTIONS.find((o) => o.value === m)?.label ?? m)
                     .join(", ")}
                 </dd>
               </div>
