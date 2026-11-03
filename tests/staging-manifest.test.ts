@@ -82,7 +82,8 @@ describe("staging migration manifest", () => {
       join(process.cwd(), "supabase/migrations", "20261103020000_create_business_unique.sql"),
       "utf8",
     );
-    expect(sql).toContain("drop function if exists public.create_business_with_owner(");
+    expect(sql).toContain("pg_get_function_identity_arguments");
+    expect(sql).toContain("p.pronargs <> 5");
     expect(sql).toContain("p.pronargs = 5");
     expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
   });
