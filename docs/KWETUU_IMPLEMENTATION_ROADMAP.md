@@ -1,7 +1,7 @@
 # Implementation roadmap
 
 **Date:** 2 November 2026  
-**Status:** Stage 4 (Offline income protection) implemented on this branch. Later stages still wait for approval.
+**Status:** Stage 5 (Messaging as a channel) implemented on this branch. Later stages still wait for approval.
 
 Do not implement all 100 items. Each stage below is a shippable slice with migrations, RLS, UI, empty/error states, tests, and a regression pass on POS + checkout.
 
@@ -92,16 +92,28 @@ No application behaviour change.
 - A failed queued sale can be retried one-by-one after the cashier fixes the cause (e.g. opens the drawer).
 - Account → Low-data mode defers product photos until tap.
 
-## Stage 5 — Messaging as a channel (vendor required)
+## Stage 5 — Messaging as a channel (done in this PR)
 
-Only after Meta eligibility and legal:
+**Goal:** Order updates and opted-in shop news can sit on a WhatsApp outbox without lying that Meta sent them.
 
-- `notification_outbox` WhatsApp channel.
-- Opt-in marketing.
-- Order status templates.
-- Still no fake “sent” state.
+**In:**
 
-## Later (do not schedule until Stages 1–4 are used in anger)
+- `notification_outbox.channel = 'whatsapp'` + `to_phone`.
+- Checkout opt-in for transactional WhatsApp order updates.
+- Signed-in marketing list (`shopper_shop_consents.marketing`) and Grow → queue to opted-in numbers.
+- Order status / placed / payment template keys (`kwetuu_order_*` documented; not claimed as Meta-approved).
+- `complete_notification_outbox` refuses WhatsApp `sent` without a provider message id.
+
+**Out:** Meta Groups, Cloud send unless credentials exist, fake sent, POS `wa.me` rewrite.
+
+**Acceptance:**
+
+- Opted-in order updates enqueue as `pending` WhatsApp rows.
+- Without Cloud credentials, flush does not claim or mark them sent.
+- A worker cannot mark WhatsApp sent with an empty provider id.
+- Marketing queue only includes shoppers who opted in.
+
+## Later (do not schedule until Stages 1–5 are used in anger)
 
 Coupons, loyalty, abandoned cart, posters, voice, diaspora, B2B marketplace, peer benchmarks, academy, Shona/Ndebele, branch transfers, product variants/bundles, EcoCash/InnBucks APIs.
 
@@ -119,4 +131,4 @@ Copied from the brief; this is the bar:
 
 ## Decision needed
 
-Stage 1–4 are implemented. Approve **Stage 5 — Messaging as a channel** only after Meta eligibility and legal; do not start it from this slice.
+Stage 1–5 are implemented. Later items wait until these slices are used in anger. WhatsApp Cloud still needs Meta eligibility, approved templates, and a DPA before anyone should treat queued rows as delivered.

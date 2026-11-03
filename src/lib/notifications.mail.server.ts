@@ -176,6 +176,7 @@ export async function flushNotificationOutboxForBusiness(
     const result = await untypedRpc(supabase, "claim_notification_outbox", {
       _business_id: businessId,
       _limit: 15,
+      _channel: "email",
     });
     if (result.error) {
       console.error("[businessos] claim notification outbox", result.error);
@@ -215,6 +216,7 @@ export async function flushNotificationOutboxAdmin(): Promise<FlushMailResult> {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const result = await untypedRpc(supabaseAdmin, "claim_notification_outbox_admin", {
       _limit: 25,
+      _channel: "email",
     });
     if (result.error) {
       console.error("[businessos] admin notification claim", result.error);
