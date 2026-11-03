@@ -1,0 +1,9 @@
+name = "kwetuu-shop-proxy"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Route: all subdomain traffic except apex and www
+# Deploy: npx wrangler deploy  (from this directory)
+routes = [
+  { pattern = "*.mykwetuu.com/*", zone_name = "mykwetuu.com" }
+]

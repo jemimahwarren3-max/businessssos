@@ -6,6 +6,7 @@ import {
   configuredPlatformRoot,
   publicStoreRedirect,
   shopHostsEnabled,
+  storeSlugFromHostname,
 } from "./lib/storefront/host";
 import { assertProductionRuntimeEnv } from "./lib/runtime-env.server";
 import { initSentry } from "./lib/monitoring/sentry";
@@ -189,7 +190,23 @@ export default {
       return handlePaynowWebhook(request);
     }
 
+    // Cloudflare Worker proxies *.mykwetuu.com → mykwetuu.com and passes the
+    // original subdomain hostname in X-Forwarded-Host. Restore it so the
+    // app's existing subdomain routing (redirect check + router rewrite) works.
     const platform = configuredPlatformRoot();
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    if (forwardedHost && platform) {
+      const slug = storeSlugFromHostname(forwardedHost, platform.hostname);
+      if (slug) {
+        url.hostname = forwardedHost;
+        request = new Request(url.toString(), {
+          method: request.method,
+          headers: request.headers,
+          body: request.body,
+        });
+      }
+    }
+
     if (platform && (request.method === "GET" || request.method === "HEAD")) {
       const target = publicStoreRedirect(url, platform, shopHostsEnabled());
       if (target) return Response.redirect(target, 308);
