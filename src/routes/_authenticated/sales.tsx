@@ -1149,7 +1149,7 @@ function Sales() {
             <div className="space-y-2 border-t border-border pt-3">
               <h3 className="text-sm font-semibold">These sales need you ({failedList.length})</h3>
               <p className="text-[12px] text-muted-foreground">
-                They stayed on this device. Retry after you fix the problem — no developer needed.
+                They stayed on this device. Retry after you fix the problem. No developer needed.
               </p>
               <ul className="space-y-1.5">
                 {failedList.map((sale) => (

@@ -42,7 +42,7 @@ function OnlineOrdersPage() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Orders & fulfilment"
-      subtitle="Online shop orders — confirm payment, prepare, dispatch, or mark collected."
+      subtitle="Online shop orders. Confirm payment, prepare, dispatch, or mark collected."
       actions={
         <Button asChild variant="outline" size="sm">
           <Link to="/storefront">My Online Store</Link>

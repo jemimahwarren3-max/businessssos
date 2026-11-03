@@ -576,7 +576,7 @@ export function OnlineOrdersFulfilmentPanel({
           <ul className="mt-3 space-y-1 text-muted-foreground">
             {selectedOrder.events.map((event) => (
               <li key={event.createdAt + event.eventType}>
-                {friendlyDateTime(event.createdAt)} — {event.message}
+                {friendlyDateTime(event.createdAt)}: {event.message}
               </li>
             ))}
           </ul>

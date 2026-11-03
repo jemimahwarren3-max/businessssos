@@ -58,7 +58,7 @@ export function StoreLaunchReadiness({
     },
     onSuccess: (result) => {
       if (result.status === "paid") {
-        toast.success("Launch fee verified — you can publish when ready.");
+        toast.success("Launch fee verified. You can publish when ready.");
       } else if (result.status === "failed") {
         toast.error("Payment verification failed. Start a new payment or contact support.");
       } else {

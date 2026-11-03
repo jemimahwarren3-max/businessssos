@@ -28,7 +28,7 @@ export function PublishedShopCard({ shop }: { shop: Shop }) {
         {shop.verified ? (
           <p className="mt-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">Verified on Kwetuu</span>
-            {" — "}has a verified-purchase review. Not a government licence.
+            {" - "}has a verified-purchase review. Not a government licence.
           </p>
         ) : null}
       </div>

@@ -377,7 +377,7 @@ function LayByPage() {
                         onClick={() => {
                           if (
                             confirm(
-                              "Cancel this lay-by? Money already taken becomes a held deposit — it is not refunded automatically.",
+                              "Cancel this lay-by? Money already taken becomes a held deposit. It is not refunded automatically.",
                             )
                           ) {
                             cancelMutation.mutate(row.id);
@@ -609,7 +609,7 @@ function LayByPage() {
             <DialogTitle>Apply a deposit</DialogTitle>
             <DialogDescription>
               Apply to the credit book, or to an open lay-by for the same customer. Money was
-              already taken — this does not post cash again.
+              already taken. This does not post cash again.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">

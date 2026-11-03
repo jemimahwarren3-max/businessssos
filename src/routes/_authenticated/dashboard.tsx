@@ -212,7 +212,7 @@ function Dashboard() {
                 Your AI business briefing
               </h2>
               <p className="text-[13px] text-muted-foreground">
-                Optional. Sales numbers above come from your books — this only runs when you ask.
+                Optional. Sales numbers above come from your books. This only runs when you ask.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
