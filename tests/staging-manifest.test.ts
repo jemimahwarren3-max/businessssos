@@ -78,6 +78,15 @@ describe("staging migration manifest", () => {
     expect(sql).not.toMatch(/Meta Groups/i);
   });
 
+  it("installs onboarding journey then keeps only the jsonb Create shop RPC", () => {
+    const journey = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261103080000_onboarding_journey.sql"),
+      "utf8",
+    );
+    expect(journey).toContain("setup_completed_at");
+    expect(journey).toContain("_onboarding_config jsonb");
+  });
+
   it("drops leftover 7-arg create_business_with_owner so Create shop is unique", () => {
     const sql = readFileSync(
       join(process.cwd(), "supabase/migrations", "20261103020000_create_business_unique.sql"),

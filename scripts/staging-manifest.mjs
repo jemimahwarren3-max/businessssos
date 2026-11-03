@@ -137,14 +137,9 @@ export const STAGING_MIGRATION_MANIFEST = [
     `,
   },
   {
+    // Always re-apply: ADD COLUMN IF NOT EXISTS + CREATE OR REPLACE. Skipping
+    // on setup_completed_at left staging without the jsonb Create shop RPC.
     file: "20261103080000_onboarding_journey.sql",
-    skipIf: `
-      select exists (
-        select 1 from information_schema.columns
-        where table_schema = 'public' and table_name = 'businesses'
-          and column_name = 'setup_completed_at'
-      ) as skip
-    `,
   },
   {
     // After the journey file, drop leftover 5-arg / timezone 7-arg overloads
