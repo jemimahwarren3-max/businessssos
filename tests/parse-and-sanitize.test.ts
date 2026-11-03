@@ -11,7 +11,10 @@ describe("parseAndSanitize", () => {
       phone: "",
       address: "",
     };
-    expect(parseAndSanitize(createBusinessSchema, { data: inner })).toEqual(inner);
+    const result = parseAndSanitize(createBusinessSchema, { data: inner });
+    expect(result).toMatchObject(inner);
+    expect(result).toHaveProperty("businessPath", "management");
+    expect(result).toHaveProperty("onboardingConfig");
   });
 
   it("throws a plain Error (not ZodError) on invalid input", () => {

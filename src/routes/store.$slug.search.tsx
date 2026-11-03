@@ -34,7 +34,7 @@ function SearchPage() {
         className="mx-auto flex max-w-6xl gap-2 px-4 pt-6"
         onSubmit={(event) => {
           event.preventDefault();
-          void navigate({ search: (prev) => ({ ...prev, q: value }) });
+          void navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, q: value }) });
         }}
       >
         <label className="sr-only" htmlFor="store-search">

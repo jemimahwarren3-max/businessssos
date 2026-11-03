@@ -258,32 +258,56 @@ export type Database = {
       business_settings: {
         Row: {
           allow_negative_stock: boolean;
+          allows_credit: boolean;
+          allows_layby: boolean;
           business_id: string;
           created_at: string;
           invoice_notes: string | null;
           invoice_terms: string | null;
           low_stock_threshold: number;
+          offers_collection: boolean;
+          offers_delivery: boolean;
+          payment_methods: string[];
+          pricing_model: string;
           receipt_footer: string | null;
+          sells_services: boolean;
+          tracks_stock: boolean;
           updated_at: string;
         };
         Insert: {
           allow_negative_stock?: boolean;
+          allows_credit?: boolean;
+          allows_layby?: boolean;
           business_id: string;
           created_at?: string;
           invoice_notes?: string | null;
           invoice_terms?: string | null;
           low_stock_threshold?: number;
+          offers_collection?: boolean;
+          offers_delivery?: boolean;
+          payment_methods?: string[];
+          pricing_model?: string;
           receipt_footer?: string | null;
+          sells_services?: boolean;
+          tracks_stock?: boolean;
           updated_at?: string;
         };
         Update: {
           allow_negative_stock?: boolean;
+          allows_credit?: boolean;
+          allows_layby?: boolean;
           business_id?: string;
           created_at?: string;
           invoice_notes?: string | null;
           invoice_terms?: string | null;
           low_stock_threshold?: number;
+          offers_collection?: boolean;
+          offers_delivery?: boolean;
+          payment_methods?: string[];
+          pricing_model?: string;
           receipt_footer?: string | null;
+          sells_services?: boolean;
+          tracks_stock?: boolean;
           updated_at?: string;
         };
         Relationships: [
@@ -299,6 +323,7 @@ export type Database = {
       businesses: {
         Row: {
           address: string | null;
+          business_path: string;
           business_type: Database["public"]["Enums"]["business_type"];
           created_at: string;
           created_by: string;
@@ -310,14 +335,18 @@ export type Database = {
           logo_url: string | null;
           name: string;
           onboarding_completed: boolean;
+          onboarding_config: Json;
           phone: string | null;
           quote_prefix: string;
+          setup_completed_at: string | null;
           staff_code: string | null;
           staff_password_hash: string | null;
+          storefront_enabled: boolean;
           updated_at: string;
         };
         Insert: {
           address?: string | null;
+          business_path?: string;
           business_type?: Database["public"]["Enums"]["business_type"];
           created_at?: string;
           created_by: string;
@@ -329,14 +358,18 @@ export type Database = {
           logo_url?: string | null;
           name: string;
           onboarding_completed?: boolean;
+          onboarding_config?: Json;
           phone?: string | null;
           quote_prefix?: string;
+          setup_completed_at?: string | null;
           staff_code?: string | null;
           staff_password_hash?: string | null;
+          storefront_enabled?: boolean;
           updated_at?: string;
         };
         Update: {
           address?: string | null;
+          business_path?: string;
           business_type?: Database["public"]["Enums"]["business_type"];
           created_at?: string;
           created_by?: string;
@@ -348,10 +381,13 @@ export type Database = {
           logo_url?: string | null;
           name?: string;
           onboarding_completed?: boolean;
+          onboarding_config?: Json;
           phone?: string | null;
           quote_prefix?: string;
+          setup_completed_at?: string | null;
           staff_code?: string | null;
           staff_password_hash?: string | null;
+          storefront_enabled?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -2572,9 +2608,11 @@ export type Database = {
       create_business_with_owner: {
         Args: {
           _address: string;
+          _business_path?: string;
           _business_type: Database["public"]["Enums"]["business_type"];
           _currency: string;
           _name: string;
+          _onboarding_config?: Json;
           _phone: string;
         };
         Returns: string;
@@ -2873,6 +2911,26 @@ export type Database = {
       };
       has_permission: { Args: { _business_id: string; _permission: string }; Returns: boolean };
       get_my_permissions: { Args: { _business_id: string }; Returns: string[] };
+      get_setup_progress: { Args: { _business_id: string }; Returns: Json };
+      mark_setup_complete: { Args: { _business_id: string }; Returns: undefined };
+      save_onboarding_config: {
+        Args: { _business_id: string; _config: Json };
+        Returns: undefined;
+      };
+      save_onboarding_settings: {
+        Args: {
+          _business_id: string;
+          _payment_methods?: string[];
+          _allows_credit?: boolean;
+          _allows_layby?: boolean;
+          _tracks_stock?: boolean;
+          _sells_services?: boolean;
+          _pricing_model?: string;
+          _offers_delivery?: boolean;
+          _offers_collection?: boolean;
+        };
+        Returns: undefined;
+      };
       set_role_permission: {
         Args: {
           _business_id: string;
