@@ -76,6 +76,10 @@ function createSupabaseClient() {
       storage: authStorage,
       persistSession: true,
       autoRefreshToken: false,
+      // Recovery/confirm links put tokens in the hash. If the SDK swallows
+      // them into ephemeral memory, /auth/recover never sees them and the
+      // httpOnly server session is never sealed.
+      detectSessionInUrl: false,
     },
   });
 }
