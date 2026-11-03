@@ -55,6 +55,23 @@ export async function enrollTotp(tokens: SupabaseTokens) {
 export function totpQrSrc(qrCode: string): string {
   const raw = qrCode.trim();
   if (!raw) return "";
+
+  const svgPayload = raw.match(/^data:image\/svg\+xml(?:;[^,]*)?,([\s\S]*)$/i);
+  if (svgPayload) {
+    const header = raw.slice(0, raw.indexOf(",") + 1).toLowerCase();
+    if (header.includes("base64")) return raw;
+    let svg = svgPayload[1];
+    try {
+      svg = decodeURIComponent(svg);
+    } catch {
+      // already raw SVG
+    }
+    if (svg.startsWith("<")) {
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+    return raw;
+  }
+
   if (/^data:/i.test(raw)) return raw;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(raw)}`;
 }
@@ -71,7 +88,7 @@ export async function verifyTotpEnrollment(tokens: SupabaseTokens, factorId: str
   const { data, error } = await client.auth.mfa.verify({
     factorId,
     challengeId: challenge.id,
-    code,
+    code: code.replace(/\s/g, ""),
   });
   if (error || !data) throw new Error(error?.message ?? "That code didn't work. Try again.");
   return { accessToken: data.access_token, refreshToken: data.refresh_token };
