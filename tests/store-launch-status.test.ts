@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildLaunchSteps,
   deriveStoreLaunchDisplay,
+  launchHashHasPageTarget,
+  LAUNCH_PUBLISH_HASH,
   storeBuilderTabFromHash,
 } from "@/lib/storefront/launch-status";
 
@@ -61,9 +63,20 @@ describe("buildLaunchSteps", () => {
       "/notifications",
       "/storefront",
     ]);
-    expect(steps.find((step) => step.id === "launch")?.hash).toBe("launch-publish");
+    expect(steps.find((step) => step.id === "launch")?.hash).toBe(LAUNCH_PUBLISH_HASH);
     expect(steps.find((step) => step.id === "design")?.hash).toBe("launch-design");
     expect(steps.find((step) => step.id === "notifications")?.hash).toBeUndefined();
+  });
+
+  it("maps every storefront launch-card hash to a builder tab or the publish section", () => {
+    const steps = buildLaunchSteps(emptyChecklist, { notificationsConfigured: false });
+    for (const step of steps) {
+      if (step.to !== "/storefront") {
+        expect(step.hash).toBeUndefined();
+        continue;
+      }
+      expect(launchHashHasPageTarget(step.hash)).toBe(true);
+    }
   });
 });
 

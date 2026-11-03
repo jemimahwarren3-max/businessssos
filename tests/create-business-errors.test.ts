@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isMissingDbFunction, userFacingDbMessage } from "@/lib/business.server";
+import {
+  isMissingDbFunction,
+  SCHEMA_DRIFT_USER_MESSAGE,
+  userFacingDbMessage,
+} from "@/lib/business.server";
 import { readableError } from "@/lib/format";
 
 describe("userFacingDbMessage", () => {
@@ -47,7 +51,9 @@ describe("userFacingDbMessage", () => {
         message:
           "Could not find the function public.create_business_with_owner in the schema cache",
       }),
-    ).toBe("Shop setup is out of date. Wait a minute and try again.");
+    ).toBe(SCHEMA_DRIFT_USER_MESSAGE);
+    expect(SCHEMA_DRIFT_USER_MESSAGE).toMatch(/not a problem with your form/i);
+    expect(SCHEMA_DRIFT_USER_MESSAGE).toMatch(/do not create a second shop/i);
   });
 
   it("maps a missing create_product _category_id overload to the same toast", () => {
@@ -57,7 +63,7 @@ describe("userFacingDbMessage", () => {
         message:
           "Could not find the function public.create_product with parameter _category_id in the schema cache",
       }),
-    ).toBe("Shop setup is out of date. Wait a minute and try again.");
+    ).toBe(SCHEMA_DRIFT_USER_MESSAGE);
   });
 
   it("passes through store-design and cover-image RPC copy", () => {

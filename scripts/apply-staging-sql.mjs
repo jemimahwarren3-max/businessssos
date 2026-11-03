@@ -15,13 +15,19 @@ import {
   STAGING_PROJECT_REF,
   getAccessToken,
   getStagingRef,
+  missingStagingTokenAction,
   runStagingSql,
 } from "./staging-api.mjs";
 
 const token = getAccessToken();
 getStagingRef();
 
-if (!token) {
+const tokenAction = missingStagingTokenAction(token);
+if (tokenAction === "fail") {
+  console.error("SUPABASE_ACCESS_TOKEN is required to apply staging SQL on this run.");
+  process.exit(1);
+}
+if (tokenAction === "skip") {
   console.log("SUPABASE_ACCESS_TOKEN is empty — skipping staging SQL.");
   process.exit(0);
 }

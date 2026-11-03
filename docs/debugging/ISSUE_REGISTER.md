@@ -40,7 +40,7 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Root cause:** Same component on dashboard and storefront; hashes assumed in-page targets.
 - **Affected files:** `src/lib/storefront/launch-status.ts`, `src/components/storefront/store-launch-centre.tsx`, `src/components/storefront/store-builder.tsx`, `src/components/storefront/store-launch-readiness.tsx`, `src/routes/_authenticated/storefront.tsx`
 - **Proposed fix:** Each step is a TanStack `Link` to `/storefront` (or `/notifications`) with a hash. Add missing ids. Open the matching builder tab before scrolling.
-- **Verification test:** `tests/store-launch-status.test.ts` — steps `to` `/storefront` with hashes; tab map for each hash.
+- **Verification test:** `tests/store-launch-status.test.ts` — steps `to` `/storefront` with hashes; every storefront hash maps to a builder tab or `#launch-publish`.
 - **Status:** In progress (repair branch)
 
 ### KW-002 — Production schema is not applied by deploy
@@ -50,9 +50,9 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Description:** Cloud Run deploys Node from `master`. Staging receives `scripts/apply-staging-sql.mjs`. Production (`maidxfntfpnkcqnuhozo`) is explicitly **not** in that path. New RPCs (`create_sale` 10-arg, onboarding journey, WhatsApp complete-outbox, feature flags) can exist in git and staging while production still has older overloads. This is the same failure class as leftover `create_business_with_owner` signatures and “couldn’t load your shop”.
 - **Root cause:** Deliberate safety rail (do not auto-migrate production) without a compensating **schema-diff gate**.
 - **Affected files:** `scripts/apply-staging-sql.mjs`, `scripts/staging-manifest.mjs`, `.github/workflows/ci.yml`, `supabase/config.toml`, `CONTRIBUTING.md`
-- **Proposed fix:** Read-only production schema probe (function signatures, readiness checks) that **fails the deploy job** when drift is detected. Do **not** auto-apply production SQL in this batch.
-- **Verification test:** Probe script against a fixture of missing `get_setup_progress` / wrong `create_sale` arity fails CI.
-- **Status:** Open (approval) — any later apply to production needs a separate go-ahead
+- **Proposed fix:** Read-only production schema probe (function signatures, readiness checks) that **fails the deploy job** when drift is detected. Do **not** auto-apply production SQL in this batch. Staging now probes unique `create_sale` `_tenders`, unique jsonb `create_business_with_owner`, and `setup_completed_at`.
+- **Verification test:** `STAGING_READINESS_CHECKS` includes those ids. Production apply still needs a separate go-ahead.
+- **Status:** In progress (repair branch) for staging probes; production apply still Open (ops)
 - **DB change:** Probe only unless approved
 - **External dependency:** Production Management API or SQL access (operator)
 
@@ -63,9 +63,9 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Description:** `.github/workflows/ci.yml` uses `concurrency.group: staging-ci-${{ github.repository }}` with `cancel-in-progress: true`. Any new PR or push cancels **every** in-flight CI run in the repo, including `master` after merge. GitHub history: PR #114’s master run was **cancelled**; #116 failed; only #115 later succeeded.
 - **Root cause:** Shared concurrency key chosen for staging-SQL serialisation, applied to the whole workflow including deploy.
 - **Affected files:** `.github/workflows/ci.yml`
-- **Proposed fix:** Split groups: `ci-${{ github.ref }}` for `check`/`e2e`; a **single** `staging-sql` job group if SQL must stay serial; never cancel `master`/`main` deploy. Request approval — this changes queue behaviour for every PR.
-- **Verification test:** Two concurrent PR pushes do not cancel a running `master` workflow.
-- **Status:** Open (approval)
+- **Proposed fix:** Split groups: `ci-${{ github.workflow }}-${{ github.ref }}` for `check`/`e2e`; never cancel `master`/`main` deploy. Staging SQL stays CREATE OR REPLACE / IF NOT EXISTS (last-writer-wins).
+- **Verification test:** Workflow YAML uses per-ref concurrency; `cancel-in-progress` is false on master/main.
+- **Status:** In progress (repair branch)
 
 ### KW-004 — CI can go green without staging SQL or integration tests
 
@@ -74,9 +74,9 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Description:** `apply-staging-sql.mjs` exits 0 when `SUPABASE_ACCESS_TOKEN` is empty. `describeStaging` then skips 71 integration tests. `check` still passes and `deploy` can run. E2E is `continue-on-error: true`. `workflow_dispatch` on `deploy-cloud-run.yml` skips `needs: check` entirely.
 - **Root cause:** Convenience defaults treated as success.
 - **Affected files:** `scripts/apply-staging-sql.mjs`, `tests/integration/helpers.ts`, `.github/workflows/ci.yml`, `.github/workflows/deploy-cloud-run.yml`
-- **Proposed fix:** On `master`/`main` push, missing token **fails** `check`. Keep skip-on-PR-from-fork if required. Document that manual Cloud Run dispatch is an emergency break-glass.
-- **Verification test:** CI job with empty token on a simulated master push fails.
-- **Status:** Open (approval) — changes CI contract
+- **Proposed fix:** On `master`/`main` push, missing token **fails** `check` (`REQUIRE_STAGING_SQL`). Keep skip-on-PR-from-fork. Manual Cloud Run dispatch remains break-glass.
+- **Verification test:** `tests/staging-sql-gate.test.ts` — empty token + required flag → `fail`; PR without token → `skip`.
+- **Status:** In progress (repair branch)
 
 ### KW-005 — Mail/WhatsApp flush cron cannot parse the API response
 
@@ -131,8 +131,8 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 - **Description:** `create_business_with_owner` sets `onboarding_completed = true` immediately. `setup_completed_at` stays null until `/setup` skip or complete. `destinationAfterAuth` only reads the first flag → `/dashboard`, which then redirects to `/setup`. Legacy rows with `onboarding_completed = false` always go to `/onboarding` even if setup is done. Staff login always goes to `/dashboard`.
 - **Root cause:** Journey rewrite added a second flag without updating post-auth.
 - **Affected files:** `src/lib/auth/post-auth-destination.ts`, `src/lib/auth/oauth-callback.server.ts`, `src/routes/staff-login.tsx`, `src/routes/_authenticated/dashboard.tsx`, `supabase/migrations/20261103080000_onboarding_journey.sql`
-- **Proposed fix:** Single function: no membership → onboarding; membership + no `setup_completed_at` → `/setup`; else `/dashboard`. Keep both columns; stop using them for different decisions.
-- **Verification test:** Extend `tests/post-auth-destination.test.ts`.
+- **Proposed fix:** Single function: no membership → onboarding; membership + no `setup_completed_at` → `/setup`; else `/dashboard`. Keep both columns; stop using them for different decisions. `/onboarding` `beforeLoad` redirects existing shops; workspace load errors never dump owners into create-shop.
+- **Verification test:** `tests/post-auth-destination.test.ts` (`shouldSendToCreateShop`, `onboardingPageDestination`).
 - **Status:** In progress (repair branch)
 
 ### KW-014 — Financial reads are not permission-gated
@@ -316,27 +316,27 @@ No issue is marked Fixed in this register — Stage 4 has not started.
 
 ## Retired items (previous register)
 
-| Old ID | Outcome |
-| ------ | ------- |
-| ISS-001 implicit any on market/store routes | Types are present on current `market.tsx`. Not reopened unless `tsc` fails in repair CI. |
-| ISS-002 “zero tests” | **False.** 67 unit + 18 integration + 2 e2e files exist. |
-| ISS-003 dashboard `/setup` redirect | **Implemented** in `dashboard.tsx` `beforeLoad` + client effect. |
-| ISS-004 Resend config | Folded into KW-016. |
-| ISS-005 `auth.role()` | KW-031. |
-| ISS-006 console.error density | Not an issue. |
-| ISS-007 trial POS block | KW-028. |
-| ISS-008 journey SQL not on staging | Manifest **always** applies `20261103080000_onboarding_journey.sql`. Staging apply still unverified this pass. |
+| Old ID                                      | Outcome                                                                                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| ISS-001 implicit any on market/store routes | Types are present on current `market.tsx`. Not reopened unless `tsc` fails in repair CI.                       |
+| ISS-002 “zero tests”                        | **False.** 67 unit + 18 integration + 2 e2e files exist.                                                       |
+| ISS-003 dashboard `/setup` redirect         | **Implemented** in `dashboard.tsx` `beforeLoad` + client effect.                                               |
+| ISS-004 Resend config                       | Folded into KW-016.                                                                                            |
+| ISS-005 `auth.role()`                       | KW-031.                                                                                                        |
+| ISS-006 console.error density               | Not an issue.                                                                                                  |
+| ISS-007 trial POS block                     | KW-028.                                                                                                        |
+| ISS-008 journey SQL not on staging          | Manifest **always** applies `20261103080000_onboarding_journey.sql`. Staging apply still unverified this pass. |
 
 ---
 
 ## Summary counts
 
-| Severity | Count | IDs |
-| -------- | ----- | --- |
-| P0 | 1 | KW-001 |
-| P1 | 12 | KW-002–KW-005, KW-010–KW-016 |
-| P2 | 9 | KW-020–KW-028 |
-| P3 | 6 | KW-030–KW-035 |
-| **Open total** | **28** | |
+| Severity       | Count  | IDs                          |
+| -------------- | ------ | ---------------------------- |
+| P0             | 1      | KW-001                       |
+| P1             | 12     | KW-002–KW-005, KW-010–KW-016 |
+| P2             | 9      | KW-020–KW-028                |
+| P3             | 6      | KW-030–KW-035                |
+| **Open total** | **28** |                              |
 
 Cross-tenant **write** isolation was not shown broken in code review. KW-001 is the confirmed cross-tenant **read** hole.

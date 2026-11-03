@@ -1,6 +1,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+// @ts-expect-error staging-manifest.mjs is plain Node ESM
+import { STAGING_READINESS_CHECKS } from "../scripts/staging-manifest.mjs";
 
 // Keep manifest paths in sync with scripts/staging-manifest.mjs (duplicated list for vitest).
 const FILES = [
@@ -107,6 +109,18 @@ describe("staging migration manifest", () => {
     expect(sql).toContain("%jsonb%");
     expect(sql).toContain("p.pronargs = 7");
     expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
+  });
+
+  it("probes the schema-drift signatures that looked like frontend bugs", () => {
+    const ids = STAGING_READINESS_CHECKS.map((check: { id: string }) => check.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "create_sale_tenders",
+        "create_business_with_owner_unique",
+        "setup_completed_at",
+        "get_setup_progress_member",
+      ]),
+    );
   });
 
   it("installs a save_storefront wrapper that accepts food-counter", () => {

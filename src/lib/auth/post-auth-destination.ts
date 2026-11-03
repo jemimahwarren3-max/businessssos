@@ -35,3 +35,28 @@ export function applyOAuthNext(
   if (next === destination) return destination;
   return destination;
 }
+
+/**
+ * Create-shop (`/onboarding`) is only for people with no membership.
+ * A failed or in-flight workspace load is not "no shop".
+ */
+export function shouldSendToCreateShop(input: {
+  isLoading: boolean;
+  isError: boolean;
+  workspace: unknown | null | undefined;
+}): boolean {
+  if (input.isLoading || input.isError) return false;
+  return input.workspace == null;
+}
+
+/**
+ * Where `/onboarding` should send an already-loaded workspace.
+ * `null` means stay and show the create-shop wizard (no shop yet).
+ */
+export function onboardingPageDestination(input: {
+  hasMembership: boolean;
+  setupCompleted: boolean | null;
+}): "/setup" | "/dashboard" | null {
+  if (!input.hasMembership) return null;
+  return input.setupCompleted === true ? "/dashboard" : "/setup";
+}

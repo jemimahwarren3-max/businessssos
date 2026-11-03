@@ -91,9 +91,19 @@ export const STORE_BUILDER_TAB_BY_HASH: Record<string, string> = {
   "launch-fulfilment": "info",
 };
 
+/** Scroll target on `/storefront` for the review-and-publish step (not a builder tab). */
+export const LAUNCH_PUBLISH_HASH = "launch-publish";
+
 export function storeBuilderTabFromHash(hash: string | undefined | null): string | null {
   const id = (hash ?? "").replace(/^#/, "");
   return STORE_BUILDER_TAB_BY_HASH[id] ?? null;
+}
+
+/** True when a dashboard launch-card hash has a real target on `/storefront`. */
+export function launchHashHasPageTarget(hash: string | undefined | null): boolean {
+  const id = (hash ?? "").replace(/^#/, "");
+  if (!id) return false;
+  return id === LAUNCH_PUBLISH_HASH || storeBuilderTabFromHash(id) != null;
 }
 
 export function buildLaunchSteps(

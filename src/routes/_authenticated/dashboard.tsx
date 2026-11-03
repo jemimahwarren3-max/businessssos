@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
+import { shouldSendToCreateShop } from "@/lib/auth/post-auth-destination";
 import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
 import { DailyTakingsList } from "@/components/daily-takings";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
@@ -105,12 +106,18 @@ function Dashboard() {
     hasPermission(workspace.data, "reports.financial") && hasPermission(workspace.data, "ai.use");
 
   useEffect(() => {
-    if (!workspace.isLoading && workspace.data === null) {
+    if (
+      shouldSendToCreateShop({
+        isLoading: workspace.isLoading,
+        isError: workspace.isError,
+        workspace: workspace.data,
+      })
+    ) {
       navigate({ to: "/onboarding", replace: true });
     } else if (workspace.data && !workspace.data.business.setup_completed_at) {
       navigate({ to: "/setup", replace: true });
     }
-  }, [workspace.isLoading, workspace.data, navigate]);
+  }, [workspace.isLoading, workspace.isError, workspace.data, navigate]);
 
   const dashboard = useQuery({
     queryKey: ["dashboard", businessId, range],
@@ -142,15 +149,12 @@ function Dashboard() {
       <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
         <h1 className="text-2xl font-semibold">We couldn't open your dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Nothing was deleted. Try again, or open shop setup if you still need to finish creating
-          your store.
+          Nothing was deleted. This is a load error, not a missing shop. Try again — do not create a
+          second store.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button className="rounded-full" onClick={() => void workspace.refetch()}>
             Try again
-          </Button>
-          <Button asChild variant="outline" className="rounded-full">
-            <Link to="/onboarding">Open shop setup</Link>
           </Button>
         </div>
       </div>

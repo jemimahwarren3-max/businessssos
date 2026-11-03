@@ -38,7 +38,7 @@ KW-014 (report permissions)
 **Issues:** KW-001  
 **Risk:** Low — additive `CREATE OR REPLACE` + Node `assertMember`  
 **Destructive?** No  
-**Approval:** Authorised as a clear, non-destructive bug once Stage 4 is approved  
+**Approval:** Authorised as a clear, non-destructive bug once Stage 4 is approved
 
 1. New migration `YYYYMMDDHHMMSS_get_setup_progress_member.sql`:
    - Replace `get_setup_progress` with the same JSON shape.
@@ -58,7 +58,7 @@ KW-014 (report permissions)
 ## Batch 2 — Make mail flush and CI tell the truth
 
 **Issues:** KW-005 (code), KW-003 / KW-004 (approval)  
-**Risk:** Low for parser; medium for CI contract  
+**Risk:** Low for parser; medium for CI contract
 
 ### 2a — no extra approval
 
@@ -67,20 +67,20 @@ KW-014 (report permissions)
 3. Fail on HTTP 401 or `failed > 0`.
 4. Fixture test for the parser or a documented example JSON in `tests/`.
 
-### 2b — needs approval
+### 2b — implemented on the repair branch (KW-003 / KW-004)
 
-1. CI concurrency: do not cancel `master`/`main`. Prefer `ci-${{ github.workflow }}-${{ github.ref }}`.
-2. On push to `master`/`main`, missing `SUPABASE_ACCESS_TOKEN` fails `check`.
-3. Leave `workflow_dispatch` deploy as break-glass; document it.
+1. CI concurrency: `github.workflow` + `github.ref`. Do not cancel `master`/`main`.
+2. On push to `master`/`main`, missing `SUPABASE_ACCESS_TOKEN` fails `check` (`REQUIRE_STAGING_SQL`).
+3. Leave `workflow_dispatch` deploy as break-glass.
 
-**Regression:** Staging SQL still serial if we keep a dedicated `staging-sql` group. Unit tests still run on PRs without a token.
+**Regression:** Staging SQL is last-writer-wins CREATE OR REPLACE. Unit tests still run on PRs without a token. Production SQL is still not auto-applied.
 
 ---
 
 ## Batch 3 — Auth and onboarding decisions use one rule
 
 **Issues:** KW-010, KW-011, KW-012, KW-013, KW-015, KW-023  
-**Risk:** Medium — redirect behaviour for every login  
+**Risk:** Medium — redirect behaviour for every login
 
 1. Extend `destinationAfterAuth` to accept `setupCompletedAt` + membership.
    - no shop → `/onboarding`
@@ -103,7 +103,7 @@ KW-014 (report permissions)
 ## Batch 4 — Staff cannot read finances through the API
 
 **Issues:** KW-014  
-**Risk:** Medium — cashiers who bookmarked `/reports` will get a denied error  
+**Risk:** Medium — cashiers who bookmarked `/reports` will get a denied error
 
 1. `assertPermission(..., 'reports.financial')` in `loadReports` and `getReports`.
 2. `assertPermission` for expense **list** (`expenses.view` if it exists, else `reports.financial`). Confirm the key in `granular_permissions` before inventing one.
@@ -118,7 +118,7 @@ KW-014 (report permissions)
 
 **Issues:** KW-002  
 **Risk:** Low if read-only  
-**Approval:** Required (production access)  
+**Approval:** Required (production access)
 
 1. Script that lists critical function signatures (`create_sale`, `create_business_with_owner`, `get_setup_progress`, `get_business_feature_flags`, `complete_notification_outbox`).
 2. Compare to expected arities from git.
@@ -132,7 +132,7 @@ KW-014 (report permissions)
 ## Batch 6 — POS correctness polish
 
 **Issues:** KW-020, KW-021, KW-022  
-**Depends on:** Batch 5 if production `create_sale` is still 8-arg  
+**Depends on:** Batch 5 if production `create_sale` is still 8-arg
 
 1. Advisory lock in `create_sale` (replace function, keep 10-arg body and tenders).
 2. Pass `_location_id` from POS/inventory when the user selected a branch.
@@ -144,35 +144,35 @@ KW-014 (report permissions)
 
 ## Deferred (do not start in this audit unless asked)
 
-| Item | Why deferred |
-| ---- | ------------ |
-| KW-016 live Resend/WhatsApp | Paid/review secrets; after 2a |
-| KW-024 wildcard shop hosts | DNS/TLS spend |
-| KW-028 / `BILLING_ENABLED=true` | Product + Paynow live test |
-| KW-033 variants / transfers | New schema; out of stability scope |
-| KW-034 second business / switcher | Contradicts current “one shop” SQL |
-| KW-025 empty shops in `/stores` | Product copy |
-| KW-026 ESLint dynamic import | Hygiene; Batch 1–4 first |
+| Item                                 | Why deferred                       |
+| ------------------------------------ | ---------------------------------- |
+| KW-016 live Resend/WhatsApp          | Paid/review secrets; after 2a      |
+| KW-024 wildcard shop hosts           | DNS/TLS spend                      |
+| KW-028 / `BILLING_ENABLED=true`      | Product + Paynow live test         |
+| KW-033 variants / transfers          | New schema; out of stability scope |
+| KW-034 second business / switcher    | Contradicts current “one shop” SQL |
+| KW-025 empty shops in `/stores`      | Product copy                       |
+| KW-026 ESLint dynamic import         | Hygiene; Batch 1–4 first           |
 | KW-027 fail-closed money rate limits | After production RPC is guaranteed |
-| KW-030 unused resume helpers | Dead-code cleanup |
-| Capacitor / Tauri verification | Separate device pass |
-| Legal entity names | Operator content |
+| KW-030 unused resume helpers         | Dead-code cleanup                  |
+| Capacitor / Tauri verification       | Separate device pass               |
+| Legal entity names                   | Operator content                   |
 
 ---
 
 ## Proposed database changes (for approval)
 
-| Change | Batch | Destructive? | Needs approval before execute |
-| ------ | ----- | ------------ | ----------------------------- |
-| Replace `get_setup_progress` with membership check | 1 | No | Stage 4 go-ahead only |
-| Flush-mail workflow only | 2a | No | Stage 4 go-ahead only |
-| CI concurrency / fail-on-missing-token | 2b | No | **Explicit** — affects all PRs |
-| `destinationAfterAuth` signature (Node only) | 3 | No | Stage 4 go-ahead only |
-| `assertPermission` on reads | 4 | No | Stage 4 go-ahead only |
-| Production **probe** | 5 | No | **Explicit** (prod credentials) |
-| Production **apply** | later | Can lock/rebuild functions | **Stop — ask again** |
-| `create_sale` advisory lock | 6 | No if body preserved | Stage 4 + confirm 10-arg on target DB |
-| New tables (variants, transfers, switcher) | deferred | Yes (new objects) | Not proposed |
+| Change                                             | Batch    | Destructive?               | Needs approval before execute         |
+| -------------------------------------------------- | -------- | -------------------------- | ------------------------------------- |
+| Replace `get_setup_progress` with membership check | 1        | No                         | Stage 4 go-ahead only                 |
+| Flush-mail workflow only                           | 2a       | No                         | Stage 4 go-ahead only                 |
+| CI concurrency / fail-on-missing-token             | 2b       | No                         | **Explicit** — affects all PRs        |
+| `destinationAfterAuth` signature (Node only)       | 3        | No                         | Stage 4 go-ahead only                 |
+| `assertPermission` on reads                        | 4        | No                         | Stage 4 go-ahead only                 |
+| Production **probe**                               | 5        | No                         | **Explicit** (prod credentials)       |
+| Production **apply**                               | later    | Can lock/rebuild functions | **Stop — ask again**                  |
+| `create_sale` advisory lock                        | 6        | No if body preserved       | Stage 4 + confirm 10-arg on target DB |
+| New tables (variants, transfers, switcher)         | deferred | Yes (new objects)          | Not proposed                          |
 
 ---
 
@@ -189,11 +189,11 @@ KW-014 (report permissions)
 
 ## Verification after each approved batch
 
-1. `npx tsc --noEmit`  
-2. `npm run lint`  
-3. `npm test` (unit; integration if token present)  
-4. Related UI path (setup, login destination, reports, POS — as applicable)  
-5. Update this file and `ISSUE_REGISTER.md` status  
+1. `npx tsc --noEmit`
+2. `npm run lint`
+3. `npm test` (unit; integration if token present)
+4. Related UI path (setup, login destination, reports, POS — as applicable)
+5. Update this file and `ISSUE_REGISTER.md` status
 6. **Do not** claim production Paynow/WhatsApp/email work unless that batch’s live check ran
 
 ---

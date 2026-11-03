@@ -219,6 +219,50 @@ export const STAGING_READINESS_CHECKS = [
     ) as ok`,
   },
   {
+    id: "create_business_with_owner_unique",
+    label: "create_business_with_owner() is a unique jsonb signature",
+    sql: `select (
+      (select count(*) from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'create_business_with_owner') = 1
+    ) and exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_business_with_owner'
+        and p.pronargs = 7
+        and pg_get_function_identity_arguments(p.oid) like '%jsonb%'
+    ) as ok`,
+  },
+  {
+    id: "create_sale_tenders",
+    label: "create_sale() is the unique 10-arg split-tenders function",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_sale'
+        and p.proargnames is not null
+        and '_tenders' = any (p.proargnames)
+    ) and not exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_sale'
+        and (p.proargnames is null or not ('_tenders' = any (p.proargnames)))
+    ) as ok`,
+  },
+  {
+    id: "setup_completed_at",
+    label: "businesses.setup_completed_at (setup vs create-shop)",
+    sql: `select exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'businesses'
+        and column_name = 'setup_completed_at'
+    ) as ok`,
+  },
+  {
     id: "create_product_category",
     label: "create_product() accepts _category_id",
     sql: `select exists (

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, isRedirect, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -22,9 +22,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { getSetupProgressFn, markSetupCompleteFn } from "@/lib/business.functions";
+import { getSetupProgressFn, getWorkspace, markSetupCompleteFn } from "@/lib/business.functions";
+import { shouldSendToCreateShop } from "@/lib/auth/post-auth-destination";
 
 export const Route = createFileRoute("/_authenticated/setup")({
+  beforeLoad: async () => {
+    try {
+      const workspace = await getWorkspace();
+      if (!workspace) {
+        throw redirect({ to: "/onboarding", replace: true });
+      }
+      if (workspace.business.setup_completed_at) {
+        throw redirect({ to: "/dashboard", replace: true });
+      }
+    } catch (error) {
+      if (isRedirect(error)) throw error;
+      // Stay on /setup with retry — a load failure is not "no shop".
+    }
+  },
   head: () => ({
     meta: [
       { title: `Set up your workspace | ${BRAND.name}` },
@@ -60,10 +75,16 @@ function Setup() {
   }, [workspace.data, navigate]);
 
   useEffect(() => {
-    if (!workspace.isLoading && !businessId) {
+    if (
+      shouldSendToCreateShop({
+        isLoading: workspace.isLoading,
+        isError: workspace.isError,
+        workspace: workspace.data,
+      })
+    ) {
       navigate({ to: "/onboarding", replace: true });
     }
-  }, [workspace.isLoading, businessId, navigate]);
+  }, [workspace.isLoading, workspace.isError, workspace.data, navigate]);
 
   const progress = useQuery({
     queryKey: ["setup-progress", businessId],

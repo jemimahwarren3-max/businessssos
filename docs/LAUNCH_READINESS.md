@@ -129,7 +129,7 @@ Must be closed or accepted in writing:
 
 1. **KW-001** setup-progress leak — **patched in this PR**; must be applied to staging **and** production.
 2. **KW-002** production schema not in deploy — operator must confirm production function signatures after each release.
-3. **KW-003 / KW-004** CI can cancel master / skip staging SQL — still open (needs explicit yes).
+3. **KW-003 / KW-004** CI can cancel master / skip staging SQL — **patched in this PR** (per-ref concurrency; master requires staging SQL). Production SQL still operator-only.
 4. Email/WhatsApp delivery — KW-005 parser **patched**; secrets still **unverified**.
 5. No second live account test (cashier vs owner) on staging in this session.
 
@@ -179,10 +179,13 @@ There is **no public release date** until Gates 1–4 pass on staging with named
 
 ## What this repair stream already changed
 
-- Launch centre steps open `/storefront` (not a dead dashboard hash).
+- Launch centre steps open `/storefront` (not a dead dashboard hash); every hash has a page target.
 - `get_setup_progress` requires membership.
 - Mail-flush cron parses `{ email, whatsapp }` and does not fail when unconfigured.
-- Post-login uses `setup_completed_at`.
+- Post-login uses `setup_completed_at`. Existing shops never stay on create-shop (`beforeLoad` + load-error ≠ missing shop).
+- Schema-drift toasts say it is a server update, not a form error — do not create a second shop.
+- Master CI cannot be cancelled by a PR; master without `SUPABASE_ACCESS_TOKEN` fails instead of skipping SQL.
+- Staging readiness probes unique `create_sale` tenders, unique jsonb Create shop, and `setup_completed_at`.
 - MFA recovery can set a password.
 - Permission RPC errors fail the workspace load.
 - Preview misses are not-live, not onboarding.
@@ -190,4 +193,4 @@ There is **no public release date** until Gates 1–4 pass on staging with named
 
 ## What not to do next
 
-Do not start another feature programme. Finish deploying this stream, confirm production SQL, walk one owner journey on staging, then recruit the pilot list. CI concurrency and production auto-migrate still need a separate yes.
+Do not start another feature programme. Finish deploying this stream, confirm production SQL, walk one owner journey on staging, then recruit the pilot list. Production auto-migrate still needs a separate yes.

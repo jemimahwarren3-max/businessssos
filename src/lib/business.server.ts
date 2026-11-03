@@ -60,6 +60,10 @@ function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
 }
 
+/** Missing RPC / stale PostgREST cache — not a form-validation failure. */
+export const SCHEMA_DRIFT_USER_MESSAGE =
+  "The shop server is still updating — this is not a problem with your form. Wait a minute and try again. Do not create a second shop.";
+
 export function userFacingDbMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
   const message = (error as { message?: string } | null)?.message?.trim() ?? "";
@@ -77,7 +81,7 @@ export function userFacingDbMessage(error: unknown): string {
     return firstUserFacingLine(message);
   }
   if (isMissingDbFunction(error)) {
-    return "Shop setup is out of date. Wait a minute and try again.";
+    return SCHEMA_DRIFT_USER_MESSAGE;
   }
   return "Something went wrong saving your data. Please try again.";
 }
@@ -736,7 +740,7 @@ type CreateProductRpcArgs = Database["public"]["Functions"]["create_product"]["A
 /**
  * Named args for create_product. Staging still has the 13-arg function
  * (no _category_id). PostgREST rejects extra named parameters with PGRST202,
- * which the UI shows as "Shop setup is out of date".
+ * which the UI shows as SCHEMA_DRIFT_USER_MESSAGE.
  * Only send _category_id when the merchant actually chose one so onboarding
  * and inventory add still match the current function.
  */
