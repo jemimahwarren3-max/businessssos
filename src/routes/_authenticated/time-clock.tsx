@@ -332,6 +332,7 @@ function TimeClock() {
                             size="icon"
                             variant="ghost"
                             className="size-8"
+                            aria-label="Save time adjustment"
                             disabled={adjustMutation.isPending}
                             onClick={() =>
                               adjustMutation.mutate({

@@ -185,6 +185,7 @@ function Commission() {
                           variant="ghost"
                           className="size-8"
                           disabled={rateMutation.isPending}
+                          aria-label="Save commission rate"
                           onClick={() =>
                             rateMutation.mutate({
                               memberUserId: r.user_id,
