@@ -422,14 +422,14 @@ function Onboarding() {
         {shopStep === 0 ? (
           <>
             <OnboardingHeading
-              title="Pick a look for your storefront"
-              description="Layout and style only — your products and settings stay when you switch later."
+              title="Pick a website for your shop"
+              description="Each option is a full shop site — header, homepage, and product grid. You can switch later without losing products."
             />
             <p className="mt-2 text-sm text-muted-foreground">
-              Each design starts with placeholder photos — swap them for your logo and product shots
-              in Storefront settings.
+              Sample photos and prices are layout only. Replace them with your catalogue in
+              Storefront settings.
             </p>
-            <div className="mt-6 grid max-h-[32rem] gap-3 overflow-y-auto sm:grid-cols-2">
+            <div className="mt-6 grid max-h-[36rem] gap-4 overflow-y-auto sm:grid-cols-2">
               {templateChoices.map((template) => (
                 <button
                   key={template.id}
@@ -437,15 +437,16 @@ function Onboarding() {
                   onClick={() => setTemplateId(template.id)}
                   className={
                     templateId === template.id
-                      ? "flex flex-col gap-2 overflow-hidden rounded-xl border-2 border-primary bg-card p-2 text-left shadow-soft transition sm:flex-row"
-                      : "flex flex-col gap-2 overflow-hidden rounded-xl border-2 border-transparent bg-card p-2 text-left transition hover:border-border sm:flex-row"
+                      ? "flex flex-col overflow-hidden rounded-xl border-2 border-primary bg-card text-left shadow-soft transition"
+                      : "flex flex-col overflow-hidden rounded-xl border-2 border-transparent bg-card text-left transition hover:border-border"
                   }
                 >
                   <TemplatePreview
                     template={template}
-                    className="h-28 w-full shrink-0 sm:h-24 sm:w-32"
+                    storeName={form.name || template.name}
+                    className="h-48 w-full rounded-none border-0 border-b"
                   />
-                  <span className="min-w-0 py-1">
+                  <span className="min-w-0 p-3">
                     <span className="font-semibold">{template.name}</span>
                     <span className="mt-1 block text-sm text-muted-foreground">
                       {template.description}
