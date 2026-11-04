@@ -50,6 +50,31 @@ describe("userFacingDbMessage", () => {
     ).toBe("Shop setup is out of date. Wait a minute and try again.");
   });
 
+  it("maps a missing create_product _category_id overload to the same toast", () => {
+    expect(
+      userFacingDbMessage({
+        code: "PGRST202",
+        message:
+          "Could not find the function public.create_product with parameter _category_id in the schema cache",
+      }),
+    ).toBe("Shop setup is out of date. Wait a minute and try again.");
+  });
+
+  it("passes through store-design and cover-image RPC copy", () => {
+    expect(
+      userFacingDbMessage({
+        code: "B0001",
+        message: "Choose one of the store designs.",
+      }),
+    ).toBe("Choose one of the store designs.");
+    expect(
+      userFacingDbMessage({
+        code: "P0001",
+        message: "Cover image must use a valid HTTPS URL.",
+      }),
+    ).toBe("Cover image must use a valid HTTPS URL.");
+  });
+
   it("treats missing optional RPCs as skippable instead of a wiped workspace", () => {
     expect(
       isMissingDbFunction({

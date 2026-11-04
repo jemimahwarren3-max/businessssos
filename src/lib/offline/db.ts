@@ -10,6 +10,9 @@ export type CachedProduct = {
   selling_price: number;
   tax_rate: number;
   stock: number;
+  /** When this catalogue row was last written while online. Stock is an
+   * estimate after this. */
+  cachedAt?: string;
 };
 
 export type PendingSaleItem = { productId: string; quantity: number; unitPrice: number };
@@ -21,11 +24,52 @@ export type PendingSale = {
   customerId: string;
   discount: number;
   paymentMethod: string;
+  rail?: string;
+  tenders?: {
+    rail: string;
+    amount: number;
+    currency?: string;
+    amountOriginal?: number;
+  }[];
   items: PendingSaleItem[];
   createdAt: string;
   status: "pending" | "syncing" | "failed";
   error?: string;
   isOverSold?: boolean;
+  isClosedDrawer?: boolean;
+};
+
+/** In-progress POS cart. Survives refresh and power loss on this device.
+ * Not a completed sale — logout drops it so a shared tablet does not leave
+ * the last ring-up on screen. */
+export type PosDraftCartItem = {
+  productId: string;
+  name: string;
+  sku: string | null;
+  unitPrice: number;
+  taxRate: number;
+  quantity: number;
+  stock: number;
+};
+
+export type PosDraftTender = {
+  key: string;
+  rail: string;
+  amount: string;
+  currency: string;
+  amountOriginal: string;
+  showOriginal: boolean;
+};
+
+export type PosDraft = {
+  businessId: string;
+  cart: PosDraftCartItem[];
+  customerId: string;
+  discount: string;
+  paymentRail: string;
+  splitPay: boolean;
+  tenders: PosDraftTender[];
+  updatedAt: string;
 };
 
 interface OfflineSchema extends DBSchema {
@@ -39,6 +83,10 @@ interface OfflineSchema extends DBSchema {
     value: PendingSale;
     indexes: { "by-business": string };
   };
+  posDrafts: {
+    key: string;
+    value: PosDraft;
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<OfflineSchema>> | undefined;
@@ -48,16 +96,30 @@ function getDb() {
     throw new Error("IndexedDB isn't available in this environment.");
   }
   if (!dbPromise) {
-    dbPromise = openDB<OfflineSchema>("businessos-offline", 1, {
-      upgrade(db) {
-        const products = db.createObjectStore("products", { keyPath: "id" });
-        products.createIndex("by-business", "businessId");
-        const sales = db.createObjectStore("pendingSales", { keyPath: "localId" });
-        sales.createIndex("by-business", "businessId");
+    // Version 2 adds posDrafts only. Do not drop or rebuild pendingSales —
+    // unsynced cash sales from v1 must still be on this device after upgrade.
+    dbPromise = openDB<OfflineSchema>("businessos-offline", 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const products = db.createObjectStore("products", { keyPath: "id" });
+          products.createIndex("by-business", "businessId");
+          const sales = db.createObjectStore("pendingSales", { keyPath: "localId" });
+          sales.createIndex("by-business", "businessId");
+        }
+        if (oldVersion < 2 && !db.objectStoreNames.contains("posDrafts")) {
+          db.createObjectStore("posDrafts", { keyPath: "businessId" });
+        }
       },
     });
   }
   return dbPromise;
+}
+
+function withCacheMeta(product: CachedProduct): CachedProduct {
+  return {
+    ...product,
+    cachedAt: product.cachedAt ?? new Date().toISOString(),
+  };
 }
 
 /** Wholesale replace — used once to seed the cache with a broad product
@@ -68,7 +130,7 @@ export async function replaceCachedProducts(businessId: string, products: Cached
   const tx = db.transaction("products", "readwrite");
   const existing = await tx.store.index("by-business").getAllKeys(businessId);
   await Promise.all(existing.map((key) => tx.store.delete(key)));
-  await Promise.all(products.map((product) => tx.store.put(product)));
+  await Promise.all(products.map((product) => tx.store.put(withCacheMeta(product))));
   await tx.done;
 }
 
@@ -78,7 +140,9 @@ export async function replaceCachedProducts(businessId: string, products: Cached
 export async function upsertCachedProducts(businessId: string, products: CachedProduct[]) {
   const db = await getDb();
   const tx = db.transaction("products", "readwrite");
-  await Promise.all(products.map((product) => tx.store.put({ ...product, businessId })));
+  await Promise.all(
+    products.map((product) => tx.store.put(withCacheMeta({ ...product, businessId }))),
+  );
   await tx.done;
 }
 
@@ -135,18 +199,44 @@ export async function removePendingSale(localId: string) {
   await db.delete("pendingSales", localId);
 }
 
+export function shouldPersistPosDraft(cartLength: number): boolean {
+  return cartLength > 0;
+}
+
+export async function savePosDraft(draft: PosDraft) {
+  const db = await getDb();
+  if (!shouldPersistPosDraft(draft.cart.length)) {
+    await db.delete("posDrafts", draft.businessId);
+    return;
+  }
+  await db.put("posDrafts", draft);
+}
+
+export async function getPosDraft(businessId: string): Promise<PosDraft | undefined> {
+  const db = await getDb();
+  return db.get("posDrafts", businessId);
+}
+
+export async function clearPosDraft(businessId: string) {
+  const db = await getDb();
+  await db.delete("posDrafts", businessId);
+}
+
 /** Shared-device logout. Pending sales are not deleted until the cashier
  * confirms, because a network blip followed by sign-out must not destroy
- * unsynced cash sales. Product cache is always dropped. */
+ * unsynced cash sales. Product cache and the in-progress cart snapshot are
+ * always dropped. */
 export async function clearOfflineCacheOnLogout(businessId: string | null) {
   if (typeof indexedDB === "undefined") return;
   const db = await getDb();
   if (!businessId) {
     await db.clear("products");
+    await db.clear("posDrafts");
     return;
   }
   const tx = db.transaction("products", "readwrite");
   const keys = await tx.store.index("by-business").getAllKeys(businessId);
   await Promise.all(keys.map((key) => tx.store.delete(key)));
   await tx.done;
+  await db.delete("posDrafts", businessId);
 }

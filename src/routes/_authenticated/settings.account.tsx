@@ -9,6 +9,9 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useLowDataMode } from "@/hooks/use-low-data-mode";
+import type { LowDataPreference } from "@/lib/offline/low-data";
 import { MfaChallenge, MfaEnroll } from "@/components/mfa";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -270,6 +273,61 @@ function ShopAlertsSection({ businessId }: { businessId: string }) {
   );
 }
 
+function LowDataSection() {
+  const { preference, setPreference, enabled, saveData } = useLowDataMode();
+
+  return (
+    <div className="surface max-w-xl space-y-3 p-5">
+      <div>
+        <h2 className="text-lg font-semibold">Low-data mode</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Product photos wait until you tap them. Logos and sign-in images still load. Follow data
+          saver uses your phone's Data Saver setting
+          {saveData ? " (on right now)" : ""}.
+        </p>
+      </div>
+      <RadioGroup
+        value={preference}
+        onValueChange={(value) => setPreference(value as LowDataPreference)}
+        className="gap-3"
+      >
+        <label htmlFor="low-data-auto" className="flex items-start gap-2 text-sm">
+          <RadioGroupItem value="auto" id="low-data-auto" className="mt-0.5" />
+          <span>
+            <span className="font-medium">Follow data saver</span>
+            <span className="mt-0.5 block text-muted-foreground">
+              Defer photos when the browser says this connection is metered.
+            </span>
+          </span>
+        </label>
+        <label htmlFor="low-data-on" className="flex items-start gap-2 text-sm">
+          <RadioGroupItem value="on" id="low-data-on" className="mt-0.5" />
+          <span>
+            <span className="font-medium">Always on</span>
+            <span className="mt-0.5 block text-muted-foreground">
+              Never load product photos until you tap them.
+            </span>
+          </span>
+        </label>
+        <label htmlFor="low-data-off" className="flex items-start gap-2 text-sm">
+          <RadioGroupItem value="off" id="low-data-off" className="mt-0.5" />
+          <span>
+            <span className="font-medium">Always off</span>
+            <span className="mt-0.5 block text-muted-foreground">
+              Load product photos as usual.
+            </span>
+          </span>
+        </label>
+      </RadioGroup>
+      <p className="text-[12px] text-muted-foreground">
+        {enabled
+          ? "Product photos are deferred on this device right now."
+          : "Product photos load normally on this device right now."}
+      </p>
+    </div>
+  );
+}
+
 function PlatformAdminEntry() {
   const check = useServerFn(checkPlatformAdmin);
   const admin = useQuery({
@@ -352,6 +410,10 @@ function AccountSettings() {
 
       <div className="mb-4">
         <ShopAlertsSection businessId={workspace.data.business.id} />
+      </div>
+
+      <div className="mb-4">
+        <LowDataSection />
       </div>
 
       <PlatformAdminEntry />

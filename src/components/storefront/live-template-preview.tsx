@@ -2,6 +2,7 @@ import { formatMoney } from "@/lib/format";
 import type { AdminStore, StorefrontContent } from "@/lib/storefront/contract";
 import type { StorefrontTheme } from "@/lib/storefront/theme";
 import type { StoreTemplate } from "@/lib/storefront/templates";
+import { sampleProductsForCategory } from "@/lib/storefront/template-placeholders";
 import { cn } from "@/lib/utils";
 
 type PreviewProduct = AdminStore["products"][number];
@@ -51,7 +52,10 @@ export function LiveTemplatePreview({
   ];
   const featured = publishedProducts.filter((product) => product.featured);
   const heroImage =
-    theme.coverUrl || featured[0]?.imageUrl || publishedProducts[0]?.imageUrl || null;
+    theme.coverUrl ||
+    featured[0]?.imageUrl ||
+    publishedProducts[0]?.imageUrl ||
+    template.previewImageUrl;
   const title = heroTitle || storeName || "Your shop";
   const description = heroSubtitle || tagline;
   const fontFamilies = {
@@ -239,59 +243,72 @@ export function LiveTemplatePreview({
       <section className="px-4 py-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <h4 className="text-sm font-semibold">Shop all</h4>
-          <span className="text-[10px] opacity-60">{publishedProducts.length} products</span>
+          <span className="text-[10px] opacity-60">
+            {publishedProducts.length > 0
+              ? `${publishedProducts.length} products`
+              : "Sample layout"}
+          </span>
         </div>
-        {publishedProducts.length > 0 ? (
-          <div
-            className={cn(
-              "grid gap-3",
-              columns,
-              viewport === "desktop" && "md:grid-cols-4",
-              template.catalogStyle === "rows" && "grid-cols-1",
-            )}
-          >
-            {publishedProducts.slice(0, 4).map((product) => (
-              <article
-                key={product.id}
-                className={cn(
-                  "overflow-hidden border",
-                  template.cardStyle === "floating" && "rounded-xl shadow-sm",
-                  template.cardStyle === "line" && "border-x-0 border-t-0",
-                  template.cardStyle === "overlay" && "rounded-none",
-                  template.cardStyle !== "line" && "rounded-md",
+        <div
+          className={cn(
+            "grid gap-3",
+            columns,
+            viewport === "desktop" && "md:grid-cols-4",
+            template.catalogStyle === "rows" && "grid-cols-1",
+          )}
+        >
+          {(publishedProducts.length > 0
+            ? publishedProducts.slice(0, 4).map((product) => ({
+                key: product.id,
+                name: product.name,
+                price: product.price,
+                imageUrl: product.imageUrl,
+                sample: false,
+              }))
+            : sampleProductsForCategory(template.category).map((product) => ({
+                key: product.name,
+                name: product.name,
+                price: product.price,
+                imageUrl: template.previewImageUrl,
+                sample: true,
+              }))
+          ).map((product) => (
+            <article
+              key={product.key}
+              className={cn(
+                "overflow-hidden border",
+                template.cardStyle === "floating" && "rounded-xl shadow-sm",
+                template.cardStyle === "line" && "border-x-0 border-t-0",
+                template.cardStyle === "overlay" && "rounded-none",
+                template.cardStyle !== "line" && "rounded-md",
+              )}
+              style={{ borderColor: theme.accent + "30", backgroundColor: theme.surface }}
+            >
+              <div className="aspect-square overflow-hidden bg-black/5">
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-[10px] opacity-50">
+                    No product image
+                  </div>
                 )}
-                style={{ borderColor: theme.accent + "30", backgroundColor: theme.surface }}
-              >
-                <div className="aspect-square overflow-hidden bg-black/5">
-                  {product.imageUrl ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-[10px] opacity-50">
-                      No product image
-                    </div>
-                  )}
-                </div>
-                <div className="p-2">
-                  <p className="truncate text-xs font-medium">{product.name}</p>
-                  <p className="mt-1 text-xs" style={{ color: theme.primary }}>
-                    {formatMoney(product.price, currency)}
-                  </p>
-                  <p className="mt-1 text-[10px] opacity-60">
-                    {product.stock > 0 ? "In stock" : "Out of stock"}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-md border border-dashed p-5 text-center text-xs opacity-70">
-            Publish products from your catalogue to see them in this preview.
-          </p>
-        )}
+              </div>
+              <div className="p-2">
+                <p className="truncate text-xs font-medium">{product.name}</p>
+                <p className="mt-1 text-xs" style={{ color: theme.primary }}>
+                  {formatMoney(product.price, currency)}
+                </p>
+                <p className="mt-1 text-[10px] opacity-60">
+                  {product.sample ? "Sample layout" : "In stock"}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       {theme.sections.about ? (

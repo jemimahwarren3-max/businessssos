@@ -6,6 +6,7 @@ import { createMiddleware, createServerOnlyFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { rateLimitAllows } from "@/lib/rate-limit-policy";
 
 type RateLimitOptions = {
   windowSeconds?: number;
@@ -26,20 +27,33 @@ type RateLimitOptions = {
  * — into the browser bundle and fail to build, even though every real call
  * only ever happens inside a .server()/.handler() callback. */
 export const checkRateLimit = createServerOnlyFn(
-  async (key: string, limit: number, windowSeconds: number): Promise<boolean> => {
+  async (
+    key: string,
+    limit: number,
+    windowSeconds: number,
+    options?: { onRpcError?: "allow" | "deny" },
+  ): Promise<boolean> => {
     const { data, error } = await supabaseAdmin.rpc("check_rate_limit", {
       _key: key,
       _limit: limit,
       _window_seconds: windowSeconds,
     });
     if (error) {
-      // Fail closed: a down rate-limit table must not become an open door
-      // for sign-in, webhooks, or AI spend. Authenticated pages already
-      // cannot work if Postgres is unreachable.
+      // Sign-in, webhooks, and AI spend stay fail-closed. Authenticated page
+      // loads (getWorkspace) pass onRpcError: "allow" so a missing limiter
+      // RPC cannot lock a merchant out of their existing shop.
       console.error("[rate-limit] check failed", error);
-      return false;
+      return rateLimitAllows({
+        rpcError: true,
+        allowed: false,
+        onRpcError: options?.onRpcError ?? "deny",
+      });
     }
-    return data === true;
+    return rateLimitAllows({
+      rpcError: false,
+      allowed: data === true,
+      onRpcError: options?.onRpcError ?? "deny",
+    });
   },
 );
 
@@ -70,8 +84,7 @@ export const peekLoginFailures = createServerOnlyFn(
       _window_seconds: windowSeconds,
     });
     if (error) {
-      // Same fail-open stance as checkRateLimit — an infrastructure hiccup
-      // here should never itself lock someone out.
+      // Fail open: an infrastructure hiccup must not itself lock someone out.
       console.error("[rate-limit] peek login failures failed", error);
       return 0;
     }
@@ -117,6 +130,7 @@ export function authedRateLimit(options: RateLimitOptions) {
         `${options.keyPrefix}:user:${context.userId}`,
         maxRequests,
         windowSeconds,
+        { onRpcError: "allow" },
       );
       if (!allowed) throw new Error(message);
       // Explicitly re-pass the context this middleware received (from the

@@ -74,7 +74,7 @@ const paymentsSchema = z.object({
   payOnPickup: z.boolean(),
   payOnDelivery: z.boolean(),
   quotes: z.boolean(),
-  paynow: z.boolean(),
+  paynow: z.boolean().catch(false),
   paynowAvailable: z.boolean().optional(),
   acceptPaynow: z.boolean().catch(false),
   cashCurrencies: z.string().catch(""),
@@ -170,7 +170,7 @@ export const EMPTY_STOREFRONT_CONTENT: StorefrontContent = storefrontContentSche
 export const publicStoreSchema = z.object({
   slug: z.string(),
   status: z.enum(["draft", "published"]),
-  templateId: z.enum(TEMPLATE_IDS),
+  templateId: z.enum(TEMPLATE_IDS).catch("modern-minimal"),
   storeName: z.string(),
   tagline: z.string(),
   about: z.string(),
@@ -180,7 +180,7 @@ export const publicStoreSchema = z.object({
   address: z.string(),
   logoUrl: z.string().nullable(),
   accentColor: z.string().nullable(),
-  theme: STOREFRONT_THEME_SCHEMA,
+  theme: STOREFRONT_THEME_SCHEMA.catch(STOREFRONT_THEME_DEFAULTS),
   content: storefrontContentSchema.default(EMPTY_STOREFRONT_CONTENT),
   heroTitle: z.string(),
   heroSubtitle: z.string(),
@@ -233,6 +233,7 @@ export const marketplaceSchema = z.object({
       logoUrl: z.string().nullable(),
       address: z.string(),
       currency: z.string(),
+      verified: z.boolean().catch(false),
     }),
   ),
   products: z.array(marketplaceProductSchema),
@@ -483,6 +484,7 @@ export const shopperOrderSummarySchema = z.object({
 
 export const shopperAccountSchema = z.object({
   messagesConsent: z.boolean(),
+  marketingConsent: z.boolean().optional(),
   orders: z.array(shopperOrderSummarySchema),
 });
 
@@ -705,6 +707,8 @@ export const checkoutSchema = z.object({
     address: z.string().trim().max(300).optional(),
     notes: z.string().trim().max(500).optional(),
     messagesConsent: z.boolean().optional(),
+    whatsappUpdates: z.boolean().optional(),
+    marketingConsent: z.boolean().optional(),
   }),
   items: z.array(cartItemSchema).min(1).max(50),
   collectAt: z.string().max(40).optional(),

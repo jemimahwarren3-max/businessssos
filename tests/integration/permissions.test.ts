@@ -75,10 +75,12 @@ describeStaging("permissions", () => {
     expect(rows[0]?.exists).toBe(false);
   });
 
-  it("create_business_with_owner only has the current 5-argument signature", async () => {
-    const rows = await sql<{ pronargs: number }>(
-      `select pronargs from pg_proc where proname = 'create_business_with_owner';`,
+  it("create_business_with_owner only has the current jsonb signature", async () => {
+    const rows = await sql<{ pronargs: number; args: string }>(
+      `select pronargs, pg_get_function_identity_arguments(oid) as args
+       from pg_proc where proname = 'create_business_with_owner';`,
     );
-    expect(rows.map((r) => r.pronargs)).toEqual([5]);
+    expect(rows.map((r) => r.pronargs)).toEqual([7]);
+    expect(rows[0]?.args).toMatch(/jsonb/);
   });
 });

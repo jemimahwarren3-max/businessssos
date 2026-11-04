@@ -1,18 +1,13 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { z } from "zod";
 import { ProductView } from "@/components/storefront/store-experience";
-import { emptyProductReviews } from "@/lib/storefront/contract";
+import { emptyProductReviews, type PublicProduct } from "@/lib/storefront/contract";
+import { parseStorePreviewSearch } from "@/lib/storefront/preview-search";
 import { getProductReviewsFn, getPublicStoreFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { Route as StoreRoute } from "./store.$slug";
 
 export const Route = createFileRoute("/store/$slug/products/$productSlug")({
-  validateSearch: z.object({
-    preview: z
-      .union([z.literal("1"), z.literal(1)])
-      .optional()
-      .catch(undefined),
-  }),
+  validateSearch: parseStorePreviewSearch,
   loader: async ({ params }) => {
     // Parent /store/$slug already loaded the catalogue. One focused RPC is enough
     // to resolve this slug; do not call get_public_store twice per product view.
@@ -88,7 +83,7 @@ function ProductPage() {
     <ProductView
       store={{
         ...store,
-        products: store.products.some((item) => item.id === product.id)
+        products: store.products.some((item: PublicProduct) => item.id === product.id)
           ? store.products
           : [product, ...store.products],
       }}

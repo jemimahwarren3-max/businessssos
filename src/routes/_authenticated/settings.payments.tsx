@@ -38,9 +38,8 @@ function PaymentsSettingsPage() {
             shoppers pay you at checkout.
           </p>
           <p className="text-[13px] text-muted-foreground">
-            When billing is enforced, publishing and POS require an active Pro subscription. If
-            platform launch fees are enabled (`launch_fee_required` on `platform_runtime`), pay the
-            one-time store launch fee from My Online Store → Launch readiness before publishing.
+            When billing is enforced, publishing and POS require an active Pro subscription. If a
+            launch fee applies, pay it from My Online Store before publishing.
           </p>
           <Button asChild size="sm">
             <Link to="/settings/billing">Open Kwetuu billing</Link>
@@ -50,7 +49,7 @@ function PaymentsSettingsPage() {
           <h2 className="text-base font-semibold">B. Shop payment methods</h2>
           <p className="text-sm text-muted-foreground">
             Cash, manual EcoCash or bank pay-in, and seller Paynow (when approved) for customer
-            orders. Credentials stay on the server — never in the browser.
+            orders. Credentials stay on the server, never in the browser.
           </p>
           <Button asChild size="sm" variant="outline">
             <Link to="/storefront" hash="launch-payments">

@@ -43,13 +43,14 @@ function TemplatesPage() {
   return (
     <MarketingShell>
       <div className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
-        <p className="text-sm font-semibold text-primary">Storefront design concepts</p>
+        <p className="text-sm font-semibold text-primary">Shop websites</p>
         <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-          Find a look for your shop
+          Pick a website for your shop
         </h1>
         <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-          Browse 60 distinct directions across ten retail categories. Your shop uses its real
-          catalogue, prices, stock and checkout with one shared commerce engine.
+          Sixty full shop sites across ten retail types. Each one has its own header, homepage, and
+          product grid. Your real catalogue, prices, stock and checkout sit inside the design you
+          choose.
         </p>
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <label className="text-sm">
@@ -89,7 +90,7 @@ function TemplatesPage() {
             >
               <TemplatePreview
                 template={template}
-                className="h-44 rounded-none border-0 border-b"
+                className="h-52 rounded-none border-0 border-b"
               />
               <div className="p-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

@@ -113,8 +113,10 @@ export async function setNotifyEmail(
 const orderEmailDeliverySchema = z.array(
   z.object({
     id: z.string().uuid(),
+    channel: z.string().optional(),
     recipientRole: z.string().nullable(),
     toEmail: z.string(),
+    toPhone: z.string().optional(),
     subject: z.string(),
     status: z.string(),
     attempts: z.coerce.number(),

@@ -45,6 +45,81 @@ export const businessTypeSchema = z.enum([
   "other",
 ]);
 
+export const businessPathSchema = z.enum(["management", "full"]);
+export type BusinessPath = z.infer<typeof businessPathSchema>;
+
+export const BUSINESS_SUBCATEGORIES: Record<string, { value: string; label: string }[]> = {
+  grocery: [
+    { value: "grocery_general", label: "General grocery" },
+    { value: "grocery_spaza", label: "Spaza / tuckshop" },
+    { value: "grocery_superette", label: "Superette" },
+  ],
+  boutique: [
+    { value: "boutique_clothing", label: "Clothing" },
+    { value: "boutique_cosmetics", label: "Cosmetics & beauty" },
+    { value: "boutique_accessories", label: "Accessories" },
+  ],
+  salon: [
+    { value: "salon_hair", label: "Hair salon" },
+    { value: "salon_barber", label: "Barbershop" },
+    { value: "salon_nails", label: "Nails & beauty" },
+  ],
+  restaurant: [
+    { value: "restaurant_sitdown", label: "Sit-down restaurant" },
+    { value: "restaurant_takeaway", label: "Takeaway / fast food" },
+    { value: "restaurant_catering", label: "Catering" },
+  ],
+  wholesale: [
+    { value: "wholesale_general", label: "General goods" },
+    { value: "wholesale_food", label: "Food products" },
+    { value: "wholesale_hardware", label: "Hardware & building" },
+  ],
+  services: [
+    { value: "services_cleaning", label: "Cleaning" },
+    { value: "services_repairs", label: "Repairs & maintenance" },
+    { value: "services_consulting", label: "Consulting" },
+    { value: "services_other", label: "Other services" },
+  ],
+};
+
+export const SELLING_CHANNELS = [
+  { value: "physical", label: "Physical shop" },
+  { value: "online", label: "Online only" },
+  { value: "both", label: "Both physical and online" },
+  { value: "home", label: "From home" },
+  { value: "mobile", label: "Mobile / market-based" },
+] as const;
+
+export const PAYMENT_METHOD_OPTIONS = [
+  { value: "cash", label: "Cash" },
+  { value: "ecocash", label: "EcoCash" },
+  { value: "innbucks", label: "InnBucks" },
+  { value: "bank_transfer", label: "Bank transfer / ZIPIT" },
+  { value: "card", label: "Card payments" },
+  { value: "mobile_money", label: "Other mobile money" },
+] as const;
+
+export const onboardingConfigSchema = z.object({
+  sellingChannel: z.string().max(30).default("physical"),
+  isExistingBusiness: z.boolean().default(true),
+  hasPhysicalLocation: z.boolean().default(true),
+  subcategory: z.string().max(60).default(""),
+  businessPhone: z.string().max(40).default(""),
+  sellsProducts: z.boolean().default(true),
+  sellsServices: z.boolean().default(false),
+  paymentMethods: z.array(z.string().max(30)).default(["cash"]),
+  allowsCredit: z.boolean().default(false),
+  allowsLayby: z.boolean().default(false),
+  tracksStock: z.boolean().default(true),
+  pricingModel: z.enum(["retail", "wholesale", "both"]).default("retail"),
+  offersDelivery: z.boolean().default(false),
+  offersCollection: z.boolean().default(true),
+  hasMultipleBranches: z.boolean().default(false),
+  hasEmployees: z.boolean().default(false),
+  completedSteps: z.array(z.string()).default([]),
+});
+export type OnboardingConfig = z.infer<typeof onboardingConfigSchema>;
+
 export const createBusinessSchema = z.object({
   name: z.string().trim().min(2, "Business name is too short").max(120),
   businessType: businessTypeSchema,
@@ -55,8 +130,27 @@ export const createBusinessSchema = z.object({
     .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code"),
   phone: z.string().trim().max(40).default(""),
   address: z.string().trim().max(240).default(""),
+  businessPath: businessPathSchema.default("management"),
+  onboardingConfig: onboardingConfigSchema.default({}),
 });
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>;
+
+export const saveOnboardingConfigSchema = z.object({
+  businessId: z.string().uuid(),
+  config: onboardingConfigSchema,
+});
+
+export const saveOnboardingSettingsSchema = z.object({
+  businessId: z.string().uuid(),
+  paymentMethods: z.array(z.string().max(30)).default(["cash"]),
+  allowsCredit: z.boolean().default(false),
+  allowsLayby: z.boolean().default(false),
+  tracksStock: z.boolean().default(true),
+  sellsServices: z.boolean().default(false),
+  pricingModel: z.enum(["retail", "wholesale", "both"]).default("retail"),
+  offersDelivery: z.boolean().default(false),
+  offersCollection: z.boolean().default(true),
+});
 
 export const productSchema = z.object({
   businessId: z.string().uuid(),
@@ -72,6 +166,10 @@ export const productSchema = z.object({
   description: z.string().trim().max(600).optional().or(z.literal("")),
   supplierId: z.string().uuid().optional().or(z.literal("")),
   categoryId: z.string().uuid().optional().or(z.literal("")),
+  wholesalePrice: z.preprocess(
+    (value) => (value === "" || value === null || value === undefined ? undefined : value),
+    z.coerce.number().min(0, "Wholesale price cannot be negative").max(99999999).optional(),
+  ),
 });
 export type ProductInput = z.infer<typeof productSchema>;
 export const productCreateFieldsSchema = productSchema.omit({ businessId: true });
@@ -161,16 +259,97 @@ export const saleItemSchema = z.object({
 });
 export type SaleItemInput = z.infer<typeof saleItemSchema>;
 
+export const saleTenderSchema = z.object({
+  rail: z.string().trim().min(1, "Each tender needs a payment method").max(32),
+  amount: z.coerce.number().positive("Each tender needs an amount greater than zero").max(99999999),
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code")
+    .optional()
+    .or(z.literal("")),
+  amountOriginal: z.coerce
+    .number()
+    .positive("Original amount must be greater than zero")
+    .max(99999999)
+    .optional(),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
+});
+export type SaleTenderInput = z.infer<typeof saleTenderSchema>;
+
 export const saleSchema = z.object({
   businessId: z.string().uuid(),
   customerId: z.string().uuid().optional().or(z.literal("")),
   discount: z.coerce.number().min(0, "Discount cannot be negative").max(99999999).default(0),
   paymentMethod: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
+  tenders: z.array(saleTenderSchema).max(8).optional(),
   notes: z.string().trim().max(600).optional().or(z.literal("")),
   items: z.array(saleItemSchema).min(1, "Add at least one item"),
   idempotencyKey: z.string().uuid(),
 });
 export type SaleInput = z.infer<typeof saleSchema>;
+
+export const creditPaymentSchema = z.object({
+  businessId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  amount: z.coerce.number().positive("Payment amount must be greater than zero").max(99999999),
+  method: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
+  idempotencyKey: z.string().uuid(),
+});
+export type CreditPaymentInput = z.infer<typeof creditPaymentSchema>;
+
+export const supplierPaymentSchema = creditPaymentSchema
+  .omit({ customerId: true })
+  .extend({ supplierId: z.string().uuid() });
+export type SupplierPaymentInput = z.infer<typeof supplierPaymentSchema>;
+
+export const customerDepositSchema = creditPaymentSchema;
+export type CustomerDepositInput = z.infer<typeof customerDepositSchema>;
+
+export const depositIdSchema = z.object({
+  businessId: z.string().uuid(),
+  depositId: z.string().uuid(),
+});
+
+export const applyDepositSchema = depositIdSchema.extend({
+  target: z.enum(["credit", "layby"]),
+  laybyId: z.string().uuid().optional(),
+});
+export type ApplyDepositInput = z.infer<typeof applyDepositSchema>;
+
+export const createLaybySchema = z.object({
+  businessId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  notes: z.string().trim().max(600).optional().or(z.literal("")),
+  collectAfter: z.coerce.number().min(0).max(99999999).optional(),
+  items: z.array(saleItemSchema).min(1, "Add at least one item").max(20),
+});
+export type CreateLaybyInput = z.infer<typeof createLaybySchema>;
+
+export const laybyIdSchema = z.object({
+  businessId: z.string().uuid(),
+  laybyId: z.string().uuid(),
+});
+
+export const laybyInstalmentSchema = z.object({
+  businessId: z.string().uuid(),
+  laybyId: z.string().uuid(),
+  amount: z.coerce.number().positive("Payment amount must be greater than zero").max(99999999),
+  method: paymentMethodSchema,
+  rail: z.string().trim().max(32).optional().or(z.literal("")),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
+  idempotencyKey: z.string().uuid(),
+});
+export type LaybyInstalmentInput = z.infer<typeof laybyInstalmentSchema>;
+
+export const collectLaybySchema = laybyIdSchema.extend({
+  locationId: z.string().uuid().optional(),
+});
+export type CollectLaybyInput = z.infer<typeof collectLaybySchema>;
 
 export const listSalesSchema = z.object({
   businessId: z.string().uuid(),
@@ -362,6 +541,10 @@ export const productImportRowSchema = z.object({
   stock: z.coerce.number().min(0, "Stock cannot be negative").max(99999999).default(0),
   minStock: z.coerce.number().min(0).max(99999999).default(0),
   taxRate: z.coerce.number().min(0).max(100).default(0),
+  wholesalePrice: z.preprocess(
+    (value) => (value === "" || value === null || value === undefined ? undefined : value),
+    z.coerce.number().min(0, "Wholesale price cannot be negative").max(99999999).optional(),
+  ),
 });
 export type ProductImportRow = z.infer<typeof productImportRowSchema>;
 

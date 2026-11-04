@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
+import { DeferredImage } from "@/components/deferred-image";
 import { CustomerShoppingShell } from "@/components/storefront/customer-shopping-shell";
 import { PublishedShopGrid } from "@/components/storefront/published-shop-card";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ function MarketPage() {
   const page = search.page ?? 1;
   const selectedShop = search.shop ?? "";
   const products = selectedShop
-    ? market.products.filter((product) => product.storeSlug === selectedShop)
+    ? market.products.filter((product: MarketplaceProduct) => product.storeSlug === selectedShop)
     : market.products;
   const filtering = Boolean(market.query || market.category || selectedShop);
   const emptyDirectory = market.shops.length === 0 && !filtering;
@@ -116,7 +117,7 @@ function MarketPage() {
               className="h-10 min-w-56 rounded-md border border-input bg-background px-3"
             >
               <option value="">All shops</option>
-              {market.shops.map((shop) => (
+              {market.shops.map((shop: Marketplace["shops"][number]) => (
                 <option key={shop.slug} value={shop.slug}>
                   {shop.storeName}
                 </option>
@@ -147,7 +148,7 @@ function MarketPage() {
           >
             All
           </Link>
-          {market.categories.map((category) => (
+          {market.categories.map((category: Marketplace["categories"][number]) => (
             <Link
               key={category.name}
               to="/market"
@@ -185,6 +186,10 @@ function MarketPage() {
           ) : (
             <div className="mt-4">
               <PublishedShopGrid shops={market.shops} />
+              <p className="mt-3 text-xs text-muted-foreground">
+                Verified on Kwetuu means the shop has a published verified-purchase review. It is
+                not a government licence or a KYC badge.
+              </p>
             </div>
           )}
         </section>
@@ -272,7 +277,11 @@ function ProductSection({
               className="overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
             >
               {product.imageUrl ? (
-                <img src={product.imageUrl} alt="" className="aspect-square w-full object-cover" />
+                <DeferredImage
+                  src={product.imageUrl}
+                  alt=""
+                  className="aspect-square w-full object-cover"
+                />
               ) : (
                 <div className="aspect-square bg-muted" />
               )}

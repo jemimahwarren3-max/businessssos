@@ -15,6 +15,9 @@ import { navigateAfterAuth } from "@/lib/auth/post-auth-navigate";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex" }],
+  }),
   // Session is checked client-side only. A server beforeLoad here caused
   // ERR_TOO_MANY_REDIRECTS after OAuth: the callback sets the httpOnly cookie
   // in the browser, but the next navigation still hit this guard without the

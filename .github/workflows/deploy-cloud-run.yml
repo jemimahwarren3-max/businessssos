@@ -183,6 +183,7 @@ jobs:
           MAIL_FLUSH_SECRET: ${{ secrets.MAIL_FLUSH_SECRET }}
           SHOP_PAYMENT_ENCRYPTION_KEY: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY }}
           SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS: ${{ secrets.SHOP_PAYMENT_ENCRYPTION_KEY_PREVIOUS }}
+          SHOP_PROXY_SECRET: ${{ secrets.SHOP_PROXY_SECRET }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
@@ -254,6 +255,7 @@ jobs:
               "PAYNOW_INTEGRATION_KEY",
               "PAYNOW_INTEGRATION_ID_ZIG",
               "PAYNOW_INTEGRATION_KEY_ZIG",
+              "SHOP_PROXY_SECRET",
           ):
               value = os.environ.get(key) or ""
               if value.strip():
