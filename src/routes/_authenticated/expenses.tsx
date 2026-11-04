@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Download, Loader2, Plus, Receipt, Trash2, Upload } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +36,7 @@ import {
   PAYMENT_METHODS,
   type ExpenseImportRow,
 } from "@/lib/business.schemas";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError, todayLocal } from "@/lib/format";
 import type { ImportColumn } from "@/lib/spreadsheet";
 import { downloadXlsx } from "@/lib/xlsx-export";
 
@@ -72,7 +73,7 @@ const EMPTY_FORM = {
   category: "other" as (typeof EXPENSE_CATEGORIES)[number]["value"],
   description: "",
   amount: "",
-  expenseDate: new Date().toISOString().slice(0, 10),
+  expenseDate: todayLocal(),
   method: "cash" as (typeof PAYMENT_METHODS)[number]["value"],
   vendor: "",
 };
@@ -298,19 +299,21 @@ function Expenses() {
                   {formatMoney(expense.amount, currency)}
                 </span>
                 {canDelete ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      if (confirm("Delete this expense? This can't be undone.")) {
-                        deleteMutation.mutate(expense.id);
-                      }
-                    }}
-                    aria-label="Delete expense"
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </Button>
+                  <ConfirmDialog
+                    description="Delete this expense? This can't be undone."
+                    confirmLabel="Delete"
+                    onConfirm={() => deleteMutation.mutate(expense.id)}
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label="Delete expense"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    }
+                  />
                 ) : (
                   <span />
                 )}

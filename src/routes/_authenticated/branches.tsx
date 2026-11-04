@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -194,24 +195,22 @@ function BranchesPage() {
                   Edit
                 </Button>
                 {!loc.is_default ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive"
-                    disabled={deactivateMutation.isPending}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Deactivate "${loc.name}"? Stock rows remain but the branch won't appear in day-to-day lists.`,
-                        )
-                      ) {
-                        deactivateMutation.mutate(loc.id);
-                      }
-                    }}
-                  >
-                    Deactivate
-                  </Button>
+                  <ConfirmDialog
+                    description={`Deactivate "${loc.name}"? Stock rows remain but the branch won't appear in day-to-day lists.`}
+                    confirmLabel="Deactivate"
+                    onConfirm={() => deactivateMutation.mutate(loc.id)}
+                    trigger={
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        disabled={deactivateMutation.isPending}
+                      >
+                        Deactivate
+                      </Button>
+                    }
+                  />
                 ) : null}
               </div>
             ) : null}

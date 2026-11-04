@@ -58,7 +58,7 @@ export function StoreLaunchReadiness({
     },
     onSuccess: (result) => {
       if (result.status === "paid") {
-        toast.success("Launch fee verified — you can publish when ready.");
+        toast.success("Launch fee verified. You can publish when ready.");
       } else if (result.status === "failed") {
         toast.error("Payment verification failed. Start a new payment or contact support.");
       } else {
@@ -150,7 +150,7 @@ export function StoreLaunchReadiness({
         ) : null}
         {storeSlug ? (
           <Button asChild size="sm" variant="outline">
-            <Link to="/store/$slug" params={{ slug: storeSlug }} search={{ preview: "1" }}>
+            <Link to="/store/$slug" params={{ slug: storeSlug }} search={{ preview: 1 }}>
               Preview store
             </Link>
           </Button>

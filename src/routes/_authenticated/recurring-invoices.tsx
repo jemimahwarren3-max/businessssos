@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Pause, Play, Plus, Repeat, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { LineItemsEditor } from "@/components/line-items-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,7 @@ import {
   updateRecurringInvoiceActive,
 } from "@/lib/business.functions";
 import { recurringInvoiceSchema, type LineItemInput } from "@/lib/business.schemas";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError, todayLocal } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/recurring-invoices")({
   head: () => ({
@@ -66,7 +67,7 @@ const EMPTY_ITEM: LineItemInput = {
 const EMPTY_FORM = {
   customerId: "",
   interval: "monthly",
-  startDate: new Date().toISOString().slice(0, 10),
+  startDate: todayLocal(),
   dueDays: "14",
   discount: "0",
   notes: "",
@@ -258,19 +259,21 @@ function RecurringInvoices() {
                           <Play className="size-4" aria-hidden="true" />
                         )}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label="Delete"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => {
-                          if (confirm("Delete this recurring invoice? This can't be undone.")) {
-                            deleteMutation.mutate(r.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </Button>
+                      <ConfirmDialog
+                        description="Delete this recurring invoice? This can't be undone."
+                        confirmLabel="Delete"
+                        onConfirm={() => deleteMutation.mutate(r.id)}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label="Delete"
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="size-4" aria-hidden="true" />
+                          </Button>
+                        }
+                      />
                     </div>
                   ) : null}
                 </li>

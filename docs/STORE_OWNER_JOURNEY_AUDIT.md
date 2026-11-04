@@ -65,7 +65,7 @@ Kwetuu already implements much of the Shopify-style journey (auth, onboarding, s
 | Component | Path |
 | --------- | ---- |
 | PWA shell | `vite.config.ts` VitePWA, `_authenticated/route.tsx` registers SW |
-| IndexedDB | `src/lib/offline/db.ts` — products + `pendingSales` |
+| IndexedDB | `src/lib/offline/db.ts` — products + `pendingSales` + `posDrafts` (v2) |
 | Sync | `src/lib/offline/sync.ts` → `createSale` with UUID idempotency |
 | UI | `sales.tsx` — offline banner, queue, sync on reconnect |
 | Server idempotency | `create_sale` + unique `(business_id, idempotency_key)` |

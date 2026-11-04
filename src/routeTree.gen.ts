@@ -40,6 +40,7 @@ import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
 import { Route as AuthenticatedInventoryRouteImport } from './routes/_authenticated/inventory'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
+import { Route as AuthenticatedLayByRouteImport } from './routes/_authenticated/lay-by'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedOnlineOrdersRouteImport } from './routes/_authenticated/online-orders'
@@ -50,6 +51,7 @@ import { Route as AuthenticatedRecurringInvoicesRouteImport } from './routes/_au
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSaleHistoryRouteImport } from './routes/_authenticated/sale-history'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
+import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedStorefrontRouteImport } from './routes/_authenticated/storefront'
 import { Route as AuthenticatedSuppliersRouteImport } from './routes/_authenticated/suppliers'
 import { Route as AuthenticatedTimeClockRouteImport } from './routes/_authenticated/time-clock'
@@ -247,6 +249,11 @@ const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLayByRoute = AuthenticatedLayByRouteImport.update({
+  id: '/lay-by',
+  path: '/lay-by',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNotificationsRoute =
   AuthenticatedNotificationsRouteImport.update({
     id: '/notifications',
@@ -300,6 +307,11 @@ const AuthenticatedSaleHistoryRoute =
 const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedStorefrontRoute = AuthenticatedStorefrontRouteImport.update({
@@ -552,6 +564,7 @@ export interface FileRoutesByFullPath {
   '/insights': typeof AuthenticatedInsightsRoute
   '/inventory': typeof AuthenticatedInventoryRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
+  '/lay-by': typeof AuthenticatedLayByRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/online-orders': typeof AuthenticatedOnlineOrdersRoute
@@ -562,6 +575,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
@@ -635,6 +649,7 @@ export interface FileRoutesByTo {
   '/insights': typeof AuthenticatedInsightsRoute
   '/inventory': typeof AuthenticatedInventoryRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
+  '/lay-by': typeof AuthenticatedLayByRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/online-orders': typeof AuthenticatedOnlineOrdersRoute
@@ -645,6 +660,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
   '/time-clock': typeof AuthenticatedTimeClockRoute
@@ -720,6 +736,7 @@ export interface FileRoutesById {
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/inventory': typeof AuthenticatedInventoryRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
+  '/_authenticated/lay-by': typeof AuthenticatedLayByRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/online-orders': typeof AuthenticatedOnlineOrdersRoute
@@ -730,6 +747,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
+  '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/storefront': typeof AuthenticatedStorefrontRoute
   '/_authenticated/suppliers': typeof AuthenticatedSuppliersRoute
   '/_authenticated/time-clock': typeof AuthenticatedTimeClockRoute
@@ -806,6 +824,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/inventory'
     | '/invoices'
+    | '/lay-by'
     | '/notifications'
     | '/onboarding'
     | '/online-orders'
@@ -816,6 +835,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/sale-history'
     | '/sales'
+    | '/setup'
     | '/storefront'
     | '/suppliers'
     | '/time-clock'
@@ -889,6 +909,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/inventory'
     | '/invoices'
+    | '/lay-by'
     | '/notifications'
     | '/onboarding'
     | '/online-orders'
@@ -899,6 +920,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/sale-history'
     | '/sales'
+    | '/setup'
     | '/storefront'
     | '/suppliers'
     | '/time-clock'
@@ -973,6 +995,7 @@ export interface FileRouteTypes {
     | '/_authenticated/insights'
     | '/_authenticated/inventory'
     | '/_authenticated/invoices'
+    | '/_authenticated/lay-by'
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
     | '/_authenticated/online-orders'
@@ -983,6 +1006,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/sale-history'
     | '/_authenticated/sales'
+    | '/_authenticated/setup'
     | '/_authenticated/storefront'
     | '/_authenticated/suppliers'
     | '/_authenticated/time-clock'
@@ -1280,6 +1304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lay-by': {
+      id: '/_authenticated/lay-by'
+      path: '/lay-by'
+      fullPath: '/lay-by'
+      preLoaderRoute: typeof AuthenticatedLayByRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notifications': {
       id: '/_authenticated/notifications'
       path: '/notifications'
@@ -1348,6 +1379,13 @@ declare module '@tanstack/react-router' {
       path: '/sales'
       fullPath: '/sales'
       preLoaderRoute: typeof AuthenticatedSalesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/setup': {
+      id: '/_authenticated/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof AuthenticatedSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/storefront': {
@@ -1660,6 +1698,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedInventoryRoute: typeof AuthenticatedInventoryRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
+  AuthenticatedLayByRoute: typeof AuthenticatedLayByRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedOnlineOrdersRoute: typeof AuthenticatedOnlineOrdersRoute
@@ -1670,6 +1709,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSaleHistoryRoute: typeof AuthenticatedSaleHistoryRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
+  AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedStorefrontRoute: typeof AuthenticatedStorefrontRoute
   AuthenticatedSuppliersRoute: typeof AuthenticatedSuppliersRoute
   AuthenticatedTimeClockRoute: typeof AuthenticatedTimeClockRoute
@@ -1694,6 +1734,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedInventoryRoute: AuthenticatedInventoryRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
+  AuthenticatedLayByRoute: AuthenticatedLayByRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedOnlineOrdersRoute: AuthenticatedOnlineOrdersRoute,
@@ -1704,6 +1745,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSaleHistoryRoute: AuthenticatedSaleHistoryRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
+  AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedStorefrontRoute: AuthenticatedStorefrontRoute,
   AuthenticatedSuppliersRoute: AuthenticatedSuppliersRoute,
   AuthenticatedTimeClockRoute: AuthenticatedTimeClockRoute,

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
+import { DeferredImage } from "@/components/deferred-image";
 import { ListingReportForm } from "@/components/storefront/listing-report-form";
 import { ProductReviewsBlock } from "@/components/storefront/product-reviews";
 import { StoreReviewForm } from "@/components/storefront/review-form";
@@ -9,7 +10,12 @@ import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefron
 import { getProductReviewsFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 import { storeSurface } from "@/lib/storefront/store-surface";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { storePublicUrl } from "@/lib/storefront/host";
+import {
+  buildProductWhatsAppMessage,
+  buildWhatsAppLink,
+  buildWhatsAppShareUrl,
+} from "@/lib/whatsapp";
 import {
   readRecentlyViewed,
   readWishlist,
@@ -91,7 +97,7 @@ export function StoreChrome({
   const fonts = fontPairStacks(theme.fontPair, template.fontFamily);
   const accent = theme.accent || store.accentColor || template.defaultAccent;
   const count = useCartCount(store.slug);
-  const previewSearch = preview ? { preview: "1" as const } : {};
+  const previewSearch = preview ? { preview: 1 as const } : {};
   const whatsapp = buildWhatsAppLink(
     store.whatsapp || store.phone,
     `Hello ${store.storeName}, I have a question about your shop.`,
@@ -116,21 +122,21 @@ export function StoreChrome({
       <Link
         to="/store/$slug/search"
         params={{ slug: store.slug }}
-        search={preview ? { q: "", preview: "1" } : { q: "" }}
+        search={preview ? { q: "", preview: 1 } : { q: "" }}
       >
         Search
       </Link>
       <Link
         to="/store/$slug/account"
         params={{ slug: store.slug }}
-        search={preview ? { preview: "1" } : {}}
+        search={preview ? { preview: 1 } : {}}
       >
         Orders
       </Link>
       <Link
         to="/store/$slug/cart"
         params={{ slug: store.slug }}
-        search={preview ? { preview: "1" } : {}}
+        search={preview ? { preview: 1 } : {}}
       >
         Cart{count > 0 ? ` (${count})` : ""}
       </Link>
@@ -361,7 +367,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
     <Link
       to="/store/$slug/products/$productSlug"
       params={{ slug: store.slug, productSlug: product.slug }}
-      search={preview ? { preview: "1" } : {}}
+      search={preview ? { preview: 1 } : {}}
       className={cn(
         "group overflow-hidden border",
         line ? "flex items-center gap-3 border-x-0 border-t-0" : "block",
@@ -388,12 +394,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
         style={{ backgroundColor: theme.surface }}
       >
         {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
+          <DeferredImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-neutral-400">
             No photo
@@ -493,7 +494,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           >
             {heroImage ? (
               <div className="aspect-[4/3] md:aspect-auto md:min-h-[28rem]">
-                <img src={heroImage} alt="" className="h-full w-full object-cover" />
+                <img src={heroImage} alt="" className="h-full w-full object-cover" fetchPriority="high" />
               </div>
             ) : null}
             {heroText}
@@ -505,6 +506,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                 src={heroImage}
                 alt=""
                 className="absolute inset-0 h-full max-h-[30rem] w-full object-cover opacity-15"
+                fetchPriority="high"
               />
             ) : null}
             {heroText}
@@ -524,7 +526,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
             <div className="flex flex-wrap items-center justify-between gap-4">
               {heroText}
               {heroImage ? (
-                <img src={heroImage} alt="" className="h-24 w-36 rounded-md object-cover" />
+                <img src={heroImage} alt="" className="h-24 w-36 rounded-md object-cover" loading="lazy" />
               ) : null}
             </div>
           </section>
@@ -800,7 +802,11 @@ export function ProductView({
         style={{ backgroundColor: theme.surface }}
       >
         {selectedImage ? (
-          <img src={selectedImage} alt={product.name} className="h-full w-full object-cover" />
+          <DeferredImage
+            src={selectedImage}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex h-full min-h-64 items-center justify-center text-sm text-neutral-400">
             No photo
@@ -821,7 +827,7 @@ export function ProductView({
                 aria-pressed={selectedImage === image}
                 onClick={() => setSelectedImage(image)}
               >
-                <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <DeferredImage src={image} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -913,6 +919,23 @@ export function ProductView({
             Copy product link
           </button>
         ) : null}
+        <a
+          className="ml-4 mt-4 inline-block text-sm underline"
+          href={buildWhatsAppShareUrl(
+            buildProductWhatsAppMessage({
+              businessName: store.storeName,
+              productName: product.name,
+              price: product.price,
+              currency: product.currency,
+              availability: product.stockLabel,
+              url: share || storePublicUrl(store.slug, `/products/${product.slug}`),
+            }),
+          )}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Share on WhatsApp
+        </a>
         <button
           type="button"
           className="ml-4 mt-4 text-sm underline"

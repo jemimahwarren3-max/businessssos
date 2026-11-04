@@ -1,20 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { z } from "zod";
 import { Catalog } from "@/components/storefront/store-experience";
+import { isStorePreviewFlag } from "@/lib/storefront/preview-search";
 import { getPublicStoreFn } from "@/lib/storefront/storefront.functions";
 import { Route as StoreRoute } from "./store.$slug";
 
-const searchSchema = z.object({
-  q: z.string().max(80).optional().catch(""),
-  preview: z
-    .union([z.literal("1"), z.literal(1)])
-    .optional()
-    .catch(undefined),
-});
-
 export const Route = createFileRoute("/store/$slug/search")({
-  validateSearch: searchSchema,
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search["q"] === "string" ? search["q"].slice(0, 80) : "",
+    ...(isStorePreviewFlag(search["preview"]) ? { preview: 1 as const } : {}),
+  }),
   loaderDeps: ({ search }) => ({ q: search.q ?? "" }),
   loader: async ({ params, deps }) => {
     const store = await getPublicStoreFn({
@@ -39,7 +34,7 @@ function SearchPage() {
         className="mx-auto flex max-w-6xl gap-2 px-4 pt-6"
         onSubmit={(event) => {
           event.preventDefault();
-          void navigate({ search: (prev) => ({ ...prev, q: value }) });
+          void navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, q: value }) });
         }}
       >
         <label className="sr-only" htmlFor="store-search">

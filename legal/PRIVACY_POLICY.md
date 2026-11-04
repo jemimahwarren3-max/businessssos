@@ -1,7 +1,7 @@
 # Kwetuu Privacy Policy
 
 **Effective date:** 26 October 2026  
-**Last updated:** 26 October 2026
+**Last updated:** 2 November 2026
 
 ## 1. Introduction
 
@@ -20,7 +20,7 @@ Using the Services means you have had a chance to read this Policy. Where the la
 **Kwetuu** provides the Services at **https://mykwetuu.com**.
 
 **Privacy inquiries:** privacy@mykwetuu.com  
-**Support:** support@mykwetuu.com  
+**Support:** support@mykwetuu.com
 
 "Kwetuu", "we", "us" and "our" mean the operator of the Kwetuu platform and the Services.
 
@@ -73,7 +73,7 @@ Depending on configuration we may process information connected with:
 - Supabase Auth emails (sign-up confirmation, password reset).
 - In-app notifications for merchants.
 - Transactional shopper emails (order receipt and later status updates) when an email was given at checkout and Resend is configured. The access code is included only on the first receipt.
-- WhatsApp click-to-chat links a merchant publishes. Kwetuu does not send WhatsApp Cloud API messages in the current build. Chat content stays on WhatsApp once the customer leaves our site.
+- WhatsApp click-to-chat links a merchant publishes. If you opt in at checkout, we may queue transactional WhatsApp order updates on that order. Signed-in shoppers can join a shop's WhatsApp news list. Those messages stay queued until WhatsApp Cloud is configured, and are never marked sent without a Meta message id. Chat content on WhatsApp is processed by Meta once a message is actually delivered.
 - Groq, if a merchant uses the optional AI assistant: an aggregated business summary plus the typed question. Groq does not receive raw customer emails or phone numbers from the customer list in the current implementation.
 - Hosting and database providers (see section 9).
 
@@ -147,15 +147,17 @@ See the [Cookie Policy](/legal/cookies).
 
 We may share relevant information with providers that actually support the deployed app:
 
-| Provider                                                                            | Role in the current product                          |
-| ----------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Supabase                                                                            | Database, authentication, and related infrastructure |
-| Paynow                                                                              | Kwetuu subscription payments only                |
-| Hosting (Cloud Run is the intended production host; Render may be used temporarily) | Running the application                              |
-| Groq                                                                                | Optional AI assistant, if configured                 |
-| Sentry                                                                              | Optional error monitoring, if configured             |
-| Upstash                                                                             | Optional short-lived workspace cache, if configured  |
-| Google Fonts                                                                        | Typeface files requested by the browser              |
+| Provider                                                                            | Role in the current product                                                    |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Supabase                                                                            | Database, authentication, and related infrastructure                           |
+| Paynow                                                                              | Kwetuu subscription payments only                                              |
+| Hosting (Cloud Run is the intended production host; Render may be used temporarily) | Running the application                                                        |
+| Groq                                                                                | Optional AI assistant, if configured                                           |
+| Sentry                                                                              | Optional error monitoring, if configured                                       |
+| Upstash                                                                             | Optional short-lived workspace cache, if configured                            |
+| Google Fonts                                                                        | Typeface files requested by the browser                                        |
+| Resend                                                                              | Optional transactional email, if configured                                    |
+| Meta (WhatsApp Cloud)                                                               | Optional WhatsApp send for opted-in order updates and shop news, if configured |
 
 Their locations, contracts and safeguards differ. Confirm them before launch.
 
@@ -215,7 +217,9 @@ Merchant users can export some business data from account settings where that fe
 
 We send necessary service messages (security, sign-in, billing, important account changes).
 
-Merchant shop alerts (new online orders, complaints, verified-purchase reviews, listing reports, and low-stock crossings) appear in the Kwetuu app. If the operator has configured Resend, a copy may be emailed to owners, admins and managers who have shop-alert email turned on. Shoppers who provided an email at checkout may receive a receipt and later status updates through the same provider. Those messages are operational, not marketing. WhatsApp is not used to send them.
+Merchant shop alerts (new online orders, complaints, verified-purchase reviews, listing reports, and low-stock crossings) appear in the Kwetuu app. If the operator has configured Resend, a copy may be emailed to owners, admins and managers who have shop-alert email turned on. Shoppers who provided an email at checkout may receive a receipt and later status updates through the same provider. Those messages are operational, not marketing.
+
+If you opt in, we may queue WhatsApp order updates for that order, and signed-in shoppers may join a shop's WhatsApp news list. Queued WhatsApp is not marked sent unless Meta accepts the message. You can turn news off in the shop account page. Opting out of news does not stop essential order messages you asked for.
 
 We do not currently operate a promotional email or SMS campaign product. If we add one, we will obtain consent where required and offer an opt-out. Unsubscribing from marketing does not stop essential service messages. Turning off shop-alert email does not stop in-app alerts.
 
@@ -246,6 +250,6 @@ The current version is at `/privacy` and `/legal/privacy`. Sign-up records the v
 **Kwetuu**  
 Website: https://mykwetuu.com  
 Privacy: privacy@mykwetuu.com  
-Support: support@mykwetuu.com  
+Support: support@mykwetuu.com
 
 You may also have the right to complain to the relevant data protection authority in your country.

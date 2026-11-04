@@ -1,5 +1,10 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { dbFail, invalidateWorkspaceCacheForBusiness, type Workspace } from "@/lib/business.server";
+import {
+  dbFail,
+  invalidateWorkspaceCacheForBusiness,
+  isMissingDbFunction,
+  type Workspace,
+} from "@/lib/business.server";
 import { cacheDel, workspaceCacheKey } from "@/lib/cache/redis.server";
 import {
   canOperateWithPlatformEntitlement,
@@ -35,7 +40,13 @@ export async function getActiveImpersonation(
   const result = await untypedRpc("admin_get_active_impersonation", {
     _admin_user_id: adminUserId,
   });
-  if (result.error) dbFail("load impersonation session", result.error);
+  if (result.error) {
+    if (isMissingDbFunction(result.error)) {
+      console.error("[businessos] impersonation lookup skipped (function missing)", result.error);
+      return null;
+    }
+    dbFail("load impersonation session", result.error);
+  }
   const row = result.data as Record<string, unknown> | null;
   if (!row || typeof row["businessId"] !== "string") return null;
   return {
@@ -108,7 +119,9 @@ export async function loadWorkspaceWhileImpersonating(
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id, name, business_type, currency, onboarding_completed, logo_url")
+      .select(
+        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
+      )
       .eq("id", businessId)
       .maybeSingle(),
     supabase
