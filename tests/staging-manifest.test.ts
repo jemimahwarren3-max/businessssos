@@ -29,7 +29,17 @@ const FILES = [
   "20261027220000_order_notification_stage7.sql",
   "20261027230000_order_fulfilment_stage8.sql",
   "20261031080000_fix_outbox_branding.sql",
+  "20261031090000_product_category_rpc.sql",
   "20261031163000_create_business_idempotent.sql",
+  "20261102010000_fix_browse_marketplace_readonly.sql",
+  "20261102120000_storefront_template_allowlist.sql",
+  "20261102140000_morning_desk.sql",
+  "20261102160000_split_tenders.sql",
+  "20261102161000_create_sale_unique.sql",
+  "20261102180000_notebook_delivery.sql",
+  "20261102210000_whatsapp_channel.sql",
+  "20261103080000_onboarding_journey.sql",
+  "20261103020000_create_business_unique.sql",
 ];
 
 describe("staging migration manifest", () => {
@@ -40,5 +50,65 @@ describe("staging migration manifest", () => {
       const sql = readFileSync(path, "utf8");
       expect(sql.length).toBeGreaterThan(20);
     }
+  });
+
+  it("installs notebook and delivery RPCs without rewriting create_sale", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261102180000_notebook_delivery.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("record_supplier_payment");
+    expect(sql).toContain("take_customer_deposit");
+    expect(sql).toContain("create_layby");
+    expect(sql).toContain("collect_layby");
+    expect(sql).toContain("storefront_attach_marketplace_verified");
+    expect(sql).toContain("wholesale_price");
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
+  });
+
+  it("installs a WhatsApp outbox channel without rewriting create_sale", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261102210000_whatsapp_channel.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("enqueue_shopper_order_whatsapp");
+    expect(sql).toContain("record_order_messaging_opt_in");
+    expect(sql).toContain("WhatsApp cannot be marked sent without a provider message id");
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
+    expect(sql).not.toMatch(/Meta Groups/i);
+  });
+
+  it("installs onboarding journey then keeps only the jsonb Create shop RPC", () => {
+    const journey = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261103080000_onboarding_journey.sql"),
+      "utf8",
+    );
+    expect(journey).toContain("setup_completed_at");
+    expect(journey).toContain("_onboarding_config jsonb");
+  });
+
+  it("drops leftover 7-arg create_business_with_owner so Create shop is unique", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "supabase/migrations", "20261103020000_create_business_unique.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("pg_get_function_identity_arguments");
+    expect(sql).toContain("%jsonb%");
+    expect(sql).toContain("p.pronargs = 7");
+    expect(sql).not.toMatch(/create or replace function public\.create_sale\s*\(/);
+  });
+
+  it("installs a save_storefront wrapper that accepts food-counter", () => {
+    const sql = readFileSync(
+      join(
+        process.cwd(),
+        "supabase/migrations",
+        "20261102120000_storefront_template_allowlist.sql",
+      ),
+      "utf8",
+    );
+    expect(sql).toContain("food-counter");
+    expect(sql).toContain("save_storefront_allowlist_base");
+    expect(sql).toMatch(/\^https:\/\//);
   });
 });

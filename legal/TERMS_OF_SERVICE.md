@@ -1,7 +1,7 @@
 # Kwetuu Terms of Service
 
 **Effective date:** 26 October 2026  
-**Last updated:** 26 October 2026
+**Last updated:** 2 November 2026
 
 ## 1. Agreement and acceptance
 
@@ -38,7 +38,7 @@ What you see depends on plan, configuration, location and whether an external pr
 
 We may add, change or withdraw features where reasonably necessary, subject to law and any commitments we have made.
 
-We will not knowingly describe a feature as working when it is not implemented. In particular: shopper Paynow or EcoCash checkout is not connected; WhatsApp is a click-to-chat link, not an automated messaging product. Product reviews, where shown, are verified against an order access code. We do not sell or display invented ratings.
+We will not knowingly describe a feature as working when it is not implemented. In particular: shopper EcoCash APIs are not connected; shopper Paynow is only live when that shop has linked its own keys and the platform has enabled it. WhatsApp click-to-chat still requires the merchant to tap Send. Opted-in order updates and shop news can be queued for WhatsApp Cloud; they are not marked sent unless Meta accepts the message, and Cloud is not connected until configured. Product reviews, where shown, are verified against an order access code. We do not sell or display invented ratings.
 
 ## 3. Eligibility and accounts
 
@@ -188,7 +188,7 @@ You must comply with applicable data protection law. Merchants must have a lawfu
 
 ## 17. Third-party services
 
-Paynow, Supabase, hosting, Groq, Sentry, Upstash, Google Fonts and WhatsApp (when a merchant publishes a chat link) have their own terms.
+Paynow, Supabase, hosting, Groq, Sentry, Upstash, Google Fonts, Resend, and WhatsApp / Meta (click-to-chat links, and WhatsApp Cloud if configured) have their own terms.
 
 We are not responsible for independent providers' outages to the extent the law allows, but we remain responsible for our own duties.
 
@@ -272,6 +272,6 @@ These Terms, plan terms, transaction terms and the Privacy Policy describe the a
 
 **Kwetuu**  
 Website: https://mykwetuu.com  
-Email: support@mykwetuu.com  
+Email: support@mykwetuu.com
 
 Do not send passwords in a support request.

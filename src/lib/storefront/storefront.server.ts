@@ -22,6 +22,7 @@ import {
   dbFail,
   type Db,
 } from "@/lib/business.server";
+import { persistedCoverUrl } from "@/lib/storefront/theme";
 import { attributeStoreOrderAnalytics } from "@/lib/growth.server";
 import {
   adminOrderSchema,
@@ -161,6 +162,8 @@ export async function placeOrder(input: {
     address?: string | undefined;
     notes?: string | undefined;
     messagesConsent?: boolean | undefined;
+    whatsappUpdates?: boolean | undefined;
+    marketingConsent?: boolean | undefined;
   };
   items: { productId: string; quantity: number; note?: string | undefined }[];
   fulfilment: string;
@@ -187,6 +190,21 @@ export async function placeOrder(input: {
     _collection_point_id: input.collectionPointId ?? null,
   });
   const parsed = await parseRpc("create store order", result, checkoutResultSchema);
+  if (
+    parsed.orderId &&
+    !parsed.replayed &&
+    (input.customer.whatsappUpdates || input.customer.marketingConsent)
+  ) {
+    const optIn = await untypedRpc(supabase, "record_order_messaging_opt_in", {
+      _order_id: parsed.orderId,
+      _access_token: parsed.accessToken ?? "",
+      _whatsapp_updates: Boolean(input.customer.whatsappUpdates),
+      _marketing: Boolean(input.customer.marketingConsent),
+    });
+    if (optIn.error) {
+      console.error("[businessos] WhatsApp opt-in after order", optIn.error);
+    }
+  }
   if (parsed.orderId && input.analyticsVisitorId) {
     await attributeStoreOrderAnalytics(parsed.orderId, input.analyticsVisitorId, input.campaignId);
   }
@@ -283,26 +301,73 @@ async function withProofUrl<T extends object>(order: T): Promise<T> {
   return { ...order, proofUrl: await signedPaymentProofUrl(terms?.paymentProof?.storagePath) };
 }
 
+function emptyAdminStore(): AdminStore {
+  return {
+    currency: "USD",
+    categories: [],
+    store: null,
+    checklist: {
+      name: false,
+      template: false,
+      products: false,
+      payments: false,
+      fulfilment: false,
+      policies: false,
+      previewed: false,
+      published: false,
+    },
+    products: [],
+    orders: [],
+    metrics: {
+      openOrders: 0,
+      unpaidOrders: 0,
+      outOfStockPublished: 0,
+      lowStockPublished: 0,
+      publishedProducts: 0,
+    },
+  };
+}
+
 async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promise<AdminStore> {
-  if (admin.store) {
+  if (!admin.store) return admin;
+  try {
     const connected = await shopPaynowConnected(businessId);
     const { data: available, error } = await supabaseAdmin.rpc("shop_offers_paynow_business", {
       _business_id: businessId,
     });
-    if (error) dbFail("shop Paynow availability", error);
+    if (error) {
+      console.error("[businessos] shop Paynow availability", error);
+    } else {
+      admin.store.payments.paynowAvailable = available;
+    }
     admin.store.payments.paynow = connected;
-    admin.store.payments.paynowAvailable = available;
     admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
+  } catch (error) {
+    console.error("[businessos] shop Paynow flag", error);
   }
   return admin;
 }
 
 export async function loadAdminStore(supabase: Db, businessId: string): Promise<AdminStore> {
   const result = await supabase.rpc("get_storefront_admin", { _business_id: businessId });
+  if (result.error) rpcFail("load storefront", result.error);
+  if (result.data == null) return emptyAdminStore();
   return withShopPaynowFlag(
-    await parseRpc("load storefront", result, adminStoreSchema),
+    await parseRpc("load storefront", { data: result.data, error: null }, adminStoreSchema),
     businessId,
   );
+}
+
+function withPersistedCover(patch: Json): Json {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return patch;
+  const theme = (patch as { theme?: unknown }).theme;
+  if (!theme || typeof theme !== "object" || Array.isArray(theme)) return patch;
+  const coverUrl = persistedCoverUrl((theme as { coverUrl?: unknown }).coverUrl);
+  if (coverUrl === (theme as { coverUrl?: unknown }).coverUrl) return patch;
+  return {
+    ...(patch as Record<string, Json>),
+    theme: { ...(theme as Record<string, Json>), coverUrl },
+  };
 }
 
 export async function saveStorefront(supabase: Db, businessId: string, patch: Json) {
@@ -310,7 +375,7 @@ export async function saveStorefront(supabase: Db, businessId: string, patch: Js
   await assertPermission(supabase, businessId, "business.settings");
   const result = await supabase.rpc("save_storefront", {
     _business_id: businessId,
-    _patch: patch,
+    _patch: withPersistedCover(patch),
   });
   return withShopPaynowFlag(
     await parseRpc("save storefront", result, adminStoreSchema),
@@ -810,4 +875,17 @@ export async function setShopperConsent(slug: string, messages: boolean): Promis
     _messages: messages,
   });
   return parseRpc("set shopper consent", result, shopperAccountSchema);
+}
+
+export async function setShopperMarketingConsent(
+  slug: string,
+  marketing: boolean,
+): Promise<ShopperAccount> {
+  const ctx = await tryGetAuthedContext();
+  if (!ctx) throw new AppError("Sign in to update your preferences.");
+  const result = await untypedRpc(ctx.supabase, "set_shopper_marketing_consent", {
+    _slug: slug,
+    _marketing: marketing,
+  });
+  return parseRpc("set shopper marketing consent", result, shopperAccountSchema);
 }

@@ -8,10 +8,10 @@ const terms = readFileSync(new URL("../legal/TERMS_OF_SERVICE.md", import.meta.u
 
 describe("platform legal documents", () => {
   it("keeps sign-up version stamps aligned with the published policies", () => {
-    expect(LEGAL_VERSIONS.privacy).toBe("2026-10-26");
-    expect(LEGAL_VERSIONS.terms).toBe("2026-10-26");
-    expect(privacy).toContain("Last updated:** 26 October 2026");
-    expect(terms).toContain("Last updated:** 26 October 2026");
+    expect(LEGAL_VERSIONS.privacy).toBe("2026-11-02");
+    expect(LEGAL_VERSIONS.terms).toBe("2026-11-02");
+    expect(privacy).toContain("Last updated:** 2 November 2026");
+    expect(terms).toContain("Last updated:** 2 November 2026");
     expect(privacy).toContain("privacy@mykwetuu.com");
     expect(terms).toContain("support@mykwetuu.com");
     expect(privacy.toLowerCase()).not.toContain("customer paynow checkout");

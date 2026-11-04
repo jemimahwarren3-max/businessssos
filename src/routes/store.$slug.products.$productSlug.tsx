@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ProductView } from "@/components/storefront/store-experience";
-import { emptyProductReviews } from "@/lib/storefront/contract";
+import { emptyProductReviews, type PublicProduct } from "@/lib/storefront/contract";
 import { parseStorePreviewSearch } from "@/lib/storefront/preview-search";
 import { getProductReviewsFn, getPublicStoreFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
@@ -83,7 +83,7 @@ function ProductPage() {
     <ProductView
       store={{
         ...store,
-        products: store.products.some((item) => item.id === product.id)
+        products: store.products.some((item: PublicProduct) => item.id === product.id)
           ? store.products
           : [product, ...store.products],
       }}

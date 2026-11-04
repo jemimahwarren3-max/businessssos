@@ -20,4 +20,11 @@ describe("store builder templates", () => {
     expect(builderChoiceForTemplateId("general-market").title).toBe("Bold Commerce");
     expect(builderChoiceForTemplateId("food-market").title).toBe("Local Business");
   });
+
+  it("keeps website templates instead of collapsing them to the three shortcuts", () => {
+    expect(resolveBuilderTemplateId("grocery")).toBe("grocery");
+    expect(resolveBuilderTemplateId("beauty-clinic")).toBe("beauty-clinic");
+    expect(resolveBuilderTemplateId("fashion-lookbook")).toBe("fashion-lookbook");
+    expect(getTemplate("grocery").heroStyle).not.toBe(getTemplate("modern-minimal").heroStyle);
+  });
 });

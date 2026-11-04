@@ -61,8 +61,21 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+function sanitizeChartColor(value: string | undefined): string | null {
+  if (!value) return null;
+  const color = value.trim();
+  if (!color || /[;{}]/.test(color)) return null;
+
+  const valid =
+    /^(?:#[0-9a-fA-F]{3,8}|(?:rgb|hsl)a?\([^)]*\)|var\(--[A-Za-z0-9_-]+\)|[a-zA-Z-]+)$/.test(color);
+
+  return valid ? color : null;
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(([, config]) => config.theme || config.color);
+  const colorConfig = Object.entries(config).filter(
+    ([, itemConfig]) => itemConfig.theme || itemConfig.color,
+  );
 
   if (!colorConfig.length) {
     return null;
@@ -72,18 +85,25 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
+          .map(([theme, prefix]) => {
+            const safeEntries = colorConfig
+              .map(([key, itemConfig]) => {
+                const color =
+                  sanitizeChartColor(itemConfig.theme?.[theme as keyof typeof itemConfig.theme]) ||
+                  sanitizeChartColor(itemConfig.color);
+                return color ? `  --color-${key}: ${color};` : null;
+              })
+              .filter(Boolean)
+              .join("\n");
+
+            return safeEntries
+              ? `
 ${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
+${safeEntries}
 }
-`,
-          )
+`
+              : "";
+          })
           .join("\n"),
       }}
     />

@@ -52,6 +52,7 @@ import {
   setProductCategory,
   setMarketplaceVisible,
   setShopperConsent,
+  setShopperMarketingConsent,
   startCustomerPaynow,
   submitOrderPaymentNote,
   transitionOrder,
@@ -259,6 +260,13 @@ export const setShopperConsentFn = createServerFn({ method: "POST" })
     parseAndSanitize(z.object({ slug: z.string().min(1).max(40), messages: z.boolean() }), data),
   )
   .handler(async ({ data }) => setShopperConsent(data.slug, data.messages));
+
+export const setShopperMarketingConsentFn = createServerFn({ method: "POST" })
+  .middleware(shopper)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ slug: z.string().min(1).max(40), marketing: z.boolean() }), data),
+  )
+  .handler(async ({ data }) => setShopperMarketingConsent(data.slug, data.marketing));
 
 export const getStorefrontAdminFn = createServerFn({ method: "POST" })
   .middleware(authed)

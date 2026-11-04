@@ -33,7 +33,10 @@ export const Route = createFileRoute("/pricing")({
         name: "description",
         content: `${BRAND.name} is free during beta. The listed Pro price is what billing will charge after notice.`,
       },
+      { property: "og:title", content: `Pricing | ${BRAND.name}` },
+      { property: "og:description", content: `${BRAND.name} is free during beta. See what Pro includes.` },
     ],
+    links: [{ rel: "canonical", href: `${BRAND.appUrl}/pricing` }],
   }),
   component: PricingPage,
 });

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { DeferredImage } from "@/components/deferred-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -313,7 +314,7 @@ function OnlineProductCard({
     <article className="surface space-y-4 p-4">
       <div className="flex gap-3">
         {previewImage ? (
-          <img
+          <DeferredImage
             src={previewImage}
             alt=""
             className="size-20 shrink-0 rounded-md border object-cover"
@@ -403,7 +404,7 @@ function OnlineProductCard({
         <div className="flex flex-wrap items-center gap-2">
           {product.galleryUrls.map((imageUrl, index) => (
             <div key={imageUrl} className="relative">
-              <img
+              <DeferredImage
                 src={imageUrl}
                 alt={`${customerName} photo ${index + 1}`}
                 className="size-14 rounded border object-cover"
@@ -480,7 +481,7 @@ function OnlineProductCard({
         </summary>
         <div className="mt-3 space-y-2">
           {previewImage ? (
-            <img src={previewImage} alt="" className="max-h-44 rounded-md object-cover" />
+            <DeferredImage src={previewImage} alt="" className="max-h-44 rounded-md object-cover" />
           ) : null}
           <p className="font-semibold">{customerName}</p>
           <p className="text-sm font-medium">{formatMoney(product.price, currency)}</p>

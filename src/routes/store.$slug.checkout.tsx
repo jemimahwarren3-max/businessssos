@@ -2,7 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "@/lib/auth/auth.functions";
-import { orderTokenKey, readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
+import {
+  mergeGuestCartIntoUserCart,
+  orderTokenKey,
+  readCart,
+  writeCart,
+  type CartLine,
+} from "@/lib/storefront/cart";
 import { placeOrderFn, quoteCartFn } from "@/lib/storefront/storefront.functions";
 import type { CartQuote } from "@/lib/storefront/contract";
 import {
@@ -69,7 +75,8 @@ function CheckoutPage() {
   const [collectAt, setCollectAt] = useState("");
   const [deliveryZoneId, setDeliveryZoneId] = useState("");
   const [collectionPointId, setCollectionPointId] = useState("");
-  const [shopper, setShopper] = useState<{ email: string | null } | null>(null);
+  const [shopper, setShopper] = useState<{ userId: string; email: string | null } | null>(null);
+  const [guestCartNotice, setGuestCartNotice] = useState<string | null>(null);
   const deliveryZones = useMemo(
     () => enabledDeliveryZones(store.delivery.zones),
     [store.delivery.zones],
@@ -83,6 +90,8 @@ function CheckoutPage() {
     deliveryPricingMethod(store.delivery) === "zone" &&
     deliveryZones.length > 0;
   const [messagesConsent, setMessagesConsent] = useState(false);
+  const [whatsappUpdates, setWhatsappUpdates] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const fetchUser = useServerFn(getCurrentUser);
   const slots = useMemo(
     () => (fulfilment === "pickup" ? upcomingCollectionSlots(store.delivery) : []),
@@ -94,13 +103,22 @@ function CheckoutPage() {
   );
 
   useEffect(() => {
-    setLines(readCart(store.slug));
-  }, [store.slug]);
+    setLines(readCart(store.slug, shopper?.userId ?? null));
+  }, [store.slug, shopper?.userId]);
 
   useEffect(() => {
     void fetchUser().then((user) => {
-      if (!user) return;
-      setShopper({ email: user.email });
+      if (!user) {
+        setGuestCartNotice(null);
+        return;
+      }
+      const guestLines = readCart(store.slug);
+      const merged = guestLines.length > 0 ? mergeGuestCartIntoUserCart(store.slug, user.userId) : readCart(store.slug, user.userId);
+      setGuestCartNotice(
+        guestLines.length > 0 ? `Your guest cart was saved to your account (${merged.length} item${merged.length === 1 ? "" : "s"}).` : null,
+      );
+      setShopper({ userId: user.userId, email: user.email });
+      setLines(merged);
       if (user.email) setEmail((current) => current || user.email || "");
     });
   }, [fetchUser, store.slug]);
@@ -124,7 +142,11 @@ function CheckoutPage() {
   }, [fulfilment]);
 
   useEffect(() => {
-    if (lines.length === 0) return;
+    if (lines.length === 0) {
+      setPriced(null);
+      setError(null);
+      return;
+    }
     let cancelled = false;
     void quote({
       data: {
@@ -149,6 +171,10 @@ function CheckoutPage() {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (preview || pending) return;
+    if (lines.length === 0) {
+      setError("Your cart is empty. Add an item before checking out.");
+      return;
+    }
     setPending(true);
     setError(null);
     const keyName = `bos-checkout:${store.slug}`;
@@ -172,7 +198,8 @@ function CheckoutPage() {
             email: email.trim() || undefined,
             address,
             notes,
-            ...(shopper ? { messagesConsent } : {}),
+            ...(shopper ? { messagesConsent, marketingConsent } : {}),
+            whatsappUpdates,
           },
           items: lines,
           collectAt: collectAt || undefined,
@@ -187,7 +214,7 @@ function CheckoutPage() {
         sessionStorage.setItem(orderTokenKey(store.slug, result.reference), result.accessToken);
       }
       if (!result.replayed) {
-        writeCart(store.slug, []);
+        writeCart(store.slug, [], shopper?.userId ?? null);
         sessionStorage.removeItem(keyName);
       }
       if (result.paynow?.redirectUrl) {
@@ -206,6 +233,24 @@ function CheckoutPage() {
 
   if (preview) {
     return <p className="px-4 py-10">Publish the shop before customers can check out.</p>;
+  }
+
+  if (lines.length === 0) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10 text-center">
+        <h1 className="text-2xl font-semibold">Your cart is empty</h1>
+        <p className="mt-2 text-sm text-neutral-600">
+          Add at least one item before continuing to checkout.
+        </p>
+        <Link
+          to="/store/$slug"
+          params={{ slug: store.slug }}
+          className="mt-6 inline-flex rounded-full bg-neutral-900 px-4 py-2 text-sm text-white"
+        >
+          Return to the shop
+        </Link>
+      </div>
+    );
   }
 
   if (fulfilments.length === 0) {
@@ -239,6 +284,11 @@ function CheckoutPage() {
               </>
             )}
           </p>
+          {guestCartNotice ? (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              {guestCartNotice}
+            </div>
+          ) : null}
           <p className="text-sm text-neutral-600">{orderDecisionCopy(store)}</p>
           {store.content.deliveryPolicy || store.content.returnsPolicy ? (
             <aside className="space-y-3 rounded-lg border p-4 text-sm">
@@ -261,6 +311,7 @@ function CheckoutPage() {
             <input
               className="mt-1 w-full rounded border px-3 py-2"
               required
+              autoComplete="name"
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -269,7 +320,9 @@ function CheckoutPage() {
             Phone
             <input
               className="mt-1 w-full rounded border px-3 py-2"
+              type="tel"
               required
+              autoComplete="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
             />
@@ -280,6 +333,7 @@ function CheckoutPage() {
               className="mt-1 w-full rounded border px-3 py-2"
               type="email"
               required={paymentMethod === "paynow"}
+              autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -476,7 +530,7 @@ function CheckoutPage() {
                   }}
                 />{" "}
                 {MANUAL_PAYMENT_LABELS[method.kind]}
-                {method.accountName ? ` — ${method.accountName}` : ""}
+                {method.accountName ? ` - ${method.accountName}` : ""}
               </label>
             ))}
           </fieldset>
@@ -540,19 +594,44 @@ function CheckoutPage() {
               enabled.
             </p>
           ) : null}
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={whatsappUpdates}
+              onChange={(event) => setWhatsappUpdates(event.target.checked)}
+            />
+            <span>
+              WhatsApp me order updates on this number. They stay queued until WhatsApp Cloud is
+              connected — Kwetuu will not mark them sent without Meta&apos;s message id. This is not
+              marketing.
+            </span>
+          </label>
           {shopper ? (
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={messagesConsent}
-                onChange={(event) => setMessagesConsent(event.target.checked)}
-              />
-              <span>
-                {store.storeName} may send extra shop messages to my account. A receipt and order
-                status emails still go to the address entered at checkout. This is not a marketing
-                list.
-              </span>
-            </label>
+            <>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={messagesConsent}
+                  onChange={(event) => setMessagesConsent(event.target.checked)}
+                />
+                <span>
+                  {store.storeName} may send extra shop messages to my account. A receipt and order
+                  status emails still go to the address entered at checkout. This is not a marketing
+                  list.
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(event) => setMarketingConsent(event.target.checked)}
+                />
+                <span>
+                  Add me to this shop&apos;s WhatsApp news list. I can turn this off in my account.
+                  Nothing is sent until WhatsApp Cloud is connected.
+                </span>
+              </label>
+            </>
           ) : null}
           <label className="block text-sm">
             Notes
@@ -592,33 +671,33 @@ function CheckoutPage() {
           ) : (
             <p className="mt-3 text-sm">Calculating the server total…</p>
           )}
-          <ul className="mt-3 space-y-1 text-sm text-neutral-600">
+          <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
             {(priced?.lines ?? []).map((line) => (
               <li key={line.productId}>
                 {line.quantity} × {line.name}
               </li>
             ))}
           </ul>
-          {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           {store.policies ? (
-            <div className="mt-4 text-sm text-neutral-600">
+            <div className="mt-4 text-sm text-muted-foreground">
               <p className="font-medium">This shop's collection, delivery and refund notes</p>
               <p className="mt-1 whitespace-pre-wrap">{store.policies}</p>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-neutral-600">
+            <p className="mt-4 text-sm text-muted-foreground">
               This shop has not published a written refund or collection policy yet. Ask before you
               pay if that matters to you.
             </p>
           )}
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="mt-3 text-xs text-muted-foreground">
             Placing an order is an agreement with this shop, not a purchase from {BRAND.name}.
             Platform{" "}
-            <a className="underline" href="/terms">
+            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/terms`}>
               terms
             </a>
             ,{" "}
-            <a className="underline" href="/privacy">
+            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/privacy`}>
               privacy
             </a>
             , and{" "}

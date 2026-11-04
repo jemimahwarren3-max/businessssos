@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
+import { DeferredImage } from "@/components/deferred-image";
 import { ListingReportForm } from "@/components/storefront/listing-report-form";
 import { ProductReviewsBlock } from "@/components/storefront/product-reviews";
 import { StoreReviewForm } from "@/components/storefront/review-form";
@@ -9,7 +10,12 @@ import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefron
 import { getProductReviewsFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
 import { storeSurface } from "@/lib/storefront/store-surface";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { storePublicUrl } from "@/lib/storefront/host";
+import {
+  buildProductWhatsAppMessage,
+  buildWhatsAppLink,
+  buildWhatsAppShareUrl,
+} from "@/lib/whatsapp";
 import {
   readRecentlyViewed,
   readWishlist,
@@ -110,8 +116,8 @@ export function StoreChrome({
       )}
       style={{ color: theme.link }}
     >
-      <Link to="/market" search={{ q: "", category: "" }}>
-        {BRAND.name}
+      <Link to="/store/$slug" params={{ slug: store.slug }} search={previewSearch}>
+        Shop
       </Link>
       <Link
         to="/store/$slug/search"
@@ -349,18 +355,30 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
   const template = getTemplate(store.templateId);
   const { theme } = store;
   const preview = useStorePreview();
+  const line = template.cardStyle === "line" || template.catalogStyle === "rows";
+  const overlay = template.cardStyle === "overlay";
+  const price = (
+    <>
+      {formatMoney(product.price, product.currency)}
+      {product.unit && product.unit !== "unit" ? ` / ${product.unit}` : ""}
+    </>
+  );
   return (
     <Link
       to="/store/$slug/products/$productSlug"
       params={{ slug: store.slug, productSlug: product.slug }}
       search={preview ? { preview: 1 } : {}}
       className={cn(
-        "group block overflow-hidden border",
+        "group overflow-hidden border",
+        line ? "flex items-center gap-3 border-x-0 border-t-0" : "block",
         template.cardStyle === "minimal" && "border-0",
-        template.cardStyle === "overlay" && "rounded-none",
+        overlay && "relative rounded-none",
         template.cardStyle === "floating" && "rounded-xl shadow-sm",
         template.cardStyle === "framed" && "rounded-md border-2",
-        template.cardStyle !== "overlay" && template.cardStyle !== "minimal" && "rounded-lg",
+        template.cardStyle !== "overlay" &&
+          template.cardStyle !== "minimal" &&
+          template.cardStyle !== "line" &&
+          "rounded-lg",
       )}
       style={{
         backgroundColor: theme.surface,
@@ -369,33 +387,37 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
       }}
     >
       <div
-        className={cn("bg-neutral-100", ratioClass(template.imageRatio))}
+        className={cn(
+          "bg-neutral-100",
+          line ? "size-20 shrink-0" : ratioClass(template.imageRatio),
+        )}
         style={{ backgroundColor: theme.surface }}
       >
         {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
+          <DeferredImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-neutral-400">
             No photo
           </div>
         )}
       </div>
-      <div className={cn("p-3", template.density === "compact" && "p-2")}>
-        <p className="font-medium leading-snug">{product.name}</p>
-        <p className="mt-1 text-sm" style={{ color: theme.primary }}>
-          {formatMoney(product.price, product.currency)}
-          {product.unit && product.unit !== "unit" ? ` / ${product.unit}` : ""}
-        </p>
-        <p className="mt-1 text-xs text-neutral-500">{product.stockLabel}</p>
-        {template.layout === "wholesale" ? (
-          <p className="mt-1 text-xs text-neutral-500">Minimum {product.minQty}</p>
-        ) : null}
-      </div>
+      {overlay ? (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3 text-white">
+          <p className="font-medium leading-snug">{product.name}</p>
+          <p className="mt-1 text-sm">{price}</p>
+        </div>
+      ) : (
+        <div className={cn("min-w-0 p-3", template.density === "compact" && "p-2")}>
+          <p className="font-medium leading-snug">{product.name}</p>
+          <p className="mt-1 text-sm" style={{ color: theme.primary }}>
+            {price}
+          </p>
+          <p className="mt-1 text-xs text-neutral-500">{product.stockLabel}</p>
+          {template.layout === "wholesale" ? (
+            <p className="mt-1 text-xs text-neutral-500">Minimum {product.minQty}</p>
+          ) : null}
+        </div>
+      )}
     </Link>
   );
 }
@@ -446,6 +468,13 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         {title}
       </h1>
       {blurb ? <p className="mt-3 max-w-xl opacity-80">{blurb}</p> : null}
+      <a
+        href="#shop-catalogue"
+        className="mt-5 inline-flex rounded-md px-4 py-2 text-sm font-semibold"
+        style={{ backgroundColor: theme.button, color: theme.buttonText }}
+      >
+        Shop now
+      </a>
       {template.layout === "services" ? (
         <p className="mt-4 max-w-xl text-sm opacity-70">
           Placing an order does not deliver a download or confirm a booking. The business fulfils it
@@ -465,7 +494,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           >
             {heroImage ? (
               <div className="aspect-[4/3] md:aspect-auto md:min-h-[28rem]">
-                <img src={heroImage} alt="" className="h-full w-full object-cover" />
+                <img src={heroImage} alt="" className="h-full w-full object-cover" fetchPriority="high" />
               </div>
             ) : null}
             {heroText}
@@ -477,6 +506,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                 src={heroImage}
                 alt=""
                 className="absolute inset-0 h-full max-h-[30rem] w-full object-cover opacity-15"
+                fetchPriority="high"
               />
             ) : null}
             {heroText}
@@ -496,7 +526,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
             <div className="flex flex-wrap items-center justify-between gap-4">
               {heroText}
               {heroImage ? (
-                <img src={heroImage} alt="" className="h-24 w-36 rounded-md object-cover" />
+                <img src={heroImage} alt="" className="h-24 w-36 rounded-md object-cover" loading="lazy" />
               ) : null}
             </div>
           </section>
@@ -639,11 +669,11 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         </div>
       ) : null}
       {products.length === 0 ? (
-        <p className="mx-auto max-w-6xl px-4 py-16 opacity-70">
+        <p id="shop-catalogue" className="mx-auto max-w-6xl px-4 py-16 opacity-70">
           No products are published in this view yet.
         </p>
       ) : grouped ? (
-        <div className="mx-auto max-w-3xl space-y-8 px-4 pb-16">
+        <div id="shop-catalogue" className="mx-auto max-w-3xl space-y-8 px-4 pb-16">
           {store.categories.map((item) => {
             const rows = products.filter((product) => product.categoryId === item.id);
             if (rows.length === 0) return null;
@@ -661,6 +691,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         </div>
       ) : (
         <div
+          id="shop-catalogue"
           className={cn(
             "mx-auto grid max-w-6xl gap-4 px-4 pb-16",
             grid,
@@ -771,7 +802,11 @@ export function ProductView({
         style={{ backgroundColor: theme.surface }}
       >
         {selectedImage ? (
-          <img src={selectedImage} alt={product.name} className="h-full w-full object-cover" />
+          <DeferredImage
+            src={selectedImage}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex h-full min-h-64 items-center justify-center text-sm text-neutral-400">
             No photo
@@ -792,7 +827,7 @@ export function ProductView({
                 aria-pressed={selectedImage === image}
                 onClick={() => setSelectedImage(image)}
               >
-                <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <DeferredImage src={image} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -884,6 +919,23 @@ export function ProductView({
             Copy product link
           </button>
         ) : null}
+        <a
+          className="ml-4 mt-4 inline-block text-sm underline"
+          href={buildWhatsAppShareUrl(
+            buildProductWhatsAppMessage({
+              businessName: store.storeName,
+              productName: product.name,
+              price: product.price,
+              currency: product.currency,
+              availability: product.stockLabel,
+              url: share || storePublicUrl(store.slug, `/products/${product.slug}`),
+            }),
+          )}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Share on WhatsApp
+        </a>
         <button
           type="button"
           className="ml-4 mt-4 text-sm underline"
