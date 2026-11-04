@@ -307,8 +307,6 @@ function Onboarding() {
   const subcategories = BUSINESS_SUBCATEGORIES[form.businessType] ?? [];
   const typeQuestions = TYPE_QUESTIONS[form.businessType] ?? TYPE_QUESTIONS["grocery"]!;
 
-  const isServiceBusiness = form.businessType === "salon" || form.businessType === "services";
-
   const footer = (
     <div className="flex flex-wrap items-center justify-between gap-3">
       {step > 0 ? (
@@ -498,40 +496,38 @@ function Onboarding() {
                 ))}
               </div>
             </div>
-            {isServiceBusiness ? (
-              <div className="mt-4 space-y-1.5">
-                <Label>Do you sell products, services or both?</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      { key: "products", label: "Products" },
-                      { key: "services", label: "Services" },
-                      { key: "both", label: "Both" },
-                    ] as const
-                  ).map((opt) => (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() =>
-                        setConfig({
-                          sellsProducts: opt.key === "products" || opt.key === "both",
-                          sellsServices: opt.key === "services" || opt.key === "both",
-                        })
-                      }
-                      className={
-                        (opt.key === "both" && config.sellsProducts && config.sellsServices) ||
-                        (opt.key === "products" && config.sellsProducts && !config.sellsServices) ||
-                        (opt.key === "services" && !config.sellsProducts && config.sellsServices)
-                          ? "rounded-lg border-2 border-primary bg-accent px-3 py-2 text-sm font-medium"
-                          : "rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
-                      }
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="mt-4 space-y-1.5">
+              <Label>Do you sell products, services or both?</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { key: "products", label: "Products" },
+                    { key: "services", label: "Services" },
+                    { key: "both", label: "Both" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() =>
+                      setConfig({
+                        sellsProducts: opt.key === "products" || opt.key === "both",
+                        sellsServices: opt.key === "services" || opt.key === "both",
+                      })
+                    }
+                    className={
+                      (opt.key === "both" && config.sellsProducts && config.sellsServices) ||
+                      (opt.key === "products" && config.sellsProducts && !config.sellsServices) ||
+                      (opt.key === "services" && !config.sellsProducts && config.sellsServices)
+                        ? "rounded-lg border-2 border-primary bg-accent px-3 py-2 text-sm font-medium"
+                        : "rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            ) : null}
+            </div>
           </OnboardingCard>
         </>
       ) : null}

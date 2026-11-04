@@ -254,8 +254,8 @@ function Help() {
               on the page.
             </li>
             <li>
-              <strong>Import history</strong> backfills past revenue/cost totals for the charts only,
-              it doesn't touch stock or link to specific products or customers.
+              <strong>Import history</strong> backfills past revenue/cost totals for the charts
+              only, it doesn't touch stock or link to specific products or customers.
             </li>
             <li>
               <strong>Import detailed sales</strong> is the fuller version: real line-item

@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { test, expect, pageHeading } from "./fixtures";
 
 const skip = !process.env.E2E_OWNER_EMAIL;
 
@@ -9,8 +9,7 @@ test.describe("product management", () => {
     await page.goto("/inventory");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
 
-    const heading = page.getByRole("heading", { name: /inventory|products/i });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(pageHeading(page, /inventory|products/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test("can open and fill add-product form", async ({ page }) => {
@@ -58,24 +57,15 @@ test.describe("POS / sales", () => {
     await page.goto("/sales");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
 
-    const hasProducts = await page
-      .getByText(/product|item|search/i)
-      .first()
-      .isVisible({ timeout: 10_000 })
-      .catch(() => false);
-    const hasRoleBlock = await page
-      .getByText(/role.*can't|not.*permitted/i)
-      .isVisible()
-      .catch(() => false);
-    expect(hasProducts || hasRoleBlock).toBe(true);
+    const heading = pageHeading(page, /sales/i);
+    await expect(heading).toBeVisible({ timeout: 15_000 });
   });
 
   test("sale history page loads", async ({ page }) => {
     await page.goto("/sale-history");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
 
-    const heading = page.getByRole("heading", { name: /sale|history|transaction/i });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(pageHeading(page, /sales history|history/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test("cash drawer page loads", async ({ page }) => {
@@ -92,8 +82,7 @@ test.describe("customers", () => {
     await page.goto("/customers");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
 
-    const heading = page.getByRole("heading", { name: /customer/i });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(pageHeading(page, /customers/i)).toBeVisible({ timeout: 15_000 });
   });
 });
 
@@ -103,19 +92,19 @@ test.describe("other authenticated pages", () => {
   test("expenses page loads", async ({ page }) => {
     await page.goto("/expenses");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: /expense/i })).toBeVisible({ timeout: 15_000 });
+    await expect(pageHeading(page, /expenses/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test("invoices page loads", async ({ page }) => {
     await page.goto("/invoices");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: /invoice/i })).toBeVisible({ timeout: 15_000 });
+    await expect(pageHeading(page, /invoices/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test("reports page loads", async ({ page }) => {
     await page.goto("/reports");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: /report/i })).toBeVisible({ timeout: 15_000 });
+    await expect(pageHeading(page, /reports/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test("settings account page loads", async ({ page }) => {

@@ -16,6 +16,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Boxes,
+  Briefcase,
   CheckCircle2,
   Info,
   Plus,
@@ -30,6 +31,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
+import { isCommerceModel, navShowsServicesFirst } from "@/lib/commerce-model";
+import { getServiceReportsFn } from "@/lib/services.functions";
 import { shouldSendToCreateShop } from "@/lib/auth/post-auth-destination";
 import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
 import { DailyTakingsList } from "@/components/daily-takings";
@@ -101,7 +104,11 @@ function Dashboard() {
   const [wantBriefing, setWantBriefing] = useState(false);
   const fetchDashboard = useServerFn(getDashboard);
   const fetchBriefing = useServerFn(getDailyBusinessBriefingFn);
+  const fetchServiceReports = useServerFn(getServiceReportsFn);
   const businessId = workspace.data?.business.id;
+  const rawCommerceModel = workspace.data?.business?.commerce_model;
+  const commerceModel = isCommerceModel(rawCommerceModel) ? rawCommerceModel : "products";
+  const servicesFirst = navShowsServicesFirst(commerceModel);
   const canReadBriefing =
     hasPermission(workspace.data, "reports.financial") && hasPermission(workspace.data, "ai.use");
 
@@ -142,6 +149,11 @@ function Dashboard() {
     enabled: Boolean(businessId) && canReadBriefing && wantBriefing,
     staleTime: 60 * 60 * 1000,
     queryFn: () => fetchBriefing({ data: { businessId: businessId! } }),
+  });
+  const serviceReports = useQuery({
+    queryKey: ["service-reports", businessId, range],
+    enabled: Boolean(businessId) && servicesFirst,
+    queryFn: () => fetchServiceReports({ data: { businessId: businessId!, days: Number(range) } }),
   });
 
   if (workspace.isError) {
@@ -188,8 +200,12 @@ function Dashboard() {
       title={`${greeting()}`}
       subtitle={`Here's how ${workspace.data.business.name} is doing.`}
       actions={
-        <Button className="gap-1.5" onClick={() => navigate({ to: "/inventory" })}>
-          <Plus className="size-4" aria-hidden="true" /> Add product
+        <Button
+          className="gap-1.5"
+          onClick={() => navigate({ to: servicesFirst ? "/services" : "/inventory" })}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          {servicesFirst ? "Add service" : "Add product"}
         </Button>
       }
     >
@@ -323,6 +339,31 @@ function Dashboard() {
           icon={Boxes}
         />
       </div>
+      {servicesFirst ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Service revenue"
+            value={
+              serviceReports.data
+                ? formatMoney(serviceReports.data.serviceRevenue, currency)
+                : undefined
+            }
+            icon={Briefcase}
+          />
+          <StatCard
+            label="Bookings"
+            value={
+              serviceReports.data ? `${formatNumber(serviceReports.data.bookingCount)}` : undefined
+            }
+            hint={
+              serviceReports.data
+                ? `${formatNumber(serviceReports.data.completedCount)} completed`
+                : undefined
+            }
+            icon={Briefcase}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <section className="surface p-5">

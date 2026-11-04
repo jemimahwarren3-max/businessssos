@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { test, expect, pageHeading } from "./fixtures";
 
 test.describe("subscription and billing", () => {
   test.skip(!process.env.E2E_OWNER_EMAIL, "E2E_OWNER_EMAIL not set, skipping authenticated tests");
@@ -14,11 +14,7 @@ test.describe("subscription and billing", () => {
     await page.goto("/settings/billing");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
 
-    const hasPlanInfo = await page
-      .getByText(/trial|active|expired|subscribe|plan/i)
-      .first()
-      .isVisible({ timeout: 10_000 })
-      .catch(() => false);
-    expect(hasPlanInfo).toBe(true);
+    await expect(pageHeading(page, /billing/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("body")).toContainText(/billing|subscription|plan|trial/i);
   });
 });

@@ -30,6 +30,18 @@ describe("deriveStoreLaunchDisplay", () => {
     expect(result.badge).toBe("Live");
   });
 
+  it("treats a missing checklist as not set up instead of throwing", () => {
+    expect(
+      deriveStoreLaunchDisplay({
+        checklist: undefined,
+        storeStatus: "draft",
+        billingEnabled: true,
+        isOperateLocked: false,
+      }).phase,
+    ).toBe("not_set_up");
+    expect(buildLaunchSteps(undefined, { notificationsConfigured: false })).toHaveLength(7);
+  });
+
   it("requires payment before launch when billing is on and operate is locked", () => {
     const ready = {
       name: true,
@@ -57,7 +69,7 @@ describe("buildLaunchSteps", () => {
     expect(steps.map((step) => step.to)).toEqual([
       "/storefront",
       "/storefront",
-      "/storefront",
+      "/inventory",
       "/storefront",
       "/storefront",
       "/notifications",
@@ -65,6 +77,7 @@ describe("buildLaunchSteps", () => {
     ]);
     expect(steps.find((step) => step.id === "launch")?.hash).toBe(LAUNCH_PUBLISH_HASH);
     expect(steps.find((step) => step.id === "design")?.hash).toBe("launch-design");
+    expect(steps.find((step) => step.id === "products")?.hash).toBeUndefined();
     expect(steps.find((step) => step.id === "notifications")?.hash).toBeUndefined();
   });
 

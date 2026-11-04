@@ -20,6 +20,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { getReports, importSalesDetailedFn, importSalesHistoryFn } from "@/lib/business.functions";
+import { isCommerceModel, navShowsServicesFirst } from "@/lib/commerce-model";
+import { getServiceReportsFn } from "@/lib/services.functions";
 import {
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
@@ -111,8 +113,12 @@ function Reports() {
   const [importOpen, setImportOpen] = useState(false);
   const [detailedImportOpen, setDetailedImportOpen] = useState(false);
   const fetchReports = useServerFn(getReports);
+  const fetchServiceReports = useServerFn(getServiceReportsFn);
   const importSalesHistoryRows = useServerFn(importSalesHistoryFn);
   const importSalesDetailedRows = useServerFn(importSalesDetailedFn);
+  const rawCommerceModel = workspace.data?.business.commerce_model;
+  const commerceModel = isCommerceModel(rawCommerceModel) ? rawCommerceModel : "products";
+  const showServiceReports = navShowsServicesFirst(commerceModel);
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -124,6 +130,11 @@ function Reports() {
     queryKey: ["reports", businessId, range],
     enabled: Boolean(businessId) && canView,
     queryFn: () => fetchReports({ data: { businessId: businessId!, days: Number(range) } }),
+  });
+  const serviceReports = useQuery({
+    queryKey: ["service-reports", businessId, range],
+    enabled: Boolean(businessId) && canView && showServiceReports,
+    queryFn: () => fetchServiceReports({ data: { businessId: businessId!, days: Number(range) } }),
   });
 
   if (!workspace.data) {
@@ -440,6 +451,95 @@ function Reports() {
           )}
         </section>
       </div>
+
+      {showServiceReports ? (
+        <section className="surface mt-4 p-5">
+          <h2 className="text-lg font-semibold">Services</h2>
+          <p className="text-[13px] text-muted-foreground">
+            Bookings and service till sales, separate from product stock.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-[13px] text-muted-foreground">Service revenue</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {serviceReports.data
+                  ? formatMoney(serviceReports.data.serviceRevenue, currency)
+                  : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[13px] text-muted-foreground">Bookings</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {serviceReports.data ? formatNumber(serviceReports.data.bookingCount) : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[13px] text-muted-foreground">Completed / cancelled / no-show</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {serviceReports.data
+                  ? `${formatNumber(serviceReports.data.completedCount)} / ${formatNumber(serviceReports.data.cancelledCount)} / ${formatNumber(serviceReports.data.noShowCount)}`
+                  : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[13px] text-muted-foreground">Unpaid completed work</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {serviceReports.data
+                  ? formatMoney(serviceReports.data.outstanding ?? 0, currency)
+                  : "-"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold">Popular services</h3>
+              {(serviceReports.data?.popularServices ?? []).length === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">No bookings in this period.</p>
+              ) : (
+                <ul className="mt-2 divide-y divide-border">
+                  {(serviceReports.data?.popularServices ?? []).map((row) => (
+                    <li key={row.name} className="flex justify-between gap-3 py-2 text-sm">
+                      <span>
+                        {row.name}
+                        <span className="ml-2 text-muted-foreground">
+                          {formatNumber(row.count)}
+                        </span>
+                      </span>
+                      <span className="font-semibold tabular-nums">
+                        {formatMoney(row.revenue, currency)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Revenue by staff</h3>
+              {(serviceReports.data?.revenueByStaff ?? []).length === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No completed work assigned yet.
+                </p>
+              ) : (
+                <ul className="mt-2 divide-y divide-border">
+                  {(serviceReports.data?.revenueByStaff ?? []).map((row) => (
+                    <li key={row.name} className="flex justify-between gap-3 py-2 text-sm">
+                      <span>
+                        {row.name}
+                        <span className="ml-2 text-muted-foreground">
+                          {formatNumber(row.count)}
+                        </span>
+                      </span>
+                      <span className="font-semibold tabular-nums">
+                        {formatMoney(row.revenue, currency)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="surface p-5">

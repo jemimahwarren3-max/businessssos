@@ -100,6 +100,39 @@ export function isMissingDbFunction(error: unknown): boolean {
   );
 }
 
+/** Staging/production may not have applied the latest ALTER TABLE yet. */
+export function isMissingDbColumn(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  const message = (error as { message?: string } | null)?.message ?? "";
+  return (
+    code === "42703" ||
+    code === "PGRST204" ||
+    /column .* does not exist/i.test(message) ||
+    /could not find the .* column/i.test(message)
+  );
+}
+
+const BUSINESS_WORKSPACE_COLUMNS =
+  "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at";
+
+export async function loadBusinessWorkspaceRow(supabase: Db, businessId: string) {
+  const withModel = await supabase
+    .from("businesses")
+    .select(`${BUSINESS_WORKSPACE_COLUMNS}, commerce_model`)
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!withModel.error || !isMissingDbColumn(withModel.error)) return withModel;
+  console.error(
+    "[businessos] commerce_model column missing, loading workspace without it",
+    withModel.error,
+  );
+  return supabase
+    .from("businesses")
+    .select(BUSINESS_WORKSPACE_COLUMNS)
+    .eq("id", businessId)
+    .maybeSingle();
+}
+
 function skipMissingRpc(context: string, error: unknown): boolean {
   if (!error) return true;
   if (!isMissingDbFunction(error)) return false;
@@ -122,6 +155,7 @@ export type Workspace = {
     logo_url: string | null;
     business_path: string;
     setup_completed_at: string | null;
+    commerce_model?: string;
   };
   role: string;
   permissions: string[];
@@ -339,13 +373,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     { data: hasOwnerBypass, error: entitlementError },
     { data: featureFlags, error: featureFlagError },
   ] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select(
-        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
-      )
-      .eq("id", membership.business_id)
-      .maybeSingle(),
+    loadBusinessWorkspaceRow(supabase, membership.business_id),
     supabase
       .from("subscriptions")
       .select("plan, status, trial_ends_at")
@@ -383,7 +411,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const billingExempt = flags?.billingExempt === true;
 
   const workspace: Workspace = {
-    business,
+    business: business as unknown as Workspace["business"],
     role: membership.role,
     permissions: Array.isArray(permissions) ? permissions : [],
     plan: subscription?.plan ?? "free",
@@ -503,7 +531,9 @@ export async function getSetupProgress(supabase: Db, businessId: string) {
   return data as unknown as {
     business_path: string;
     setup_completed_at: string | null;
+    commerce_model?: string;
     has_products: boolean;
+    has_services?: boolean;
     product_count: number;
     has_sales: boolean;
     sale_count: number;
@@ -632,7 +662,8 @@ export async function listProducts(
   search: string,
   supplierId?: string,
 ) {
-  let query = supabase
+  const term = search.trim();
+  let withWholesaleQuery = supabase
     .from("products")
     .select(
       "id, name, sku, barcode, unit, cost_price, selling_price, wholesale_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
@@ -641,12 +672,39 @@ export async function listProducts(
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
-  const term = search.trim();
-  if (term) query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`);
-  if (supplierId) query = query.eq("supplier_id", supplierId);
-  const { data, error } = await query;
-  if (error) dbFail("list products", error);
-  return data ?? [];
+  if (term) {
+    withWholesaleQuery = withWholesaleQuery.or(
+      `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,
+    );
+  }
+  if (supplierId) withWholesaleQuery = withWholesaleQuery.eq("supplier_id", supplierId);
+  const withWholesale = await withWholesaleQuery;
+  if (!withWholesale.error || !isMissingDbColumn(withWholesale.error)) {
+    if (withWholesale.error) dbFail("list products", withWholesale.error);
+    return withWholesale.data ?? [];
+  }
+  console.error(
+    "[businessos] wholesale_price column missing, listing products without it",
+    withWholesale.error,
+  );
+  let withoutWholesaleQuery = supabase
+    .from("products")
+    .select(
+      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
+    )
+    .eq("business_id", businessId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (term) {
+    withoutWholesaleQuery = withoutWholesaleQuery.or(
+      `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,
+    );
+  }
+  if (supplierId) withoutWholesaleQuery = withoutWholesaleQuery.eq("supplier_id", supplierId);
+  const withoutWholesale = await withoutWholesaleQuery;
+  if (withoutWholesale.error) dbFail("list products", withoutWholesale.error);
+  return (withoutWholesale.data ?? []).map((row) => ({ ...row, wholesale_price: null }));
 }
 
 export async function listLocations(
@@ -783,7 +841,9 @@ export async function createProduct(supabase: Db, input: ProductInput) {
       .update({ wholesale_price: input.wholesalePrice })
       .eq("id", data.id)
       .eq("business_id", input.businessId);
-    if (wholesaleError) dbFail("save wholesale price", wholesaleError);
+    if (wholesaleError && !isMissingDbColumn(wholesaleError)) {
+      dbFail("save wholesale price", wholesaleError);
+    }
   }
   return data;
 }
@@ -1042,7 +1102,8 @@ export async function createSale(supabase: Db, input: SaleInput) {
     _payment_method: input.paymentMethod,
     _notes: (input.notes || null) as never,
     _items: input.items.map((item) => ({
-      productId: item.productId,
+      productId: item.productId || undefined,
+      serviceId: item.serviceId || undefined,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
     })) as never,

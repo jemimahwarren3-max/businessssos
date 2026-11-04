@@ -9,6 +9,9 @@ export const MAIN_NAV_HINTS: Record<string, string> = {
     "Online shop orders, confirm payment, prepare, dispatch, or mark ready for collection.",
   "/branches": "Physical locations, default POS branch, and per-location stock (where configured).",
   "/inventory": "Products, stock levels, and adjustments across your locations.",
+  "/services": "Create services, prices, durations, and who can deliver them.",
+  "/bookings": "Appointments, walk-ins, and quotation requests.",
+  "/settings/business": "What you sell, opening hours, and booking rules.",
   "/suppliers": "Who you buy from and their contact details.",
   "/purchase-orders": "Orders you place with suppliers before stock arrives.",
   "/invoices": "Bill customers, track what's owed, and record when they pay.",
@@ -33,6 +36,7 @@ export const SECONDARY_NAV_HINTS: Record<string, string> = {
   "/settings/data": "Download a copy of your business data.",
   "/settings/audit-log": "Who changed what, useful for disputes and year-end checks.",
   "/settings/account": "Your sign-in email, password, and notification preferences.",
+  "/settings/business": "Commerce model, opening hours, and whether bookings auto-confirm.",
   "/help": "Guides and answers without leaving the app.",
 };
 

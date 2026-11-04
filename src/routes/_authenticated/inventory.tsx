@@ -110,6 +110,29 @@ const PRODUCT_IMPORT_COLUMNS: ImportColumn[] = [
   { key: "taxRate", label: "Tax Rate", required: false, aliases: ["tax", "vat", "taxpercent"] },
 ];
 
+function InventoryError({ error, reset }: { error: unknown; reset: () => void }) {
+  const normalized = error instanceof Error ? error : new Error("Unknown inventory error");
+  return (
+    <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
+      <h1 className="text-2xl font-semibold">We couldn&apos;t open inventory</h1>
+      <p className="text-sm text-muted-foreground">
+        {readableError(
+          normalized,
+          "Nothing was deleted. This is a load error. Try again, do not create a second store.",
+        )}
+      </p>
+      {normalized.message ? (
+        <p className="break-words font-mono text-[11px] text-muted-foreground">
+          {normalized.message}
+        </p>
+      ) : null}
+      <Button className="rounded-full" onClick={reset}>
+        Try again
+      </Button>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({
     meta: [
@@ -123,6 +146,7 @@ export const Route = createFileRoute("/_authenticated/inventory")({
     ],
   }),
   component: Inventory,
+  errorComponent: InventoryError,
 });
 
 type ProductRow = {
@@ -140,6 +164,15 @@ type ProductRow = {
 };
 
 type OnlineProduct = AdminStore["products"][number];
+
+function onlineReadiness(product: OnlineProduct | undefined) {
+  if (!product) return null;
+  try {
+    return getOnlineProductReadiness(product);
+  } catch {
+    return { ready: false, missing: ["Online details could not be checked"] };
+  }
+}
 
 function Inventory() {
   const navigate = useNavigate();
@@ -306,7 +339,7 @@ function Inventory() {
     onError: (error: Error) => toast.error(readableError(error, "We couldn't update the stock.")),
   });
 
-  const allRows = (products.data ?? []) as ProductRow[];
+  const allRows = (Array.isArray(products.data) ? products.data : []) as ProductRow[];
   const stockMap = useMemo(() => {
     if (!locationFilter || !locationStock.data) return null;
     const map = new Map<string, number>();
@@ -370,7 +403,7 @@ function Inventory() {
         header: "Wholesale",
         cell: ({ row }) =>
           row.original.wholesale_price == null ? (
-            <span className="text-muted-foreground">-<//span>
+            <span className="text-muted-foreground">-</span>
           ) : (
             <span className="tabular-nums text-muted-foreground">
               {formatMoney(Number(row.original.wholesale_price), currency)}
@@ -387,10 +420,10 @@ function Inventory() {
         header: "Online store",
         enableSorting: false,
         cell: ({ row }) => {
-          const onlineProduct = storefront.data?.products.find(
-            (product) => product.id === row.original.id,
-          );
-          const readiness = onlineProduct ? getOnlineProductReadiness(onlineProduct) : null;
+          const onlineProduct = Array.isArray(storefront.data?.products)
+            ? storefront.data.products.find((product) => product.id === row.original.id)
+            : undefined;
+          const readiness = onlineReadiness(onlineProduct);
           const pending =
             onlineListingMutation.isPending &&
             onlineListingMutation.variables?.product.id === row.original.id;
@@ -446,7 +479,9 @@ function Inventory() {
               enableSorting: false,
               cell: ({ row }) => {
                 const product = row.original;
-                const listing = storefront.data?.products.find((item) => item.id === product.id);
+                const listing = Array.isArray(storefront.data?.products)
+                  ? storefront.data.products.find((item) => item.id === product.id)
+                  : undefined;
                 const slug = storefront.data?.store?.slug;
                 const listingSlug = listing?.slug;
                 const stock = Number(product.stock);
@@ -506,6 +541,20 @@ function Inventory() {
       workspace.data?.business.name,
     ],
   );
+
+  if (workspace.isError) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
+        <h1 className="text-2xl font-semibold">We couldn&apos;t open inventory</h1>
+        <p className="text-sm text-muted-foreground">
+          Nothing was deleted. This is a load error. Try again, do not create a second store.
+        </p>
+        <Button className="rounded-full" onClick={() => void workspace.refetch()}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
 
   if (!workspace.data) {
     return (
@@ -591,11 +640,13 @@ function Inventory() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
-              {categoryList.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
+              {categoryList
+                .filter((cat) => cat.id)
+                .map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         ) : null}
@@ -609,12 +660,14 @@ function Inventory() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All locations (total)</SelectItem>
-              {locations.data.map((loc) => (
-                <SelectItem key={loc.id} value={loc.id}>
-                  {loc.name}
-                  {loc.is_default ? " (default)" : ""}
-                </SelectItem>
-              ))}
+              {locations.data
+                .filter((loc) => loc.id)
+                .map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                    {loc.is_default ? " (default)" : ""}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         ) : null}
@@ -638,6 +691,16 @@ function Inventory() {
         <p className="mt-3 text-sm text-muted-foreground" role="status">
           Loading online availability…
         </p>
+      ) : null}
+      {products.isError ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 p-3">
+          <p className="text-sm text-destructive">
+            {readableError(products.error as Error, "Products could not be loaded.")}
+          </p>
+          <Button size="sm" variant="outline" onClick={() => void products.refetch()}>
+            Retry products
+          </Button>
+        </div>
       ) : null}
       {storefront.isError ? (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 p-3">
@@ -678,10 +741,10 @@ function Inventory() {
           <>
             <ul className="divide-y divide-border lg:hidden">
               {rows.map((product) => {
-                const onlineProduct = storefront.data?.products.find(
-                  (item) => item.id === product.id,
-                );
-                const readiness = onlineProduct ? getOnlineProductReadiness(onlineProduct) : null;
+                const onlineProduct = Array.isArray(storefront.data?.products)
+                  ? storefront.data.products.find((item) => item.id === product.id)
+                  : undefined;
+                const readiness = onlineReadiness(onlineProduct);
                 const pending =
                   onlineListingMutation.isPending &&
                   onlineListingMutation.variables?.product.id === product.id;

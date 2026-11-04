@@ -50,6 +50,10 @@ function ratioClass(ratio: "square" | "portrait" | "landscape") {
   return "aspect-square";
 }
 
+function storeServices(store: PublicStore) {
+  return store.services ?? [];
+}
+
 function fontPairStacks(pair: PublicStore["theme"]["fontPair"], templateFont: string) {
   switch (pair) {
     case "editorial":
@@ -119,6 +123,7 @@ export function StoreChrome({
       <Link to="/store/$slug" params={{ slug: store.slug }} search={previewSearch}>
         Shop
       </Link>
+      {storeServices(store).length > 0 ? <a href="#services-catalogue">Services</a> : null}
       <Link
         to="/store/$slug/search"
         params={{ slug: store.slug }}
@@ -302,22 +307,22 @@ export function StoreChrome({
                 Message on WhatsApp
               </a>
             ) : null}
-            {store.socials.website ? (
+            {store.socials?.website ? (
               <a className="block" style={{ color: theme.link }} href={store.socials.website}>
                 Website
               </a>
             ) : null}
-            {store.socials.instagram ? (
+            {store.socials?.instagram ? (
               <a className="block" style={{ color: theme.link }} href={store.socials.instagram}>
                 Instagram
               </a>
             ) : null}
-            {store.socials.facebook ? (
+            {store.socials?.facebook ? (
               <a className="block" style={{ color: theme.link }} href={store.socials.facebook}>
                 Facebook
               </a>
             ) : null}
-            {store.socials.tiktok ? (
+            {store.socials?.tiktok ? (
               <a
                 className="block"
                 style={{ color: theme.link }}
@@ -425,6 +430,9 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
 export function Catalog({ store, query }: { store: PublicStore; query?: string }) {
   const template = getTemplate(store.templateId);
   const { theme } = store;
+  const services = storeServices(store);
+  const preview = useStorePreview();
+  const previewSearch = preview ? { preview: 1 as const } : {};
   const [category, setCategory] = useState<string>("all");
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
@@ -469,11 +477,15 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
       </h1>
       {blurb ? <p className="mt-3 max-w-xl opacity-80">{blurb}</p> : null}
       <a
-        href="#shop-catalogue"
+        href={
+          store.products.length === 0 && services.length > 0
+            ? "#services-catalogue"
+            : "#shop-catalogue"
+        }
         className="mt-5 inline-flex rounded-md px-4 py-2 text-sm font-semibold"
         style={{ backgroundColor: theme.button, color: theme.buttonText }}
       >
-        Shop now
+        {store.products.length === 0 && services.length > 0 ? "View services" : "Shop now"}
       </a>
       {template.layout === "services" ? (
         <p className="mt-4 max-w-xl text-sm opacity-70">
@@ -667,10 +679,63 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           })}
         </div>
       ) : null}
+      {(query
+        ? services.filter((service) => service.name.toLowerCase().includes(query.toLowerCase()))
+        : services
+      ).length > 0 ? (
+        <section id="services-catalogue" className="mx-auto max-w-6xl px-4 py-8">
+          <h2 className="mb-3 text-xl font-semibold" style={{ color: theme.primary }}>
+            Services
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {(query
+              ? services.filter((service) =>
+                  service.name.toLowerCase().includes(query.toLowerCase()),
+                )
+              : services
+            ).map((service) => {
+              const price =
+                service.pricingType === "quote" && service.price <= 0
+                  ? "Quote on request"
+                  : formatMoney(service.price, store.currency);
+              return (
+                <Link
+                  key={service.id}
+                  to="/store/$slug/services/$serviceId"
+                  params={{ slug: store.slug, serviceId: service.id }}
+                  search={previewSearch}
+                  className="overflow-hidden rounded-xl border"
+                  style={{ backgroundColor: theme.surface }}
+                >
+                  {service.imageUrl ? (
+                    <img src={service.imageUrl} alt="" className="h-40 w-full object-cover" />
+                  ) : null}
+                  <div className="p-4">
+                    {service.categoryName ? (
+                      <p className="text-xs uppercase tracking-wide opacity-60">
+                        {service.categoryName}
+                      </p>
+                    ) : null}
+                    <p className="font-medium leading-snug">{service.name}</p>
+                    <p className="mt-1 text-sm" style={{ color: theme.primary }}>
+                      {price}
+                      {service.durationMinutes ? ` · ${service.durationMinutes} min` : ""}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
       {products.length === 0 ? (
-        <p id="shop-catalogue" className="mx-auto max-w-6xl px-4 py-16 opacity-70">
-          No products are published in this view yet.
-        </p>
+        services.length === 0 ? (
+          <p id="shop-catalogue" className="mx-auto max-w-6xl px-4 py-16 opacity-70">
+            No products are published in this view yet.
+          </p>
+        ) : (
+          <div id="shop-catalogue" />
+        )
       ) : grouped ? (
         <div id="shop-catalogue" className="mx-auto max-w-3xl space-y-8 px-4 pb-16">
           {store.categories.map((item) => {
@@ -751,7 +816,9 @@ export function ProductView({
   const [saved, setSaved] = useState(false);
   const images = useMemo(
     () =>
-      [product.imageUrl, ...product.galleryUrls].filter((image): image is string => Boolean(image)),
+      [product.imageUrl, ...(product.galleryUrls ?? [])].filter((image): image is string =>
+        Boolean(image),
+      ),
     [product.galleryUrls, product.imageUrl],
   );
   const [selectedImage, setSelectedImage] = useState(images[0] ?? null);

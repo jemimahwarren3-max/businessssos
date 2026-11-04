@@ -325,6 +325,7 @@ export type Database = {
           address: string | null;
           business_path: string;
           business_type: Database["public"]["Enums"]["business_type"];
+          commerce_model: string;
           created_at: string;
           created_by: string;
           currency: string;
@@ -348,6 +349,7 @@ export type Database = {
           address?: string | null;
           business_path?: string;
           business_type?: Database["public"]["Enums"]["business_type"];
+          commerce_model?: string;
           created_at?: string;
           created_by: string;
           currency?: string;
@@ -371,6 +373,7 @@ export type Database = {
           address?: string | null;
           business_path?: string;
           business_type?: Database["public"]["Enums"]["business_type"];
+          commerce_model?: string;
           created_at?: string;
           created_by?: string;
           currency?: string;

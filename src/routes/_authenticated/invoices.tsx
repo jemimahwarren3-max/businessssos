@@ -530,7 +530,7 @@ function Invoices() {
                   <ul className="space-y-1">
                     {aiSuggestion.items.map((item, index) => (
                       <li key={`${item.productId}-${index}`}>
-                        {item.quantity} × {item.name}, {" "}
+                        {item.quantity} × {item.name},{" "}
                         {formatMoney(item.quantity * item.unitPrice, currency)} before tax
                       </li>
                     ))}

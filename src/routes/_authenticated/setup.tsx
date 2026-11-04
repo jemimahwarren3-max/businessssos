@@ -9,11 +9,13 @@ import {
   CheckCircle2,
   Circle,
   Loader2,
+  Briefcase,
   Package,
   Receipt,
   Store,
   Users,
 } from "lucide-react";
+import { isCommerceModel, navShowsServicesFirst } from "@/lib/commerce-model";
 import {
   OnboardingCard,
   OnboardingHeading,
@@ -135,15 +137,36 @@ function Setup() {
   const p = progress.data;
   const businessName = workspace.data.business.name;
   const isFull = p?.business_path === "full";
+  const model = isCommerceModel(p?.commerce_model)
+    ? p.commerce_model
+    : isCommerceModel(workspace.data.business.commerce_model)
+      ? workspace.data.business.commerce_model
+      : "products";
+  const servicesFirst = navShowsServicesFirst(model);
 
   const checklist: ChecklistItem[] = [
+    ...(servicesFirst
+      ? [
+          {
+            key: "service",
+            title: "Add your first service",
+            description: "Add what you offer, with a price or quote, so customers can book.",
+            href: "/services",
+            icon: Briefcase,
+            done: !!p?.has_services,
+          } satisfies ChecklistItem,
+        ]
+      : []),
     {
       key: "product",
-      title: "Add your first product",
-      description: "Add products or services so you can start making sales.",
+      title: servicesFirst ? "Add products (optional)" : "Add your first product",
+      description: servicesFirst
+        ? "You can also sell physical goods from the same till and shop."
+        : "Add products so you can start making sales.",
       href: "/inventory",
       icon: Package,
       done: !!p?.has_products,
+      optional: servicesFirst && model !== "hybrid",
     },
     {
       key: "sale",
@@ -235,7 +258,10 @@ function Setup() {
           {checklist.map((item) => (
             <Link
               key={item.key}
-              to={item.href as "/inventory"}
+              to={
+                item.href as
+                  "/inventory" | "/services" | "/sales" | "/storefront" | "/settings/team"
+              }
               className="group flex items-center gap-4 rounded-2xl border bg-card p-4 transition hover:border-primary"
             >
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10">

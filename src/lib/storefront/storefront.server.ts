@@ -23,6 +23,7 @@ import {
   type Db,
 } from "@/lib/business.server";
 import { persistedCoverUrl } from "@/lib/storefront/theme";
+import { loadPublicServices } from "@/lib/services.server";
 import { attributeStoreOrderAnalytics } from "@/lib/growth.server";
 import {
   adminOrderSchema,
@@ -119,6 +120,11 @@ export async function loadPublicStore(input: {
   const store = await parseRpc("load public store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: input.slug });
   if (!offered.error) store.payments.paynow = offered.data === true;
+  try {
+    store.services = await loadPublicServices(input.slug);
+  } catch {
+    store.services = [];
+  }
   return store;
 }
 
@@ -129,6 +135,11 @@ export async function loadStorePreview(supabase: Db, slug: string): Promise<Publ
   const store = await parseRpc("preview store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: slug });
   if (!offered.error) store.payments.paynow = offered.data === true;
+  try {
+    store.services = await loadPublicServices(slug);
+  } catch {
+    store.services = [];
+  }
   return store;
 }
 
