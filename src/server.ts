@@ -193,17 +193,23 @@ export default {
     // Cloudflare Worker proxies *.mykwetuu.com → mykwetuu.com and passes the
     // original subdomain hostname in X-Forwarded-Host. Restore it so the
     // app's existing subdomain routing (redirect check + router rewrite) works.
+    // A shared secret prevents direct-to-origin spoofing of the header.
     const platform = configuredPlatformRoot();
     const forwardedHost = request.headers.get("x-forwarded-host");
     if (forwardedHost && platform) {
-      const slug = storeSlugFromHostname(forwardedHost, platform.hostname);
-      if (slug) {
-        url.hostname = forwardedHost;
-        request = new Request(url.toString(), {
-          method: request.method,
-          headers: request.headers,
-          body: request.body,
-        });
+      const proxySecret = process.env["SHOP_PROXY_SECRET"];
+      const proxyKey = request.headers.get("x-shop-proxy-key");
+      const trusted = proxySecret ? proxyKey === proxySecret : true;
+      if (trusted) {
+        const slug = storeSlugFromHostname(forwardedHost, platform.hostname);
+        if (slug) {
+          url.hostname = forwardedHost;
+          request = new Request(url.toString(), {
+            method: request.method,
+            headers: request.headers,
+            body: request.body,
+          });
+        }
       }
     }
 

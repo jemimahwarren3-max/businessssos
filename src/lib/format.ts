@@ -35,11 +35,16 @@ export function greeting(date = new Date()) {
 
 export function friendlyDate(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
+  return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
+    month: "short",
     year: "numeric",
   }).format(date);
+}
+
+export function todayLocal(timeZone = "Africa/Harare"): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return parts;
 }
 
 export function friendlyDateTime(value: string | Date, timeZone = "Africa/Harare") {

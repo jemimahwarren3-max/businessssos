@@ -5,7 +5,7 @@
 const ROOT = "mykwetuu.com";
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     // Only proxy subdomain requests (not apex or www)
@@ -25,6 +25,9 @@ export default {
 
     const headers = new Headers(request.headers);
     headers.set("X-Forwarded-Host", originalHost);
+    if (env.PROXY_SECRET) {
+      headers.set("X-Shop-Proxy-Key", env.PROXY_SECRET);
+    }
 
     return fetch(url.toString(), {
       method: request.method,

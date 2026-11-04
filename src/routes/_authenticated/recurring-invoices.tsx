@@ -36,7 +36,7 @@ import {
   updateRecurringInvoiceActive,
 } from "@/lib/business.functions";
 import { recurringInvoiceSchema, type LineItemInput } from "@/lib/business.schemas";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError, todayLocal } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/recurring-invoices")({
   head: () => ({
@@ -66,7 +66,7 @@ const EMPTY_ITEM: LineItemInput = {
 const EMPTY_FORM = {
   customerId: "",
   interval: "monthly",
-  startDate: new Date().toISOString().slice(0, 10),
+  startDate: todayLocal(),
   dueDays: "14",
   discount: "0",
   notes: "",

@@ -46,7 +46,7 @@ import {
   updateSupplierSchema,
   type LineItemInput,
 } from "@/lib/business.schemas";
-import { formatMoney, readableError } from "@/lib/format";
+import { formatMoney, readableError, todayLocal } from "@/lib/format";
 import { CREDIT_REPAYMENT_RAILS, railToPaymentMethod } from "@/lib/payment-rails";
 import { computeTotals } from "@/lib/invoice-calc";
 import { buildPurchaseOrderWhatsAppMessage, buildWhatsAppLink } from "@/lib/whatsapp";
@@ -142,7 +142,7 @@ function Suppliers() {
       const parsed = purchaseOrderSchema.parse({
         businessId,
         supplierId: orderTarget!.id,
-        orderDate: new Date().toISOString().slice(0, 10),
+        orderDate: todayLocal(),
         items: orderItems,
       });
       return createPurchaseOrderFn({ data: parsed });

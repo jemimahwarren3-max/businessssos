@@ -49,7 +49,7 @@ import {
   type CustomerImportRow,
   type LineItemInput,
 } from "@/lib/business.schemas";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError, todayLocal } from "@/lib/format";
 import { CREDIT_REPAYMENT_RAILS, railToPaymentMethod } from "@/lib/payment-rails";
 import { computeTotals } from "@/lib/invoice-calc";
 import type { ImportColumn } from "@/lib/spreadsheet";
@@ -170,7 +170,7 @@ function Customers() {
       const parsed = quoteSchema.parse({
         businessId,
         customerId: orderTarget!.id,
-        issueDate: new Date().toISOString().slice(0, 10),
+        issueDate: todayLocal(),
         discount: 0,
         items: orderItems,
       });

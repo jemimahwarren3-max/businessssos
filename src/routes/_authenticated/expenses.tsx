@@ -35,7 +35,7 @@ import {
   PAYMENT_METHODS,
   type ExpenseImportRow,
 } from "@/lib/business.schemas";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError, todayLocal } from "@/lib/format";
 import type { ImportColumn } from "@/lib/spreadsheet";
 import { downloadXlsx } from "@/lib/xlsx-export";
 
@@ -72,7 +72,7 @@ const EMPTY_FORM = {
   category: "other" as (typeof EXPENSE_CATEGORIES)[number]["value"],
   description: "",
   amount: "",
-  expenseDate: new Date().toISOString().slice(0, 10),
+  expenseDate: todayLocal(),
   method: "cash" as (typeof PAYMENT_METHODS)[number]["value"],
   vendor: "",
 };

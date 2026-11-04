@@ -6,6 +6,7 @@ import { parseStorePreviewSearch } from "@/lib/storefront/preview-search";
 import { decideStorePage } from "@/lib/storefront/store-page";
 import { getPublicStoreFn, getStorePreviewFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
+import { storePublicUrl } from "@/lib/storefront/host";
 
 export const Route = createFileRoute("/store/$slug")({
   validateSearch: parseStorePreviewSearch,
@@ -49,9 +50,15 @@ export const Route = createFileRoute("/store/$slug")({
         ...(store.theme.coverUrl || store.logoUrl
           ? [{ property: "og:image", content: store.theme.coverUrl || store.logoUrl || "" }]
           : []),
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: store.storeName },
+        { name: "twitter:description", content: description.slice(0, 180) },
         ...(preview ? [{ name: "robots", content: "noindex, nofollow" }] : []),
       ],
-      links: [{ rel: "stylesheet", href: template.fontHref }],
+      links: [
+        { rel: "stylesheet", href: template.fontHref },
+        ...(preview ? [] : [{ rel: "canonical", href: storePublicUrl(store.slug) }]),
+      ],
     };
   },
   component: StoreLayout,

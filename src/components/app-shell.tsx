@@ -142,8 +142,8 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
     queryKey: ["notifications", businessId],
     enabled: Boolean(businessId),
     queryFn: () => fetchNotifications({ data: { businessId: businessId! } }),
-    staleTime: 15_000,
-    refetchInterval: 20_000,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
   });
 
   const markReadMutation = useMutation({

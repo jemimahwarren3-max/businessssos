@@ -264,6 +264,7 @@ function CheckoutPage() {
             <input
               className="mt-1 w-full rounded border px-3 py-2"
               required
+              autoComplete="name"
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -272,7 +273,9 @@ function CheckoutPage() {
             Phone
             <input
               className="mt-1 w-full rounded border px-3 py-2"
+              type="tel"
               required
+              autoComplete="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
             />
@@ -283,6 +286,7 @@ function CheckoutPage() {
               className="mt-1 w-full rounded border px-3 py-2"
               type="email"
               required={paymentMethod === "paynow"}
+              autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -479,7 +483,7 @@ function CheckoutPage() {
                   }}
                 />{" "}
                 {MANUAL_PAYMENT_LABELS[method.kind]}
-                {method.accountName ? ` — ${method.accountName}` : ""}
+                {method.accountName ? ` - ${method.accountName}` : ""}
               </label>
             ))}
           </fieldset>
@@ -620,33 +624,33 @@ function CheckoutPage() {
           ) : (
             <p className="mt-3 text-sm">Calculating the server total…</p>
           )}
-          <ul className="mt-3 space-y-1 text-sm text-neutral-600">
+          <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
             {(priced?.lines ?? []).map((line) => (
               <li key={line.productId}>
                 {line.quantity} × {line.name}
               </li>
             ))}
           </ul>
-          {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           {store.policies ? (
-            <div className="mt-4 text-sm text-neutral-600">
+            <div className="mt-4 text-sm text-muted-foreground">
               <p className="font-medium">This shop's collection, delivery and refund notes</p>
               <p className="mt-1 whitespace-pre-wrap">{store.policies}</p>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-neutral-600">
+            <p className="mt-4 text-sm text-muted-foreground">
               This shop has not published a written refund or collection policy yet. Ask before you
               pay if that matters to you.
             </p>
           )}
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="mt-3 text-xs text-muted-foreground">
             Placing an order is an agreement with this shop, not a purchase from {BRAND.name}.
             Platform{" "}
-            <a className="underline" href="/terms">
+            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/terms`}>
               terms
             </a>
             ,{" "}
-            <a className="underline" href="/privacy">
+            <a className="underline" href={`${configuredPlatformOrigin() ?? ""}/privacy`}>
               privacy
             </a>
             , and{" "}

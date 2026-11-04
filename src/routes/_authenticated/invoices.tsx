@@ -51,7 +51,7 @@ import {
   updateInvoiceStatus,
 } from "@/lib/business.functions";
 import { invoiceSchema, PAYMENT_METHODS, type LineItemInput } from "@/lib/business.schemas";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError, todayLocal } from "@/lib/format";
 import { computeTotals } from "@/lib/invoice-calc";
 import { INVOICE_HINTS } from "@/lib/nav-hints";
 import { downloadXlsx } from "@/lib/xlsx-export";
@@ -82,7 +82,7 @@ const EMPTY_ITEM: LineItemInput = {
 };
 const EMPTY_FORM = {
   customerId: "",
-  issueDate: new Date().toISOString().slice(0, 10),
+  issueDate: todayLocal(),
   dueDate: "",
   discount: "0",
   notes: "",

@@ -133,10 +133,15 @@ async function dispatch(
   for (const item of items) {
     try {
       const apiKey = process.env["RESEND_API_KEY"]?.trim() ?? "";
+      const safeBody = item.body
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
       let rendered = {
         subject: item.subject,
         text: item.body,
-        html: `<p>${item.body}</p>`,
+        html: `<p>${safeBody}</p>`,
       };
       if (item.emailTemplate && item.orderId) {
         rendered = await renderOutboxOrderEmail(completionClient, {
