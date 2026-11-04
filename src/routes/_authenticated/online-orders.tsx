@@ -24,6 +24,7 @@ function OnlineOrdersPage() {
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId),
     queryFn: () => load({ data: { businessId: businessId! } }),
+    refetchInterval: 30_000,
   });
 
   if (!workspace.data) {
@@ -42,7 +43,7 @@ function OnlineOrdersPage() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Orders & fulfilment"
-      subtitle="Online shop orders, confirm payment, prepare, dispatch, or mark collected."
+      subtitle="Online shop orders. Confirm payment, prepare, dispatch, or mark collected."
       actions={
         <Button asChild variant="outline" size="sm">
           <Link to="/storefront">My Online Store</Link>

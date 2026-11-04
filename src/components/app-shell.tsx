@@ -176,8 +176,8 @@ function NotificationsBell({ businessId }: { businessId: string | undefined }) {
     queryKey: ["notifications", businessId],
     enabled: Boolean(businessId),
     queryFn: () => fetchNotifications({ data: { businessId: businessId! } }),
-    staleTime: 15_000,
-    refetchInterval: 20_000,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
   });
 
   const markReadMutation = useMutation({
@@ -468,7 +468,7 @@ export function AppShell({
                   <HintTooltip hint={HEADER_HINTS.plan} side="bottom">
                     <Link to="/settings/billing" className="hidden sm:inline-flex">
                       <Badge variant="outline" className="cursor-default capitalize">
-                        {plan} plan
+                        {workspace.data?.planStatus === "trialing" ? "Trial" : plan}
                       </Badge>
                     </Link>
                   </HintTooltip>
@@ -561,14 +561,14 @@ export function AppShell({
           ) : null}
 
           <main id="main-content" className="mx-auto max-w-6xl px-4 pb-28 pt-6 lg:pb-12">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-start gap-4 sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <h1 className="truncate text-2xl font-bold tracking-tight sm:text-[28px]">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">
                   {title}
                 </h1>
                 {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
               </div>
-              {actions ? <div className="flex shrink-0 gap-2">{actions}</div> : null}
+              {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
             </div>
             <div className="mt-6">{children}</div>
           </main>

@@ -45,7 +45,7 @@ export function OrderEmailDeliveries({
     return (
       <p className="text-sm text-muted-foreground">
         No message deliveries recorded for this order yet. Email stays queued until Resend is
-        configured. WhatsApp stays queued until WhatsApp Cloud is connected, it is not marked sent
+        configured. WhatsApp stays queued until WhatsApp Cloud is connected. It is not marked sent
         without a Meta message id.
       </p>
     );

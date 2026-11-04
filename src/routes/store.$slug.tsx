@@ -6,6 +6,7 @@ import { parseStorePreviewSearch } from "@/lib/storefront/preview-search";
 import { decideStorePage } from "@/lib/storefront/store-page";
 import { getPublicStoreFn, getStorePreviewFn } from "@/lib/storefront/storefront.functions";
 import { getTemplate } from "@/lib/storefront/templates";
+import { storePublicUrl } from "@/lib/storefront/host";
 
 export const Route = createFileRoute("/store/$slug")({
   validateSearch: parseStorePreviewSearch,
@@ -38,6 +39,16 @@ export const Route = createFileRoute("/store/$slug")({
     const description =
       store.content.seoDescription || store.tagline || store.about || `Shop ${store.storeName}`;
     const template = getTemplate(store.templateId);
+    const url = storePublicUrl(store.slug);
+    const storeJsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Store",
+      name: store.storeName,
+      description: description.slice(0, 180),
+      url,
+      ...(store.logoUrl ? { logo: store.logoUrl } : {}),
+      ...(store.theme.coverUrl ? { image: store.theme.coverUrl } : {}),
+    }).replace(/</g, "\\u003c");
     return {
       meta: [
         { title: store.content.seoTitle || store.storeName },
@@ -48,9 +59,16 @@ export const Route = createFileRoute("/store/$slug")({
         ...(store.theme.coverUrl || store.logoUrl
           ? [{ property: "og:image", content: store.theme.coverUrl || store.logoUrl || "" }]
           : []),
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: store.storeName },
+        { name: "twitter:description", content: description.slice(0, 180) },
         ...(preview ? [{ name: "robots", content: "noindex, nofollow" }] : []),
       ],
-      links: [{ rel: "stylesheet", href: template.fontHref }],
+      scripts: preview ? [] : [{ type: "application/ld+json", children: storeJsonLd }],
+      links: [
+        { rel: "stylesheet", href: template.fontHref },
+        ...(preview ? [] : [{ rel: "canonical", href: url }]),
+      ],
     };
   },
   component: StoreLayout,

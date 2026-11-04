@@ -26,11 +26,14 @@ export const Route = createFileRoute("/sitemap.xml")({
           ...(origin
             ? [
                 `${origin}/`,
-                `${origin}/stores`,
+                `${origin}/about`,
+                `${origin}/faq`,
+                `${origin}/features`,
                 `${origin}/market`,
                 `${origin}/pricing`,
+                `${origin}/signup`,
+                `${origin}/stores`,
                 `${origin}/templates`,
-                `${origin}/features`,
               ]
             : []),
           ...stores.flatMap((store) => [

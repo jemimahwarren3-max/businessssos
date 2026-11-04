@@ -14,6 +14,7 @@ import {
   Truck,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -46,7 +47,7 @@ import {
   updateSupplierSchema,
   type LineItemInput,
 } from "@/lib/business.schemas";
-import { formatMoney, readableError } from "@/lib/format";
+import { formatMoney, readableError, todayLocal } from "@/lib/format";
 import { CREDIT_REPAYMENT_RAILS, railToPaymentMethod } from "@/lib/payment-rails";
 import { computeTotals } from "@/lib/invoice-calc";
 import { buildPurchaseOrderWhatsAppMessage, buildWhatsAppLink } from "@/lib/whatsapp";
@@ -142,7 +143,7 @@ function Suppliers() {
       const parsed = purchaseOrderSchema.parse({
         businessId,
         supplierId: orderTarget!.id,
-        orderDate: new Date().toISOString().slice(0, 10),
+        orderDate: todayLocal(),
         items: orderItems,
       });
       return createPurchaseOrderFn({ data: parsed });
@@ -394,18 +395,20 @@ function Suppliers() {
                       >
                         <Pencil className="size-4" aria-hidden="true" />
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => {
-                          if (confirm("Delete this supplier? This can't be undone.")) {
-                            deleteMutation.mutate(supplier.id);
-                          }
-                        }}
-                        aria-label="Delete supplier"
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </Button>
+                      <ConfirmDialog
+                        description="Delete this supplier? This can't be undone."
+                        confirmLabel="Delete"
+                        onConfirm={() => deleteMutation.mutate(supplier.id)}
+                        trigger={
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            aria-label="Delete supplier"
+                          >
+                            <Trash2 className="size-4" aria-hidden="true" />
+                          </Button>
+                        }
+                      />
                     </div>
                   ) : null}
                 </li>
@@ -445,6 +448,7 @@ function Suppliers() {
               <Label htmlFor="s-phone">Phone</Label>
               <Input
                 id="s-phone"
+                type="tel"
                 value={form.phone}
                 maxLength={40}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}

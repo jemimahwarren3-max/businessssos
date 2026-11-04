@@ -5,7 +5,7 @@ export function formatMoney(amount: number, currency = "USD") {
     return `ZiG ${value.toFixed(2)}`;
   }
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: code,
       maximumFractionDigits: 2,
@@ -40,6 +40,16 @@ export function friendlyDate(value: string | Date) {
     day: "numeric",
     year: "numeric",
   }).format(date);
+}
+
+export function todayLocal(timeZone = "Africa/Harare"): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts;
 }
 
 export function friendlyDateTime(value: string | Date, timeZone = "Africa/Harare") {

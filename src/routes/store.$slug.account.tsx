@@ -8,6 +8,7 @@ import {
   setShopperConsentFn,
   setShopperMarketingConsentFn,
 } from "@/lib/storefront/storefront.functions";
+import { mergeGuestCartIntoUserCart } from "@/lib/storefront/cart";
 import type { ShopperAccount } from "@/lib/storefront/contract";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
 import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
@@ -51,6 +52,7 @@ function ShopperAccountPage() {
       setAccount(null);
       return;
     }
+    mergeGuestCartIntoUserCart(store.slug, signedIn.userId);
     const next = await loadAccount({ data: { slug: store.slug } });
     setAccount(next);
   }

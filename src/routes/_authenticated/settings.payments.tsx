@@ -38,9 +38,8 @@ function PaymentsSettingsPage() {
             shoppers pay you at checkout.
           </p>
           <p className="text-[13px] text-muted-foreground">
-            When billing is enforced, publishing and POS require an active Pro subscription. If
-            platform launch fees are enabled (`launch_fee_required` on `platform_runtime`), pay the
-            one-time store launch fee from My Online Store → Launch readiness before publishing.
+            When billing is enforced, publishing and POS require an active Pro subscription. If a
+            launch fee applies, pay it from My Online Store before publishing.
           </p>
           <Button asChild size="sm">
             <Link to="/settings/billing">Open Kwetuu billing</Link>

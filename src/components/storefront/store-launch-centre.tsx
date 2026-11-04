@@ -64,8 +64,8 @@ export function StoreLaunchCentre({
       {!compact ? (
         <p className="rounded-lg bg-muted/50 px-3 py-2 text-[13px] text-muted-foreground">
           <strong className="font-medium text-foreground">Business tools vs online shop:</strong>{" "}
-          Invoices, inventory, and POS work without a public storefront. Online selling is optional,
-          turn it on here when you are ready.
+          Invoices, inventory, and POS work without a public storefront. Online selling is optional.
+          Turn it on here when you are ready.
         </p>
       ) : null}
 
@@ -76,20 +76,27 @@ export function StoreLaunchCentre({
       <ol className="space-y-2">
         {steps.map((step) => (
           <li key={step.id}>
-            <Link
-              to={step.to}
-              {...(step.hash ? { hash: step.hash } : {})}
-              className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
-            >
-              <StepIcon done={step.done} />
-              <StepBody step={step} />
-              {step.to !== "/storefront" ? (
+            {step.external ? (
+              <Link
+                to={step.href}
+                className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
+              >
+                <StepIcon done={step.done} />
+                <StepBody step={step} />
                 <ExternalLink
                   className="mt-0.5 size-4 shrink-0 text-muted-foreground"
                   aria-hidden
                 />
-              ) : null}
-            </Link>
+              </Link>
+            ) : (
+              <a
+                href={step.href}
+                className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
+              >
+                <StepIcon done={step.done} />
+                <StepBody step={step} />
+              </a>
+            )}
           </li>
         ))}
       </ol>

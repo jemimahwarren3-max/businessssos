@@ -47,40 +47,11 @@ import {
 import { getNotifyEmailFn } from "@/lib/business.functions";
 import { defaultShopPatch } from "@/lib/storefront/onboarding-defaults";
 
-function StorefrontError({ error, reset }: { error: unknown; reset: () => void }) {
-  const normalized = error instanceof Error ? error : new Error("Unknown storefront error");
-  return (
-    <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
-      <h1 className="text-2xl font-semibold">We couldn&apos;t open the store builder</h1>
-      <p className="text-sm text-muted-foreground">
-        {readableError(
-          normalized,
-          "Nothing was deleted. Try again, or add products from Inventory first.",
-        )}
-      </p>
-      {normalized.message ? (
-        <p className="break-words font-mono text-[11px] text-muted-foreground">
-          {normalized.message}
-        </p>
-      ) : null}
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button className="rounded-full" onClick={reset}>
-          Try again
-        </Button>
-        <Button asChild variant="outline" className="rounded-full">
-          <a href="/inventory">Open inventory</a>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
     meta: [{ title: `Storefront | ${BRAND.name}` }, { name: "robots", content: "noindex" }],
   }),
   component: StorefrontPage,
-  errorComponent: StorefrontError,
 });
 
 function StorefrontPage() {
@@ -115,7 +86,7 @@ function StorefrontPage() {
       });
     },
     onSuccess: () => {
-      toast.success("Store created, continue setup below");
+      toast.success("Store created. Continue setup below.");
       void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Could not create your store.")),
@@ -147,7 +118,7 @@ function StorefrontPage() {
       isReadOnly={workspaceData.isReadOnly}
       billingEnabled={workspaceData.billingEnabled}
       title="My Online Store"
-      subtitle="Launch centre, design, payments, and online orders, separate from invoices and POS."
+      subtitle="Launch centre, design, payments, and online orders. Separate from invoices and POS."
     >
       {!businessId ? (
         <p className="text-sm text-muted-foreground">
@@ -286,31 +257,12 @@ function StorefrontEditor({
   const publicUrl = store ? storePublicUrl(store.slug) : "";
 
   useEffect(() => {
-    let attempts = 0;
-    let timer = 0;
-    const scrollToHash = () => {
-      const id = window.location.hash.replace(/^#/, "");
-      if (!id) return;
-      const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-        return;
-      }
-      if (attempts < 12) {
-        attempts += 1;
-        timer = window.setTimeout(scrollToHash, 80);
-      }
-    };
-    timer = window.setTimeout(scrollToHash, 80);
-    const onHashChange = () => {
-      attempts = 0;
-      scrollToHash();
-    };
-    window.addEventListener("hashchange", onHashChange);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("hashchange", onHashChange);
-    };
+    const id = window.location.hash.replace(/^#/, "");
+    if (!id) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => window.clearTimeout(timer);
   }, []);
 
   return (
@@ -337,7 +289,7 @@ function StorefrontEditor({
           </a>
           {shopHostsEnabled() ? (
             <span className="mt-1 block">
-              Shoppers use *.{BRAND.domain}, your dashboard stays on {BRAND.domain}.
+              Shoppers use *.{BRAND.domain}. Your dashboard stays on {BRAND.domain}.
             </span>
           ) : null}
           {" · "}
@@ -415,19 +367,12 @@ function StorefrontEditor({
         </section>
       ) : null}
 
-      {store ? (
-        <StoreBuilder
-          key={`${businessId}-${store.slug}-${initial.products.length}`}
-          businessId={businessId}
-          initial={initial}
-          canManage={permissions.includes("business.settings")}
-        />
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Create your store above, then you can design the shop and choose which products appear
-          online.
-        </p>
-      )}
+      <StoreBuilder
+        key={`${businessId}-${initial.store?.slug ?? "new"}-${initial.products.length}`}
+        businessId={businessId}
+        initial={initial}
+        canManage={permissions.includes("business.settings")}
+      />
 
       <OnlineOrdersFulfilmentPanel
         businessId={businessId}

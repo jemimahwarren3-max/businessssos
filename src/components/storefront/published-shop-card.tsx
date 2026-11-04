@@ -12,7 +12,7 @@ export function PublishedShopCard({ shop }: { shop: Shop }) {
       className="surface block overflow-hidden p-0 transition-colors hover:bg-muted/40"
     >
       {shop.logoUrl ? (
-        <img src={shop.logoUrl} alt="" className="h-28 w-full object-cover bg-muted" />
+        <img src={shop.logoUrl} alt="" className="h-28 w-full object-cover bg-muted" loading="lazy" />
       ) : (
         <div className="h-28 bg-muted" />
       )}
@@ -28,7 +28,7 @@ export function PublishedShopCard({ shop }: { shop: Shop }) {
         {shop.verified ? (
           <p className="mt-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">Verified on Kwetuu</span>
-            {": "}has a verified-purchase review. Not a government licence.
+            {" - "}has a verified-purchase review. Not a government licence.
           </p>
         ) : null}
       </div>

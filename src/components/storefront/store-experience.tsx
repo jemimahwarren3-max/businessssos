@@ -399,7 +399,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
         style={{ backgroundColor: theme.surface }}
       >
         {product.imageUrl ? (
-          <DeferredImage src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+          <DeferredImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-neutral-400">
             No photo
@@ -506,7 +506,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           >
             {heroImage ? (
               <div className="aspect-[4/3] md:aspect-auto md:min-h-[28rem]">
-                <img src={heroImage} alt="" className="h-full w-full object-cover" />
+                <img src={heroImage} alt="" className="h-full w-full object-cover" fetchPriority="high" />
               </div>
             ) : null}
             {heroText}
@@ -518,6 +518,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                 src={heroImage}
                 alt=""
                 className="absolute inset-0 h-full max-h-[30rem] w-full object-cover opacity-15"
+                fetchPriority="high"
               />
             ) : null}
             {heroText}
@@ -537,7 +538,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
             <div className="flex flex-wrap items-center justify-between gap-4">
               {heroText}
               {heroImage ? (
-                <img src={heroImage} alt="" className="h-24 w-36 rounded-md object-cover" />
+                <img src={heroImage} alt="" className="h-24 w-36 rounded-md object-cover" loading="lazy" />
               ) : null}
             </div>
           </section>

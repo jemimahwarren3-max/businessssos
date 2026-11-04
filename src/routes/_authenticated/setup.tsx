@@ -11,7 +11,6 @@ import {
   Loader2,
   Briefcase,
   Package,
-  Receipt,
   Store,
   Users,
 } from "lucide-react";
@@ -168,20 +167,12 @@ function Setup() {
       done: !!p?.has_products,
       optional: servicesFirst && model !== "hybrid",
     },
-    {
-      key: "sale",
-      title: "Make your first sale",
-      description: "Record a sale to see how Kwetuu tracks your revenue.",
-      href: "/sales",
-      icon: Receipt,
-      done: !!p?.has_sales,
-    },
     ...(isFull
       ? [
           {
             key: "storefront",
-            title: "Set up your online store",
-            description: "Choose a design and preview your store before publishing.",
+            title: "Preview your online store",
+            description: "Choose a design and preview your store. You can publish after subscribing.",
             href: "/storefront",
             icon: Store,
             done: !!p?.storefront_enabled,

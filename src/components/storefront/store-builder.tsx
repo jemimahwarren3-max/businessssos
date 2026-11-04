@@ -552,7 +552,7 @@ function StoreBuilderReady({
           <h2 className="text-lg font-semibold">Store builder</h2>
           <p className="text-sm text-muted-foreground">
             Design, branding, online products, and customer-facing information. Preview uses your
-            real catalogue, nothing is published until you choose Publish.
+            real catalogue. Nothing is published until you choose Publish.
           </p>
         </div>
         {publicUrl ? (
@@ -588,7 +588,7 @@ function StoreBuilderReady({
 
         <TabsContent id="launch-design" value="design" className="scroll-mt-24 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Each design is a shop website, header, homepage, and product grid. Switching keeps your
+            Each design is a shop website: header, homepage, and product grid. Switching keeps your
             products.
           </p>
           <label className="block text-sm">
@@ -879,6 +879,7 @@ function StoreBuilderReady({
             <label className="text-sm">
               <Label>Phone</Label>
               <Input
+                type="tel"
                 value={phone}
                 disabled={disabled}
                 onChange={(event) => setPhone(event.target.value)}
@@ -1097,8 +1098,8 @@ function StoreBuilderReady({
         <TabsContent value="preview" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not visible
-              to the public.
+              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not
+              visible to the public.
             </p>
             <div className="flex gap-2">
               <Button
