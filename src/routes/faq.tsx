@@ -13,7 +13,10 @@ export const Route = createFileRoute("/faq")({
     meta: [
       { title: `FAQ | ${BRAND.name}` },
       { name: "description", content: `Common questions about ${BRAND.name} shops and payments.` },
+      { property: "og:title", content: `FAQ | ${BRAND.name}` },
+      { property: "og:description", content: `Common questions about ${BRAND.name} shops and payments.` },
     ],
+    links: [{ rel: "canonical", href: `${BRAND.appUrl}/faq` }],
   }),
   component: FaqPage,
 });

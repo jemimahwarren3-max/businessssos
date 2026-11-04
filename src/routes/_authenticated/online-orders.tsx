@@ -24,6 +24,7 @@ function OnlineOrdersPage() {
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId),
     queryFn: () => load({ data: { businessId: businessId! } }),
+    refetchInterval: 30_000,
   });
 
   if (!workspace.data) {
