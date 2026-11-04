@@ -921,7 +921,7 @@ begin
         limit 1
       );
     update public.audit_logs
-    set summary = summary || ' — ' || _reason_clean
+    set summary = summary || ': ' || _reason_clean
     where business_id = _business_id
       and entity_type = 'store_order'
       and entity_id = _order_id

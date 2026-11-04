@@ -156,7 +156,7 @@ export async function removeTeamMember(
   });
 }
 
-/** Public — callable by a not-yet-authenticated visitor, so it uses its own
+/** Public, callable by a not-yet-authenticated visitor, so it uses its own
  * anon client rather than the request-scoped authenticated one every other
  * function in this file relies on `assertRole` to provide. */
 export async function getInvitePreview(token: string): Promise<InvitePreview> {
@@ -173,11 +173,11 @@ export async function acceptInvite(supabase: Db, token: string): Promise<{ busin
   return { businessId: data as string };
 }
 
-/** Creates a name+password account for staff without an email — an internal,
+/** Creates a name+password account for staff without an email, an internal,
  * never-emailed placeholder address satisfies Supabase Auth's schema, but
  * staff never see or type it; they sign in with businessName+name+password
  * via staffSignIn below, which resolves back to this address. Uses
- * supabaseAdmin only for the auth-user creation itself — the business_members
+ * supabaseAdmin only for the auth-user creation itself, the business_members
  * insert goes through the caller's own RLS-scoped client, same as every
  * other write in this file, since the existing "bootstrap or admin add
  * member" policy already permits an owner/admin adding anyone. */
@@ -297,7 +297,7 @@ async function resolveStaffEmail(businessName: string, name: string): Promise<st
   return (data as string | null) ?? null;
 }
 
-/** Public — resolves businessName+name to the internal email on the server
+/** Public, resolves businessName+name to the internal email on the server
  * and signs in there. The email never goes to the browser. Failures use one
  * message so the roster cannot be used to probe which names have passwords. */
 export async function staffSignIn(
@@ -369,7 +369,7 @@ export async function setStaffPassword(
 
 export type ShopLoginResult = { valid: boolean; businessName: string | null; staffNames: string[] };
 
-/** Public — the first of two steps for staff sign-in. Deliberately a single
+/** Public, the first of two steps for staff sign-in. Deliberately a single
  * RPC that checks the password AND returns the roster together (see
  * verify_shop_login's own comment) so the staff name list can never be
  * fetched without a valid password. */
@@ -474,7 +474,7 @@ export async function getCommissionReport(
 }
 
 /** set_member_commission_rate already audit-logs itself (see the
- * migration) — no recordAudit call here, matching every other RPC in this
+ * migration), no recordAudit call here, matching every other RPC in this
  * session that owns its own audit entry rather than duplicating it in JS. */
 export async function setMemberCommissionRate(
   supabase: Db,

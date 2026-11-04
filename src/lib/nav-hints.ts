@@ -6,21 +6,24 @@ export const MAIN_NAV_HINTS: Record<string, string> = {
   "/storefront":
     "Design your online shop, set delivery and payments, then publish when you're ready.",
   "/online-orders":
-    "Online shop orders — confirm payment, prepare, dispatch, or mark ready for collection.",
+    "Online shop orders, confirm payment, prepare, dispatch, or mark ready for collection.",
   "/branches": "Physical locations, default POS branch, and per-location stock (where configured).",
   "/inventory": "Products, stock levels, and adjustments across your locations.",
+  "/services": "Create services, prices, durations, and who can deliver them.",
+  "/bookings": "Appointments, walk-ins, and quotation requests.",
+  "/settings/business": "What you sell, opening hours, and booking rules.",
   "/suppliers": "Who you buy from and their contact details.",
   "/purchase-orders": "Orders you place with suppliers before stock arrives.",
   "/invoices": "Bill customers, track what's owed, and record when they pay.",
   "/quotes": "Send a price estimate before you turn it into an invoice or sale.",
-  "/customers": "People you sell to — balances, contact info, and history.",
+  "/customers": "People you sell to, balances, contact info, and history.",
   "/lay-by":
     "Hold goods for a customer while they pay in instalments. Stock comes off only when they collect.",
   "/expenses": "Money going out: rent, stock, fuel, and other running costs.",
   "/reports": "Sales, profit, and tax-style summaries over a date range.",
   "/growth": "Draft campaigns and see how visitors and orders are trending.",
   "/insights": "AI weekly summary and stock forecasts from your real numbers.",
-  "/assistant": "Ask questions about your business data — it never changes records on its own.",
+  "/assistant": "Ask questions about your business data, it never changes records on its own.",
 };
 
 export const SECONDARY_NAV_HINTS: Record<string, string> = {
@@ -29,10 +32,11 @@ export const SECONDARY_NAV_HINTS: Record<string, string> = {
   "/time-clock": "Staff clock in and out for shift tracking.",
   "/settings/payments":
     "Two areas: Kwetuu subscription billing vs payment methods your customers use at checkout.",
-  "/settings/billing": "Your Kwetuu Pro subscription — separate from customer shop payments.",
+  "/settings/billing": "Your Kwetuu Pro subscription, separate from customer shop payments.",
   "/settings/data": "Download a copy of your business data.",
-  "/settings/audit-log": "Who changed what — useful for disputes and year-end checks.",
+  "/settings/audit-log": "Who changed what, useful for disputes and year-end checks.",
   "/settings/account": "Your sign-in email, password, and notification preferences.",
+  "/settings/business": "Commerce model, opening hours, and whether bookings auto-confirm.",
   "/help": "Guides and answers without leaving the app.",
 };
 
@@ -41,7 +45,7 @@ export const HEADER_HINTS = {
     "Describe a sale, expense, or stock change in one sentence. You review before anything is saved.",
   notifications: "Orders, low stock, and other alerts for this business.",
   account: "Sign out or switch workspace from another tab.",
-  role: "Your permissions in this business — owners can manage billing and team.",
+  role: "Your permissions in this business, owners can manage billing and team.",
   plan: "Your Kwetuu plan. Shop customer payments are separate.",
 } as const;
 

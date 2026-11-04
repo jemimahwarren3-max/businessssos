@@ -26,7 +26,7 @@ function MarketCartsPage() {
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">Your carts</h1>
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
         Kwetuu keeps a separate cart for each shop. Checkout always completes with the seller who
-        listed the products — you cannot mix two shops in one order.
+        listed the products, you cannot mix two shops in one order.
       </p>
 
       {carts.length === 0 ? (

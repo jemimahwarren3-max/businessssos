@@ -1,6 +1,6 @@
 -- Sales and invoices previously had no protection against a double-submit
 -- (double-click, or a network retry re-sending the same request) creating
--- two records for one real transaction — only payments had this. Adds the
+-- two records for one real transaction, only payments had this. Adds the
 -- same idempotency_key pattern already used on public.payments.
 
 alter table public.sales add column if not exists idempotency_key text;

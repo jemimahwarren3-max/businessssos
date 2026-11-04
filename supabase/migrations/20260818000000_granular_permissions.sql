@@ -1,9 +1,9 @@
 -- Replaces 18 hardcoded role arrays (29 server call sites + 18 client-side
 -- copies, audited via grep across the whole codebase) with a real
 -- role -> permissions model. Default grants below reproduce today's exact
--- behavior — this is a mechanism change, not a re-decision of who can do
+-- behavior, this is a mechanism change, not a re-decision of who can do
 -- what. Owner is intentionally not represented in business_role_permissions
--- at all — has_permission() always returns true for owner, and
+-- at all, has_permission() always returns true for owner, and
 -- set_role_permission() refuses role='owner' outright, so it can never be
 -- restricted by anyone, including itself (the same class of lockout bug
 -- fixed earlier this session for invite acceptance).
@@ -66,11 +66,11 @@ create policy "admins delete role permissions" on public.business_role_permissio
 
 -- ============ get_or_create_role_permissions ============
 -- Lazily seeds default grants on first access, same pattern as
--- get_or_create_staff_code — no backfill migration needed for existing
+-- get_or_create_staff_code, no backfill migration needed for existing
 -- businesses. Defaults below mirror every existing hardcoded role array
 -- exactly (see the migration's own comment above and the accompanying PR
 -- description for the full audit this was derived from). Not exposed
--- directly — no permission check of its own, both get_or_create_role_
+-- directly, no permission check of its own, both get_or_create_role_
 -- permissions (admin-only, full matrix) and get_my_permissions (any member,
 -- own role only) call it so the seed data is defined exactly once.
 create or replace function public.seed_default_role_permissions(_business_id uuid)
@@ -132,7 +132,7 @@ grant execute on function public.get_or_create_role_permissions(uuid) to authent
 -- ============ get_my_permissions ============
 -- Unlike get_or_create_role_permissions above (admin-only, full matrix),
 -- this is for any business member to learn their own effective permission
--- set — loadWorkspace calls this for every login, regardless of role.
+-- set, loadWorkspace calls this for every login, regardless of role.
 create or replace function public.get_my_permissions(_business_id uuid)
 returns text[]
 language plpgsql security definer set search_path = public as $$

@@ -1,5 +1,5 @@
 -- audit_logs has been written to since the first migration, but nothing
--- could ever read it back — there was no SELECT policy at all, and no RPC
+-- could ever read it back, there was no SELECT policy at all, and no RPC
 -- to resolve user_id into an actual name. This adds both, plus a new
 -- audit.view permission so it's covered by the existing granular system
 -- rather than hardcoded to a fixed role.
@@ -8,7 +8,7 @@ insert into public.permissions (key, category, label) values
   ('audit.view', 'Business', 'View the audit log');
 
 -- seed_default_role_permissions only runs once per business (see its own
--- early-return guard) — extending it only covers businesses that haven't
+-- early-return guard), extending it only covers businesses that haven't
 -- been seeded yet. Existing businesses need an explicit backfill below.
 create or replace function public.seed_default_role_permissions(_business_id uuid)
 returns void
@@ -54,7 +54,7 @@ revoke all on function public.seed_default_role_permissions(uuid) from public;
 
 -- Backfill: give admin audit.view in every business that was already
 -- seeded before this migration (the guard above means they'd otherwise
--- never get it). Owner doesn't need a row — has_permission always passes
+-- never get it). Owner doesn't need a row, has_permission always passes
 -- owner regardless of business_role_permissions.
 insert into public.business_role_permissions (business_id, role, permission_key)
 select distinct brp.business_id, 'admin'::public.app_role, 'audit.view'
@@ -66,14 +66,14 @@ where not exists (
 
 -- ============ audit_logs read access ============
 -- Found a real, untracked drift here: a "members read audit_logs" policy
--- exists on staging (is_business_member(business_id) — ANY active member,
+-- exists on staging (is_business_member(business_id), ANY active member,
 -- not just owner/admin) that was never created by any migration in this
 -- repo, meaning any cashier could already pull the full audit log straight
 -- from the API. Dropping it and replacing it with the correctly-scoped
--- version — same defense-in-depth split as everywhere else in this schema:
+-- version, same defense-in-depth split as everywhere else in this schema:
 -- RLS stays on the coarse has_business_role check (owner/admin), while the
 -- fine-grained audit.view permission (customizable per business) is
--- enforced at the application layer via assertPermission — see
+-- enforced at the application layer via assertPermission, see
 -- list_audit_logs below and team.server.ts's own comments on this split.
 drop policy if exists "members read audit_logs" on public.audit_logs;
 create policy "owners and admins read audit logs" on public.audit_logs for select to authenticated
@@ -81,7 +81,7 @@ create policy "owners and admins read audit logs" on public.audit_logs for selec
 
 -- ============ list_audit_logs ============
 -- Resolves user_id -> a real name the same way list_team_members does
--- (staff_name if set, else the auth user's own full_name/email) — plain
+-- (staff_name if set, else the auth user's own full_name/email), plain
 -- audit_logs rows only have a raw UUID, useless on their own in a reader.
 -- Fetches _limit+1 rows so the caller can tell if there's another page
 -- without a separate count query.

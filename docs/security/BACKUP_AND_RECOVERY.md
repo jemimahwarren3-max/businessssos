@@ -3,9 +3,9 @@
 ## What exists
 
 - **Supabase:** Point-in-time recovery depends on project plan (verify in Supabase dashboard for staging/production).
-- **GitHub workflow:** `.github/workflows/backup.yml` — encrypted DB dump when `SUPABASE_DB_PASSWORD` and `BACKUP_ENCRYPTION_PASSPHRASE` secrets set.
+- **GitHub workflow:** `.github/workflows/backup.yml`, encrypted DB dump when `SUPABASE_DB_PASSWORD` and `BACKUP_ENCRYPTION_PASSPHRASE` secrets set.
 
-## RPO / RTO (targets — not proven)
+## RPO / RTO (targets: not proven)
 
 | Tier | RPO | RTO | Notes |
 |------|-----|-----|-------|
@@ -19,6 +19,6 @@
 3. Run smoke tests: auth, one business login, one storefront order read.
 4. Document actual elapsed time and gaps.
 
-**Status:** **blocked** — no restore drill executed in this programme (see `SECURITY_STATUS.md`).
+**Status:** **blocked**, no restore drill executed in this programme (see `SECURITY_STATUS.md`).
 
 See also: `../BACKUP_AND_DISASTER_RECOVERY.md`, `../disaster-recovery.md`.

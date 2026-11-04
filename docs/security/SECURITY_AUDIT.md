@@ -45,9 +45,9 @@ Seller Paynow **globally gated** until operator approval reference set.
 
 - Input validation: Zod on server functions; storefront plain-text stripping.
 - CSRF: TanStack CSRF middleware on server functions.
-- Headers: CSP, HSTS, nosniff, frame deny — `src/start.ts`.
+- Headers: CSP, HSTS, nosniff, frame deny, `src/start.ts`.
 - CSV formula injection: `src/lib/csv.ts` prefix escape.
-- Uploads: product-media and payment-proofs — type/size limits; private proof bucket.
+- Uploads: product-media and payment-proofs, type/size limits; private proof bucket.
 
 **Gaps:** CSP allows `unsafe-inline`; TanStack XSS advisory open until upgrade.
 
@@ -59,7 +59,7 @@ Seller Paynow **globally gated** until operator approval reference set.
 ## AI (Groq)
 
 - Business advisor and storefront AI builder: structured output / validation; no direct payment or RLS bypass in tool design.
-- **Residual:** Prompt injection may affect copy suggestions — not financial writes without existing permission gates.
+- **Residual:** Prompt injection may affect copy suggestions, not financial writes without existing permission gates.
 
 ## Infrastructure
 

@@ -26,8 +26,8 @@
 - **Already installed**: `@playwright/test ^1.55.1` in devDependencies
 - **Config**: `e2e/playwright.config.ts`
 - **3 spec files** (2 suites, ~60 lines total):
-  - `smoke.spec.ts` — 4 tests: home, marketplace, auth page, staff-login page load
-  - `market-journey.spec.ts` — 1 test: browse marketplace and open a shop
+  - `smoke.spec.ts`, 4 tests: home, marketplace, auth page, staff-login page load
+  - `market-journey.spec.ts`, 1 test: browse marketplace and open a shop
 - **Run command**: `npm run test:e2e`
 - **Current setup**:
   - Chromium only (Desktop Chrome)
@@ -47,7 +47,7 @@
   4. Vitest run (with `SUPABASE_ACCESS_TOKEN`)
   5. Build
 - `e2e-smoke` job: runs after `check`, installs Chromium, runs Playwright against mykwetuu.com
-  - `continue-on-error: true` — smoke failures don't block deploy
+  - `continue-on-error: true`, smoke failures don't block deploy
 - `deploy` job: runs on master push after `check` passes
 
 ## 3. Authentication Model
@@ -63,7 +63,7 @@
 | MFA | Authenticated gate | TOTP challenge if enrolled (aal2) |
 | Session | httpOnly cookie | Client-side check in `_authenticated/route.tsx` |
 
-**Key detail**: Auth gate is client-side only (`ssr: false`) — server-side beforeLoad caused redirect loops with OAuth. All `_authenticated/*` routes require a valid session.
+**Key detail**: Auth gate is client-side only (`ssr: false`), server-side beforeLoad caused redirect loops with OAuth. All `_authenticated/*` routes require a valid session.
 
 ## 4. Route Inventory
 
@@ -74,7 +74,7 @@
 `/onboarding`, `/setup`, `/dashboard`, `/inventory`, `/sales`, `/sale-history`, `/customers`, `/invoices`, `/quotes`, `/recurring-invoices`, `/expenses`, `/suppliers`, `/purchase-orders`, `/cash-drawer`, `/lay-by`, `/online-orders`, `/commission`, `/time-clock`, `/insights`, `/reports`, `/growth`, `/branches`, `/storefront`, `/assistant`, `/notifications`, `/help`, `/settings.*` (account, billing, payments, team, data, audit-log)
 
 ### Admin routes
-`/admin/*` (index, health, businesses, billing, communications, integrations, operations, orders, stores, system, audit, personalize) — platform owner only, enforced server-side
+`/admin/*` (index, health, businesses, billing, communications, integrations, operations, orders, stores, system, audit, personalize), platform owner only, enforced server-side
 
 ## 5. Business Roles
 
@@ -135,7 +135,7 @@ No network interruption, slow response, or concurrent operation tests.
 Integration tests cover this via direct DB queries, but no browser-level verification that Business A's UI cannot access Business B's data.
 
 ### Test data isolation
-No test data seeding or cleanup strategy. Tests against mykwetuu.com use production data — need dedicated test accounts with known state.
+No test data seeding or cleanup strategy. Tests against mykwetuu.com use production data, need dedicated test accounts with known state.
 
 ## 10. What Needs Fixing Before Automated Testing Can Be Trusted
 

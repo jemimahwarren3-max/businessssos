@@ -18,7 +18,7 @@ create index if not exists platform_impersonation_admin_active_idx
 
 alter table public.platform_impersonation_sessions enable row level security;
 
--- No direct table access for authenticated users — Node uses service_role RPCs only.
+-- No direct table access for authenticated users, Node uses service_role RPCs only.
 drop policy if exists "service role only impersonation" on public.platform_impersonation_sessions;
 create policy "service role only impersonation"
   on public.platform_impersonation_sessions

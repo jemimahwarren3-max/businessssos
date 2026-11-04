@@ -1,5 +1,5 @@
 -- =============================================================================
--- STAGING ONLY — businessos-staging (slajanbsfqjnuuiohbmg)
+-- STAGING ONLY, businessos-staging (slajanbsfqjnuuiohbmg)
 -- Wipes ALL Auth users and their Kwetuu businesses so you can sign up fresh.
 -- Safe when migrations are partially applied (skips missing tables/columns).
 -- =============================================================================

@@ -210,25 +210,25 @@ import {
 // pattern-matches on the array as a literal tuple type, and a plain
 // `const x = [...]` widens to a general array, which silently breaks the
 // context type for every handler composed with it (confirmed via isolated
-// repro — the same composed middleware works fine inlined directly into
+// repro, the same composed middleware works fine inlined directly into
 // `.middleware([...])` but not when first assigned to a const without this).
 const authAndRateLimit = [
   authedRateLimit({ keyPrefix: "businessos-api", maxRequests: 120, windowSeconds: 60 }),
 ] as const;
 
-// Tighter than the general API limit above — this initiates a real
+// Tighter than the general API limit above, this initiates a real
 // payment with Paynow, so it gets its own stricter cap on top.
 const checkoutRateLimit = [
   authedRateLimit({ keyPrefix: "billing-checkout", maxRequests: 5, windowSeconds: 60 }),
 ] as const;
 
-// A full-business data dump is the heaviest read in the app — its own
+// A full-business data dump is the heaviest read in the app, its own
 // stricter cap keeps it from being hammered.
 const exportRateLimit = [
   authedRateLimit({ keyPrefix: "data-export", maxRequests: 3, windowSeconds: 60 }),
 ] as const;
 
-// Every call here hits an AI provider — tighter than the general API limit, on top
+// Every call here hits an AI provider, tighter than the general API limit, on top
 // of the per-business daily cap enforced inside askAssistant/getWeeklyReport
 // themselves (see ai.server.ts/insights.server.ts).
 const aiRateLimit = [
@@ -239,13 +239,13 @@ const aiRateLimit = [
   }),
 ] as const;
 
-// Each call does up to 500 sequential row inserts — its own cap keeps that
+// Each call does up to 500 sequential row inserts, its own cap keeps that
 // from being triggered back-to-back.
 const importRateLimit = [
   authedRateLimit({ keyPrefix: "csv-import", maxRequests: 10, windowSeconds: 60 }),
 ] as const;
 
-// Also hits an AI provider — same tier as the assistant, on top of parseQuickEntry's
+// Also hits an AI provider, same tier as the assistant, on top of parseQuickEntry's
 // own per-business daily cap (see quick-entry.server.ts).
 const quickEntryRateLimit = [
   authedRateLimit({
@@ -255,13 +255,13 @@ const quickEntryRateLimit = [
   }),
 ] as const;
 
-// Keyed by IP — the one team-related endpoint a not-yet-logged-in visitor
+// Keyed by IP, the one team-related endpoint a not-yet-logged-in visitor
 // can call, same reasoning as the auth endpoints in auth.functions.ts.
 const invitePreviewLimit = [
   ipRateLimit({ keyPrefix: "invite-preview", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
 
-// Tighter than signInLimit (10/min) — businessName+staff name is a
+// Tighter than signInLimit (10/min), businessName+staff name is a
 // lower-entropy username than a full email, so sign-in gets its own cap.
 const staffLoginLimit = [
   ipRateLimit({ keyPrefix: "staff-login", maxRequests: 8, windowSeconds: 60 }),

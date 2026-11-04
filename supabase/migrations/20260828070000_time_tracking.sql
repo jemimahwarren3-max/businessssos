@@ -1,7 +1,7 @@
 -- Employee time tracking. A time_entries row per shift: clock_in always
 -- set, clock_out null while a shift is open. Any active member clocks
 -- themselves in/out; owner/admin see and can correct everyone's entries
--- (real timesheets need real corrections — someone forgets to clock out
+-- (real timesheets need real corrections, someone forgets to clock out
 -- most days). Deliberately standalone: no link to commission_rate or
 -- payroll math, this is hours worked, not pay.
 
@@ -15,7 +15,7 @@ create table public.time_entries (
   created_at timestamptz not null default now()
 );
 create index time_entries_business_user_idx on public.time_entries(business_id, user_id, clock_in desc);
--- At most one open (clock_out is null) shift per person per business —
+-- At most one open (clock_out is null) shift per person per business,
 -- enforced at the schema level, not just in the RPC, since that's the
 -- invariant a correct timesheet actually depends on.
 create unique index time_entries_one_open_shift on public.time_entries(business_id, user_id)
@@ -26,7 +26,7 @@ create policy "members read own time entries" on public.time_entries for select 
   using (public.is_business_member(business_id) and user_id = auth.uid());
 create policy "owners and admins read all time entries" on public.time_entries for select to authenticated
   using (public.has_business_role(business_id, array['owner','admin']::public.app_role[]));
--- No direct write policy — clock_in/clock_out/adjust/delete below are the
+-- No direct write policy, clock_in/clock_out/adjust/delete below are the
 -- only path, all RPC (security definer, own checks), same as everywhere
 -- else this session that has a real invariant to protect (here: the
 -- one-open-shift rule, and "you can only clock yourself in").
@@ -76,7 +76,7 @@ $$;
 revoke all on function public.clock_out(uuid) from public, anon;
 grant execute on function public.clock_out(uuid) to authenticated;
 
--- Owner/admin only — correcting someone else's shift (forgot to clock out,
+-- Owner/admin only, correcting someone else's shift (forgot to clock out,
 -- wrong time). Both bounds required; use delete_time_entry to remove one
 -- entirely instead of nulling clock_out back out (that would just reopen a
 -- shift with a stale clock_in, not actually correct anything).

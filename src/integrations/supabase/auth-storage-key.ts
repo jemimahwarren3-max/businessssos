@@ -3,5 +3,5 @@
 // OAuth/magic-link handoff) and the server-side exchange client
 // (lib/auth/session.server.ts, which reads that same cookie back to
 // complete exchangeCodeForSession). Both sides must agree on this exact
-// value — plain constant, safe to import from client or server code.
+// value, plain constant, safe to import from client or server code.
 export const SUPABASE_AUTH_STORAGE_KEY = "businessos-auth";

@@ -5,7 +5,7 @@
 
 Do not implement all 100 items. Each stage below is a shippable slice with migrations, RLS, UI, empty/error states, tests, and a regression pass on POS + checkout.
 
-## Stage 0 — this audit (done)
+## Stage 0: this audit (done)
 
 Documents:
 
@@ -18,9 +18,9 @@ Documents:
 
 No application behaviour change.
 
-## Stage 1 — Morning desk (done in this PR)
+## Stage 1: Morning desk (done in this PR)
 
-**Goal:** An owner can open Kwetuu after a shift and see money in, who owes them, what is running out, and share a product on WhatsApp — without a new backend vendor.
+**Goal:** An owner can open Kwetuu after a shift and see money in, who owes them, what is running out, and share a product on WhatsApp, without a new backend vendor.
 
 **In:**
 
@@ -43,7 +43,7 @@ No application behaviour change.
 
 **Estimate of invasiveness:** mostly `business.server.ts`, `sales.tsx`, `dashboard.tsx`, `cash-drawer.tsx`, `customers.tsx`, `store-experience.tsx`, one small RPC migration + staging-manifest entry.
 
-## Stage 2 — How people actually pay (done in this PR)
+## Stage 2: How people actually pay (done in this PR)
 
 **Goal:** A cashier can take cash + EcoCash (or other rails) on one sale, and cash-up still expects only the cash that went in the till.
 
@@ -57,7 +57,7 @@ No application behaviour change.
 
 **Out:** FX ledger / `fx_rates`, silent conversion, shop-order split pay, EcoCash APIs.
 
-## Stage 3 — Notebook and delivery (done in this PR)
+## Stage 3: Notebook and delivery (done in this PR)
 
 **Goal:** The morning notebook (who we owe, deposits, lay-by) and Zimbabwe delivery/market labels, without new vendors.
 
@@ -72,7 +72,7 @@ No application behaviour change.
 
 **Out:** FX ledger, EcoCash APIs, variants, posters, i18n, stock transfers, shop-order split pay.
 
-## Stage 4 — Offline income protection (done in this PR)
+## Stage 4: Offline income protection (done in this PR)
 
 **Goal:** A power cut or a failed sync does not take the day’s income, and a metered phone does not burn data on product photos.
 
@@ -92,7 +92,7 @@ No application behaviour change.
 - A failed queued sale can be retried one-by-one after the cashier fixes the cause (e.g. opens the drawer).
 - Account → Low-data mode defers product photos until tap.
 
-## Stage 5 — Messaging as a channel (done in this PR)
+## Stage 5: Messaging as a channel (done in this PR)
 
 **Goal:** Order updates and opted-in shop news can sit on a WhatsApp outbox without lying that Meta sent them.
 

@@ -78,7 +78,7 @@ describeStaging("transactional business creation", () => {
     }
   }, 30_000);
 
-  it("rejects an unauthenticated call outright — no business is created", async () => {
+  it("rejects an unauthenticated call outright, no business is created", async () => {
     const name = `Atomic Unauth Test ${newId()}`;
     try {
       await expect(

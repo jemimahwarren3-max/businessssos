@@ -29,7 +29,7 @@ function AdminHealthPage() {
   return (
     <AdminShell title="Ops health">
       <p className="text-sm text-muted-foreground">
-        Read-only checks for this Cloud Run revision. Secrets are never shown — only whether they
+        Read-only checks for this Cloud Run revision. Secrets are never shown, only whether they
         appear to be set.
       </p>
       {health.isLoading ? <Skeleton className="h-48" /> : null}
@@ -73,7 +73,7 @@ function AdminHealthPage() {
             ok={!health.data.aiDisabled}
             detail={
               health.data.aiDisabled
-                ? "AI_DISABLED or AI_PROVIDER=off — shops and POS stay up."
+                ? "AI_DISABLED or AI_PROVIDER=off, shops and POS stay up."
                 : "AI is allowed within daily quotas."
             }
           />

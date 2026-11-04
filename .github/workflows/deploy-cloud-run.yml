@@ -110,7 +110,7 @@ jobs:
             role="${PRODUCTION_SUPABASE_SERVICE_ROLE_KEY:-}"
           else
             if [ -n "${PRODUCTION_SUPABASE_URL:-}" ]; then
-              echo "PRODUCTION_SUPABASE_URL is set but PRODUCTION_SUPABASE_PUBLISHABLE_KEY is missing — Cloud Run stays on staging until both are set."
+              echo "PRODUCTION_SUPABASE_URL is set but PRODUCTION_SUPABASE_PUBLISHABLE_KEY is missing, Cloud Run stays on staging until both are set."
             else
               echo "Cloud Run Supabase target: staging (businessos-staging)."
             fi

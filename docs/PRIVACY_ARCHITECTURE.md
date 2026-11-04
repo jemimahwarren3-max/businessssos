@@ -1,9 +1,9 @@
-# Privacy Architecture — BusinessOS AI
+# Privacy Architecture: BusinessOS AI
 
-Internal, technical companion to `legal/PRIVACY_POLICY.md` — this document
+Internal, technical companion to `legal/PRIVACY_POLICY.md`, this document
 names actual tables, columns, and mechanisms; the Privacy Policy is the
 plain-language version for end users. Written for whoever needs to answer
-"where exactly does X live and how is it deleted" — a future engineer, a
+"where exactly does X live and how is it deleted", a future engineer, a
 lawyer, or a data-subject-request handler.
 
 ## Data inventory
@@ -14,25 +14,25 @@ lawyer, or a data-subject-request handler.
 | Full name                                                        | `auth.users` user metadata (`full_name`)                                                                                                       | Yes                                                                                         | Sign-up                             | Account deletion                                                                                                                 |
 | Business profile (name, type, currency, phone, address)          | `public.businesses`                                                                                                                            | Partial (phone/address if provided)                                                         | Business creation / onboarding      | Account deletion (cascade)                                                                                                       |
 | Team membership + role                                           | `public.business_members`                                                                                                                      | Yes (links a person to a business)                                                          | Business creation / (future) invite | Account deletion (cascade for owned businesses; `ON DELETE CASCADE` from `auth.users` for the user's own membership rows)        |
-| Customer records (name, phone, email, address, notes)            | `public.customers`                                                                                                                             | Yes — this is personal data _about the business's customers_, entered by the business owner | Manually entered                    | Deleted individually in-app, or cascade-deleted with the business                                                                |
+| Customer records (name, phone, email, address, notes)            | `public.customers`                                                                                                                             | Yes, this is personal data _about the business's customers_, entered by the business owner | Manually entered                    | Deleted individually in-app, or cascade-deleted with the business                                                                |
 | Products, sales, invoices, quotes, expenses, inventory movements | Respective tables (`products`, `sales`, `sale_items`, `invoices`, `invoice_items`, `quotes`, `quote_items`, `expenses`, `inventory_movements`) | Indirectly (references customer names)                                                      | Normal app usage                    | Account deletion (cascade)                                                                                                       |
 | Subscription/billing history                                     | `public.subscriptions`, `public.subscription_payments`                                                                                         | Yes (email sent to Paynow, correlated here)                                                 | Checkout                            | Account deletion (cascade)                                                                                                       |
-| Audit trail of write actions                                     | `public.audit_logs`                                                                                                                            | Yes (`user_id`, though set to `NULL` on user deletion via `ON DELETE SET NULL`)             | Every write action                  | Not directly deletable by users — survives account deletion with `user_id` nulled, business_id cascade-deleted with the business |
+| Audit trail of write actions                                     | `public.audit_logs`                                                                                                                            | Yes (`user_id`, though set to `NULL` on user deletion via `ON DELETE SET NULL`)             | Every write action                  | Not directly deletable by users, survives account deletion with `user_id` nulled, business_id cascade-deleted with the business |
 | Legal acceptance record                                          | `public.legal_acceptances`                                                                                                                     | Yes (`user_id`, IP address)                                                                 | Sign-up                             | Cascade-deleted (`ON DELETE CASCADE` from `auth.users`) on account deletion                                                      |
-| Session                                                          | Encrypted httpOnly cookie, client-side only — nothing server-side to delete                                                                    | Yes (session tokens)                                                                        | Sign-in                             | Sign-out, or expiry                                                                                                              |
+| Session                                                          | Encrypted httpOnly cookie, client-side only, nothing server-side to delete                                                                    | Yes (session tokens)                                                                        | Sign-in                             | Sign-out, or expiry                                                                                                              |
 | Cached workspace lookup (optional)                               | Upstash Redis, if configured                                                                                                                   | Indirect (business/role/plan, keyed by user ID)                                             | Every workspace load                | Short TTL; also explicitly invalidated on relevant writes (`invalidateWorkspaceCacheForBusiness`)                                |
 
 ## Processing purposes
 
 Every category above exists for one of exactly three reasons:
 
-1. **Operating the service** — the large majority of the inventory above.
-2. **Payment processing** — subscription/billing tables, and what's sent to
+1. **Operating the service**, the large majority of the inventory above.
+2. **Payment processing**, subscription/billing tables, and what's sent to
    Paynow.
-3. **AI Assistant** — the aggregated summary built and sent to Gemini (preferred) or Groq per
-   request (never stored — see `docs/DATA_FLOW.md` Flow 3).
+3. **AI Assistant**, the aggregated summary built and sent to Gemini (preferred) or Groq per
+   request (never stored, see `docs/DATA_FLOW.md` Flow 3).
 
-Nothing is collected "because it might be useful later" — see the
+Nothing is collected "because it might be useful later", see the
 `ProductInput`/`CustomerInput`/etc. Zod schemas in `src/lib/business.schemas.ts`
 for the exact fields the app actually accepts; there's no catch-all
 metadata field anywhere in the schema.
@@ -40,11 +40,11 @@ metadata field anywhere in the schema.
 ## Retention
 
 - **Business data**: retained as long as the account exists. No automatic
-  expiry or archival job exists — this is a gap worth deciding on
+  expiry or archival job exists, this is a gap worth deciding on
   deliberately (see `docs/LEGAL_RISK_REGISTER.md` for backup/retention
   items).
 - **Audit logs**: retained indefinitely, `user_id` nulled on account
-  deletion rather than the row being removed — this is intentional (an
+  deletion rather than the row being removed, this is intentional (an
   audit trail that vanishes when the actor deletes their account defeats
   its purpose), but means audit log retention is effectively unbounded
   today. Worth a deliberate retention window decision.
@@ -55,7 +55,7 @@ REQUIRED`: decide whether this record should instead survive account
   deletion (e.g. by nulling `user_id` like `audit_logs` does, rather than
   cascading) for evidentiary purposes.
 
-## User rights — implementation
+## User rights: implementation
 
 | Right           | Mechanism                                                                   | Verified                                                                                              |
 | --------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -74,13 +74,13 @@ which jurisdictions' users are served.
 See `docs/DATA_FLOW.md` Flow 3 for the exact fields sent to Groq. Key
 architectural point: `buildBusinessSummary()` (`src/lib/ai.server.ts`) is
 the _only_ function that assembles data for the AI Assistant, and it never
-does a raw table dump — every field included is deliberately selected.
+does a raw table dump, every field included is deliberately selected.
 There's no code path where the AI Assistant (or any future AI feature)
 could accidentally receive more than this function returns.
 
 ## International transfers
 
-`LEGAL REVIEW REQUIRED` in full — this depends on confirming Supabase's,
+`LEGAL REVIEW REQUIRED` in full, this depends on confirming Supabase's,
 Paynow's, and Groq's actual processing regions, none of which have been
 independently verified as part of this work. See
 `docs/THIRD_PARTY_SERVICES.md`.
@@ -89,7 +89,7 @@ independently verified as part of this work. See
 
 Terms of Service / Privacy Policy acceptance is captured once, at sign-up,
 gated by a required checkbox enforced server-side (not just a disabled
-button — `signUpSchema` in `src/lib/auth/auth.functions.ts` rejects the
+button, `signUpSchema` in `src/lib/auth/auth.functions.ts` rejects the
 request entirely if `acceptedTerms` isn't `true`). The same gate applies to
 Google OAuth sign-up via a flag carried through the redirect round-trip.
 Shopper marketing consent is separate from the Terms/Privacy checkbox:

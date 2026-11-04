@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, isRedirect, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBusiness, completeOnboarding } from "@/lib/business.functions";
-import { PLAN_MONTHLY_USD, planAmountZig } from "@/lib/billing-plans";
+import { createBusiness, completeOnboarding, getWorkspace } from "@/lib/business.functions";
+import { onboardingPageDestination } from "@/lib/auth/post-auth-destination";
+import { PLAN_MONTHLY_USD, TRIAL_LENGTH_LABEL, planAmountZig } from "@/lib/billing-plans";
 import {
   BUSINESS_TYPES,
   BUSINESS_SUBCATEGORIES,
@@ -39,6 +40,20 @@ import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
 import { ONBOARDING_LOAD_TIMEOUT_MS, onboardingLoadGate } from "@/lib/onboarding-resume";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
+  beforeLoad: async () => {
+    try {
+      const workspace = await getWorkspace();
+      const next = onboardingPageDestination({
+        hasMembership: Boolean(workspace),
+        setupCompleted: Boolean(workspace?.business.setup_completed_at),
+      });
+      if (next) throw redirect({ to: next, replace: true });
+    } catch (error) {
+      if (isRedirect(error)) throw error;
+      // A failed workspace load must not show the create-shop wizard.
+      // The page renders retry copy instead.
+    }
+  },
   head: () => ({
     meta: [
       { title: `Set up your business | ${BRAND.name}` },
@@ -244,7 +259,7 @@ function Onboarding() {
       <OnboardingShell step={0} totalSteps={1} stepTitle="Your shop">
         <OnboardingHeading
           title="We couldn't load your shop"
-          description="Nothing was deleted. This page failed to open your existing shop."
+          description="Nothing was deleted. This failed to open an existing shop, do not create a second one."
         />
         <div className="mt-6 flex flex-wrap gap-3">
           <Button
@@ -291,8 +306,6 @@ function Onboarding() {
 
   const subcategories = BUSINESS_SUBCATEGORIES[form.businessType] ?? [];
   const typeQuestions = TYPE_QUESTIONS[form.businessType] ?? TYPE_QUESTIONS["grocery"]!;
-
-  const isServiceBusiness = form.businessType === "salon" || form.businessType === "services";
 
   const footer = (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -832,40 +845,38 @@ function Onboarding() {
                 ))}
               </div>
             </div>
-            {isServiceBusiness ? (
-              <div className="mt-4 space-y-1.5">
-                <Label>Do you sell products, services or both?</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      { key: "products", label: "Products" },
-                      { key: "services", label: "Services" },
-                      { key: "both", label: "Both" },
-                    ] as const
-                  ).map((opt) => (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() =>
-                        setConfig({
-                          sellsProducts: opt.key === "products" || opt.key === "both",
-                          sellsServices: opt.key === "services" || opt.key === "both",
-                        })
-                      }
-                      className={
-                        (opt.key === "both" && config.sellsProducts && config.sellsServices) ||
-                        (opt.key === "products" && config.sellsProducts && !config.sellsServices) ||
-                        (opt.key === "services" && !config.sellsProducts && config.sellsServices)
-                          ? "rounded-lg border-2 border-primary bg-accent px-3 py-2 text-sm font-medium"
-                          : "rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
-                      }
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="mt-4 space-y-1.5">
+              <Label>Do you sell products, services or both?</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { key: "products", label: "Products" },
+                    { key: "services", label: "Services" },
+                    { key: "both", label: "Both" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() =>
+                      setConfig({
+                        sellsProducts: opt.key === "products" || opt.key === "both",
+                        sellsServices: opt.key === "services" || opt.key === "both",
+                      })
+                    }
+                    className={
+                      (opt.key === "both" && config.sellsProducts && config.sellsServices) ||
+                      (opt.key === "products" && config.sellsProducts && !config.sellsServices) ||
+                      (opt.key === "services" && !config.sellsProducts && config.sellsServices)
+                        ? "rounded-lg border-2 border-primary bg-accent px-3 py-2 text-sm font-medium"
+                        : "rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            ) : null}
+            </div>
           </OnboardingCard>
         </>
       ) : null}
@@ -875,7 +886,7 @@ function Onboarding() {
         <>
           <OnboardingHeading
             title="How would you like to use Kwetuu?"
-            description={`Both options cost the same ($${PLAN_MONTHLY_USD.pro}/month${zigMonthly != null ? ` or ZiG ${zigMonthly}` : ""} after your 14-day free trial). You can always add an online store later.`}
+            description={`Both options cost the same ($${PLAN_MONTHLY_USD.pro}/month${zigMonthly != null ? ` or ZiG ${zigMonthly}` : " or ZiG"} after your ${TRIAL_LENGTH_LABEL} free trial). You can always add an online store later.`}
           />
           <div className="mt-6 grid gap-4">
             <button
@@ -1080,7 +1091,7 @@ function Onboarding() {
         <>
           <OnboardingHeading
             title={`Create ${form.name.trim() || "your business"}`}
-            description="We'll set up your workspace and start your 14-day free trial. No card needed."
+            description={`We'll set up your workspace and start your ${TRIAL_LENGTH_LABEL} free trial. No card needed.`}
           />
           <OnboardingCard>
             <dl className="divide-y divide-border">
@@ -1114,7 +1125,7 @@ function Onboarding() {
               </div>
               <div className="flex justify-between gap-4 py-2.5">
                 <dt className="text-sm text-muted-foreground">Trial</dt>
-                <dd className="text-sm font-medium">14 days free</dd>
+                <dd className="text-sm font-medium">1 month free</dd>
               </div>
               <div className="flex justify-between gap-4 py-2.5">
                 <dt className="text-sm text-muted-foreground">After trial</dt>

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isMissingDbFunction, userFacingDbMessage } from "@/lib/business.server";
+import {
+  isMissingDbColumn,
+  isMissingDbFunction,
+  SCHEMA_DRIFT_USER_MESSAGE,
+  userFacingDbMessage,
+} from "@/lib/business.server";
 import { readableError } from "@/lib/format";
 
 describe("userFacingDbMessage", () => {
@@ -47,7 +52,9 @@ describe("userFacingDbMessage", () => {
         message:
           "Could not find the function public.create_business_with_owner in the schema cache",
       }),
-    ).toBe("Shop setup is out of date. Wait a minute and try again.");
+    ).toBe(SCHEMA_DRIFT_USER_MESSAGE);
+    expect(SCHEMA_DRIFT_USER_MESSAGE).toMatch(/not a problem with your form/i);
+    expect(SCHEMA_DRIFT_USER_MESSAGE).toMatch(/do not create a second shop/i);
   });
 
   it("maps a missing create_product _category_id overload to the same toast", () => {
@@ -57,7 +64,7 @@ describe("userFacingDbMessage", () => {
         message:
           "Could not find the function public.create_product with parameter _category_id in the schema cache",
       }),
-    ).toBe("Shop setup is out of date. Wait a minute and try again.");
+    ).toBe(SCHEMA_DRIFT_USER_MESSAGE);
   });
 
   it("passes through store-design and cover-image RPC copy", () => {
@@ -84,6 +91,22 @@ describe("userFacingDbMessage", () => {
       }),
     ).toBe(true);
     expect(isMissingDbFunction({ code: "42501", message: "permission denied" })).toBe(false);
+  });
+
+  it("treats a missing businesses.commerce_model column as skippable schema drift", () => {
+    expect(
+      isMissingDbColumn({
+        code: "42703",
+        message: "column businesses.commerce_model does not exist",
+      }),
+    ).toBe(true);
+    expect(
+      isMissingDbColumn({
+        code: "PGRST204",
+        message: "Could not find the 'commerce_model' column of 'businesses' in the schema cache",
+      }),
+    ).toBe(true);
+    expect(isMissingDbColumn({ code: "42501", message: "permission denied" })).toBe(false);
   });
 });
 

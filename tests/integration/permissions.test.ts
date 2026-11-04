@@ -36,6 +36,22 @@ describeStaging("permissions", () => {
     await deleteTestUser(outsiderId);
   }, 30_000);
 
+  it("a cashier does not have reports.financial", async () => {
+    const rows = await asUser<{ allowed: boolean }>(
+      cashierId,
+      `select public.has_permission('${businessId}', 'reports.financial') as allowed;`,
+    );
+    expect(rows[0]?.allowed).toBe(false);
+  });
+
+  it("an owner has reports.financial", async () => {
+    const rows = await asUser<{ allowed: boolean }>(
+      ownerId,
+      `select public.has_permission('${businessId}', 'reports.financial') as allowed;`,
+    );
+    expect(rows[0]?.allowed).toBe(true);
+  });
+
   it("a cashier cannot start a subscription payment (owner/admin only)", async () => {
     await expect(
       asUser(
@@ -65,7 +81,7 @@ describeStaging("permissions", () => {
 
   // bootstrap_business_subscription() and the old 7-arg create_business_with_owner
   // overload were both dropped as orphaned/superseded during this session's
-  // audit-fix pass (single-plan pricing, atomic business creation) — assert
+  // audit-fix pass (single-plan pricing, atomic business creation), assert
   // they stay gone rather than silently reappearing via a future migration
   // that forgets this history.
   it("bootstrap_business_subscription no longer exists", async () => {

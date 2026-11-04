@@ -1,11 +1,11 @@
-// The "paynow" package (v2.2.2) ships no type declarations — this covers
+// The "paynow" package (v2.2.2) ships no type declarations, this covers
 // only the surface we actually use, hand-written against the installed
 // package's real compiled source (node_modules/paynow/dist/paynow.js),
 // not the README (which documents a `StatusResponse.paid()` helper and a
-// `pollTransaction()` that returns transaction status — neither exists in
+// `pollTransaction()` that returns transaction status, neither exists in
 // the shipped code; pollTransaction() actually reuses the InitResponse
 // parser, which has no status semantics. We deliberately avoid both and
-// verify payments via parseStatusUpdate() instead — see paynow.server.ts.
+// verify payments via parseStatusUpdate() instead, see paynow.server.ts.
 declare module "paynow" {
   export class Payment {
     reference: string;
@@ -50,7 +50,7 @@ declare module "paynow" {
       phone: string,
       method: "ecocash" | "onemoney",
     ): Promise<InitResponse | undefined>;
-    // Verifies the SHA512 hash on a raw (already-fetched) response body —
+    // Verifies the SHA512 hash on a raw (already-fetched) response body,
     // safe to use on both the resulturl webhook body and a manual poll of
     // the stored pollUrl. Throws if the hash doesn't match.
     parseStatusUpdate(rawBody: string): StatusResponse;

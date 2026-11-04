@@ -29,7 +29,7 @@ function AdminOrdersPage() {
   return (
     <AdminShell title="Shop orders">
       <p className="text-sm text-muted-foreground">
-        Recent customer checkout orders across all merchants. Payment and fulfilment status only —
+        Recent customer checkout orders across all merchants. Payment and fulfilment status only,
         open the merchant&apos;s Online orders desk for actions.
       </p>
       {list.isLoading ? <Skeleton className="h-64" /> : null}

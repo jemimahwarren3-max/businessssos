@@ -21,7 +21,7 @@ const BETA_FEATURES = [
 const PRO_FEATURES = [
   "Everything in the founding beta",
   `$${PLAN_MONTHLY_USD.pro}/month only after we give notice`,
-  "Same merchant OS — not a second product",
+  "Same merchant OS, not a second product",
   "Platform billing uses separate Paynow keys from shop checkout",
 ];
 

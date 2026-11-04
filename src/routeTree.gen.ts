@@ -29,6 +29,7 @@ import { Route as StoresRouteImport } from './routes/stores'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
+import { Route as AuthenticatedBookingsRouteImport } from './routes/_authenticated/bookings'
 import { Route as AuthenticatedBranchesRouteImport } from './routes/_authenticated/branches'
 import { Route as AuthenticatedCashDrawerRouteImport } from './routes/_authenticated/cash-drawer'
 import { Route as AuthenticatedCommissionRouteImport } from './routes/_authenticated/commission'
@@ -51,6 +52,7 @@ import { Route as AuthenticatedRecurringInvoicesRouteImport } from './routes/_au
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSaleHistoryRouteImport } from './routes/_authenticated/sale-history'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
+import { Route as AuthenticatedServicesRouteImport } from './routes/_authenticated/services'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedStorefrontRouteImport } from './routes/_authenticated/storefront'
 import { Route as AuthenticatedSuppliersRouteImport } from './routes/_authenticated/suppliers'
@@ -82,6 +84,7 @@ import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings.account'
 import { Route as AuthenticatedSettingsAuditLogRouteImport } from './routes/_authenticated/settings.audit-log'
 import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings.billing'
+import { Route as AuthenticatedSettingsBusinessRouteImport } from './routes/_authenticated/settings.business'
 import { Route as AuthenticatedSettingsDataRouteImport } from './routes/_authenticated/settings.data'
 import { Route as AuthenticatedSettingsPaymentsRouteImport } from './routes/_authenticated/settings.payments'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings.team'
@@ -94,6 +97,7 @@ import { Route as StoreSlugCheckoutRouteImport } from './routes/store.$slug.chec
 import { Route as StoreSlugSearchRouteImport } from './routes/store.$slug.search'
 import { Route as StoreSlugOrderReferenceRouteImport } from './routes/store.$slug.order.$reference'
 import { Route as StoreSlugProductsProductSlugRouteImport } from './routes/store.$slug.products.$productSlug'
+import { Route as StoreSlugServicesServiceIdRouteImport } from './routes/store.$slug.services.$serviceId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -192,6 +196,11 @@ const TermsRoute = TermsRouteImport.update({
 const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
   id: '/assistant',
   path: '/assistant',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBookingsRoute = AuthenticatedBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBranchesRoute = AuthenticatedBranchesRouteImport.update({
@@ -307,6 +316,11 @@ const AuthenticatedSaleHistoryRoute =
 const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedServicesRoute = AuthenticatedServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
@@ -467,6 +481,12 @@ const AuthenticatedSettingsBillingRoute =
     path: '/settings/billing',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsBusinessRoute =
+  AuthenticatedSettingsBusinessRouteImport.update({
+    id: '/settings/business',
+    path: '/settings/business',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsDataRoute =
   AuthenticatedSettingsDataRouteImport.update({
     id: '/settings/data',
@@ -532,6 +552,12 @@ const StoreSlugProductsProductSlugRoute =
     path: '/products/$productSlug',
     getParentRoute: () => StoreSlugRoute,
   } as any)
+const StoreSlugServicesServiceIdRoute =
+  StoreSlugServicesServiceIdRouteImport.update({
+    id: '/services/$serviceId',
+    path: '/services/$serviceId',
+    getParentRoute: () => StoreSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -553,6 +579,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/bookings': typeof AuthenticatedBookingsRoute
   '/branches': typeof AuthenticatedBranchesRoute
   '/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/commission': typeof AuthenticatedCommissionRoute
@@ -575,6 +602,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
+  '/services': typeof AuthenticatedServicesRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
@@ -606,6 +634,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
+  '/settings/business': typeof AuthenticatedSettingsBusinessRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -618,6 +647,7 @@ export interface FileRoutesByFullPath {
   '/store/$slug/': typeof StoreSlugIndexRoute
   '/store/$slug/order/$reference': typeof StoreSlugOrderReferenceRoute
   '/store/$slug/products/$productSlug': typeof StoreSlugProductsProductSlugRoute
+  '/store/$slug/services/$serviceId': typeof StoreSlugServicesServiceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -638,6 +668,7 @@ export interface FileRoutesByTo {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/bookings': typeof AuthenticatedBookingsRoute
   '/branches': typeof AuthenticatedBranchesRoute
   '/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/commission': typeof AuthenticatedCommissionRoute
@@ -660,6 +691,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/sales': typeof AuthenticatedSalesRoute
+  '/services': typeof AuthenticatedServicesRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/storefront': typeof AuthenticatedStorefrontRoute
   '/suppliers': typeof AuthenticatedSuppliersRoute
@@ -690,6 +722,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
+  '/settings/business': typeof AuthenticatedSettingsBusinessRoute
   '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -702,6 +735,7 @@ export interface FileRoutesByTo {
   '/store/$slug': typeof StoreSlugIndexRoute
   '/store/$slug/order/$reference': typeof StoreSlugOrderReferenceRoute
   '/store/$slug/products/$productSlug': typeof StoreSlugProductsProductSlugRoute
+  '/store/$slug/services/$serviceId': typeof StoreSlugServicesServiceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -725,6 +759,7 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRoute
   '/terms': typeof TermsRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
+  '/_authenticated/bookings': typeof AuthenticatedBookingsRoute
   '/_authenticated/branches': typeof AuthenticatedBranchesRoute
   '/_authenticated/cash-drawer': typeof AuthenticatedCashDrawerRoute
   '/_authenticated/commission': typeof AuthenticatedCommissionRoute
@@ -747,6 +782,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/sale-history': typeof AuthenticatedSaleHistoryRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
+  '/_authenticated/services': typeof AuthenticatedServicesRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/storefront': typeof AuthenticatedStorefrontRoute
   '/_authenticated/suppliers': typeof AuthenticatedSuppliersRoute
@@ -778,6 +814,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/audit-log': typeof AuthenticatedSettingsAuditLogRoute
   '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
+  '/_authenticated/settings/business': typeof AuthenticatedSettingsBusinessRoute
   '/_authenticated/settings/data': typeof AuthenticatedSettingsDataRoute
   '/_authenticated/settings/payments': typeof AuthenticatedSettingsPaymentsRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
@@ -790,6 +827,7 @@ export interface FileRoutesById {
   '/store/$slug/': typeof StoreSlugIndexRoute
   '/store/$slug/order/$reference': typeof StoreSlugOrderReferenceRoute
   '/store/$slug/products/$productSlug': typeof StoreSlugProductsProductSlugRoute
+  '/store/$slug/services/$serviceId': typeof StoreSlugServicesServiceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -813,6 +851,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/assistant'
+    | '/bookings'
     | '/branches'
     | '/cash-drawer'
     | '/commission'
@@ -835,6 +874,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/sale-history'
     | '/sales'
+    | '/services'
     | '/setup'
     | '/storefront'
     | '/suppliers'
@@ -866,6 +906,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/audit-log'
     | '/settings/billing'
+    | '/settings/business'
     | '/settings/data'
     | '/settings/payments'
     | '/settings/team'
@@ -878,6 +919,7 @@ export interface FileRouteTypes {
     | '/store/$slug/'
     | '/store/$slug/order/$reference'
     | '/store/$slug/products/$productSlug'
+    | '/store/$slug/services/$serviceId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -898,6 +940,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/assistant'
+    | '/bookings'
     | '/branches'
     | '/cash-drawer'
     | '/commission'
@@ -920,6 +963,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/sale-history'
     | '/sales'
+    | '/services'
     | '/setup'
     | '/storefront'
     | '/suppliers'
@@ -950,6 +994,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/audit-log'
     | '/settings/billing'
+    | '/settings/business'
     | '/settings/data'
     | '/settings/payments'
     | '/settings/team'
@@ -962,6 +1007,7 @@ export interface FileRouteTypes {
     | '/store/$slug'
     | '/store/$slug/order/$reference'
     | '/store/$slug/products/$productSlug'
+    | '/store/$slug/services/$serviceId'
   id:
     | '__root__'
     | '/'
@@ -984,6 +1030,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/terms'
     | '/_authenticated/assistant'
+    | '/_authenticated/bookings'
     | '/_authenticated/branches'
     | '/_authenticated/cash-drawer'
     | '/_authenticated/commission'
@@ -1006,6 +1053,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/sale-history'
     | '/_authenticated/sales'
+    | '/_authenticated/services'
     | '/_authenticated/setup'
     | '/_authenticated/storefront'
     | '/_authenticated/suppliers'
@@ -1037,6 +1085,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/audit-log'
     | '/_authenticated/settings/billing'
+    | '/_authenticated/settings/business'
     | '/_authenticated/settings/data'
     | '/_authenticated/settings/payments'
     | '/_authenticated/settings/team'
@@ -1049,6 +1098,7 @@ export interface FileRouteTypes {
     | '/store/$slug/'
     | '/store/$slug/order/$reference'
     | '/store/$slug/products/$productSlug'
+    | '/store/$slug/services/$serviceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1227,6 +1277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssistantRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/bookings': {
+      id: '/_authenticated/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AuthenticatedBookingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/branches': {
       id: '/_authenticated/branches'
       path: '/branches'
@@ -1379,6 +1436,13 @@ declare module '@tanstack/react-router' {
       path: '/sales'
       fullPath: '/sales'
       preLoaderRoute: typeof AuthenticatedSalesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/services': {
+      id: '/_authenticated/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof AuthenticatedServicesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/setup': {
@@ -1598,6 +1662,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/business': {
+      id: '/_authenticated/settings/business'
+      path: '/settings/business'
+      fullPath: '/settings/business'
+      preLoaderRoute: typeof AuthenticatedSettingsBusinessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings/data': {
       id: '/_authenticated/settings/data'
       path: '/settings/data'
@@ -1682,11 +1753,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreSlugProductsProductSlugRouteImport
       parentRoute: typeof StoreSlugRoute
     }
+    '/store/$slug/services/$serviceId': {
+      id: '/store/$slug/services/$serviceId'
+      path: '/services/$serviceId'
+      fullPath: '/store/$slug/services/$serviceId'
+      preLoaderRoute: typeof StoreSlugServicesServiceIdRouteImport
+      parentRoute: typeof StoreSlugRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
+  AuthenticatedBookingsRoute: typeof AuthenticatedBookingsRoute
   AuthenticatedBranchesRoute: typeof AuthenticatedBranchesRoute
   AuthenticatedCashDrawerRoute: typeof AuthenticatedCashDrawerRoute
   AuthenticatedCommissionRoute: typeof AuthenticatedCommissionRoute
@@ -1709,6 +1788,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSaleHistoryRoute: typeof AuthenticatedSaleHistoryRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
+  AuthenticatedServicesRoute: typeof AuthenticatedServicesRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedStorefrontRoute: typeof AuthenticatedStorefrontRoute
   AuthenticatedSuppliersRoute: typeof AuthenticatedSuppliersRoute
@@ -1716,6 +1796,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsAuditLogRoute: typeof AuthenticatedSettingsAuditLogRoute
   AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
+  AuthenticatedSettingsBusinessRoute: typeof AuthenticatedSettingsBusinessRoute
   AuthenticatedSettingsDataRoute: typeof AuthenticatedSettingsDataRoute
   AuthenticatedSettingsPaymentsRoute: typeof AuthenticatedSettingsPaymentsRoute
   AuthenticatedSettingsTeamRoute: typeof AuthenticatedSettingsTeamRoute
@@ -1723,6 +1804,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
+  AuthenticatedBookingsRoute: AuthenticatedBookingsRoute,
   AuthenticatedBranchesRoute: AuthenticatedBranchesRoute,
   AuthenticatedCashDrawerRoute: AuthenticatedCashDrawerRoute,
   AuthenticatedCommissionRoute: AuthenticatedCommissionRoute,
@@ -1745,6 +1827,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSaleHistoryRoute: AuthenticatedSaleHistoryRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
+  AuthenticatedServicesRoute: AuthenticatedServicesRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedStorefrontRoute: AuthenticatedStorefrontRoute,
   AuthenticatedSuppliersRoute: AuthenticatedSuppliersRoute,
@@ -1752,6 +1835,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
   AuthenticatedSettingsAuditLogRoute: AuthenticatedSettingsAuditLogRoute,
   AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
+  AuthenticatedSettingsBusinessRoute: AuthenticatedSettingsBusinessRoute,
   AuthenticatedSettingsDataRoute: AuthenticatedSettingsDataRoute,
   AuthenticatedSettingsPaymentsRoute: AuthenticatedSettingsPaymentsRoute,
   AuthenticatedSettingsTeamRoute: AuthenticatedSettingsTeamRoute,
@@ -1825,6 +1909,7 @@ interface StoreSlugRouteChildren {
   StoreSlugIndexRoute: typeof StoreSlugIndexRoute
   StoreSlugOrderReferenceRoute: typeof StoreSlugOrderReferenceRoute
   StoreSlugProductsProductSlugRoute: typeof StoreSlugProductsProductSlugRoute
+  StoreSlugServicesServiceIdRoute: typeof StoreSlugServicesServiceIdRoute
 }
 
 const StoreSlugRouteChildren: StoreSlugRouteChildren = {
@@ -1835,6 +1920,7 @@ const StoreSlugRouteChildren: StoreSlugRouteChildren = {
   StoreSlugIndexRoute: StoreSlugIndexRoute,
   StoreSlugOrderReferenceRoute: StoreSlugOrderReferenceRoute,
   StoreSlugProductsProductSlugRoute: StoreSlugProductsProductSlugRoute,
+  StoreSlugServicesServiceIdRoute: StoreSlugServicesServiceIdRoute,
 }
 
 const StoreSlugRouteWithChildren = StoreSlugRoute._addFileChildren(

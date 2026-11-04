@@ -9,10 +9,10 @@ function titleCase(key: string): string {
 }
 
 /** Rendered `hidden print:block` the same way DocumentPrintView is for
- * invoices/quotes (see .print-area in src/styles.css) — window.print() then
+ * invoices/quotes (see .print-area in src/styles.css), window.print() then
  * produces a PDF via the browser's own "Save as PDF" destination, no PDF
  * library needed. One table per non-empty array in the export payload,
- * headers derived from whatever fields that row shape actually has —
+ * headers derived from whatever fields that row shape actually has,
  * mirrors downloadExcel's sheet-per-array approach in settings.data.tsx,
  * just rendered as HTML instead of xlsx sheets. */
 export function DataExportPrintView({

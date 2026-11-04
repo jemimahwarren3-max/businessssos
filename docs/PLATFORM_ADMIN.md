@@ -4,17 +4,17 @@ The operator console lives at **`/admin`**. It is not linked from the merchant a
 
 ## Access
 
-1. **Bootstrap (once per environment)** — In Supabase SQL, after the owner email is invited and confirmed:
+1. **Bootstrap (once per environment)**, In Supabase SQL, after the owner email is invited and confirmed:
 
    ```sql
    select public.bootstrap_platform_owner('you@example.com');
    ```
 
-2. **Legacy fallback** — Until bootstrap runs, `PLATFORM_ADMIN_USER_ID` in Cloud Run env can match your Auth user id (compatibility only).
+2. **Legacy fallback**, Until bootstrap runs, `PLATFORM_ADMIN_USER_ID` in Cloud Run env can match your Auth user id (compatibility only).
 
-3. **Sign in** — Use the same Auth account as merchants (`/staff-login` or Google), then open `/admin`.
+3. **Sign in**, Use the same Auth account as merchants (`/staff-login` or Google), then open `/admin`.
 
-4. **MFA** — Platform admin requires TOTP (authenticator app) at **AAL2** every session.
+4. **MFA**, Platform admin requires TOTP (authenticator app) at **AAL2** every session.
 
 ## Sections
 
@@ -68,4 +68,4 @@ Per-business row in `business_feature_flags`:
 
 - Admin RPCs are **`service_role` only**; the Node layer checks `platform_admin_access` + MFA before calling them.
 - Subscription overrides write to `admin_audit_log`; runtime, banner, impersonation, flags, and CSV export write to `platform_admin_audit`.
-- Impersonation is **read-only** by design — do not disable server-side write guards.
+- Impersonation is **read-only** by design, do not disable server-side write guards.

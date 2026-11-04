@@ -1,5 +1,5 @@
 -- Per-account sign-in lockout. The existing signInLimit (see
--- rate-limit.server.ts) is IP-keyed — it stops one machine from hammering
+-- rate-limit.server.ts) is IP-keyed, it stops one machine from hammering
 -- sign-in, but does nothing against a distributed credential-stuffing
 -- attempt (many IPs, one targeted email). These three functions add a
 -- second, email-keyed counter that only moves on an actual failed
@@ -32,7 +32,7 @@ $$;
 revoke all on function public.record_login_failure(text, int) from public;
 grant execute on function public.record_login_failure(text, int) to authenticated, anon, service_role;
 
--- Read-only — unlike check_rate_limit, this must NOT count as an attempt
+-- Read-only, unlike check_rate_limit, this must NOT count as an attempt
 -- itself, or every legitimate sign-in page load/retry would tick the
 -- lockout counter on its own.
 create or replace function public.peek_login_failures(

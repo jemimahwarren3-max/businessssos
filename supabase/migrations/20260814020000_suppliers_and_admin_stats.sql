@@ -2,7 +2,7 @@
 -- adds a total-registered-users count to the platform admin dashboard.
 
 -- create or replace does NOT replace a function whose argument list changed
--- (Postgres identifies a function by its full type signature) — adding
+-- (Postgres identifies a function by its full type signature), adding
 -- _supplier_id here would otherwise leave the old 11-arg version in place
 -- as a second overload, and any 11-arg caller (raw SQL, older RPCs) would
 -- then fail with "function ... is not unique". Drop the old signature
@@ -93,7 +93,7 @@ revoke all on function public.admin_platform_stats() from public, anon, authenti
 grant execute on function public.admin_platform_stats() to service_role;
 
 -- Extends the audit_logs action allow-list (20260811000000_data_export.sql)
--- for the three new supplier actions — without this, recordAudit's insert
+-- for the three new supplier actions, without this, recordAudit's insert
 -- fails the check constraint on every supplier create/update/delete (caught
 -- and logged, not thrown, per recordAudit's existing fail-open behavior,
 -- but that means audit history for suppliers was silently never recorded).

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeAnomalies, computeInventoryForecast } from "../src/lib/insights.server";
 
-// Pure-function tests — no network, no staging project involved. The DB
+// Pure-function tests, no network, no staging project involved. The DB
 // fetching around these functions (getInventoryForecast/getAnomalies) is
 // boilerplate already covered by the same query patterns loadDashboard and
 // loadReports use elsewhere; what's actually novel here is the math, so

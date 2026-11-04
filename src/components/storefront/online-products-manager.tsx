@@ -299,16 +299,17 @@ function OnlineProductCard({
   onRemoveImage: (imageUrl: string) => void;
 }) {
   const [publicName, setPublicName] = useState(product.publicName ?? "");
-  const [details, setDetails] = useState(product.details);
+  const [details, setDetails] = useState(product.details ?? "");
   const listingInput = (published = product.published): ListingInput => ({
     product,
     publicName,
     details,
     published,
   });
+  const galleryUrls = Array.isArray(product.galleryUrls) ? product.galleryUrls : [];
   const readiness = getOnlineProductReadiness(product);
   const customerName = publicName.trim() || product.name;
-  const previewImage = product.imageUrl ?? product.galleryUrls[0] ?? null;
+  const previewImage = product.imageUrl ?? galleryUrls[0] ?? null;
 
   return (
     <article className="surface space-y-4 p-4">
@@ -402,7 +403,7 @@ function OnlineProductCard({
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
-          {product.galleryUrls.map((imageUrl, index) => (
+          {galleryUrls.map((imageUrl, index) => (
             <div key={imageUrl} className="relative">
               <DeferredImage
                 src={imageUrl}
@@ -438,7 +439,7 @@ function OnlineProductCard({
               ) : null}
             </div>
           ))}
-          {canManage && product.galleryUrls.length < 8 ? (
+          {canManage && galleryUrls.length < 8 ? (
             <label className="cursor-pointer rounded-md border px-3 py-2 text-sm hover:bg-muted">
               {uploading ? "Uploading…" : "Add photo"}
               <input

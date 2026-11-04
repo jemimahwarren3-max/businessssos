@@ -54,7 +54,7 @@ export function launchEligibilityHeadline(state: LaunchEligibilityState): string
     case "blocked":
       return "Online shop access is disabled for this business.";
     case "launch_fee_unpaid":
-      return "Setup is complete — pay the Kwetuu store launch fee to publish.";
+      return "Setup is complete, pay the Kwetuu store launch fee to publish.";
     case "payment_pending_verification":
       return "Launch fee payment is pending verification with Paynow.";
     case "payment_verification_failed":

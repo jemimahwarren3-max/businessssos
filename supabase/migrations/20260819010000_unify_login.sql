@@ -75,14 +75,14 @@ begin
   end if;
   -- Re-accepting your own business's invite (e.g. opening an invite link
   -- while already signed in) must never silently overwrite your existing
-  -- role — that's a real lockout footgun, not a no-op.
+  -- role, that's a real lockout footgun, not a no-op.
   if _existing_business = _invite.business_id then
     raise exception 'You already belong to this business.' using errcode = 'B0001';
   end if;
 
   select raw_user_meta_data->>'full_name' into _full_name from auth.users where id = auth.uid();
 
-  -- staff_name has a per-business unique index — two invitees sharing a
+  -- staff_name has a per-business unique index, two invitees sharing a
   -- full name is a real possibility, and a collision here must not block
   -- accepting the invite. Fall back to leaving it unset; they sign in with
   -- email until an admin gives them a distinct name.
@@ -107,7 +107,7 @@ grant execute on function public.accept_business_invite(text) to authenticated;
 
 -- Backfill existing members (created before this change) so they show up
 -- in the staff-login roster too. Row-by-row with per-row collision handling
--- for the same reason as above — one name clash shouldn't leave the rest
+-- for the same reason as above, one name clash shouldn't leave the rest
 -- of a business unbackfilled.
 do $$
 declare

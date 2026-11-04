@@ -1,5 +1,5 @@
 /**
- * Shared Supabase Management API helpers — STAGING ONLY.
+ * Shared Supabase Management API helpers, STAGING ONLY.
  * Production ref maidxfntfpnkcqnuhozo is rejected.
  */
 export const STAGING_PROJECT_REF = "slajanbsfqjnuuiohbmg";
@@ -26,6 +26,23 @@ export function getAccessToken() {
     return null;
   }
   return token;
+}
+
+/** Master/main must not skip staging SQL. PRs without a token still skip. */
+export function requireStagingSqlEnabled(flag = process.env.REQUIRE_STAGING_SQL) {
+  return ["1", "true", "yes"].includes(
+    String(flag ?? "")
+      .trim()
+      .toLowerCase(),
+  );
+}
+
+/**
+ * @returns {"apply" | "skip" | "fail"}
+ */
+export function missingStagingTokenAction(token, requireFlag = process.env.REQUIRE_STAGING_SQL) {
+  if (token) return "apply";
+  return requireStagingSqlEnabled(requireFlag) ? "fail" : "skip";
 }
 
 /** @returns {Promise<Record<string, unknown>[]>} */

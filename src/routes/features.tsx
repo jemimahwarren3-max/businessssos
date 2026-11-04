@@ -54,7 +54,7 @@ const items = [
   {
     icon: BarChart3,
     title: "Reports",
-    body: "Sales, profit, and who owes you — from real records, not sample charts.",
+    body: "Sales, profit, and who owes you, from real records, not sample charts.",
   },
 ];
 

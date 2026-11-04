@@ -7,6 +7,8 @@ import {
   BarChart3,
   Bell,
   Boxes,
+  Briefcase,
+  CalendarDays,
   ChevronDown,
   Clock,
   ClipboardList,
@@ -59,6 +61,12 @@ import { deriveStoreLaunchDisplay } from "@/lib/storefront/launch-status";
 import { friendlyDate } from "@/lib/format";
 import { clearOfflineCacheOnLogout } from "@/lib/offline/db";
 import { HEADER_HINTS, MAIN_NAV_HINTS, SECONDARY_NAV_HINTS } from "@/lib/nav-hints";
+import {
+  isCommerceModel,
+  navShowsInventoryFirst,
+  navShowsServicesFirst,
+  type CommerceModel,
+} from "@/lib/commerce-model";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -69,52 +77,78 @@ type NavItem = {
   showLaunchBadge?: boolean;
 };
 
-const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
-  {
-    label: "Overview",
-    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
-  },
-  {
-    label: "Business",
-    items: [
-      { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
-      { to: "/inventory", label: "Inventory", icon: Boxes },
-      { to: "/customers", label: "Customers", icon: Users },
-      { to: "/lay-by", label: "Lay-by", icon: Wallet },
-      { to: "/invoices", label: "Invoices", icon: FileText },
-      { to: "/quotes", label: "Quotes", icon: FileCheck2 },
-      { to: "/expenses", label: "Expenses", icon: Receipt },
-      { to: "/suppliers", label: "Suppliers", icon: Truck },
-      { to: "/purchase-orders", label: "Purchase orders", icon: ClipboardList },
-      { to: "/reports", label: "Reports", icon: BarChart3 },
-      { to: "/branches", label: "Branches", icon: MapPin },
-    ],
-  },
-  {
-    label: "Online shop",
-    items: [
-      { to: "/storefront", label: "My Online Store", icon: Store, showLaunchBadge: true },
-      { to: "/online-orders", label: "Orders & fulfilment", icon: Package },
-    ],
-  },
-  {
-    label: "Growth & AI",
-    items: [
-      { to: "/growth", label: "Grow", icon: Megaphone },
-      { to: "/insights", label: "Insights", icon: Lightbulb },
-      { to: "/assistant", label: "AI Assistant", icon: Sparkles },
-    ],
-  },
-];
+function navGroupsFor(model: CommerceModel): { label: string; items: NavItem[] }[] {
+  const serviceItems: NavItem[] = [
+    { to: "/services", label: "Services", icon: Briefcase },
+    { to: "/bookings", label: "Bookings", icon: CalendarDays },
+  ];
+  const stockItems: NavItem[] = [
+    {
+      to: "/inventory",
+      label: navShowsInventoryFirst(model) ? "Inventory" : "Products",
+      icon: Boxes,
+    },
+    { to: "/lay-by", label: "Lay-by", icon: Wallet },
+    { to: "/suppliers", label: "Suppliers", icon: Truck },
+    { to: "/purchase-orders", label: "Purchase orders", icon: ClipboardList },
+  ];
+  const businessItems: NavItem[] = navShowsServicesFirst(model)
+    ? [
+        { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
+        ...serviceItems,
+        { to: "/customers", label: "Customers", icon: Users },
+        { to: "/invoices", label: "Invoices", icon: FileText },
+        { to: "/quotes", label: "Quotes", icon: FileCheck2 },
+        { to: "/expenses", label: "Expenses", icon: Receipt },
+        ...stockItems,
+        { to: "/reports", label: "Reports", icon: BarChart3 },
+        { to: "/branches", label: "Branches", icon: MapPin },
+      ]
+    : [
+        { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
+        { to: "/inventory", label: "Inventory", icon: Boxes },
+        { to: "/customers", label: "Customers", icon: Users },
+        { to: "/lay-by", label: "Lay-by", icon: Wallet },
+        { to: "/invoices", label: "Invoices", icon: FileText },
+        { to: "/quotes", label: "Quotes", icon: FileCheck2 },
+        { to: "/expenses", label: "Expenses", icon: Receipt },
+        { to: "/suppliers", label: "Suppliers", icon: Truck },
+        { to: "/purchase-orders", label: "Purchase orders", icon: ClipboardList },
+        ...serviceItems,
+        { to: "/reports", label: "Reports", icon: BarChart3 },
+        { to: "/branches", label: "Branches", icon: MapPin },
+      ];
+  return [
+    {
+      label: "Overview",
+      items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    },
+    { label: "Business", items: businessItems },
+    {
+      label: "Online shop",
+      items: [
+        { to: "/storefront", label: "My Online Store", icon: Store, showLaunchBadge: true },
+        { to: "/online-orders", label: "Orders & fulfilment", icon: Package },
+      ],
+    },
+    {
+      label: "Growth & AI",
+      items: [
+        { to: "/growth", label: "Grow", icon: Megaphone },
+        { to: "/insights", label: "Insights", icon: Lightbulb },
+        { to: "/assistant", label: "AI Assistant", icon: Sparkles },
+      ],
+    },
+  ];
+}
 
-const NAV = NAV_GROUPS.flatMap((group) => group.items);
-
-// Bottom nav stays to four items so it's usable on a small screen.
-// Dashboard, Sales, Inventory, Invoices are the highest-frequency actions.
-// Looked up by path rather than array index so inserting a new NAV entry
-// elsewhere (e.g. Suppliers) can never silently bump one of these out.
-const MOBILE_PATHS = ["/dashboard", "/sales", "/inventory", "/invoices"] as const;
-const MOBILE_NAV = MOBILE_PATHS.map((to) => NAV.find((item) => item.to === to)!);
+function mobileNavFor(model: CommerceModel, groups: { items: NavItem[] }[]) {
+  const nav = groups.flatMap((group) => group.items);
+  const paths = navShowsServicesFirst(model)
+    ? (["/dashboard", "/sales", "/services", "/bookings"] as const)
+    : (["/dashboard", "/sales", "/inventory", "/invoices"] as const);
+  return paths.map((to) => nav.find((item) => item.to === to)).filter(Boolean) as NavItem[];
+}
 
 export const ROLE_LABEL: Record<string, string> = {
   owner: "Owner",
@@ -275,6 +309,12 @@ export function AppShell({
   });
   const isOperateLocked = workspace.data?.isOperateLocked ?? false;
   const businessId = workspace.data?.business.id;
+  const rawCommerceModel = workspace.data?.business?.commerce_model;
+  const commerceModel: CommerceModel = isCommerceModel(rawCommerceModel)
+    ? rawCommerceModel
+    : "products";
+  const groups = navGroupsFor(commerceModel);
+  const mobileNav = mobileNavFor(commerceModel, groups);
   const loadStorefront = useServerFn(getStorefrontAdminFn);
   const storefrontLaunch = useQuery({
     queryKey: ["storefront-launch-nav", businessId],
@@ -320,7 +360,7 @@ export function AppShell({
             <Logo to="/dashboard" className="[&_img]:ml-0 [&_img]:h-10 [&_img]:my-0" />
           </div>
           <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-2" aria-label="Main">
-            {NAV_GROUPS.map((group) => (
+            {groups.map((group) => (
               <div key={group.label}>
                 <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {group.label}
@@ -362,6 +402,7 @@ export function AppShell({
           <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
             {(
               [
+                { to: "/settings/business", label: "Business", icon: Briefcase },
                 { to: "/settings/team", label: "Team", icon: Users },
                 { to: "/cash-drawer", label: "Cash drawer", icon: Wallet },
                 { to: "/time-clock", label: "Time clock", icon: Clock },
@@ -538,7 +579,7 @@ export function AppShell({
           aria-label="Primary"
         >
           <div className="grid grid-cols-4">
-            {MOBILE_NAV.map((item) => {
+            {mobileNav.map((item) => {
               const active = pathname.startsWith(item.to);
               const hint = MAIN_NAV_HINTS[item.to] ?? "";
               return (

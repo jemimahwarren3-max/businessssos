@@ -7,7 +7,7 @@
 | Errors | Sentry (`VITE_SENTRY_DSN`, `VITE_SENTRY_DSN_BACKEND`) if secrets set |
 | Env presence | Admin → Ops health (no secret values) |
 | Mail flush / backup / invoices | GitHub Actions (often red until secrets/RPC match) |
-| Cloud Run | GCP console — revisions, request count, CPU |
+| Cloud Run | GCP console, revisions, request count, CPU |
 
 ## Not wired
 

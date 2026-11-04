@@ -1,4 +1,4 @@
-# Accessibility Statement — Kwetuu
+# Accessibility Statement: Kwetuu
 
 **Last updated:** 26 October 2026
 
@@ -12,7 +12,7 @@ as our standard, and treat accessibility as an ongoing responsibility, not a
 one-time checklist.
 
 We have **not** obtained third-party accessibility certification, and this
-statement does not claim full WCAG 2.2 AA conformance — see Known
+statement does not claim full WCAG 2.2 AA conformance, see Known
 limitations below for what hasn't been verified yet.
 
 ## What's been done
@@ -26,7 +26,7 @@ limitations below for what hasn't been verified yet.
   OKLCH-to-sRGB contrast calculation, and several failing combinations
   (status badge text, input field borders, muted secondary text) have been
   corrected.
-- `prefers-reduced-motion` is respected — animations and transitions are
+- `prefers-reduced-motion` is respected, animations and transitions are
   effectively disabled for users who've set that preference at the OS or
   browser level.
 - Charts (sales/profit trend graphs) include a text-equivalent summary for
@@ -46,7 +46,7 @@ is true:
   VoiceOver, or TalkBack against the running app. Real assistive-technology
   testing may surface issues this process couldn't catch.
 - **No automated accessibility CI** (axe, Lighthouse, or similar) is wired
-  into the build yet — accessibility regressions in future changes wouldn't
+  into the build yet, accessibility regressions in future changes wouldn't
   currently be caught automatically.
 - **Dark mode exists in the underlying styling but isn't reachable** through
   any toggle in the app today. Its contrast values haven't been prioritized
@@ -64,5 +64,5 @@ of the page and the issue. We will work to address barriers in future updates.
 ## Ongoing work
 
 Accessibility improvements continue alongside regular feature work. This
-statement will be updated as coverage changes — treat its "Last updated"
+statement will be updated as coverage changes, treat its "Last updated"
 date as the freshness signal, not a one-time certification.

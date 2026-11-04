@@ -1,3 +1,5 @@
+import QRCode from "qrcode";
+import { totpSecretRaw } from "./mfa-display";
 import { createMfaScopedClient, type SupabaseTokens } from "./session.server";
 
 export type MfaStatus = {
@@ -6,7 +8,7 @@ export type MfaStatus = {
   factorId: string | null;
 };
 
-/** The authoritative AAL check — goes through Supabase's own
+/** The authoritative AAL check, goes through Supabase's own
  * getAuthenticatorAssuranceLevel() rather than reading a raw JWT claim, so
  * it can't drift from whatever Supabase's SDK actually considers current. */
 export async function getMfaStatus(tokens: SupabaseTokens): Promise<MfaStatus> {
@@ -29,21 +31,72 @@ export async function getMfaStatus(tokens: SupabaseTokens): Promise<MfaStatus> {
   };
 }
 
+const ADMIN_TOTP_NAME = "Admin authenticator";
+
 export async function enrollTotp(tokens: SupabaseTokens) {
   const client = await createMfaScopedClient(tokens);
+  const { data: factorsData } = await client.auth.mfa.listFactors();
+  const leftovers = (factorsData?.all ?? []).filter(
+    (factor) =>
+      factor.factor_type === "totp" &&
+      factor.status !== "verified" &&
+      (factor.friendly_name === ADMIN_TOTP_NAME || !factor.friendly_name),
+  );
+  for (const factor of leftovers) {
+    await client.auth.mfa.unenroll({ factorId: factor.id });
+  }
   const { data, error } = await client.auth.mfa.enroll({
     factorType: "totp",
-    friendlyName: "Admin authenticator",
+    friendlyName: ADMIN_TOTP_NAME,
   });
   if (error || !data) throw new Error(error?.message ?? "Couldn't start MFA enrollment.");
-  // Returned as a data: URI for an <img> tag rather than raw SVG markup —
-  // an <img src="data:image/svg+xml..."> never executes embedded scripts,
-  // unlike injecting the SVG into the DOM directly would.
-  const qrCodeDataUri = `data:image/svg+xml;base64,${Buffer.from(data.totp.qr_code).toString("base64")}`;
-  return { factorId: data.id, qrCode: qrCodeDataUri, secret: data.totp.secret };
+  return {
+    factorId: data.id,
+    qrCode: await totpQrImage(data.totp.uri, data.totp.qr_code),
+    secret: totpSecretRaw(data.totp.secret),
+  };
 }
 
-/** Confirms a freshly-enrolled factor by verifying one code — Supabase
+async function totpQrImage(uri: string | undefined, qrCode: string): Promise<string> {
+  if (uri?.startsWith("otpauth://")) {
+    return QRCode.toDataURL(uri, {
+      type: "image/png",
+      width: 240,
+      margin: 2,
+      errorCorrectionLevel: "M",
+    });
+  }
+  return totpQrSrc(qrCode);
+}
+
+/** Safe <img src> for Supabase's TOTP QR (raw SVG or an existing data URI). */
+export function totpQrSrc(qrCode: string): string {
+  const raw = qrCode.trim();
+  if (!raw) return "";
+
+  const svgPayload = raw.match(/^data:image\/svg\+xml(?:;[^,]*)?,([\s\S]*)$/i);
+  if (svgPayload) {
+    const header = raw.slice(0, raw.indexOf(",") + 1).toLowerCase();
+    if (header.includes("base64")) return raw;
+    const encoded = svgPayload[1];
+    if (!encoded) return raw;
+    let svg = encoded;
+    try {
+      svg = decodeURIComponent(svg);
+    } catch {
+      // already raw SVG
+    }
+    if (svg.startsWith("<")) {
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+    return raw;
+  }
+
+  if (/^data:/i.test(raw)) return raw;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(raw)}`;
+}
+
+/** Confirms a freshly-enrolled factor by verifying one code, Supabase
  * treats enroll+verify as a single challenge/verify pair (no separate
  * "challenge" step during initial enrollment, unlike a returning sign-in). */
 export async function verifyTotpEnrollment(tokens: SupabaseTokens, factorId: string, code: string) {
@@ -55,7 +108,7 @@ export async function verifyTotpEnrollment(tokens: SupabaseTokens, factorId: str
   const { data, error } = await client.auth.mfa.verify({
     factorId,
     challengeId: challenge.id,
-    code,
+    code: code.replace(/\s/g, ""),
   });
   if (error || !data) throw new Error(error?.message ?? "That code didn't work. Try again.");
   return { accessToken: data.access_token, refreshToken: data.refresh_token };
@@ -65,7 +118,7 @@ export async function verifyTotpEnrollment(tokens: SupabaseTokens, factorId: str
  * is still aal1 (a fresh sign-in, or an already-enrolled factor that just
  * hasn't been verified yet this session). */
 /** Unlike the admin panel (MFA mandatory, no way off), a business user who
- * enrolled voluntarily can turn it back off — e.g. after losing their
+ * enrolled voluntarily can turn it back off, e.g. after losing their
  * authenticator device. Requires the caller to already be aal2 (Supabase
  * enforces this itself), so turning MFA off still needs a valid code from
  * the outgoing factor first. */
@@ -89,7 +142,11 @@ export async function verifyTotpChallenge(
   code: string,
 ) {
   const client = await createMfaScopedClient(tokens);
-  const { data, error } = await client.auth.mfa.verify({ factorId, challengeId, code });
+  const { data, error } = await client.auth.mfa.verify({
+    factorId,
+    challengeId,
+    code: code.replace(/\s/g, ""),
+  });
   if (error || !data) throw new Error(error?.message ?? "That code didn't work. Try again.");
   return { accessToken: data.access_token, refreshToken: data.refresh_token };
 }

@@ -2,7 +2,7 @@
 
 **Date:** 26 October 2026 (Africa/Harare)  
 **Scope:** Why the owner dashboard feels like “business tools only”, what is actually built, and what is still partial or missing.  
-**Method:** Repository inspection (routes, RPCs, migrations, docs). Live `mykwetuu.com` deploy revision was **not** verified in this run — compare production commit to `master` after merges.
+**Method:** Repository inspection (routes, RPCs, migrations, docs). Live `mykwetuu.com` deploy revision was **not** verified in this run, compare production commit to `master` after merges.
 
 **Legend**
 
@@ -18,9 +18,9 @@
 
 ## Executive summary
 
-Kwetuu **does** include a public storefront, checkout, shopper accounts, online orders, templates, and payment safety — but the **owner app** was organized like generic business software (invoices first, storefront as one sidebar line). That made the ecommerce story feel missing even when code exists.
+Kwetuu **does** include a public storefront, checkout, shopper accounts, online orders, templates, and payment safety, but the **owner app** was organized like generic business software (invoices first, storefront as one sidebar line). That made the ecommerce story feel missing even when code exists.
 
-**This branch adds:** grouped navigation (“Online shop”), **My Online Store** with launch status badge, a **store launch centre** (7-step checklist with jump links), **Online orders** nav entry, and dashboard prominence — without removing working POS/inventory tools.
+**This branch adds:** grouped navigation (“Online shop”), **My Online Store** with launch status badge, a **store launch centre** (7-step checklist with jump links), **Online orders** nav entry, and dashboard prominence, without removing working POS/inventory tools.
 
 **Still not product-complete vs your spec:** separate launch-fee product, full multi-branch UX, dedicated courier API, SMS/WhatsApp order alerts, standalone `/orders` fulfilment desk, and production deploy parity.
 
@@ -42,11 +42,11 @@ Kwetuu **does** include a public storefront, checkout, shopper accounts, online 
 | Seller Paynow | Built partially | Paynow section | Encrypted credentials; gate `shop_offers_paynow` | Automated checkout **disabled** pending provider approval. |
 | Manual / cash shop payments | Built and connected | checkout + merchant confirm | Payment safety migrations | Proof ≠ paid. |
 | Kwetuu subscription billing | Built partially | `/settings/billing` | Paynow platform keys, USD (+ ZiG in PR #68) | `BILLING_ENABLED` + `platform_runtime` ops. |
-| **Launch fee (separate)** | Not built | — | — | Subscription only today. |
+| **Launch fee (separate)** | Not built |, |, | Subscription only today. |
 | Order state machine | Built partially | Order detail on storefront | `transition_order`, fulfilment statuses | No standalone Orders app section. |
 | Branches / locations | Built partially | Limited UI | `locations`, per-location stock, POS `location_id` | Not full “Harare / Bulawayo” branch product UX. |
 | Notifications | Built partially | `/notifications`, bell | Outbox + Resend | Email ops; no SMS/WhatsApp/courier API. |
-| Courier integrations | Not built | — | — | Manual dispatch only. |
+| Courier integrations | Not built |, |, | Manual dispatch only. |
 | Customer marketplace | Built partially | `/market`, `/stores` | Marketplace RPCs | Discovery, not Amazon-scale search. |
 | Windows / Android shells | Built partially | PR #66 scaffold | Hosted URL v1 | Not store-native parity. |
 
@@ -58,7 +58,7 @@ Kwetuu **does** include a public storefront, checkout, shopper accounts, online 
 | --------- | ----- | ------- |
 | Overview | `/dashboard` | KPIs + **store launch centre** (compact) |
 | Business | `/sales`, `/inventory`, … | Offline-first business tools (optional without online shop) |
-| **Online shop** | `/storefront` | **My Online Store** — launch centre, design, publish |
+| **Online shop** | `/storefront` | **My Online Store**, launch centre, design, publish |
 | **Online shop** | `/online-orders` | Redirect to order list on storefront |
 | Growth & AI | `/growth`, `/insights`, `/assistant` | Marketing + AI (usage limits in PR #68) |
 | Settings (footer) | `/settings/billing` | **Kwetuu** subscription (not customer money) |
@@ -72,8 +72,8 @@ Public (customer): `/store/{slug}`, `/store/{slug}/checkout`, `/store/{slug}/acc
 
 | Mode | Supported today | Gap |
 | ---- | ----------------- | --- |
-| **Business only** | Yes — POS, inventory, invoices without publishing | Nav now states online shop is optional. |
-| **Business + online** | Yes — publish storefront, checkout, orders | Launch fee as separate SKU not implemented; Paynow seller automation gated. |
+| **Business only** | Yes, POS, inventory, invoices without publishing | Nav now states online shop is optional. |
+| **Business + online** | Yes, publish storefront, checkout, orders | Launch fee as separate SKU not implemented; Paynow seller automation gated. |
 
 ---
 
@@ -84,7 +84,7 @@ Public (customer): `/store/{slug}`, `/store/{slug}/checkout`, `/store/{slug}/acc
 | Kwetuu Pro subscription | `PAYNOW_INTEGRATION_*` (USD/ZiG) | Owner → Kwetuu |
 | Shop customer checkout | Seller `store_paynow_credentials` or manual | Customer → seller |
 
-Never mark shop orders paid from redirect alone — poll/confirm or seller verification (implemented in payment safety work).
+Never mark shop orders paid from redirect alone, poll/confirm or seller verification (implemented in payment safety work).
 
 ---
 
@@ -102,19 +102,19 @@ Never mark shop orders paid from redirect alone — poll/confirm or seller verif
 
 1. ~~**Merge** launch centre + billing RPC + Paynow ZiG + theme/tooltips~~ → `cursor/kwetuu-stack-merge-dafe`.  
 2. ~~**Dedicated orders desk**~~ → `/online-orders` + `/orders` alias + shared fulfilment panel.  
-3. **Launch fee** — documented on `/settings/payments` as subscription-only until product adds a SKU.  
-4. **Branch management UI** — read-only `/branches` list; create/edit locations still operator-led.  
+3. **Launch fee**, documented on `/settings/payments` as subscription-only until product adds a SKU.  
+4. **Branch management UI**, read-only `/branches` list; create/edit locations still operator-led.  
 5. ~~**Launch step 6**~~ → wired to `get_notify_email` (email alerts on).  
-6. **E2E** — extra public smoke; owner publish + guest checkout still needs staging credentials.
+6. **E2E**, extra public smoke; owner publish + guest checkout still needs staging credentials.
 
 ---
 
 ## Files touched (launch centre PR)
 
-- `src/lib/storefront/launch-status.ts` — status + checklist steps  
-- `src/components/storefront/store-launch-centre.tsx` — UI  
-- `src/components/app-shell.tsx` — grouped nav + badge  
-- `src/routes/_authenticated/storefront.tsx` — launch centre, anchors, title  
-- `src/routes/_authenticated/online-orders.tsx` — discoverability route  
-- `src/routes/_authenticated/dashboard.tsx` — compact launch centre  
+- `src/lib/storefront/launch-status.ts`, status + checklist steps  
+- `src/components/storefront/store-launch-centre.tsx`, UI  
+- `src/components/app-shell.tsx`, grouped nav + badge  
+- `src/routes/_authenticated/storefront.tsx`, launch centre, anchors, title  
+- `src/routes/_authenticated/online-orders.tsx`, discoverability route  
+- `src/routes/_authenticated/dashboard.tsx`, compact launch centre  
 - `tests/store-launch-status.test.ts`

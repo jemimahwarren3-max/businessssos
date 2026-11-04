@@ -1,6 +1,6 @@
 -- The status-change workflow purchase_orders.sql (20260814030000) left the
 -- enum room for: marking a PO "received" now actually adjusts stock (a
--- stock_in movement per line item with a linked product — items without one
+-- stock_in movement per line item with a linked product, items without one
 -- can't affect inventory, same limitation adjust_stock already has), not
 -- just flipping a label. Only 'sent' -> 'received'/'cancelled' is allowed;
 -- once received or cancelled, a PO is final.

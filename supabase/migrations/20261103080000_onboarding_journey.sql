@@ -1,6 +1,6 @@
 -- Onboarding journey redesign.
 -- Adds business_path (management vs full), setup tracking,
--- onboarding configuration (JSONB), and extends trial to 14 days.
+-- onboarding configuration (JSONB), and a 1-month Pro trial.
 
 -- ============ BUSINESS PATH & SETUP TRACKING ============
 
@@ -34,7 +34,7 @@ alter table public.business_settings
   add column if not exists offers_collection boolean not null default true;
 
 -- ============ RECREATE create_business_with_owner ============
--- Adds _business_path param, extends trial to 14 days,
+-- Adds _business_path param, 1-month trial,
 -- stores onboarding_config, keeps idempotent return.
 
 create or replace function public.create_business_with_owner(
@@ -101,7 +101,7 @@ begin
     business_id, plan, status, trial_ends_at, current_period_start, current_period_end
   )
   values (
-    v_business_id, 'pro', 'trialing', now() + interval '14 days', now(), now() + interval '14 days'
+    v_business_id, 'pro', 'trialing', now() + interval '1 month', now(), now() + interval '1 month'
   );
 
   return v_business_id;

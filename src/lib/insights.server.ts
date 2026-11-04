@@ -25,7 +25,7 @@ export type InventoryForecastItem = {
   urgency: "out" | "critical" | "warning";
 };
 
-/** Pure math, no DB access — trailing-30-day sale velocity per product,
+/** Pure math, no DB access, trailing-30-day sale velocity per product,
  * projected forward against current stock. Plain arithmetic, not a
  * forecasting model, same spirit as the deterministic health score in
  * loadDashboard. Split out from getInventoryForecast so it's directly
@@ -135,7 +135,7 @@ type AnomalyInput = {
   categoryExpenses: { amount: number; category: string }[];
 };
 
-/** Pure math, no DB access — this-week-vs-last-week comparisons and
+/** Pure math, no DB access, this-week-vs-last-week comparisons and
  * category-average outliers, using the same windowing pattern loadDashboard
  * uses (fetch a doubled window, split into current/previous buckets). Split
  * out from getAnomalies so it's directly unit-testable (see
@@ -283,7 +283,7 @@ export async function getWeeklyReport(
     if (cached) return { ...cached, cached: true };
   }
 
-  // Only checked on an actual generation (cache miss, or forceRegenerate) —
+  // Only checked on an actual generation (cache miss, or forceRegenerate),
   // a cache hit costs nothing and shouldn't count against the budget. Loose
   // relative to the assistant's cap since this is already self-limited by
   // the 24h cache above; mainly bounds forceRegenerate abuse.

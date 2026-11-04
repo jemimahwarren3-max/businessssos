@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -28,16 +28,37 @@ function ResetPassword() {
   const navigate = useNavigate();
   const fetchCurrentUser = useServerFn(getCurrentUser);
   const updatePasswordFn = useServerFn(updatePassword);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState<boolean | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // By the time this page loads, /auth/callback has already exchanged the
-    // recovery link's code and established the session server-side — this
-    // just confirms it actually happened before letting the form submit.
-    fetchCurrentUser().then((user) => setReady(Boolean(user)));
+    let cancelled = false;
+    let attempts = 0;
+    const tick = () => {
+      void fetchCurrentUser()
+        .then((user) => {
+          if (cancelled) return;
+          if (user) {
+            setReady(true);
+            return;
+          }
+          attempts += 1;
+          if (attempts < 8) {
+            window.setTimeout(tick, 250);
+            return;
+          }
+          setReady(false);
+        })
+        .catch(() => {
+          if (!cancelled) setReady(false);
+        });
+    };
+    tick();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchCurrentUser]);
 
   async function submit(event: React.FormEvent) {
@@ -71,36 +92,46 @@ function ResetPassword() {
         <div className="surface p-6">
           <h1 className="text-xl font-bold tracking-tight">Choose a new password</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            {ready
+            {ready === true
               ? "Enter a new password for your account."
-              : "Open this page from the reset link in your email."}
+              : ready === null
+                ? "Checking the reset link…"
+                : "This reset session expired. Request a new link and open it in this same browser."}
           </p>
-          <form onSubmit={submit} className="mt-6 space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="password">New password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="confirm">Confirm password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                autoComplete="new-password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-              />
-            </div>
-            <Button type="submit" className="w-full gap-1.5" disabled={saving || !ready}>
-              {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
-              Update password
+          {ready === false ? (
+            <Button asChild className="mt-6 w-full">
+              <Link to="/auth" search={{ mode: "reset" }}>
+                Request a new reset link
+              </Link>
             </Button>
-          </form>
+          ) : (
+            <form onSubmit={submit} className="mt-6 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="password">New password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm">Confirm password</Label>
+                <Input
+                  id="confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="w-full gap-1.5" disabled={saving || !ready}>
+                {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+                Update password
+              </Button>
+            </form>
+          )}
         </div>
       </div>
     </div>

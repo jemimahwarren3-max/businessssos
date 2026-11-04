@@ -72,7 +72,7 @@ function AdminCommunicationsPage() {
       <div className="surface max-w-md space-y-3 p-4">
         <h2 className="text-sm font-semibold">Flush outbox now</h2>
         <p className="text-xs text-muted-foreground">
-          Same job as the internal mail-flush endpoint — use when Resend was down or after fixing
+          Same job as the internal mail-flush endpoint, use when Resend was down or after fixing
           config.
         </p>
         <div className="space-y-1.5">

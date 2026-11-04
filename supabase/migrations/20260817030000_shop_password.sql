@@ -2,7 +2,7 @@
 -- roster at all, then each person still signs in with their own password
 -- (via the existing resolve_staff_login/signIn path, unchanged). pgcrypto
 -- is already enabled on this project, so the hash is checked entirely
--- inside Postgres — it never has to leave the database layer.
+-- inside Postgres, it never has to leave the database layer.
 
 alter table public.businesses add column staff_password_hash text;
 
@@ -26,7 +26,7 @@ grant execute on function public.set_staff_password(uuid, text) to authenticated
 
 -- ============ verify_shop_login (anon-callable) ============
 -- Deliberately a single call that both checks the password AND returns the
--- roster — a separate anon-callable "list names" RPC would let anyone who
+-- roster, a separate anon-callable "list names" RPC would let anyone who
 -- merely knows the semi-public business code skip the password check.
 create or replace function public.verify_shop_login(_code text, _password text)
 returns table(valid boolean, business_id uuid, business_name text, staff_names text[])

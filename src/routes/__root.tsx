@@ -21,7 +21,7 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This page is not live. If you were setting up a shop, nothing was deleted — continue setup
+          This page is not live. If you were setting up a shop, nothing was deleted, continue setup
           instead of starting over.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -61,6 +61,11 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        {normalizedError.message ? (
+          <p className="mt-3 break-words font-mono text-[11px] text-muted-foreground">
+            {normalizedError.message}
+          </p>
+        ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {

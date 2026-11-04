@@ -8,11 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/** Camera-based barcode scanning — the app already supports physical
+/** Camera-based barcode scanning, the app already supports physical
  * USB/Bluetooth scanners (they just type into the search box like a
  * keyboard), but there was no way to scan with just a phone/tablet camera.
  * facingMode: "environment" asks for the back camera directly rather than
- * enumerating devices and guessing from labels — the browser picks the best
+ * enumerating devices and guessing from labels, the browser picks the best
  * match, and just falls back to whatever camera is available (e.g. a
  * laptop's front camera) if there's no "environment" one. */
 export function BarcodeScannerDialog({

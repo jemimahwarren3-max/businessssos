@@ -50,4 +50,24 @@ describe("getOnlineProductReadiness", () => {
       }).ready,
     ).toBe(true);
   });
+
+  it("does not throw when gallery or details are missing", () => {
+    expect(
+      getOnlineProductReadiness({
+        price: 4.5,
+        imageUrl: "https://example.test/product.jpg",
+      }),
+    ).toEqual({ ready: false, missing: ["Missing description"] });
+  });
+
+  it("does not throw when galleryUrls or details are null", () => {
+    expect(
+      getOnlineProductReadiness({
+        price: 4.5,
+        imageUrl: "https://example.test/product.jpg",
+        galleryUrls: null,
+        details: null,
+      }),
+    ).toEqual({ ready: false, missing: ["Missing description"] });
+  });
 });

@@ -64,7 +64,7 @@ GitHub deploy account, the Cloud Run runtime account, and Secret Manager
 entries. It prints the remaining GitHub secret names.
 
 Google orgs often block JSON keys (`iam.disableServiceAccountKeyCreation`).
-Use Workload Identity Federation instead — no file to download. See the
+Use Workload Identity Federation instead, no file to download. See the
 console steps in the operator reply / GitHub secrets table below.
 
 ## GitHub Actions secrets
@@ -80,7 +80,7 @@ console steps in the operator reply / GitHub secrets table below.
 | `STAGING_SUPABASE_PROJECT_ID`      | `slajanbsfqjnuuiohbmg`                                                                 |
 | `SUPABASE_SERVICE_ROLE_KEY`        | Staging `service_role` for Cloud Run while on staging                                    |
 | `PRODUCTION_SUPABASE_URL`          | `https://maidxfntfpnkcqnuhozo.supabase.co` (cron + optional Cloud Run cutover)         |
-| `PRODUCTION_SUPABASE_PUBLISHABLE_KEY` | Production anon/publishable — with URL, switches Cloud Run to production on deploy |
+| `PRODUCTION_SUPABASE_PUBLISHABLE_KEY` | Production anon/publishable, with URL, switches Cloud Run to production on deploy |
 | `PRODUCTION_SUPABASE_PROJECT_ID`   | Optional. `maidxfntfpnkcqnuhozo`                                                      |
 | `PRODUCTION_SUPABASE_SERVICE_ROLE_KEY` | Production `service_role` for cron and Cloud Run cutover                           |
 | `SUPABASE_DB_URL`                  | Production session pooler URI (nightly backup workflow)                                  |
@@ -98,7 +98,7 @@ domain-mappings` (`--region` is not valid on the GA Anthos command).
 
 1. Run **Actions → Deploy Cloud Run** (or merge to `master`).
 2. Open the job log **Map mykwetuu.com**. Copy `TYPE` / `HOST` / `VALUE`.
-3. At the registrar (or Cloudflare **DNS only**, grey cloud — not proxied),
+3. At the registrar (or Cloudflare **DNS only**, grey cloud, not proxied),
    add those records for the apex and `www`.
 4. Wait until the log’s certificate condition is `True` (often 15–60 minutes,
    sometimes longer). Then `https://mykwetuu.com` is the public URL.

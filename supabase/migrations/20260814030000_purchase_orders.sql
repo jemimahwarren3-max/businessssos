@@ -1,4 +1,4 @@
--- Lightweight purchase-order record for the Suppliers "Order" flow — modeled
+-- Lightweight purchase-order record for the Suppliers "Order" flow, modeled
 -- directly on quotes/quote_items (same shape, same numbering pattern via
 -- business_counters) since that's a proven working design already here.
 -- No status-change workflow is built yet (the enum leaves room for one

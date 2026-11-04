@@ -78,7 +78,7 @@ export async function configureStagingResendSmtp(token) {
   const from = parseFromEmail(process.env.NOTIFY_FROM_EMAIL);
   if (!apiKey || !from) {
     console.log(
-      "RESEND_API_KEY or NOTIFY_FROM_EMAIL not set — skipping Auth SMTP (Supabase built-in mail is team-only).",
+      "RESEND_API_KEY or NOTIFY_FROM_EMAIL not set, skipping Auth SMTP (Supabase built-in mail is team-only).",
     );
     return false;
   }

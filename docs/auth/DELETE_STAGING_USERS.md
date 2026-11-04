@@ -1,6 +1,6 @@
 # Delete staging users (when the dashboard fails)
 
-Use project **businessos-staging** (`slajanbsfqjnuuiohbmg`). Dashboard **Delete user** fails with *Database error deleting user* when the person created a shop — Postgres blocks deleting `auth.users` while `public.businesses` and other rows still reference them.
+Use project **businessos-staging** (`slajanbsfqjnuuiohbmg`). Dashboard **Delete user** fails with *Database error deleting user* when the person created a shop, Postgres blocks deleting `auth.users` while `public.businesses` and other rows still reference them.
 
 ## Easiest: reset all staging logins (one paste)
 
@@ -9,7 +9,7 @@ Use project **businessos-staging** (`slajanbsfqjnuuiohbmg`). Dashboard **Delete 
 3. Open this file from the repo: **`scripts/staging-reset-all-auth-users.sql`**
 4. Copy **the entire file** into the editor.
 5. Click **Run** (bottom right).
-6. Open **Authentication → Users** and refresh the page — the list should be empty (or only non-app accounts).
+6. Open **Authentication → Users** and refresh the page, the list should be empty (or only non-app accounts).
 
 Wait one minute, then sign up again on https://mykwetuu.com.
 

@@ -280,7 +280,7 @@ function ShopperAccountPage() {
         />
         <span>
           {store.storeName} may send extra shop messages (promos, restocks). Order receipts and
-          status emails are not this checkbox — those still go to the address on the order.
+          status emails are not this checkbox, those still go to the address on the order.
         </span>
       </label>
       <label className="mt-3 flex items-start gap-2 text-sm">

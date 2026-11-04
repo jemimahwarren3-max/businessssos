@@ -12,6 +12,10 @@ export function AuthLinkHashHandler() {
 
   useEffect(() => {
     if (ran.current || typeof window === "undefined") return;
+    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/auth/recover" || path === "/auth/confirm" || path === "/auth/callback") {
+      return;
+    }
     const hashPayload = parseAuthHash(window.location.hash);
     const query = new URLSearchParams(window.location.search);
     const tokenHash = query.get("token_hash");

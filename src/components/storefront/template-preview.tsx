@@ -143,7 +143,7 @@ function Hero({
   );
 }
 
-/** Miniature shop website for pickers — header, hero, and catalogue. */
+/** Miniature shop website for pickers, header, hero, and catalogue. */
 export function TemplatePreview({
   template,
   className,

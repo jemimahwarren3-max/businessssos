@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BRAND } from "@/lib/brand";
+import { getPostAuthDestination } from "@/lib/auth/auth.functions";
+import { navigateAfterAuth } from "@/lib/auth/post-auth-navigate";
 import { staffSignInFn, verifyShopLoginFn } from "@/lib/business.functions";
 
 export const Route = createFileRoute("/staff-login")({
@@ -19,9 +21,9 @@ export const Route = createFileRoute("/staff-login")({
 });
 
 function StaffLogin() {
-  const navigate = useNavigate();
   const verifyShopFn = useServerFn(verifyShopLoginFn);
   const staffSignIn = useServerFn(staffSignInFn);
+  const fetchDestination = useServerFn(getPostAuthDestination);
 
   const [step, setStep] = useState<"shop" | "person">("shop");
   const [businessNameInput, setBusinessNameInput] = useState("");
@@ -77,7 +79,8 @@ function StaffLogin() {
           password: personalPassword,
         },
       });
-      navigate({ to: "/dashboard", replace: true });
+      const destination = await fetchDestination();
+      navigateAfterAuth(destination.path === "/auth" ? "/dashboard" : destination.path);
     } catch {
       toast.error("That name and password don't match.");
     } finally {
@@ -103,7 +106,7 @@ function StaffLogin() {
                 <Input
                   id="shop-business-name"
                   // Deliberately left autocomplete-able (unlike the personal
-                  // step below) — this is a shared device-level credential
+                  // step below), this is a shared device-level credential
                   // the owner may legitimately want the browser to remember,
                   // same as any normal login.
                   autoComplete="username"
@@ -170,7 +173,7 @@ function StaffLogin() {
                   <Input
                     id="person-password"
                     type="password"
-                    // Never offered for the browser to remember — this is a
+                    // Never offered for the browser to remember, this is a
                     // per-person credential on what's often a shared device,
                     // unlike the shop password above which is fine to save.
                     autoComplete="off"

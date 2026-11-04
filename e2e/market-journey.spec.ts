@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Read-only marketplace journey — proves discovery wiring without auth or checkout.
+ * Read-only marketplace journey, proves discovery wiring without auth or checkout.
  */
 test.describe("marketplace journey", () => {
   test("browse market and open a listed shop when any exist", async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe("marketplace journey", () => {
 
     const response = await page.goto(href!);
     // A listed shop may return 404 if its store page is unpublished or
-    // the slug changed — that's an app data issue, not a test failure.
+    // the slug changed, that's an app data issue, not a test failure.
     // Accept 200–404 as the page rendering without a server error.
     expect(response?.status()).toBeLessThan(500);
     await expect(page.locator("body")).toBeVisible();

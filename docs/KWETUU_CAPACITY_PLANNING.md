@@ -24,7 +24,7 @@ Raising Cloud Run `--max-instances` increases the **cost ceiling**. Do it after 
 
 ## Offline POS
 
-Pending sales live in IndexedDB. Sync is idempotent. Offline is **not** extra Cloud Run capacity — it is a queue that hits `create_sale` later.
+Pending sales live in IndexedDB. Sync is idempotent. Offline is **not** extra Cloud Run capacity, it is a queue that hits `create_sale` later.
 
 ## Acceptance
 

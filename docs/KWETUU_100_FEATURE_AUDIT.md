@@ -38,8 +38,8 @@ Do not treat “Exists” as “loved in a tuckshop”. Several Exists items are
 | 4   | ZAR                      | Partial | `ZAR` is a business currency.                                                                                                                                      | No ZAR rails or conversion records.                                                | Same currency field                                                     |
 | 5   | Do not trust screenshots | Partial | Manual proof stays `pending`. Seller confirm is audited. Shop Paynow confirms only after server poll.                                                              | EcoCash/InnBucks/ZIPIT have no provider verify.                                    | `payment-proofs` bucket, `store_order_payment_confirmations`            |
 | 6   | Reference matching       | Partial | Optional proof reference, seller `confirmation_reference`, Paynow poll reference.                                                                                  | No bank/EcoCash statement import or auto-match.                                    | `payments.reference`                                                    |
-| 7   | Deposits                 | Missing | —                                                                                                                                                                  | Need deposit/balance on orders or a dedicated table.                               | Could hang off `customers` + `payments`                                 |
-| 8   | Lay-by                   | Missing | —                                                                                                                                                                  | Instalments, due dates, collection eligibility.                                    | New domain; do not fake with invoices                                   |
+| 7   | Deposits                 | Missing |,                                                                                                                                                                  | Need deposit/balance on orders or a dedicated table.                               | Could hang off `customers` + `payments`                                 |
+| 8   | Lay-by                   | Missing |,                                                                                                                                                                  | Instalments, due dates, collection eligibility.                                    | New domain; do not fake with invoices                                   |
 | 9   | Debtor / credit          | Partial | `customers.outstanding_balance`; POS `credit` sale; invoice pay-down.                                                                                              | No credit-sale repayment RPC, limits, or notebook-style ledger UI.                 | `customers`, `payments`, `create_sale`                                  |
 | 10  | Daily cash-up            | Exists  | `cash_sessions` / `cash_movements`, open/close, expected vs counted.                                                                                               | Counts **cash till**, not EcoCash/bank/ZiG columns. One open session per business. | `cash-drawer.tsx`, `get_cash_drawer`                                    |
 
@@ -58,7 +58,7 @@ WhatsApp today is still **`wa.me` for merchant-tapped share and POS receipts**. 
 | 13  | Order without account    | Exists  | Guest checkout, order access code, public `/store/{slug}/order/{reference}`.    | Not a WhatsApp-native order.                                          |
 | 14  | Shareable carts          | Missing | Cart is `localStorage` per shop.                                                | No share URL / token.                                                 |
 | 15  | WhatsApp order updates   | Partial | Outbox `channel = 'whatsapp'` after checkout opt-in.                            | Stays pending until WhatsApp Cloud credentials + Meta templates.      |
-| 16  | Meta Groups conversation | Missing | —                                                                               | Eligibility + Cloud API. Do not stub.                                 |
+| 16  | Meta Groups conversation | Missing |,                                                                               | Eligibility + Cloud API. Do not stub.                                 |
 | 17  | WhatsApp receipts        | Partial | Print + email + `wa.me` prefill; shop order placed/status can enqueue WhatsApp. | POS receipts are still `wa.me`. Cloud send only when configured.      |
 | 18  | Social order capture     | Partial | Outbound quote/PO WhatsApp.                                                     | No inbound Facebook/Instagram/WhatsApp order ingest.                  |
 | 19  | Click-to-chat            | Exists  | Store chrome uses `store.whatsapp \|\| store.phone`.                            | Relies on merchant entering a number.                                 |
@@ -77,7 +77,7 @@ WhatsApp today is still **`wa.me` for merchant-tapped share and POS receipts**. 
 | 25  | Negotiable discounts      | Partial | Header discount on sale/invoice/quote. POS ignores staff unit prices (`KNOWN_LIMITATIONS.md`). | Controlled per-line discount + permission.  |
 | 26  | Bundles                   | Missing | Documented gap.                                                                                | New product-group model.                    |
 | 27  | Variants                  | Missing | One SKU, one price, one stock.                                                                 | Large inventory change; do not rush.        |
-| 28  | Pre-orders                | Missing | —                                                                                              | Needs expected date + stock flag.           |
+| 28  | Pre-orders                | Missing |,                                                                                              | Needs expected date + stock flag.           |
 | 29  | Stock reservations        | Partial | Online orders reserve stock. POS/offline does not.                                             | POS hold-for-customer.                      |
 | 30  | Multiple UoM              | Partial | Free-text `products.unit`.                                                                     | No piece↔box conversion.                    |
 
@@ -89,8 +89,8 @@ WhatsApp today is still **`wa.me` for merchant-tapped share and POS receipts**. 
 | --- | ----------------------- | ------- | -------------------------------------------------------- | --------------------------------------------- |
 | 31  | Harare zones            | Partial | Seller-defined zones + fees. Default TZ `Africa/Harare`. | No suburb preset list.                        |
 | 32  | Other towns             | Partial | Same zone JSON (any name).                               | No Bulawayo/Mutare packs.                     |
-| 33  | Collection points       | Exists  | Structured points, checkout selection, SQL clocks.       | —                                             |
-| 34  | Seller-managed delivery | Exists  | Pickup / delivery / quote fulfilment.                    | —                                             |
+| 33  | Collection points       | Exists  | Structured points, checkout selection, SQL clocks.       |,                                             |
+| 34  | Seller-managed delivery | Exists  | Pickup / delivery / quote fulfilment.                    |,                                             |
 | 35  | Independent courier     | Partial | Manual courier name, reference, tracking URL.            | No courier API.                               |
 | 36  | Fee calculator          | Exists  | Flat / zone / free / quote; server recomputes.           | No distance/geocode (`KNOWN_LIMITATIONS.md`). |
 | 37  | Tracking                | Partial | Order events + optional tracking URL.                    | No live GPS.                                  |
@@ -105,10 +105,10 @@ WhatsApp today is still **`wa.me` for merchant-tapped share and POS receipts**. 
 | #   | Idea                  | Status  | What exists                                  | Gap                                               |
 | --- | --------------------- | ------- | -------------------------------------------- | ------------------------------------------------- |
 | 41  | Verified stores       | Partial | Launch eligibility / suspend.                | No public verified badge on `/market`.            |
-| 42  | Ratings and reviews   | Exists  | `store_reviews`, public + admin.             | —                                                 |
-| 43  | Verified purchase     | Exists  | Review requires order reference + token.     | —                                                 |
+| 42  | Ratings and reviews   | Exists  | `store_reviews`, public + admin.             |,                                                 |
+| 43  | Verified purchase     | Exists  | Review requires order reference + token.     |,                                                 |
 | 44  | Availability          | Exists  | `available`, `stockLabel`, `maxPurchasable`. | No “available on order” pre-order state.          |
-| 45  | Return policies       | Exists  | `returnsPolicy` on storefront + checkout.    | —                                                 |
+| 45  | Return policies       | Exists  | `returnsPolicy` on storefront + checkout.    |,                                                 |
 | 46  | Order references      | Exists  | Unique reference on every store order.       | POS uses `sale_number`.                           |
 | 47  | Support / disputes    | Exists  | Complaints + listing reports.                | Not a full case-management centre.                |
 | 48  | Seller response speed | Partial | Sellers can reply to reviews/complaints.     | No “usually replies in X hours” from data.        |
@@ -122,13 +122,13 @@ WhatsApp today is still **`wa.me` for merchant-tapped share and POS receipts**. 
 | #   | Idea                  | Status  | What exists                                     | Gap                                                                  |
 | --- | --------------------- | ------- | ----------------------------------------------- | -------------------------------------------------------------------- |
 | 51  | Daily profit          | Exists  | `todayProfit` = sales − COGS path on dashboard. | Does not subtract today’s expenses.                                  |
-| 52  | Best sellers          | Exists  | Reports `topProducts` by revenue.               | —                                                                    |
-| 53  | Slow movers           | Exists  | Reports `slowProducts`.                         | —                                                                    |
+| 52  | Best sellers          | Exists  | Reports `topProducts` by revenue.               |,                                                                    |
+| 53  | Slow movers           | Exists  | Reports `slowProducts`.                         |,                                                                    |
 | 54  | Low-stock prediction  | Partial | Insights 30-day velocity → days to stockout.    | Not on the home “what do I do today” list.                           |
 | 55  | Reorder suggestions   | Partial | `min_stock` + forecast; POs are manual.         | No suggested qty / lead time.                                        |
 | 56  | Product profitability | Partial | Margin is aggregate. Top list is revenue.       | Per-SKU profit.                                                      |
-| 57  | Expenses              | Exists  | Full expense CRUD + import.                     | —                                                                    |
-| 58  | Cash-flow calendar    | Missing | —                                               | Supplier dues + credit + expenses on a calendar.                     |
+| 57  | Expenses              | Exists  | Full expense CRUD + import.                     |,                                                                    |
+| 58  | Cash-flow calendar    | Missing |,                                               | Supplier dues + credit + expenses on a calendar.                     |
 | 59  | Sales comparison      | Partial | Period % change + charts.                       | Weak “vs yesterday” one-tap.                                         |
 | 60  | Health score          | Exists  | Deterministic 0–100 on dashboard.               | Does not include fulfilment backlog or debts as first-class signals. |
 
@@ -141,15 +141,15 @@ Dashboard can already answer, roughly: yesterday’s sales/profit, who has outst
 | #   | Idea                 | Status  | What exists                                    | Gap                           |
 | --- | -------------------- | ------- | ---------------------------------------------- | ----------------------------- |
 | 61  | Discount campaigns   | Partial | POS/invoice/quote discounts.                   | No storefront campaign price. |
-| 62  | Coupons              | Missing | Roadmap deferred.                              | —                             |
-| 63  | Loyalty              | Missing | —                                              | —                             |
-| 64  | Birthday offers      | Missing | —                                              | Needs consent + DOB.          |
+| 62  | Coupons              | Missing | Roadmap deferred.                              |,                             |
+| 63  | Loyalty              | Missing |,                                              |,                             |
+| 64  | Birthday offers      | Missing |,                                              | Needs consent + DOB.          |
 | 65  | Referrals            | Partial | Analytics `source` enum only.                  | No reward ledger.             |
 | 66  | Abandoned cart       | Missing | Cart is local.                                 | Needs identifiable cart.      |
-| 67  | Customer groups      | Missing | Flat customer list.                            | —                             |
+| 67  | Customer groups      | Missing | Flat customer list.                            |,                             |
 | 68  | Marketing copy AI    | Exists  | Growth Studio drafts; not auto-published.      | Needs Gemini/Groq configured. |
-| 69  | Poster generator     | Missing | Static `/marketing` placeholders only.         | —                             |
-| 70  | Campaign performance | Exists  | Visitors / orders / paid revenue per campaign. | —                             |
+| 69  | Poster generator     | Missing | Static `/marketing` placeholders only.         |,                             |
+| 70  | Campaign performance | Exists  | Visitors / orders / paid revenue per campaign. |,                             |
 
 ---
 
@@ -174,15 +174,15 @@ Dashboard can already answer, roughly: yesterday’s sales/profit, who has outst
 
 | #   | Idea              | Status  | What exists                                                                       | Gap                                      |
 | --- | ----------------- | ------- | --------------------------------------------------------------------------------- | ---------------------------------------- |
-| 81  | Multiple branches | Exists  | `locations` + Branches UI.                                                        | —                                        |
+| 81  | Multiple branches | Exists  | `locations` + Branches UI.                                                        |,                                        |
 | 82  | Branch inventory  | Partial | `product_stock` per location. App still sells default location.                   | POS `adjust_stock` often omits location. |
-| 83  | Stock transfers   | Missing | Migration comment: not implemented.                                               | —                                        |
-| 84  | Staff accounts    | Exists  | Invites, staff login, shop password.                                              | —                                        |
-| 85  | Role permissions  | Exists  | Granular `has_permission` + team matrix.                                          | —                                        |
-| 86  | Activity logs     | Exists  | `audit_logs` + settings UI.                                                       | —                                        |
+| 83  | Stock transfers   | Missing | Migration comment: not implemented.                                               |,                                        |
+| 84  | Staff accounts    | Exists  | Invites, staff login, shop password.                                              |,                                        |
+| 85  | Role permissions  | Exists  | Granular `has_permission` + team matrix.                                          |,                                        |
+| 86  | Activity logs     | Exists  | `audit_logs` + settings UI.                                                       |,                                        |
 | 87  | Shifts / cash     | Exists  | Cash drawer + time clock.                                                         | Not named “shift” end-to-end.            |
 | 88  | Suppliers         | Exists  | CRUD + WhatsApp PO share.                                                         | Outstanding balance unused.              |
-| 89  | Purchase orders   | Exists  | Create, status, receive.                                                          | —                                        |
+| 89  | Purchase orders   | Exists  | Create, status, receive.                                                          |,                                        |
 | 90  | Multi-business    | Missing | `createBusinessRecord` returns the existing shop. Workspace loads one membership. | Switcher + data separation.              |
 
 ---
@@ -192,15 +192,15 @@ Dashboard can already answer, roughly: yesterday’s sales/profit, who has outst
 | #   | Idea                  | Status  | What exists                                           | Gap                                                                      |
 | --- | --------------------- | ------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
 | 91  | AI assistant          | Exists  | `/assistant` + dashboard briefing on real aggregates. | Needs API keys; not voice.                                               |
-| 92  | Voice commands        | Missing | —                                                     | —                                                                        |
+| 92  | Voice commands        | Missing |,                                                     |,                                                                        |
 | 93  | AI stock insights     | Partial | Insights forecast + AI mentions low stock.            | Not action-to-PO.                                                        |
 | 94  | Launch assistant      | Exists  | Onboarding + launch centre + optional AI shop draft.  | Still easy to 404 a draft preview (fixed #108, needs live confirmation). |
-| 95  | Storefront designer   | Exists  | Tabbed builder, 60 templates, colours, content.       | —                                                                        |
-| 96  | Diaspora shopping     | Missing | —                                                     | Payments/legal separately.                                               |
+| 95  | Storefront designer   | Exists  | Tabbed builder, 60 templates, colours, content.       |,                                                                        |
+| 96  | Diaspora shopping     | Missing |,                                                     | Payments/legal separately.                                               |
 | 97  | Discovery marketplace | Exists  | `/market`, `/stores`, `browse_marketplace`.           | Empty until shops publish.                                               |
-| 98  | B2B marketplace       | Missing | Merchant suppliers only; wholesale layout is visual.  | —                                                                        |
-| 99  | Peer benchmarks       | Missing | —                                                     | Needs enough clean data; privacy.                                        |
-| 100 | Academy / community   | Missing | Help articles only.                                   | —                                                                        |
+| 98  | B2B marketplace       | Missing | Merchant suppliers only; wholesale layout is visual.  |,                                                                        |
+| 99  | Peer benchmarks       | Missing |,                                                     | Needs enough clean data; privacy.                                        |
+| 100 | Academy / community   | Missing | Help articles only.                                   |,                                                                        |
 
 ---
 

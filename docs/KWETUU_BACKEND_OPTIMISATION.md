@@ -15,7 +15,7 @@ Merchant UI talks to TanStack server functions. Those use the **service role** a
 - Statement timeout 3s for `anon` / `authenticated`.
 - Indexes exist for storefront, outbox, marketplace (see migrations `*perf*` and storefront files).
 - App uses HTTP to Supabase, not a direct `pg` pool. Session pooler is for **backups**, not the Node runtime.
-- `check_rate_limit` upserts then sweeps old rows — write amplification at high QPS; leave until load tests show it.
+- `check_rate_limit` upserts then sweeps old rows, write amplification at high QPS; leave until load tests show it.
 
 ## Do not weaken RLS
 

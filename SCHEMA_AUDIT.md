@@ -18,7 +18,7 @@ Staging project in use: `slajanbsfqjnuuiohbmg`. Production `maidxfntfpnkcqnuhozo
 | `product_variants`      | **absent as stock SKUs**                                     | Listings have `size_guide` / details text. Stock is one count per product (plus `product_stock` per location). Do not invent variant inventory. |
 | `orders`                | `store_orders` (online) and `sales` (POS / recorded revenue) | Online checkout writes `store_orders`. Payment later can insert `sales` with `channel = 'online'`.                                              |
 | `order_items`           | `store_order_items`                                          | Snapshot name/price/qty.                                                                                                                        |
-| `delivery_zones`        | `storefronts.delivery` JSON                                  | Areas, fee, windows, hours — not a separate table.                                                                                              |
+| `delivery_zones`        | `storefronts.delivery` JSON                                  | Areas, fee, windows, hours, not a separate table.                                                                                              |
 
 ## Tenant key
 
@@ -26,12 +26,12 @@ Every merchant-owned table uses **`business_id`**, not `store_id`. Isolation is 
 
 ## Storefront tables (added 2026-10-19)
 
-- `storefronts` — slug, template, branding, delivery JSON, payments JSON, status.
-- `product_listings` — which catalogue products are on the shop (`published`, slug, min/max qty).
+- `storefronts`, slug, template, branding, delivery JSON, payments JSON, status.
+- `product_listings`, which catalogue products are on the shop (`published`, slug, min/max qty).
 - `store_orders`, `store_order_items`, `store_order_events`.
 - `store_paynow_credentials`, `shop_order_payments`.
 - `store_complaints`, `store_reviews`, `store_listing_reports`.
-- `locations`, `product_stock` — POS locations; default location for till.
+- `locations`, `product_stock`, POS locations; default location for till.
 
 Public reads go through security-definer RPCs (published storefronts only), not open `SELECT *` from the browser.
 

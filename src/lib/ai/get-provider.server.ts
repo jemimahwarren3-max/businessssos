@@ -21,7 +21,7 @@ function configuredProvider(): AIProviderName | null {
   if (hasGroq && !hasGemini) return "groq";
   if (hasGemini && !hasGroq) return "gemini";
   if (hasGroq && hasGemini) {
-    // Both keys are often left on by mistake — default to Groq unless AI_PROVIDER is set.
+    // Both keys are often left on by mistake, default to Groq unless AI_PROVIDER is set.
     return "groq";
   }
   return null;

@@ -3,6 +3,7 @@ import {
   dbFail,
   invalidateWorkspaceCacheForBusiness,
   isMissingDbFunction,
+  loadBusinessWorkspaceRow,
   type Workspace,
 } from "@/lib/business.server";
 import { cacheDel, workspaceCacheKey } from "@/lib/cache/redis.server";
@@ -114,16 +115,10 @@ export async function loadWorkspaceWhileImpersonating(
   const [
     { data: business, error: bizError },
     { data: subscription },
-    { data: permissions },
+    { data: permissions, error: permissionError },
     featureFlagsResult,
   ] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select(
-        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
-      )
-      .eq("id", businessId)
-      .maybeSingle(),
+    loadBusinessWorkspaceRow(supabase, businessId),
     supabase
       .from("subscriptions")
       .select("plan, status, trial_ends_at")
@@ -133,6 +128,7 @@ export async function loadWorkspaceWhileImpersonating(
     untypedRpc("get_business_feature_flags", { _business_id: businessId }),
   ]);
   if (bizError) dbFail("load impersonated business", bizError);
+  if (permissionError) dbFail("load impersonated permissions", permissionError);
   if (!business) return null;
 
   const flagPayload = featureFlagsResult.data;
@@ -146,7 +142,7 @@ export async function loadWorkspaceWhileImpersonating(
   return {
     business,
     role: "owner",
-    permissions: permissions ?? [],
+    permissions: Array.isArray(permissions) ? permissions : [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
     isReadOnly: true,

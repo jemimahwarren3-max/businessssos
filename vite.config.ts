@@ -61,7 +61,7 @@ export default defineConfig(({ command }) => {
       // Node target: deployable with `node .output/server/index.mjs`, Docker, or any Node host.
       ...(command === "build" ? [nitro({ preset: "node-server" })] : []),
       viteReact(),
-      // Offline support: only the authenticated app (dashboard, sales, inventory —
+      // Offline support: only the authenticated app (dashboard, sales, inventory,
       // all client-rendered, see _authenticated/route.tsx's ssr:false) is covered.
       // The public site and auth pages always need a live connection.
       VitePWA({
@@ -69,7 +69,7 @@ export default defineConfig(({ command }) => {
         injectRegister: false,
         includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png", "icon-512-maskable.png"],
         // Nitro's node-server preset writes the client bundle to
-        // .output/public, not Vite's nominal `dist` — without this the
+        // .output/public, not Vite's nominal `dist`, without this the
         // plugin precaches nothing and drops sw.js where nothing serves it.
         outDir: "./.output/public",
         manifest: {
@@ -81,11 +81,11 @@ export default defineConfig(({ command }) => {
           background_color: "#F9F6F1",
           display: "standalone",
           start_url: "/dashboard",
-          // SVG covers browser installs; the PNGs exist for Android — the
+          // SVG covers browser installs; the PNGs exist for Android, the
           // TWA/Bubblewrap build (Play Store packaging) needs real raster
           // icons, and a dedicated maskable one so Android's circle/squircle
           // icon masks don't clip it (padded so the glyph sits in the safe
-          // zone — see scripts that generated public/icon-*.png).
+          // zone, see scripts that generated public/icon-*.png).
           icons: [
             { src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
             { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

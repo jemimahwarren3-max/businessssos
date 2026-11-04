@@ -43,7 +43,7 @@ async function attemptSale(
 
 /**
  * Replays queued offline sales against the real create_sale RPC, one at a
- * time and in the order they were made — never in parallel, so the server's
+ * time and in the order they were made, never in parallel, so the server's
  * own stock check (which re-reads current stock fresh at sync time) is the
  * single source of truth for conflicts. If two offline sales together
  * oversold, the first to sync wins and the second comes back with a clear

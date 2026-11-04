@@ -172,6 +172,12 @@ describeStaging("cross-tenant isolation", () => {
       ).rejects.toThrow(/does not allow this action|permission denied/i);
     });
 
+    it("cannot read setup progress for business A", async () => {
+      await expect(
+        asUser(getAttacker(), `select public.get_setup_progress('${bizA}');`),
+      ).rejects.toThrow(/not a member of this business|permission denied/i);
+    });
+
     it("cannot record a sale against business A", async () => {
       await expect(
         asUser(
@@ -202,7 +208,7 @@ describeStaging("cross-tenant isolation", () => {
 
     it("an UPDATE against business A's product silently affects zero rows, not an error", async () => {
       // RLS on a table with no matching row returns success-with-zero-rows
-      // for UPDATE, not a thrown error — asserting that explicitly here
+      // for UPDATE, not a thrown error, asserting that explicitly here
       // matters because "no error" alone would be a false negative if the
       // isolation were actually broken.
       const rows = await asUser<{ id: string }>(
@@ -229,6 +235,14 @@ describeStaging("cross-tenant isolation", () => {
     });
   });
 
+  it("owner can read their own setup progress", async () => {
+    const rows = await asUser<{ get_setup_progress: unknown }>(
+      ownerA,
+      `select public.get_setup_progress('${bizA}');`,
+    );
+    expect(rows[0]?.get_setup_progress).toBeTruthy();
+  });
+
   it("business B's owner CAN operate normally within their own business (isolation isn't over-broad)", async () => {
     const rows = await asUser<{ id: string }>(
       ownerB,
@@ -239,7 +253,7 @@ describeStaging("cross-tenant isolation", () => {
     await sql(`delete from public.products where business_id = '${bizB}';`);
   });
 
-  it("querying a real ID vs. a random nonexistent one both return empty — existence isn't leaked", async () => {
+  it("querying a real ID vs. a random nonexistent one both return empty, existence isn't leaked", async () => {
     const realId = await asUser(
       outsider,
       `select * from public.products where id = '${productA}';`,

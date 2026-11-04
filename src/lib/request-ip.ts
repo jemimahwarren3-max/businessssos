@@ -12,7 +12,7 @@ function looksLikeIp(value: string): boolean {
   return IPV6.test(value) && value.includes(":");
 }
 
-/** First hop only — later X-Forwarded-For entries are easy to spoof. */
+/** First hop only, later X-Forwarded-For entries are easy to spoof. */
 export function clientIpFromForwarded(
   forwardedFor: string | null | undefined,
   realIp: string | null | undefined = null,

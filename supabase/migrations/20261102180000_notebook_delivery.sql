@@ -1122,6 +1122,6 @@ comment on function public.take_customer_deposit(uuid, uuid, numeric, public.pay
 comment on function public.create_layby(uuid, uuid, jsonb, numeric, text) is
   'Opens a lay-by at catalogue selling_price. Stock is not deducted until collect_layby.';
 comment on function public.collect_layby(uuid, uuid, uuid) is
-  'Deducts stock and writes a sale. Does not post cash again — instalments already hit the till.';
+  'Deducts stock and writes a sale. Does not post cash again, instalments already hit the till.';
 comment on function public.browse_marketplace(text, text, int, int) is
   'Public marketplace. verified on a shop means a published verified-purchase review, not KYC or a government licence.';

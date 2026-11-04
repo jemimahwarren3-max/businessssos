@@ -2,15 +2,15 @@
 -- 20260808210000 is fundamentally broken and must come out immediately:
 -- inside a SECURITY DEFINER function, current_user is always the
 -- function's OWNER (postgres, since migrations run as postgres), never the
--- actual caller — that's the whole point of SECURITY DEFINER. Confirmed
+-- actual caller, that's the whole point of SECURITY DEFINER. Confirmed
 -- live: even after `set role service_role`, current_user inside such a
 -- function still reports 'postgres'. Left in place, this would reject
 -- every legitimate service_role call in production too, including the real
--- Paynow webhook once it has live credentials — not just the unauthorized
+-- Paynow webhook once it has live credentials, not just the unauthorized
 -- ones it was meant to stop.
 --
--- The actual, correct defense — revoking EXECUTE from anon/authenticated
--- and granting only to service_role, applied in the same prior migration —
+-- The actual, correct defense, revoking EXECUTE from anon/authenticated
+-- and granting only to service_role, applied in the same prior migration,
 -- is unaffected by this and remains the real boundary. Postgres checks
 -- EXECUTE grants before a function body ever runs, regardless of
 -- SECURITY DEFINER, which is exactly why it works and an internal

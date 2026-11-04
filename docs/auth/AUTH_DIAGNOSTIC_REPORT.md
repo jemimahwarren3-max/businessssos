@@ -1,4 +1,4 @@
-# Kwetuu authentication and email — diagnostic report
+# Kwetuu authentication and email: diagnostic report
 
 **Date:** 24 October 2026 (Africa/Harare)  
 **Stack:** Vite 8, React 19, TanStack Start, Supabase Auth (GoTrue), server-sealed session cookie  
@@ -24,7 +24,7 @@ There is **no** React AuthContext and **no** `onAuthStateChange` in app code (by
 
 ---
 
-## Issue 1 — Auth emails not arriving
+## Issue 1: Auth emails not arriving
 
 ### Confirmed
 
@@ -51,7 +51,7 @@ There is **no** React AuthContext and **no** `onAuthStateChange` in app code (by
 
 ---
 
-## Issue 2 — Google sign-in loop / wrong screen
+## Issue 2: Google sign-in loop / wrong screen
 
 ### Confirmed root cause (fixed on master via PR #50)
 
@@ -76,7 +76,7 @@ There is **no** React AuthContext and **no** `onAuthStateChange` in app code (by
 
 ---
 
-## Issue 3 — Infinite signup spinner
+## Issue 3: Infinite signup spinner
 
 ### Confirmed
 
@@ -94,7 +94,7 @@ There is **no** React AuthContext and **no** `onAuthStateChange` in app code (by
 
 ---
 
-## Issue 4 — Duplicate businesses
+## Issue 4: Duplicate businesses
 
 ### Confirmed
 

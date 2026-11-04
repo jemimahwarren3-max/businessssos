@@ -19,10 +19,13 @@ import {
 } from "@/lib/business.functions";
 import {
   PLAN_MONTHLY_USD,
+  TRIAL_LENGTH_LABEL,
+  billingChargeChoices,
   planAmountUsd,
   planAmountZig,
   type PlatformFx,
 } from "@/lib/billing-plans";
+import { shouldSendToCreateShop } from "@/lib/auth/post-auth-destination";
 import { getPlatformFxFn } from "@/lib/storefront/storefront.functions";
 import { formatMoney, friendlyDate, readableError } from "@/lib/format";
 
@@ -83,10 +86,16 @@ function Billing() {
   const [pendingInstructions, setPendingInstructions] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!workspace.isLoading && workspace.data === null) {
+    if (
+      shouldSendToCreateShop({
+        isLoading: workspace.isLoading,
+        isError: workspace.isError,
+        workspace: workspace.data,
+      })
+    ) {
       navigate({ to: "/onboarding", replace: true });
     }
-  }, [workspace.isLoading, workspace.data, navigate]);
+  }, [workspace.isLoading, workspace.isError, workspace.data, navigate]);
 
   useEffect(() => {
     void loadFx().then(setFx);
@@ -170,8 +179,20 @@ function Billing() {
   const billingEnabled = workspace.data.billingEnabled;
   const proUsd = planAmountUsd("pro");
   const proZig = planAmountZig(proUsd, fx);
+  const chargeChoices = billingChargeChoices({ usd: proUsd, zig: proZig });
   const checkoutAmount = billingCurrency === "ZWG" && proZig != null ? proZig : proUsd;
   const checkoutCurrency = billingCurrency === "ZWG" && proZig != null ? "ZWG" : "USD";
+  const zigReady = proZig != null && billing.data?.paynowZigConfigured === true;
+  const usdReady = billing.data?.paynowUsdConfigured !== false;
+  const selectedChargeReady = checkoutCurrency === "ZWG" ? zigReady : usdReady;
+  const chargeBlockedReason =
+    checkoutCurrency === "ZWG" && proZig == null
+      ? "ZiG price needs the USD/ZiG rate. Pay in USD, or ask support to set the rate."
+      : checkoutCurrency === "ZWG" && billing.data?.paynowZigConfigured === false
+        ? "ZiG Paynow isn't configured yet. Pay in USD, or ask support to add the ZiG integration."
+        : checkoutCurrency === "USD" && billing.data?.paynowUsdConfigured === false
+          ? "USD Paynow isn't configured yet. Ask support to add the USD integration."
+          : null;
 
   return (
     <AppShell
@@ -212,8 +233,8 @@ function Billing() {
                 subscription.status === "trialing" &&
                 subscription.trial_ends_at ? (
                   <p className="text-sm text-muted-foreground">
-                    Trial ends {friendlyDate(subscription.trial_ends_at)}. Pay for a plan below to
-                    keep access after that.
+                    {TRIAL_LENGTH_LABEL} trial ends {friendlyDate(subscription.trial_ends_at)}. Pay
+                    ${PLAN_MONTHLY_USD.pro}/month (USD or ZiG) to keep access after that.
                   </p>
                 ) : subscription.current_period_end ? (
                   <p className="text-sm text-muted-foreground">
@@ -246,40 +267,47 @@ function Billing() {
                 <div className="rounded-lg border border-primary bg-primary/5 p-3">
                   <span className="text-sm font-semibold">Pro</span>
                   <span className="ml-2 text-[13px] text-muted-foreground">
-                    ${PLAN_MONTHLY_USD.pro}/mo USD
-                    {proZig != null ? ` · ${formatMoney(proZig, "ZWG")} at today's rate` : ""}
+                    ${PLAN_MONTHLY_USD.pro}/month USD
+                    {proZig != null
+                      ? ` or ${formatMoney(proZig, "ZWG")}/month`
+                      : " or ZiG at today's rate"}
                   </span>
                 </div>
               </div>
 
-              {proZig != null ? (
-                <div className="space-y-2">
-                  <Label>Charge in</Label>
-                  <RadioGroup
-                    value={billingCurrency}
-                    onValueChange={(v) => setBillingCurrency(v as "USD" | "ZWG")}
-                    className="grid grid-cols-2 gap-2"
-                  >
-                    <label className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-border p-2.5 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                      <RadioGroupItem value="USD" className="sr-only" />
-                      <span className="text-[13px] font-medium">USD</span>
+              <div className="space-y-2">
+                <Label>Charge in</Label>
+                <RadioGroup
+                  value={billingCurrency}
+                  onValueChange={(v) => setBillingCurrency(v as "USD" | "ZWG")}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  {chargeChoices.map((choice) => (
+                    <label
+                      key={choice.currency}
+                      className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-border p-2.5 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                      <RadioGroupItem value={choice.currency} className="sr-only" />
+                      <span className="text-[13px] font-medium">
+                        {choice.currency === "ZWG" ? "ZiG (ZWG)" : "USD"}
+                      </span>
                       <span className="text-[12px] text-muted-foreground">
-                        {formatMoney(proUsd, "USD")}
+                        {choice.amount != null
+                          ? `${formatMoney(choice.amount, choice.currency)} / month`
+                          : "Rate not set yet"}
                       </span>
                     </label>
-                    <label className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-border p-2.5 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                      <RadioGroupItem value="ZWG" className="sr-only" />
-                      <span className="text-[13px] font-medium">ZiG (ZWG)</span>
-                      <span className="text-[12px] text-muted-foreground">
-                        {formatMoney(proZig, "ZWG")}
-                      </span>
-                    </label>
-                  </RadioGroup>
-                  {fx?.notice ? (
-                    <p className="text-[12px] text-muted-foreground">{fx.notice}</p>
-                  ) : null}
-                </div>
-              ) : null}
+                  ))}
+                </RadioGroup>
+                {fx?.notice ? (
+                  <p className="text-[12px] text-muted-foreground">{fx.notice}</p>
+                ) : proZig == null ? (
+                  <p className="text-[12px] text-muted-foreground">
+                    USD is ready now. ZiG uses the platform USD/ZiG rate, ask support to set it if
+                    you want to pay in ZiG.
+                  </p>
+                ) : null}
+              </div>
 
               <div className="space-y-2">
                 <Label>Payment method</Label>
@@ -318,16 +346,26 @@ function Billing() {
                 </div>
               ) : null}
 
+              {chargeBlockedReason ? (
+                <p className="rounded-lg bg-muted/50 p-3 text-[13px] text-muted-foreground">
+                  {chargeBlockedReason}
+                </p>
+              ) : null}
+
               <Button
                 className="w-full gap-1.5"
                 size="lg"
-                disabled={checkoutMutation.isPending || (channel !== "web" && !phone.trim())}
+                disabled={
+                  checkoutMutation.isPending ||
+                  !selectedChargeReady ||
+                  (channel !== "web" && !phone.trim())
+                }
                 onClick={() => checkoutMutation.mutate()}
               >
                 {checkoutMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : null}
-                Pay {formatMoney(checkoutAmount, checkoutCurrency)}
+                Pay {formatMoney(checkoutAmount, checkoutCurrency)} / month
               </Button>
 
               {pendingInstructions ? (

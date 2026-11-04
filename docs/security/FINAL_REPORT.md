@@ -1,17 +1,17 @@
-# Security programme — final report (repository pass)
+# Security programme: final report (repository pass)
 
 **Date:** 24 October 2026  
 **Scope:** Kwetuu / BusinessOS repository on `master` plus this documentation commit.
 
 ## 1. Overall assessment
 
-**Moderate maturity** for a pre-launch SaaS: strong tenant/payment *design*, substantial automated tests, recent payment-safety and platform-owner hardening in SQL. **Not verified for production** — staging migrations, integration tests, backup restore, and TanStack CVE upgrade remain open.
+**Moderate maturity** for a pre-launch SaaS: strong tenant/payment *design*, substantial automated tests, recent payment-safety and platform-owner hardening in SQL. **Not verified for production**, staging migrations, integration tests, backup restore, and TanStack CVE upgrade remain open.
 
 ## 2. Critical / high findings (open or accepted)
 
 | ID | Severity | Summary | Status |
 |----|----------|---------|--------|
-| KW-SEC-001 | Critical | TanStack Start XSS advisory | Open — upgrade blocked on build |
+| KW-SEC-001 | Critical | TanStack Start XSS advisory | Open, upgrade blocked on build |
 | KW-SEC-002–004 | High | Payment forgery / grant leaks | Fixed in repo; **not verified on staging** |
 | KW-SEC-005 | High | Cross-tenant access | Controls present; staging tests skipped |
 

@@ -1,10 +1,7 @@
 import { test, expect } from "./fixtures";
 
 test.describe("authenticated session", () => {
-  test.skip(
-    !process.env.E2E_OWNER_EMAIL,
-    "E2E_OWNER_EMAIL not set — skipping authenticated tests",
-  );
+  test.skip(!process.env.E2E_OWNER_EMAIL, "E2E_OWNER_EMAIL not set, skipping authenticated tests");
 
   test("session persists after refresh", async ({ page }) => {
     await page.goto("/dashboard");
@@ -30,9 +27,7 @@ test.describe("authenticated session", () => {
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
     const url = page.url();
     const onValidRoute =
-      url.includes("/dashboard") ||
-      url.includes("/setup") ||
-      url.includes("/onboarding");
+      url.includes("/dashboard") || url.includes("/setup") || url.includes("/onboarding");
     expect(onValidRoute).toBe(true);
   });
 });

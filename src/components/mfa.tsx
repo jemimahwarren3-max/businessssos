@@ -5,16 +5,17 @@ import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { totpSecretGrouped, totpSecretRaw } from "@/lib/auth/mfa-display";
 import { readableError } from "@/lib/format";
 
 type EnrollResult = { factorId: string; qrCode: string; secret: string };
 type ChallengeResult = { challengeId: string };
 
 /** Shared by the (mandatory) admin-panel MFA gate and the (optional)
- * business-account Security section — same TOTP enroll/verify flow either
+ * business-account Security section, same TOTP enroll/verify flow either
  * way, just pointed at different server functions and copy. Callers pass
  * the result of their own useServerFn(...) call, not the raw server
- * function — keeps the hook call at the normal top-level call site instead
+ * function, keeps the hook call at the normal top-level call site instead
  * of threading a dynamic prop value into a hook here. */
 export function MfaEnroll({
   onDone,
@@ -39,7 +40,7 @@ export function MfaEnroll({
     onSuccess: (result: EnrollResult) => {
       setFactorId(result.factorId);
       setQrCode(result.qrCode);
-      setSecret(result.secret);
+      setSecret(totpSecretRaw(result.secret));
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't start MFA enrollment.")),
   });
@@ -74,14 +75,34 @@ export function MfaEnroll({
         </Button>
       ) : (
         <>
-          <img
-            src={qrCode}
-            alt="Scan this QR code with your authenticator app"
-            className="mx-auto size-40"
-          />
-          <p className="break-all text-[11px] text-muted-foreground">
-            Or enter manually: <span className="font-mono">{secret}</span>
+          {qrCode ? (
+            <img
+              src={qrCode}
+              alt="Authenticator QR code"
+              className="mx-auto size-40 bg-white p-1"
+            />
+          ) : null}
+          <p className="text-sm text-muted-foreground">
+            Microsoft Authenticator: + then Other account (not work or school), then enter the key
+            manually. Google Authenticator / Authy also work.
           </p>
+          <p className="select-all overflow-x-auto whitespace-nowrap rounded-md bg-muted px-3 py-2 font-mono text-sm">
+            {secret ? totpSecretGrouped(secret) : null}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              if (!secret) return;
+              void navigator.clipboard.writeText(totpSecretRaw(secret)).then(
+                () => toast.success("Setup key copied."),
+                () => toast.error("Could not copy the setup key."),
+              );
+            }}
+          >
+            Copy setup key
+          </Button>
           <div className="space-y-1.5 text-left">
             <Label htmlFor="mfa-code">6-digit code</Label>
             <Input
@@ -141,7 +162,7 @@ export function MfaChallenge({
 
   useEffect(() => {
     startMutation.mutate();
-    // Only ever run once, on mount — startMutation is a new object identity
+    // Only ever run once, on mount, startMutation is a new object identity
     // every render (useMutation doesn't memoize it), so including it would
     // re-trigger the challenge on every render instead of just once.
     // eslint-disable-next-line react-hooks/exhaustive-deps

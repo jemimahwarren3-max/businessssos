@@ -16,7 +16,7 @@ Status keys: **not started** | **in progress** | **blocked** | **fixed, not veri
 | Payment integrity (manual + Paynow) | fixed, not verified | `20261023120000_payment_safety_foundation.sql`; staging apply pending |
 | Seller Paynow enablement | accepted residual risk | Default off; provider approval required |
 | CSP / browser headers | accepted residual risk | `unsafe-inline` for TanStack/Radix; documented |
-| Dependency CVEs (TanStack) | in progress | GHSA documented; upgrade blocked on build — see `DEPENDENCY_SECURITY.md` |
+| Dependency CVEs (TanStack) | in progress | GHSA documented; upgrade blocked on build, see `DEPENDENCY_SECURITY.md` |
 | Secrets in repo / CI | verified | `.env` gitignored; service role server-only |
 | Backup / restore | blocked | Workflow exists; restore drill not executed |
 | Production go-live gate | not started | See `PRODUCTION_SECURITY_CHECKLIST.md` |

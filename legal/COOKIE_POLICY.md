@@ -1,4 +1,4 @@
-# Cookie Policy — Kwetuu
+# Cookie Policy: Kwetuu
 
 **Last updated:** 26 October 2026
 
@@ -7,7 +7,7 @@ This policy describes how Kwetuu uses cookies at https://mykwetuu.com. We use on
 ## The short version
 
 Kwetuu sets **one cookie**. It holds your encrypted, signed sign-in
-session — it's what keeps you logged in between page loads. It is not a
+session, it's what keeps you logged in between page loads. It is not a
 tracking or advertising cookie, and no other cookie is set by the
 application itself.
 
@@ -25,7 +25,7 @@ on cross-site requests, which is part of what protects against CSRF).
 
 - No advertising or retargeting cookies.
 - No cross-site tracking cookies.
-- No analytics cookies — no analytics tool is integrated in the app at all
+- No analytics cookies, no analytics tool is integrated in the app at all
   (verified by checking the codebase, not assumed).
 
 ## Third-party requests that aren't cookies but are worth mentioning
@@ -39,7 +39,7 @@ to Google when a page loads. See
 ## Managing cookies
 
 Since the one cookie in use is required for you to stay signed in, turning
-it off in your browser will simply sign you out / prevent sign-in — there's
+it off in your browser will simply sign you out / prevent sign-in, there's
 no optional-cookie toggle to offer, because there's no optional cookie.
 
 ## Changes to this policy

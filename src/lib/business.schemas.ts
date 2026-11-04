@@ -48,6 +48,8 @@ export const businessTypeSchema = z.enum([
 export const businessPathSchema = z.enum(["management", "full"]);
 export type BusinessPath = z.infer<typeof businessPathSchema>;
 
+export { commerceModelSchema, type CommerceModel } from "./commerce-model";
+
 export const BUSINESS_SUBCATEGORIES: Record<string, { value: string; label: string }[]> = {
   grocery: [
     { value: "grocery_general", label: "General grocery" },
@@ -252,11 +254,23 @@ export const paymentMethodSchema = z.enum([
 
 /* ---------------------------------- sales --------------------------------- */
 
-export const saleItemSchema = z.object({
-  productId: z.string().uuid(),
-  quantity: z.coerce.number().positive("Quantity must be greater than zero").max(99999999),
-  unitPrice: z.coerce.number().min(0, "Price cannot be negative").max(99999999),
-});
+export const saleItemSchema = z
+  .object({
+    productId: z.string().uuid().optional().or(z.literal("")),
+    serviceId: z.string().uuid().optional().or(z.literal("")),
+    quantity: z.coerce.number().positive("Quantity must be greater than zero").max(99999999),
+    unitPrice: z.coerce.number().min(0, "Price cannot be negative").max(99999999),
+  })
+  .superRefine((item, ctx) => {
+    const hasProduct = Boolean(item.productId);
+    const hasService = Boolean(item.serviceId);
+    if (hasProduct === hasService) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Each line must be a product or a service, not both.",
+      });
+    }
+  });
 export type SaleItemInput = z.infer<typeof saleItemSchema>;
 
 export const saleTenderSchema = z.object({

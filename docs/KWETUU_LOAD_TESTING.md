@@ -6,7 +6,7 @@
 
 | Tool | Command | Scope |
 |------|---------|--------|
-| Autocannon wrapper | `node scripts/load-test.mjs [origin]` | `/`, `/market`, `/auth`, `/health` — 20 conn, 15s |
+| Autocannon wrapper | `node scripts/load-test.mjs [origin]` | `/`, `/market`, `/auth`, `/health`, 20 conn, 15s |
 | k6 smoke | `k6 run -e BASE_URL=http://localhost:8080 scripts/k6-storefront.js` | 20 VUs, 30s, public pages |
 | Playwright | `npm run test:e2e` | Functional, not capacity |
 

@@ -1,6 +1,6 @@
 # Production security checklist
 
-Use before enabling public production traffic. Evidence-based — unchecked items are not claimed.
+Use before enabling public production traffic. Evidence-based, unchecked items are not claimed.
 
 ## Identity & access
 
@@ -44,6 +44,6 @@ Use before enabling public production traffic. Evidence-based — unchecked item
 - [ ] Privacy/Terms name real operator
 - [ ] Legal review for CDPA/marketing (counsel)
 
-**Gate:** Do not claim "secure launch" — only "checklist complete with listed exceptions."
+**Gate:** Do not claim "secure launch", only "checklist complete with listed exceptions."
 
 Master list: `SECURITY_STATUS.md`.

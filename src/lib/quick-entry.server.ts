@@ -96,7 +96,7 @@ export function isRawDraft(value: unknown): value is RawDraft {
 }
 
 /** Some models wrap JSON in a markdown code
- * fence or add a stray sentence despite the prompt saying not to — pull out
+ * fence or add a stray sentence despite the prompt saying not to, pull out
  * just the outermost {...} block before parsing so that doesn't turn a
  * correctly-understood message into a false "unknown". */
 export function extractJson(content: string): string {

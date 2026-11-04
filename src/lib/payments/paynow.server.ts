@@ -1,13 +1,13 @@
 // Paynow doesn't do stored-card recurring billing on a standard merchant
-// account (per Paynow's own onboarding guidance — tokenisation has to be
-// asked for separately and isn't guaranteed) — so this is a "pay for one
+// account (per Paynow's own onboarding guidance, tokenisation has to be
+// asked for separately and isn't guaranteed), so this is a "pay for one
 // period at a time" model: initiate a payment for the chosen plan/interval,
 // confirm it, extend current_period_end. Renewal is the same flow run again
 // closer to the period's end, not an automatic charge.
 //
 // We never trust a status straight off the wire (the resulturl webhook body
 // is unauthenticated and, per the shipped SDK, only actually hash-verified
-// via parseStatusUpdate — see the note in src/types/paynow.d.ts). Instead we
+// via parseStatusUpdate, see the note in src/types/paynow.d.ts). Instead we
 // always re-fetch the stored poll_url ourselves and verify Paynow's SHA512
 // hash on that response before crediting anything.
 import { Paynow, type InitResponse } from "paynow";
@@ -26,8 +26,10 @@ import {
   paynowCredentialsConfigured,
   paynowIntegrationId,
   paynowIntegrationKey,
+  platformPaynowCredentialPairs,
   type SubscriptionBillingCurrency,
 } from "./paynow-credentials.server";
+import { userFacingPaynowInitError } from "./paynow-init-error";
 
 function getAppUrl(): string {
   const url = process.env["APP_URL"];
@@ -127,12 +129,12 @@ export async function initiateSubscriptionCheckout(
         : await paynow.sendMobile(payment, input.phone ?? "", input.channel);
   } catch (error) {
     console.error("[paynow] checkout initiation threw", error);
-    throw new AppError("Paynow couldn't start this payment. Please try again in a moment.");
+    throw new AppError(userFacingPaynowInitError(undefined, error));
   }
 
   if (!response || !response.success || !response.pollUrl) {
     console.error("[paynow] checkout initiation failed", response);
-    throw new AppError("Paynow couldn't start this payment. Please try again in a moment.");
+    throw new AppError(userFacingPaynowInitError(response));
   }
 
   const { error: rpcError } = await supabase.rpc("record_subscription_payment", {
@@ -153,7 +155,7 @@ export type PaynowPollResult = "paid" | "pending" | "failed";
 
 // Paynow's own status vocabulary beyond these isn't fully documented where
 // we could verify it, so we only ever treat a poll as a definite failure for
-// these known-terminal states — anything else (including states we don't
+// these known-terminal states, anything else (including states we don't
 // recognize) is left "pending" and safe to poll again later, rather than
 // risk closing out a payment that's actually still in progress.
 const FAILURE_STATUSES = new Set(["cancelled", "disputed"]);
@@ -280,4 +282,17 @@ export async function checkSubscriptionPayment(
 
   const result = await pollAndConfirmPayment(row.reference, row.poll_url);
   return { status: result };
+}
+
+export function verifyPlatformPaynowWebhookBody(raw: string): string | null {
+  for (const pair of platformPaynowCredentialPairs()) {
+    try {
+      const status = new Paynow(pair.integrationId, pair.integrationKey).parseStatusUpdate(raw);
+      const reference = status.reference?.trim();
+      if (reference) return reference;
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }

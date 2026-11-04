@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/logo";
 
-// Custom element renderers instead of a Tailwind typography plugin — these
+// Custom element renderers instead of a Tailwind typography plugin, these
 // are the only two pages that render markdown-as-prose, so a full plugin
 // dependency for that alone isn't worth it.
 const markdownComponents = {

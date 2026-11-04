@@ -1,5 +1,5 @@
 -- Step 1 of sign-in switches from a generated business code to the actual
--- business name + shop password — easier to remember, nothing to save at
+-- business name + shop password, easier to remember, nothing to save at
 -- signup. That means business names must be unique platform-wide (checked
 -- case-insensitively, trimmed). Confirmed no existing businesses collide
 -- before adding this constraint.

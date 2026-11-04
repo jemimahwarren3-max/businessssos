@@ -29,11 +29,26 @@ jobs:
           printf '%s\n' "$response" | python3 -c '
           import json, sys
           result = json.load(sys.stdin)
-          print("Mail flush: sent={sent}, failed={failed}, skipped={skipped}".format(**result))
-          if not result.get("configured"):
-              print(result.get("reason", "Resend is not configured."), file=sys.stderr)
+          if result.get("error"):
+              print(result.get("error"), file=sys.stderr)
               raise SystemExit(1)
-          if result.get("failed", 0):
-              print(result.get("reason", "One or more email deliveries failed."), file=sys.stderr)
+          email = result.get("email") or {}
+          whatsapp = result.get("whatsapp") or {}
+          sent = int(email.get("sent") or 0) + int(whatsapp.get("sent") or 0)
+          failed = int(email.get("failed") or 0) + int(whatsapp.get("failed") or 0)
+          skipped = int(email.get("skipped") or 0) + int(whatsapp.get("skipped") or 0)
+          print(
+              "Mail flush: sent={sent}, failed={failed}, skipped={skipped} "
+              "(email configured={email_cfg}, whatsapp configured={wa_cfg})".format(
+                  sent=sent,
+                  failed=failed,
+                  skipped=skipped,
+                  email_cfg=bool(email.get("configured")),
+                  wa_cfg=bool(whatsapp.get("configured")),
+              )
+          )
+          if failed:
+              reason = email.get("reason") or whatsapp.get("reason") or "Delivery failed."
+              print(reason, file=sys.stderr)
               raise SystemExit(1)
           '

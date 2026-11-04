@@ -22,11 +22,11 @@ export const Route = createFileRoute("/_authenticated")({
   // ERR_TOO_MANY_REDIRECTS after OAuth: the callback sets the httpOnly cookie
   // in the browser, but the next navigation still hit this guard without the
   // cookie on the server, bounced to /auth, which saw the cookie and sent the
-  // user back to /onboarding — repeat.
+  // user back to /onboarding, repeat.
   component: AuthenticatedGate,
 });
 
-/** Applies to every authenticated route, not just /admin — a business
+/** Applies to every authenticated route, not just /admin, a business
  * owner or staff member who turned MFA on in Settings > Account must clear
  * an aal2 challenge once per session before anything under here renders,
  * same enforcement shape as the (mandatory) admin gate in routes/admin.tsx. */

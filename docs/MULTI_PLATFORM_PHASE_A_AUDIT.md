@@ -1,4 +1,4 @@
-# Kwetuu multi-platform — Phase A audit and compatibility report
+# Kwetuu multi-platform: Phase A audit and compatibility report
 
 **Date:** 26 October 2026  
 **Repository:** Kwetuu (`jemimahwarren3-max/businessssos`)  
@@ -13,15 +13,15 @@ This report satisfies **Phase A / Phase zero** of the implementation plan. No Ta
 
 | Area | Actual state |
 | ---- | ------------ |
-| Framework | **TanStack Start 1.168** on **React 19**, **Vite 8**, **TypeScript**, **Nitro `node-server`** preset — not a static Vite SPA only. |
+| Framework | **TanStack Start 1.168** on **React 19**, **Vite 8**, **TypeScript**, **Nitro `node-server`** preset, not a static Vite SPA only. |
 | Routing | TanStack Router file routes under `src/routes/`. |
 | Merchant app | `/_authenticated/*` with **`ssr: false`** (client-rendered). |
-| Public web | Marketing, auth, `{slug}.mykwetuu.com` storefronts — SSR/server handlers. |
+| Public web | Marketing, auth, `{slug}.mykwetuu.com` storefronts, SSR/server handlers. |
 | Backend | **Supabase Auth + Postgres** (RLS, security-definer RPCs). |
 | App server | **Node** (Cloud Run historically): TanStack **server functions** (`createServerFn`), Paynow webhooks, session cookies, service-role modules in `*.server.ts`. |
 | Local DB | **IndexedDB** via `idb` (`src/lib/offline/db.ts`), not Dexie. |
-| PWA | **vite-plugin-pwa** / Workbox — precache JS/CSS; SW registered only after sign-in (`src/lib/pwa-register.ts`). |
-| Desktop / Android | **None** — no Tauri, Capacitor, or Electron in tree. |
+| PWA | **vite-plugin-pwa** / Workbox, precache JS/CSS; SW registered only after sign-in (`src/lib/pwa-register.ts`). |
+| Desktop / Android | **None**, no Tauri, Capacitor, or Electron in tree. |
 
 **Implication:** Packaging is not “drop `dist/` into Tauri.” The merchant dashboard depends on **HTTP calls to the same origin** for most mutations (server functions → Node → Supabase). A desktop APK must either bundle the **client** and target a **configured API base URL** (production/staging Node), or load the **hosted** app in a WebView (online-first wrapper).
 
@@ -35,16 +35,16 @@ This report satisfies **Phase A / Phase zero** of the implementation plan. No Ta
 - Auth: email + Google (browser PKCE / callback routes documented in auth migrations and routes).
 - Merchant: onboarding, products, inventory, POS, cash drawer, invoices, storefront builder, templates, settings, billing UI.
 - Subdomain routing: `src/lib/storefront/host.ts`, `SHOP_HOSTS`, 308 from `/store/{slug}`.
-- Deploy: GitHub **CI** builds and tests; **Cloud Run deploy workflow removed/paused** (`docs/CLOUD_RUN_LAUNCH.md`) — production env may be stale.
+- Deploy: GitHub **CI** builds and tests; **Cloud Run deploy workflow removed/paused** (`docs/CLOUD_RUN_LAUNCH.md`), production env may be stale.
 
 ### Payments and subscriptions
 
 - Single **Pro** plan (~$7/mo USD in `billing-plans.ts`); **3-day trial** on `create_business_with_owner`.
 - **Paynow** platform subscription: `paynow.server.ts`, `paynow_confirm_payment` (idempotent).
-- **No separate launch-fee table** — “pay when you publish” is implemented as **first paid subscription** (`active`), not a one-time SKU.
+- **No separate launch-fee table**, “pay when you publish” is implemented as **first paid subscription** (`active`), not a one-time SKU.
 - Shop checkout: manual proof / seller confirm; seller Paynow gated (`shop_offers_paynow`).
 
-### Offline (partial — web/PWA only)
+### Offline (partial: web/PWA only)
 
 - **POS offline queue:** `sales.tsx` + `src/lib/offline/sync.ts` + IndexedDB `pendingSales`.
 - **Product cache** for search while offline; optimistic local stock decrement.
@@ -68,10 +68,10 @@ This report satisfies **Phase A / Phase zero** of the implementation plan. No Ta
 | Launch fee vs subscription | Marketing copy only; one subscription row in DB. |
 | Grace period | Terms mention; code does not extend `canWriteForSubscription` for `past_due`. |
 | `current_period_end` | Not enforced on `active` rows in Node gates. |
-| Offline entitlement JWT | Not implemented — offline POS does not check a signed TTL. |
+| Offline entitlement JWT | Not implemented, offline POS does not check a signed TTL. |
 | Sync engine | FIFO single-sale upload; no Dexie, no device registry, no backoff service worker. |
-| Receipts offline | Sale completes locally; receipt is UI/state + pending row — no separate receipt store. |
-| Product image pipeline | `product-image-optimizer.ts` (recent on master) — client resize before upload. |
+| Receipts offline | Sale completes locally; receipt is UI/state + pending row, no separate receipt store. |
+| Product image pipeline | `product-image-optimizer.ts` (recent on master), client resize before upload. |
 | DB billing gates | RPCs like `create_sale`, `set_storefront_published` grant **`authenticated`** execute without subscription check. |
 
 ---
@@ -98,9 +98,9 @@ This report satisfies **Phase A / Phase zero** of the implementation plan. No Ta
 | **`BILLING_ENABLED=false` in production** | All `canWrite*` helpers return allow. Operator must set `true` on Cloud Run/host. |
 | **Trial treated as paid (fixed in #64)** | Previously trialing could publish and run POS. |
 | **UI-only hints** | `isReadOnly` / `isOperateLocked` banners; buttons often still clickable until server rejects. |
-| **Direct Supabase RPC** | e.g. `grant execute on create_sale … to authenticated` — membership/permission checks inside RPC, **not subscription**. |
+| **Direct Supabase RPC** | e.g. `grant execute on create_sale … to authenticated`, membership/permission checks inside RPC, **not subscription**. |
 | **Published shops stay live** | No cron to unpublish on subscription lapse. |
-| **Installed PWA/desktop (future)** | Cached shell does not bypass server if gates are on; **offline queue** could still attempt sync — server must reject (`assertCanOperate` on `createSale`). |
+| **Installed PWA/desktop (future)** | Cached shell does not bypass server if gates are on; **offline queue** could still attempt sync, server must reject (`assertCanOperate` on `createSale`). |
 | **No offline entitlement expiry** | Once cached, POS could add sales until sync fails; no local signed “paid until” window. |
 
 ---
@@ -139,11 +139,11 @@ This report satisfies **Phase A / Phase zero** of the implementation plan. No Ta
 | PWA shell | VitePWA + `_authenticated` registration |
 | Entitlements (admin) | `platform_entitlements`, `has_platform_subscription_bypass` |
 
-**New tables only if needed:** `store_launch_payments`, `offline_device_entitlements`, `sync_operations` — none exist; add only after schema review.
+**New tables only if needed:** `store_launch_payments`, `offline_device_entitlements`, `sync_operations`, none exist; add only after schema review.
 
 ---
 
-## 8. Tauri 2 (Windows) — compatibility risks
+## 8. Tauri 2 (Windows): compatibility risks
 
 | Risk | Severity | Notes |
 | ---- | -------- | ----- |
@@ -151,20 +151,20 @@ This report satisfies **Phase A / Phase zero** of the implementation plan. No Ta
 | Session cookies | **Medium** | httpOnly session cookie must work in WebView2; test OAuth redirect + PKCE in Tauri. |
 | `APP_URL` / CORS / CSP | **Medium** | Build-time `VITE_*` Supabase keys; server URL for RPCs. |
 | Offline | **Low–Med** | Same IndexedDB as PWA if WebView supports it; **sync still needs network** to Node/Supabase. |
-| Storefront in desktop | **Low** | Spec says owners use app for ops; customers stay on web — OK. |
+| Storefront in desktop | **Low** | Spec says owners use app for ops; customers stay on web, OK. |
 | Public site in same binary | **Optional** | Can scope desktop `start_url` to `/dashboard` or `/staff-login`. |
 
 **Recommended Windows POC (Phase B):**
 
 1. `npm create tauri-app` or add Tauri 2 to monorepo with `frontendDist` = TanStack client output (`.output/public` after `npm run build`).
-2. Configure **devUrl** / production **remote API** for server functions (TanStack Start env — verify `SERVER_URL` or documented pattern for split client/host).
+2. Configure **devUrl** / production **remote API** for server functions (TanStack Start env, verify `SERVER_URL` or documented pattern for split client/host).
 3. Milestone: window opens → staff login → dashboard loads workspace via existing auth.
 
-**Cloud agent VM:** Rust (`rustc`) present; **Android SDK not installed** — Android POC must run on a developer machine with Android Studio.
+**Cloud agent VM:** Rust (`rustc`) present; **Android SDK not installed**, Android POC must run on a developer machine with Android Studio.
 
 ---
 
-## 9. Android — Capacitor vs Tauri 2
+## 9. Android: Capacitor vs Tauri 2
 
 | Criterion | Capacitor | Tauri 2 Android |
 | --------- | --------- | ----------------- |
@@ -204,7 +204,7 @@ Your **execution order A→H** aligns: **A done (this doc)**, **B next**, then *
 
 - **Do not** reset Supabase.
 - **Safe additive migrations (later):** `offline_entitlements`, `store_launch_payments`, RPC guards.
-- **Risky:** Splitting merchant app into pure SPA without server functions (large rewrite — **reject**).
+- **Risky:** Splitting merchant app into pure SPA without server functions (large rewrite, **reject**).
 - **Risky:** Moving all logic to client Supabase calls (exposes data model, bypasses Node Paynow/secrets).
 
 ---
@@ -216,13 +216,13 @@ Your **execution order A→H** aligns: **A done (this doc)**, **B next**, then *
 | Node ≥ 22.12 | `package.json` engines |
 | `npm run verify:local` | Passes on agent |
 | Rust | Available on cloud VM |
-| Android SDK / JDK | **Not on cloud VM** — local only |
+| Android SDK / JDK | **Not on cloud VM**, local only |
 | Supabase secrets | Never in client bundle; `VITE_*` publishable key only |
 | Keystore | **Never commit** |
 
 ---
 
-## 13. Milestones (your order — unchanged)
+## 13. Milestones (your order: unchanged)
 
 1. **Windows:** Install → login → dashboard (hosted API OK for v1).
 2. **Android APK:** Same account on phone.
@@ -231,7 +231,7 @@ Your **execution order A→H** aligns: **A done (this doc)**, **B next**, then *
 
 ---
 
-## 14. Phase A conclusion — proceed to Phase B?
+## 14. Phase A conclusion: proceed to Phase B?
 
 **Yes, with constraints:**
 
@@ -249,18 +249,18 @@ Your **execution order A→H** aligns: **A done (this doc)**, **B next**, then *
 
 ## 15. Related docs
 
-- `docs/STORE_OWNER_JOURNEY_AUDIT.md` — payment and lifecycle
-- `docs/OFFLINE_AND_SYNC_DESIGN.md` — offline matrix
-- `docs/ARCHITECTURE.md` — trust boundaries
-- `docs/CLOUD_RUN_LAUNCH.md` — deploy pause and env separation
+- `docs/STORE_OWNER_JOURNEY_AUDIT.md`, payment and lifecycle
+- `docs/OFFLINE_AND_SYNC_DESIGN.md`, offline matrix
+- `docs/ARCHITECTURE.md`, trust boundaries
+- `docs/CLOUD_RUN_LAUNCH.md`, deploy pause and env separation
 
 ---
 
 ## 16. Tests already in repo (regression baseline)
 
-- `tests/billing-write.test.ts` — subscription gates
-- `tests/offline-sync.test.ts` — queue order / idempotency
-- `tests/integration/billing-security.test.ts` — staging Paynow idempotency (needs token)
-- `npm run verify:local` — typecheck, lint, unit, build
+- `tests/billing-write.test.ts`, subscription gates
+- `tests/offline-sync.test.ts`, queue order / idempotency
+- `tests/integration/billing-security.test.ts`, staging Paynow idempotency (needs token)
+- `npm run verify:local`, typecheck, lint, unit, build
 
 Add when packaging lands: smoke script “desktop loads login”, “Capacitor WebView reaches Supabase ping”.

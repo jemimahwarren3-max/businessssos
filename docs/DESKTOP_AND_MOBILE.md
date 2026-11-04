@@ -1,20 +1,20 @@
 # Kwetuu Desktop (Tauri) and Android (Capacitor)
 
-Phase **B** packaging proof. The merchant app remains **TanStack Start** with server functions on the hosted Node API — native shells v1 load the **live staff entrypoint** so sessions and Paynow stay correct.
+Phase **B** packaging proof. The merchant app remains **TanStack Start** with server functions on the hosted Node API, native shells v1 load the **live staff entrypoint** so sessions and Paynow stay correct.
 
 ## Prerequisites
 
 | Tool | Desktop (Windows) | Android APK |
 | ---- | ------------------- | ----------- |
 | Node.js ≥ 22.12 | Yes | Yes |
-| Rust + MSVC (Windows) | Yes | — |
+| Rust + MSVC (Windows) | Yes |, |
 | [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) | Yes | Optional (Tauri Android later) |
-| Android Studio + SDK | — | Yes |
-| JDK 17+ | — | Yes |
+| Android Studio + SDK |, | Yes |
+| JDK 17+ |, | Yes |
 
 Cloud CI can build Linux `.deb` / AppImage after installing [Tauri Linux deps](https://v2.tauri.app/start/prerequisites/#linux) (`libwebkit2gtk-4.1-dev`, etc.). **Windows `.exe` (NSIS) must be built on Windows** (or a Windows CI runner). This repo pins Rust ≥ 1.90 via `rust-toolchain.toml`.
 
-## Desktop — Tauri 2
+## Desktop: Tauri 2
 
 ### Development (full local stack)
 
@@ -28,7 +28,7 @@ npm run desktop:dev
 
 Sign in at `/staff-login` or `/auth` as in the browser.
 
-### Production installer (v1 — hosted shell)
+### Production installer (v1: hosted shell)
 
 `src-tauri/tauri.conf.json` opens **`https://mykwetuu.com/staff-login`** in release builds so httpOnly cookies and server functions match production. This is intentional until a bundled client + API origin strategy is implemented (see `docs/MULTI_PLATFORM_PHASE_A_AUDIT.md`).
 
@@ -44,7 +44,7 @@ Installers appear under `src-tauri/target/release/bundle/`.
 
 `src/lib/platform.ts` exposes `getKwetuuPlatform()` → `"desktop"` when running under Tauri.
 
-## Android — Capacitor 8
+## Android: Capacitor 8
 
 ### One-time project setup
 

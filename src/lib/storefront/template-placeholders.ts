@@ -1,6 +1,6 @@
 import type { StoreCategoryId } from "@/lib/storefront/templates";
 
-/** Static marketing photos shipped in /public — safe placeholders until merchants upload their own. */
+/** Static marketing photos shipped in /public, safe placeholders until merchants upload their own. */
 const CATEGORY_HERO: Record<StoreCategoryId, string> = {
   beauty: "/marketing/beauty.jpg",
   fashion: "/marketing/fashion.jpg",
@@ -86,7 +86,7 @@ const SAMPLE_PRODUCTS: Record<StoreCategoryId, readonly { name: string; price: n
   ],
 };
 
-/** Demo catalogue shown only in template pickers — not real inventory. */
+/** Demo catalogue shown only in template pickers, not real inventory. */
 export function sampleProductsForCategory(category: StoreCategoryId) {
   return SAMPLE_PRODUCTS[category] ?? SAMPLE_PRODUCTS.general;
 }

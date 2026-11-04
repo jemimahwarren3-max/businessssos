@@ -21,23 +21,41 @@ const PUBLISH_KEYS = [
   "previewed",
 ] as const;
 
+const EMPTY_CHECKLIST: AdminStore["checklist"] = {
+  name: false,
+  template: false,
+  products: false,
+  payments: false,
+  fulfilment: false,
+  policies: false,
+  previewed: false,
+  published: false,
+};
+
+function checklistOrEmpty(
+  checklist: AdminStore["checklist"] | null | undefined,
+): AdminStore["checklist"] {
+  return checklist ?? EMPTY_CHECKLIST;
+}
+
 function publishReady(checklist: AdminStore["checklist"]): boolean {
   return PUBLISH_KEYS.every((key) => checklist[key]);
 }
 
 export function deriveStoreLaunchDisplay(input: {
-  checklist: AdminStore["checklist"];
+  checklist: AdminStore["checklist"] | null | undefined;
   storeStatus: string | null | undefined;
   billingEnabled: boolean;
   isOperateLocked: boolean;
 }): StoreLaunchDisplay {
-  const { checklist, storeStatus, billingEnabled, isOperateLocked } = input;
+  const checklist = checklistOrEmpty(input.checklist);
+  const { storeStatus, billingEnabled, isOperateLocked } = input;
 
   if (storeStatus === "published") {
     return {
       phase: "live",
       badge: "Live",
-      headline: "Your shop is published — share the link and manage online orders.",
+      headline: "Your shop is published, share the link and manage online orders.",
     };
   }
 
@@ -53,7 +71,7 @@ export function deriveStoreLaunchDisplay(input: {
     return {
       phase: "payment_required",
       badge: "Payment required",
-      headline: "Setup is complete — pay for Pro to publish and take online orders.",
+      headline: "Setup is complete, pay for Pro to publish and take online orders.",
     };
   }
 
@@ -68,7 +86,7 @@ export function deriveStoreLaunchDisplay(input: {
   return {
     phase: "draft",
     badge: "Draft",
-    headline: "Your shop is in draft — finish the steps below before going live.",
+    headline: "Your shop is in draft, finish the steps below before going live.",
   };
 }
 
@@ -78,15 +96,40 @@ export type LaunchStep = {
   title: string;
   description: string;
   done: boolean;
-  href: string;
-  external?: boolean;
+  to: "/storefront" | "/notifications" | "/inventory";
+  hash?: string;
 };
 
+/** Maps storefront URL hashes to Store builder tabs so the target is mounted. */
+export const STORE_BUILDER_TAB_BY_HASH: Record<string, string> = {
+  "store-builder": "branding",
+  "launch-design": "design",
+  "launch-products": "products",
+  "launch-payments": "info",
+  "launch-fulfilment": "info",
+};
+
+/** Scroll target on `/storefront` for the review-and-publish step (not a builder tab). */
+export const LAUNCH_PUBLISH_HASH = "launch-publish";
+
+export function storeBuilderTabFromHash(hash: string | undefined | null): string | null {
+  const id = (hash ?? "").replace(/^#/, "");
+  return STORE_BUILDER_TAB_BY_HASH[id] ?? null;
+}
+
+/** True when a dashboard launch-card hash has a real target on `/storefront`. */
+export function launchHashHasPageTarget(hash: string | undefined | null): boolean {
+  const id = (hash ?? "").replace(/^#/, "");
+  if (!id) return false;
+  return id === LAUNCH_PUBLISH_HASH || storeBuilderTabFromHash(id) != null;
+}
+
 export function buildLaunchSteps(
-  checklist: AdminStore["checklist"],
-  options: { notificationsConfigured?: boolean },
+  checklist: AdminStore["checklist"] | null | undefined,
+  options?: { notificationsConfigured?: boolean },
 ): LaunchStep[] {
-  const notificationsConfigured = options.notificationsConfigured ?? false;
+  const notificationsConfigured = options?.notificationsConfigured ?? false;
+  checklist = checklistOrEmpty(checklist);
 
   return [
     {
@@ -95,7 +138,8 @@ export function buildLaunchSteps(
       title: "Set up your store",
       description: "Name, contact details, and where customers find you.",
       done: checklist.name,
-      href: "#store-builder",
+      to: "/storefront",
+      hash: "store-builder",
     },
     {
       id: "design",
@@ -103,15 +147,16 @@ export function buildLaunchSteps(
       title: "Choose your design",
       description: "Pick a template, colours, and preview the customer view.",
       done: checklist.template && checklist.previewed,
-      href: "#launch-design",
+      to: "/storefront",
+      hash: "launch-design",
     },
     {
       id: "products",
       step: 3,
       title: "Add products",
-      description: "Choose which catalogue items appear on the public shop.",
+      description: "Add items in Inventory, then choose which appear on the public shop.",
       done: checklist.products,
-      href: "#launch-products",
+      to: "/inventory",
     },
     {
       id: "payments",
@@ -119,7 +164,8 @@ export function buildLaunchSteps(
       title: "Set up payments",
       description: "Turn on cash, manual pay-in, or seller Paynow when approved.",
       done: checklist.payments,
-      href: "#launch-payments",
+      to: "/storefront",
+      hash: "launch-payments",
     },
     {
       id: "fulfilment",
@@ -127,16 +173,16 @@ export function buildLaunchSteps(
       title: "Delivery or collection",
       description: "Pickup, delivery zones, fees, and opening hours for checkout.",
       done: checklist.fulfilment,
-      href: "#launch-fulfilment",
+      to: "/storefront",
+      hash: "launch-fulfilment",
     },
     {
       id: "notifications",
       step: 6,
       title: "Order alerts",
-      description: "In-app alerts and email — configure who gets notified.",
+      description: "In-app alerts and email, configure who gets notified.",
       done: notificationsConfigured,
-      href: "/notifications",
-      external: true,
+      to: "/notifications",
     },
     {
       id: "launch",
@@ -144,7 +190,8 @@ export function buildLaunchSteps(
       title: "Review and launch",
       description: "Save your draft, check the checklist, then publish the shop link.",
       done: checklist.published,
-      href: "#launch-publish",
+      to: "/storefront",
+      hash: "launch-publish",
     },
   ];
 }

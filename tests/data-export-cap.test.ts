@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EXPORT_ROW_CAP, enforceExportRowCap } from "../src/lib/data-export.server";
 
-// Pure-function test — no DB, no live 100k-row seed needed. Confirms the
+// Pure-function test, no DB, no live 100k-row seed needed. Confirms the
 // reject-on-overflow branch: a business that somehow exceeds the cap gets a
 // clear error, not a silently truncated (and therefore incomplete) export.
 

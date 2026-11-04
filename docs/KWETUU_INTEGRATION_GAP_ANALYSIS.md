@@ -24,12 +24,12 @@
 | EcoCash merchant API        | Manual kind + screenshot only                       | Contract, IPN, reference match, refunds                                               |
 | InnBucks API                | Same                                                | Same                                                                                  |
 | ZIPIT                       | Not in schema                                       | Bank/mobile partner                                                                   |
-| Card acquiring (non-Paynow) | POS `card` is a label                               | PCI — do not collect PAN                                                              |
+| Card acquiring (non-Paynow) | POS `card` is a label                               | PCI, do not collect PAN                                                              |
 | Courier networks            | Manual name + URL                                   | Per-courier adapter                                                                   |
 | RBZ / automatic FX feed     | Operator types `platform_fx`                        | Licensed feed; still must not rewrite old sales                                       |
 | Fiscalisation / ZIMRA       | Export only                                         | Certified device path; out of scope                                                   |
 | Thermal printers            | `window.print`                                      | Device-specific; later                                                                |
-| Voice STT                   | —                                                   | New vendor                                                                            |
+| Voice STT                   |,                                                   | New vendor                                                                            |
 
 `docs/THIRD_PARTY_SERVICES.md` is slightly stale (it still says there is no upload flow). Storage buckets exist. Treat this file as the current map.
 

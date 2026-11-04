@@ -1,5 +1,5 @@
 -- Repricing: one paid plan ("pro", $3/mo) instead of three tiers, and a
--- 3-day trial instead of 14. Only touches new businesses going forward —
+-- 3-day trial instead of 14. Only touches new businesses going forward,
 -- existing subscriptions keep whatever plan/trial_ends_at they already have.
 create or replace function public.create_business_with_owner(
   _name text,

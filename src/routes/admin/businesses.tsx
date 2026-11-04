@@ -97,9 +97,9 @@ function AdminBusinessesPage() {
                     {row.name}
                   </Link>
                 </TableCell>
-                <TableCell className="capitalize">{row.plan ?? "—"}</TableCell>
+                <TableCell className="capitalize">{row.plan ?? "-"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{row.subscription_status ?? "—"}</Badge>
+                  <Badge variant="outline">{row.subscription_status ?? "-"}</Badge>
                 </TableCell>
                 <TableCell>
                   {row.storefront_slug ? (
@@ -107,7 +107,7 @@ function AdminBusinessesPage() {
                       {row.storefront_status} · {row.storefront_slug}
                     </span>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </TableCell>
                 <TableCell>{row.member_count}</TableCell>

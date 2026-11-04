@@ -1,4 +1,4 @@
-# Auth, Google OAuth, and email — setup and testing
+# Auth, Google OAuth, and email: setup and testing
 
 Two separate email systems:
 
@@ -22,8 +22,8 @@ Setting `RESEND_API_KEY` in GitHub/Cloud Run **does not** enable Auth confirmati
 
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (same project as Vite)
 - `SUPABASE_SERVICE_ROLE_KEY` (server/admin only)
-- `SESSION_SECRET` (≥32 characters) — seals `businessos_session`
-- `APP_URL` — must match the URL users open (e.g. `https://mykwetuu.com`)
+- `SESSION_SECRET` (≥32 characters), seals `businessos_session`
+- `APP_URL`, must match the URL users open (e.g. `https://mykwetuu.com`)
 
 ### Transactional (optional until you need order email)
 
@@ -33,11 +33,11 @@ Setting `RESEND_API_KEY` in GitHub/Cloud Run **does not** enable Auth confirmati
 
 ---
 
-## Supabase Dashboard — Authentication
+## Supabase Dashboard: Authentication
 
 1. **Project Settings → API:** note project URL and anon key (already in env).
 2. **Authentication → URL configuration**
-   - **Site URL:** `https://mykwetuu.com` — **must be HTTPS**, not `http://`
+   - **Site URL:** `https://mykwetuu.com`, **must be HTTPS**, not `http://`
    - **Redirect URLs:** add (staging project `businessos-staging` / `slajanbsfqjnuuiohbmg`)
      - `https://mykwetuu.com/auth/callback` (Google OAuth)
      - `https://mykwetuu.com/auth/callback/**`
@@ -94,7 +94,7 @@ Auth confirmation logs appear in **Supabase Auth logs**, not Resend, unless Auth
 1. Open `/auth?mode=signup` with Email provider **enabled**.
 2. Submit form → expect **“Confirm your email”** (if confirmation required) or redirect to **onboarding** (if autoconfirm).
 3. In Supabase **Authentication → Logs**, confirm `signup` / mail event.
-4. Click link in inbox → lands on `/auth/confirm` (or `/` with tokens — app forwards) → **onboarding**.
+4. Click link in inbox → lands on `/auth/confirm` (or `/` with tokens, app forwards) → **onboarding**.
 
 ---
 
@@ -106,7 +106,7 @@ Use project **`businessos-staging`** while `mykwetuu.com` points at staging Auth
 
 **Authentication → Users → Delete** only removes `auth.users`. Kwetuu stores merchants in **`public.businesses`** (`created_by` → auth user, **no cascade**) and other tables (e.g. **`shop_order_payments.confirmed_by`** is **ON DELETE RESTRICT**). Postgres then returns **“Database error deleting user”**.
 
-**“User not found”** usually means the Auth row is already gone but the UI list is stale — refresh the page.
+**“User not found”** usually means the Auth row is already gone but the UI list is stale, refresh the page.
 
 ### Recommended: SQL cleanup script (staging)
 
@@ -158,14 +158,14 @@ npm run verify:staging
 
 | Symptom | Check |
 | ------- | ----- |
-| Email signup disabled toast | GoTrue email provider off — enable in Supabase |
-| No confirmation email | **No custom SMTP in Supabase** (built-in only mails org team) — see `SUPABASE_AUTH_EMAIL.md`; Auth SMTP / mail logs; spam folder; or enable autoconfirm |
+| Email signup disabled toast | GoTrue email provider off, enable in Supabase |
+| No confirmation email | **No custom SMTP in Supabase** (built-in only mails org team), see `SUPABASE_AUTH_EMAIL.md`; Auth SMTP / mail logs; spam folder; or enable autoconfirm |
 | Stuck on “Confirm your email” forever | Enable **autoconfirm** on staging (see below) or fix Auth SMTP |
 | “Confirming your email…” then error | Open the link in the **same browser** as signup; link expires after 24h |
 | Google “did not finish” | Redirect URL mismatch; PKCE cookie blocked (non-HTTPS local); `APP_URL` wrong |
 | Loop auth ↔ dashboard | Deploy includes PR #50+ (`finishOAuthCallback`) |
 | Stuck “Checking your session” | `SESSION_SECRET` missing on server; cookie blocked |
-| Orders email not sent | `RESEND_*` + outbox flush — separate from Auth |
+| Orders email not sent | `RESEND_*` + outbox flush, separate from Auth |
 
 ### If sign-up still “goes nowhere” (operator checklist)
 

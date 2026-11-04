@@ -146,6 +146,17 @@ export const STAGING_MIGRATION_MANIFEST = [
     // so Create shop uniquely matches the jsonb signature.
     file: "20261103020000_create_business_unique.sql",
   },
+  {
+    file: "20261103100000_get_setup_progress_member.sql",
+  },
+  {
+    file: "20261103120000_one_month_trial.sql",
+  },
+  {
+    // Always re-apply: older manifest files recreate get_daily_takings
+    // without excluding supplier payouts.
+    file: "20261103121000_daily_takings_exclude_suppliers.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
@@ -216,6 +227,72 @@ export const STAGING_READINESS_CHECKS = [
     ) as ok`,
   },
   {
+    id: "create_business_with_owner_unique",
+    label: "create_business_with_owner() is a unique jsonb signature",
+    sql: `select (
+      (select count(*) from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'create_business_with_owner') = 1
+    ) and exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_business_with_owner'
+        and p.pronargs = 7
+        and pg_get_function_identity_arguments(p.oid) like '%jsonb%'
+    ) as ok`,
+  },
+  {
+    id: "create_sale_tenders",
+    label: "create_sale() is the unique 10-arg split-tenders function",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_sale'
+        and p.proargnames is not null
+        and '_tenders' = any (p.proargnames)
+    ) and not exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_sale'
+        and (p.proargnames is null or not ('_tenders' = any (p.proargnames)))
+    ) as ok`,
+  },
+  {
+    id: "daily_takings_exclude_suppliers",
+    label: "get_daily_takings() excludes supplier payouts",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'get_daily_takings'
+        and pg_get_functiondef(p.oid) like '%supplier_id is null%'
+    ) as ok`,
+  },
+  {
+    id: "one_month_trial",
+    label: "create_business_with_owner() starts a 1-month trial",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'create_business_with_owner'
+        and pg_get_functiondef(p.oid) like '%interval ''1 month''%'
+    ) as ok`,
+  },
+  {
+    id: "setup_completed_at",
+    label: "businesses.setup_completed_at (setup vs create-shop)",
+    sql: `select exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'businesses'
+        and column_name = 'setup_completed_at'
+    ) as ok`,
+  },
+  {
     id: "create_product_category",
     label: "create_product() accepts _category_id",
     sql: `select exists (
@@ -242,6 +319,17 @@ export const STAGING_READINESS_CHECKS = [
       select 1 from pg_constraint
       where conname = 'storefronts_template_check'
         and pg_get_constraintdef(oid) like '%food-counter%'
+    ) as ok`,
+  },
+  {
+    id: "get_setup_progress_member",
+    label: "get_setup_progress() requires business membership",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'get_setup_progress'
+        and pg_get_functiondef(p.oid) like '%is_business_member%'
     ) as ok`,
   },
 ];

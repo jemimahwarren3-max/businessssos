@@ -1,4 +1,4 @@
-// Isomorphic Sentry — @sentry/node on the server, @sentry/react in the browser.
+// Isomorphic Sentry, @sentry/node on the server, @sentry/react in the browser.
 // No-op when the DSN for that runtime is unset (safe before Sentry exists).
 //
 // Production uses two Sentry projects: VITE_SENTRY_DSN (frontend) and

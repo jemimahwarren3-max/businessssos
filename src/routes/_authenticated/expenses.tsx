@@ -88,6 +88,7 @@ function Expenses() {
   const currency = workspace.data?.business.currency ?? "USD";
   const canManage = hasPermission(workspace.data, "expenses.create");
   const canDelete = hasPermission(workspace.data, "expenses.delete");
+  const canView = canManage || hasPermission(workspace.data, "reports.financial");
 
   const [range, setRange] = useState("30");
   const [open, setOpen] = useState(false);
@@ -107,7 +108,7 @@ function Expenses() {
 
   const expenses = useQuery({
     queryKey: ["expenses", businessId, range],
-    enabled: Boolean(businessId),
+    enabled: Boolean(businessId) && canView,
     queryFn: () => fetchExpenses({ data: { businessId: businessId!, days: Number(range) } }),
   });
 
@@ -153,6 +154,28 @@ function Expenses() {
         <Skeleton className="h-9 w-56" />
         <Skeleton className="h-80" />
       </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <AppShell
+        businessName={workspace.data.business.name}
+        role={workspace.data.role}
+        plan={workspace.data.plan}
+        isReadOnly={workspace.data.isReadOnly}
+        billingEnabled={workspace.data.billingEnabled}
+        title="Expenses"
+        subtitle="Rent, salaries, supplies, everything your business spends."
+      >
+        <div className="surface px-6 py-16 text-center">
+          <Receipt className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
+          <h2 className="mt-3 text-lg font-semibold">Your role can't view expenses</h2>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
+            Ask an owner, admin or manager for access if you need to see spending records.
+          </p>
+        </div>
+      </AppShell>
     );
   }
 

@@ -26,7 +26,7 @@ export type DocumentPrintViewProps = {
   currency: string;
 };
 
-/** Rendered `hidden print:block` inside the existing detail dialog — never
+/** Rendered `hidden print:block` inside the existing detail dialog, never
  * seen on screen, only when printing/saving as PDF (see the .print-area
  * rule in src/styles.css). Deliberately plain black-on-white regardless of
  * the app's own theme tokens: printers print on white paper, and a

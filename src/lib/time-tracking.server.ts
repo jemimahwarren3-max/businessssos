@@ -15,7 +15,7 @@ export type TimeEntryRow = {
   note: string | null;
 };
 
-/** No assertPermission gate on the personal clock in/out/status functions —
+/** No assertPermission gate on the personal clock in/out/status functions,
  * any active member can clock themselves in and out (same trust level as
  * recording a sale), enforced by clock_in/clock_out's own auth.uid()-scoped
  * logic, not a role check. Only the cross-team timesheet view below is

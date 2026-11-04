@@ -7,6 +7,7 @@ import {
   canWriteWithPlatformEntitlement,
 } from "@/lib/billing-write";
 import { isBillingEnabled } from "@/lib/feature-flags.server";
+import { paynowCredentialsConfigured } from "@/lib/payments/paynow-credentials.server";
 import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.server";
 import type {
   ConvertQuoteInput,
@@ -46,7 +47,7 @@ export { canWriteForSubscription };
 
 export type Db = SupabaseClient<Database>;
 
-/** Friendly errors only — never leak Postgres details to the browser. */
+/** Friendly errors only, never leak Postgres details to the browser. */
 export class AppError extends Error {}
 
 function fail(message: string): never {
@@ -54,11 +55,15 @@ function fail(message: string): never {
 }
 
 const USER_FACING_DB =
-  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert|supplier|deposit|lay-by|collect-after|held deposit|not ready to collect|already paid in full/i;
+  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|not a member of this business|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert|supplier|deposit|lay-by|collect-after|held deposit|not ready to collect|already paid in full/i;
 
 function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
 }
+
+/** Missing RPC / stale PostgREST cache, not a form-validation failure. */
+export const SCHEMA_DRIFT_USER_MESSAGE =
+  "The shop server is still updating, this is not a problem with your form. Wait a minute and try again. Do not create a second shop.";
 
 export function userFacingDbMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
@@ -77,7 +82,7 @@ export function userFacingDbMessage(error: unknown): string {
     return firstUserFacingLine(message);
   }
   if (isMissingDbFunction(error)) {
-    return "Shop setup is out of date. Wait a minute and try again.";
+    return SCHEMA_DRIFT_USER_MESSAGE;
   }
   return "Something went wrong saving your data. Please try again.";
 }
@@ -93,6 +98,39 @@ export function isMissingDbFunction(error: unknown): boolean {
     code === "PGRST202" ||
     /schema cache|could not find the function/i.test(message)
   );
+}
+
+/** Staging/production may not have applied the latest ALTER TABLE yet. */
+export function isMissingDbColumn(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  const message = (error as { message?: string } | null)?.message ?? "";
+  return (
+    code === "42703" ||
+    code === "PGRST204" ||
+    /column .* does not exist/i.test(message) ||
+    /could not find the .* column/i.test(message)
+  );
+}
+
+const BUSINESS_WORKSPACE_COLUMNS =
+  "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at";
+
+export async function loadBusinessWorkspaceRow(supabase: Db, businessId: string) {
+  const withModel = await supabase
+    .from("businesses")
+    .select(`${BUSINESS_WORKSPACE_COLUMNS}, commerce_model`)
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!withModel.error || !isMissingDbColumn(withModel.error)) return withModel;
+  console.error(
+    "[businessos] commerce_model column missing, loading workspace without it",
+    withModel.error,
+  );
+  return supabase
+    .from("businesses")
+    .select(BUSINESS_WORKSPACE_COLUMNS)
+    .eq("id", businessId)
+    .maybeSingle();
 }
 
 function skipMissingRpc(context: string, error: unknown): boolean {
@@ -117,6 +155,7 @@ export type Workspace = {
     logo_url: string | null;
     business_path: string;
     setup_completed_at: string | null;
+    commerce_model?: string;
   };
   role: string;
   permissions: string[];
@@ -127,7 +166,7 @@ export type Workspace = {
   isOperateLocked: boolean;
   isPlatformOwner: boolean;
   billingEnabled: boolean;
-  /** Platform admin support view — merchant data is read-only. */
+  /** Platform admin support view, merchant data is read-only. */
   isImpersonating?: boolean;
   impersonationExpiresAt?: string;
   impersonationBusinessName?: string;
@@ -157,11 +196,11 @@ export async function assertRole(supabase: Db, businessId: string, roles: string
   if (!data) fail("Your role doesn't allow this action.");
 }
 
-/** The data-driven successor to assertRole — checks a permission key against
+/** The data-driven successor to assertRole, checks a permission key against
  * business_role_permissions (owner always passes) instead of a hardcoded
  * role array. RLS policies and RPC-embedded has_business_role checks
  * throughout the schema are a separate, lower-level layer this doesn't
- * replace — only application-layer call sites use this. */
+ * replace, only application-layer call sites use this. */
 export async function assertPermission(supabase: Db, businessId: string, permission: string) {
   const { data, error } = await supabase.rpc("has_permission", {
     _business_id: businessId,
@@ -169,6 +208,18 @@ export async function assertPermission(supabase: Db, businessId: string, permiss
   });
   if (error) dbFail("permission check", error);
   if (!data) fail("Your role doesn't allow this action.");
+}
+
+export async function assertAnyPermission(supabase: Db, businessId: string, permissions: string[]) {
+  for (const permission of permissions) {
+    const { data, error } = await supabase.rpc("has_permission", {
+      _business_id: businessId,
+      _permission: permission,
+    });
+    if (error) dbFail("permission check", error);
+    if (data) return;
+  }
+  fail("Your role doesn't allow this action.");
 }
 
 const READ_ONLY_MESSAGE =
@@ -212,7 +263,7 @@ async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
   };
 }
 
-/** Gate for setup writes (products, drafts, storefront design) — trialing allowed. */
+/** Gate for setup writes (products, drafts, storefront design), trialing allowed. */
 export async function assertCanWrite(supabase: Db, businessId: string) {
   const { data: impersonating, error: impErr } = await supabase.rpc(
     "is_platform_impersonating" as never,
@@ -227,7 +278,7 @@ export async function assertCanWrite(supabase: Db, businessId: string) {
   if (!canWriteWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(READ_ONLY_MESSAGE);
 }
 
-/** Gate for publish, POS, and cash drawer — requires paid `active` subscription. */
+/** Gate for publish, POS, and cash drawer, requires paid `active` subscription. */
 export async function assertCanOperate(supabase: Db, businessId: string) {
   const { data: impersonating, error: impErr } = await supabase.rpc(
     "is_platform_impersonating" as never,
@@ -273,10 +324,10 @@ export async function recordAudit(
 }
 
 // Hit on essentially every authenticated page load, so it's the one query
-// in this app actually worth caching (see src/lib/cache/redis.server.ts —
+// in this app actually worth caching (see src/lib/cache/redis.server.ts,
 // no-ops entirely if Upstash isn't configured, so this is safe to ship
 // before you've set it up). Only the found-workspace case is cached, not
-// "no workspace yet" (the mid-onboarding case) — that's rare enough that
+// "no workspace yet" (the mid-onboarding case), that's rare enough that
 // re-checking it every time costs nothing, and caching a null would need
 // extra bookkeeping to tell apart from a genuine cache miss.
 export async function loadWorkspace(supabase: Db, userId: string): Promise<Workspace | null> {
@@ -318,23 +369,17 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const [
     { data: business, error: bizError },
     { data: subscription },
-    { data: permissions },
+    { data: permissions, error: permissionError },
     { data: hasOwnerBypass, error: entitlementError },
     { data: featureFlags, error: featureFlagError },
   ] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select(
-        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
-      )
-      .eq("id", membership.business_id)
-      .maybeSingle(),
+    loadBusinessWorkspaceRow(supabase, membership.business_id),
     supabase
       .from("subscriptions")
       .select("plan, status, trial_ends_at")
       .eq("business_id", membership.business_id)
       .maybeSingle(),
-    // Every member's own effective permission set — owner gets everything,
+    // Every member's own effective permission set, owner gets everything,
     // everyone else gets exactly what business_role_permissions grants
     // their role, defaulted to today's behavior on first access.
     supabase.rpc("get_my_permissions", { _business_id: membership.business_id }),
@@ -347,6 +392,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     ),
   ]);
   if (bizError) dbFail("load business", bizError);
+  if (permissionError) dbFail("load permissions", permissionError);
   if (
     entitlementError &&
     !skipMissingRpc("check platform subscription entitlement", entitlementError)
@@ -365,9 +411,9 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const billingExempt = flags?.billingExempt === true;
 
   const workspace: Workspace = {
-    business,
+    business: business as unknown as Workspace["business"],
     role: membership.role,
-    permissions: permissions ?? [],
+    permissions: Array.isArray(permissions) ? permissions : [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
     isReadOnly: !canWriteWithPlatformEntitlement(
@@ -387,7 +433,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
 }
 
 /** Call after anything that changes a business's plan/status or a member's
- * role — every active member's cached workspace needs to reflect it, not
+ * role, every active member's cached workspace needs to reflect it, not
  * just whoever triggered the change. A 60s TTL bounds staleness even if a
  * future write path forgets this, but real writes shouldn't rely on that. */
 export async function invalidateWorkspaceCacheForBusiness(
@@ -407,7 +453,7 @@ export async function createBusinessRecord(
   userId: string,
   input: CreateBusinessInput,
 ) {
-  // Do not call loadWorkspace here — that RPC-heavy path can fail on a missing
+  // Do not call loadWorkspace here, that RPC-heavy path can fail on a missing
   // feature-flag function and block first-time create. Membership is enough.
   const { data: existingMember } = await supabase
     .from("business_members")
@@ -441,7 +487,7 @@ export async function createBusinessRecord(
         : null;
   if (!businessIdStr) dbFail("create business", new Error("Unexpected create business response."));
 
-  // Best-effort — the business itself is already fully committed above, so a
+  // Best-effort, the business itself is already fully committed above, so a
   // failure here shouldn't roll anything back or block the user.
   await supabase.from("notifications").insert({
     business_id: businessIdStr,
@@ -449,8 +495,8 @@ export async function createBusinessRecord(
     type: "welcome",
     title: "Welcome to Kwetuu",
     message: isBillingEnabled()
-      ? "Your 14-day Pro trial has started. Add your first products to begin."
-      : "You're in! Kwetuu is free during our beta — add your first products to begin.",
+      ? "Your 1-month Pro trial has started. Add your first products to begin."
+      : "You're in! Kwetuu is free during our beta, add your first products to begin.",
     severity: "info",
   });
   await recordAudit(supabase, {
@@ -477,6 +523,7 @@ export async function markOnboardingComplete(supabase: Db, userId: string): Prom
 }
 
 export async function getSetupProgress(supabase: Db, businessId: string) {
+  await assertMember(supabase, businessId);
   const { data, error } = await supabase.rpc("get_setup_progress", {
     _business_id: businessId,
   });
@@ -484,7 +531,9 @@ export async function getSetupProgress(supabase: Db, businessId: string) {
   return data as unknown as {
     business_path: string;
     setup_completed_at: string | null;
+    commerce_model?: string;
     has_products: boolean;
+    has_services?: boolean;
     product_count: number;
     has_sales: boolean;
     sale_count: number;
@@ -562,7 +611,12 @@ export async function loadBillingSummary(supabase: Db, businessId: string) {
   if (subError) dbFail("load subscription", subError);
   if (payError) dbFail("load subscription payments", payError);
 
-  return { subscription: subscription ?? null, payments: payments ?? [] };
+  return {
+    subscription: subscription ?? null,
+    payments: payments ?? [],
+    paynowUsdConfigured: paynowCredentialsConfigured("USD"),
+    paynowZigConfigured: paynowCredentialsConfigured("ZWG"),
+  };
 }
 
 /* ------------------------------ categories ------------------------------ */
@@ -608,7 +662,8 @@ export async function listProducts(
   search: string,
   supplierId?: string,
 ) {
-  let query = supabase
+  const term = search.trim();
+  let withWholesaleQuery = supabase
     .from("products")
     .select(
       "id, name, sku, barcode, unit, cost_price, selling_price, wholesale_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
@@ -617,12 +672,39 @@ export async function listProducts(
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
-  const term = search.trim();
-  if (term) query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`);
-  if (supplierId) query = query.eq("supplier_id", supplierId);
-  const { data, error } = await query;
-  if (error) dbFail("list products", error);
-  return data ?? [];
+  if (term) {
+    withWholesaleQuery = withWholesaleQuery.or(
+      `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,
+    );
+  }
+  if (supplierId) withWholesaleQuery = withWholesaleQuery.eq("supplier_id", supplierId);
+  const withWholesale = await withWholesaleQuery;
+  if (!withWholesale.error || !isMissingDbColumn(withWholesale.error)) {
+    if (withWholesale.error) dbFail("list products", withWholesale.error);
+    return withWholesale.data ?? [];
+  }
+  console.error(
+    "[businessos] wholesale_price column missing, listing products without it",
+    withWholesale.error,
+  );
+  let withoutWholesaleQuery = supabase
+    .from("products")
+    .select(
+      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
+    )
+    .eq("business_id", businessId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (term) {
+    withoutWholesaleQuery = withoutWholesaleQuery.or(
+      `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,
+    );
+  }
+  if (supplierId) withoutWholesaleQuery = withoutWholesaleQuery.eq("supplier_id", supplierId);
+  const withoutWholesale = await withoutWholesaleQuery;
+  if (withoutWholesale.error) dbFail("list products", withoutWholesale.error);
+  return (withoutWholesale.data ?? []).map((row) => ({ ...row, wholesale_price: null }));
 }
 
 export async function listLocations(
@@ -722,7 +804,7 @@ type CreateProductRpcArgs = Database["public"]["Functions"]["create_product"]["A
 /**
  * Named args for create_product. Staging still has the 13-arg function
  * (no _category_id). PostgREST rejects extra named parameters with PGRST202,
- * which the UI shows as "Shop setup is out of date".
+ * which the UI shows as SCHEMA_DRIFT_USER_MESSAGE.
  * Only send _category_id when the merchant actually chose one so onboarding
  * and inventory add still match the current function.
  */
@@ -759,7 +841,9 @@ export async function createProduct(supabase: Db, input: ProductInput) {
       .update({ wholesale_price: input.wholesalePrice })
       .eq("id", data.id)
       .eq("business_id", input.businessId);
-    if (wholesaleError) dbFail("save wholesale price", wholesaleError);
+    if (wholesaleError && !isMissingDbColumn(wholesaleError)) {
+      dbFail("save wholesale price", wholesaleError);
+    }
   }
   return data;
 }
@@ -1018,7 +1102,8 @@ export async function createSale(supabase: Db, input: SaleInput) {
     _payment_method: input.paymentMethod,
     _notes: (input.notes || null) as never,
     _items: input.items.map((item) => ({
-      productId: item.productId,
+      productId: item.productId || undefined,
+      serviceId: item.serviceId || undefined,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
     })) as never,
@@ -1094,7 +1179,7 @@ export async function getSaleDetail(supabase: Db, businessId: string, saleId: st
       .eq("business_id", businessId)
       .order("created_at", { ascending: true }),
     // sale_refund_items has no sale_id of its own (only its parent
-    // sale_refund does) — going through sale_refunds here is the only way
+    // sale_refund does), going through sale_refunds here is the only way
     // to scope this to one sale rather than pulling every refund in the
     // business.
     supabase
@@ -1705,7 +1790,7 @@ export async function createPurchaseOrder(supabase: Db, input: PurchaseOrderInpu
   return { id: data as string };
 }
 
-/** Receiving isn't just a label flip — set_purchase_order_status also adds a
+/** Receiving isn't just a label flip, set_purchase_order_status also adds a
  * stock_in movement per line item with a linked product, same as a manual
  * restock. Audit logging happens inside that function too (it needs the PO's
  * previous status either way, already has it from its own row lock). */
@@ -1773,6 +1858,7 @@ export async function listExpenses(
   businessId: string,
   days: number,
 ): Promise<ExpenseRow[]> {
+  await assertAnyPermission(supabase, businessId, ["reports.financial", "expenses.create"]);
   const since = new Date();
   since.setDate(since.getDate() - days);
   const { data, error } = await supabase
@@ -1884,7 +1970,7 @@ export async function importExpenses(
   return { imported, skipped: errors.length, errors };
 }
 
-/** Historical sales entered for reporting only — deliberately does NOT touch
+/** Historical sales entered for reporting only, deliberately does NOT touch
  * current stock or create inventory movements, since these sales already
  * happened before the business started using this system. */
 export async function importSalesHistory(
@@ -1967,12 +2053,12 @@ export async function importCustomers(
   return { imported, skipped: errors.length, errors };
 }
 
-/** Real line-item historical sales — one row = one product = one sale.
+/** Real line-item historical sales, one row = one product = one sale.
  * Resolves product/customer names against this business's own records
  * (same deterministic substring search Inventory/Customers search already
  * use) before calling import_sale_line, which decrements stock and writes
  * every timestamp as the row's own date rather than "now". Kept as its own
- * RPC rather than a create_sale parameter — see import_sale_line's own
+ * RPC rather than a create_sale parameter, see import_sale_line's own
  * comment for why. */
 export async function importSalesDetailed(
   supabase: Db,
@@ -2115,11 +2201,11 @@ export async function loadDashboard(
         .select("total, cost_total, discount, created_at")
         .eq("business_id", businessId)
         // partially_refunded sales still contribute their (already-reduced)
-        // remaining total — only fully refunded/cancelled sales are excluded.
+        // remaining total, only fully refunded/cancelled sales are excluded.
         .in("status", ["completed", "partially_refunded"])
         .gte("created_at", windowStart.toISOString()),
-      // No date filter is possible here by design — an unpaid invoice from
-      // last year is still "outstanding" today — so .limit() is the only
+      // No date filter is possible here by design, an unpaid invoice from
+      // last year is still "outstanding" today, so .limit() is the only
       // available bound. Safety net only: a business that somehow exceeds it
       // would see an understated outstanding total, not an error, but this is
       // far beyond realistic usage for this app's target market.
@@ -2345,6 +2431,7 @@ export async function loadReports(
   businessId: string,
   days: number,
 ): Promise<ReportsData> {
+  await assertPermission(supabase, businessId, "reports.financial");
   const now = new Date();
   const windowStart = new Date(now);
   windowStart.setDate(windowStart.getDate() - (days - 1));
@@ -2360,7 +2447,7 @@ export async function loadReports(
         .in("status", ["completed", "partially_refunded"])
         .gte("created_at", windowStart.toISOString()),
       // Safety net only (see the invoices query in loadDashboard for the
-      // same tradeoff) — the highest-cardinality table in the schema, one
+      // same tradeoff), the highest-cardinality table in the schema, one
       // row per line item per sale.
       supabase
         .from("sale_items")
