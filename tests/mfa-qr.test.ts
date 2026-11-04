@@ -27,7 +27,13 @@ describe("totp secret display", () => {
   it("keeps the last character in the grouped key", () => {
     const secret = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     expect(totpSecretRaw(` ${secret.toLowerCase()} \n`)).toBe(secret);
-    expect(totpSecretGrouped(secret).endsWith("ZOVN")).toBe(true);
-    expect(totpSecretGrouped(secret).split(" ")).toHaveLength(8);
+    const grouped = totpSecretGrouped(secret);
+    expect(grouped.replace(/\s+/g, "")).toBe(secret);
+    expect(grouped.split(" ")).toHaveLength(8);
+    expect(grouped.endsWith("4567")).toBe(true);
+
+    const leftover = totpSecretGrouped(`${secret}A`);
+    expect(leftover.replace(/\s+/g, "")).toBe(`${secret}A`);
+    expect(leftover.endsWith("A")).toBe(true);
   });
 });
