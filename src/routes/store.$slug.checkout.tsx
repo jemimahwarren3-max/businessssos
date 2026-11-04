@@ -2,7 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "@/lib/auth/auth.functions";
-import { orderTokenKey, readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
+import {
+  mergeGuestCartIntoUserCart,
+  orderTokenKey,
+  readCart,
+  writeCart,
+  type CartLine,
+} from "@/lib/storefront/cart";
 import { placeOrderFn, quoteCartFn } from "@/lib/storefront/storefront.functions";
 import type { CartQuote } from "@/lib/storefront/contract";
 import {
@@ -69,7 +75,8 @@ function CheckoutPage() {
   const [collectAt, setCollectAt] = useState("");
   const [deliveryZoneId, setDeliveryZoneId] = useState("");
   const [collectionPointId, setCollectionPointId] = useState("");
-  const [shopper, setShopper] = useState<{ email: string | null } | null>(null);
+  const [shopper, setShopper] = useState<{ userId: string; email: string | null } | null>(null);
+  const [guestCartNotice, setGuestCartNotice] = useState<string | null>(null);
   const deliveryZones = useMemo(
     () => enabledDeliveryZones(store.delivery.zones),
     [store.delivery.zones],
@@ -96,13 +103,22 @@ function CheckoutPage() {
   );
 
   useEffect(() => {
-    setLines(readCart(store.slug));
-  }, [store.slug]);
+    setLines(readCart(store.slug, shopper?.userId ?? null));
+  }, [store.slug, shopper?.userId]);
 
   useEffect(() => {
     void fetchUser().then((user) => {
-      if (!user) return;
-      setShopper({ email: user.email });
+      if (!user) {
+        setGuestCartNotice(null);
+        return;
+      }
+      const guestLines = readCart(store.slug);
+      const merged = guestLines.length > 0 ? mergeGuestCartIntoUserCart(store.slug, user.userId) : readCart(store.slug, user.userId);
+      setGuestCartNotice(
+        guestLines.length > 0 ? `Your guest cart was saved to your account (${merged.length} item${merged.length === 1 ? "" : "s"}).` : null,
+      );
+      setShopper({ userId: user.userId, email: user.email });
+      setLines(merged);
       if (user.email) setEmail((current) => current || user.email || "");
     });
   }, [fetchUser, store.slug]);
@@ -126,7 +142,11 @@ function CheckoutPage() {
   }, [fulfilment]);
 
   useEffect(() => {
-    if (lines.length === 0) return;
+    if (lines.length === 0) {
+      setPriced(null);
+      setError(null);
+      return;
+    }
     let cancelled = false;
     void quote({
       data: {
@@ -151,6 +171,10 @@ function CheckoutPage() {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (preview || pending) return;
+    if (lines.length === 0) {
+      setError("Your cart is empty. Add an item before checking out.");
+      return;
+    }
     setPending(true);
     setError(null);
     const keyName = `bos-checkout:${store.slug}`;
@@ -190,7 +214,7 @@ function CheckoutPage() {
         sessionStorage.setItem(orderTokenKey(store.slug, result.reference), result.accessToken);
       }
       if (!result.replayed) {
-        writeCart(store.slug, []);
+        writeCart(store.slug, [], shopper?.userId ?? null);
         sessionStorage.removeItem(keyName);
       }
       if (result.paynow?.redirectUrl) {
@@ -209,6 +233,24 @@ function CheckoutPage() {
 
   if (preview) {
     return <p className="px-4 py-10">Publish the shop before customers can check out.</p>;
+  }
+
+  if (lines.length === 0) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10 text-center">
+        <h1 className="text-2xl font-semibold">Your cart is empty</h1>
+        <p className="mt-2 text-sm text-neutral-600">
+          Add at least one item before continuing to checkout.
+        </p>
+        <Link
+          to="/store/$slug"
+          params={{ slug: store.slug }}
+          className="mt-6 inline-flex rounded-full bg-neutral-900 px-4 py-2 text-sm text-white"
+        >
+          Return to the shop
+        </Link>
+      </div>
+    );
   }
 
   if (fulfilments.length === 0) {
@@ -242,6 +284,11 @@ function CheckoutPage() {
               </>
             )}
           </p>
+          {guestCartNotice ? (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              {guestCartNotice}
+            </div>
+          ) : null}
           <p className="text-sm text-neutral-600">{orderDecisionCopy(store)}</p>
           {store.content.deliveryPolicy || store.content.returnsPolicy ? (
             <aside className="space-y-3 rounded-lg border p-4 text-sm">

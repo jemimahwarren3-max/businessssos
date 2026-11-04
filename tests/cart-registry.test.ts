@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listSavedCarts, savedCartCount } from "@/lib/storefront/cart-registry";
-import { writeCart } from "@/lib/storefront/cart";
+import {
+  mergeGuestCartIntoUserCart,
+  readCart,
+  writeCart,
+  type CartLine,
+} from "@/lib/storefront/cart";
 
 function mockLocalStorage() {
   const store = new Map<string, string>();
@@ -34,5 +39,48 @@ describe("cart registry", () => {
     writeCart("beta-shop", []);
     expect(listSavedCarts()).toEqual([{ slug: "alpha-shop", lineCount: 1, totalQuantity: 2 }]);
     expect(savedCartCount()).toBe(1);
+  });
+
+  it("sanitizes malformed cart entries before storing them", () => {
+    writeCart("alpha-shop", [
+      { productId: "a", quantity: 2 },
+      { productId: "", quantity: 5 },
+      { productId: "a", quantity: -1 },
+      { productId: "b", quantity: 1.5 },
+      { productId: "c", quantity: 1, note: "   keep\nthis  " },
+      { productId: "", quantity: 2, note: "ignored" },
+    ] as unknown as CartLine[]);
+
+    expect(readCart("alpha-shop")).toEqual([
+      { productId: "a", quantity: 2 },
+      { productId: "c", quantity: 1, note: "keep\nthis" },
+    ]);
+  });
+
+  it("merges a guest cart into a signed-in shopper cart and keeps the guest cart empty", () => {
+    writeCart("alpha-shop", [{ productId: "a", quantity: 2 }]);
+    writeCart("alpha-shop", [{ productId: "b", quantity: 1 }], "user-1");
+
+    const merged = mergeGuestCartIntoUserCart("alpha-shop", "user-1");
+
+    expect(merged).toEqual([
+      { productId: "a", quantity: 2 },
+      { productId: "b", quantity: 1 },
+    ]);
+    expect(readCart("alpha-shop")).toEqual([]);
+    expect(readCart("alpha-shop", "user-1")).toEqual([
+      { productId: "a", quantity: 2 },
+      { productId: "b", quantity: 1 },
+    ]);
+  });
+
+  it("counts carts stored under a signed-in shopper key as the same shop", () => {
+    writeCart("alpha-shop", [{ productId: "a", quantity: 2 }]);
+    writeCart("alpha-shop", [{ productId: "b", quantity: 1 }], "user-1");
+
+    expect(listSavedCarts()).toEqual([
+      { slug: "alpha-shop", lineCount: 2, totalQuantity: 3 },
+    ]);
+    expect(savedCartCount()).toBe(2);
   });
 });
