@@ -133,10 +133,15 @@ async function dispatch(
   for (const item of items) {
     try {
       const apiKey = process.env["RESEND_API_KEY"]?.trim() ?? "";
+      const safeBody = item.body
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
       let rendered = {
         subject: item.subject,
         text: item.body,
-        html: `<p>${item.body}</p>`,
+        html: `<p>${safeBody}</p>`,
       };
       if (item.emailTemplate && item.orderId) {
         rendered = await renderOutboxOrderEmail(completionClient, {
@@ -176,6 +181,7 @@ export async function flushNotificationOutboxForBusiness(
     const result = await untypedRpc(supabase, "claim_notification_outbox", {
       _business_id: businessId,
       _limit: 15,
+      _channel: "email",
     });
     if (result.error) {
       console.error("[businessos] claim notification outbox", result.error);
@@ -215,6 +221,7 @@ export async function flushNotificationOutboxAdmin(): Promise<FlushMailResult> {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const result = await untypedRpc(supabaseAdmin, "claim_notification_outbox_admin", {
       _limit: 25,
+      _channel: "email",
     });
     if (result.error) {
       console.error("[businessos] admin notification claim", result.error);

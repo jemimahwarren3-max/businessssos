@@ -187,6 +187,31 @@ export function ProductCreateForm({
         />
         <FormField
           control={form.control}
+          name="wholesalePrice"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Wholesale price ({currency}, optional)</FormLabel>
+              <FormControl>
+                <Input
+                  id="p-wholesale"
+                  inputMode="decimal"
+                  placeholder="Not set"
+                  value={field.value === undefined ? "" : String(field.value)}
+                  onChange={(event) => field.onChange(event.target.value)}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              </FormControl>
+              <p className="text-xs text-muted-foreground">
+                A second recorded price. POS and the shop still sell at selling price.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="stock"
           render={({ field }) => (
             <FormItem>

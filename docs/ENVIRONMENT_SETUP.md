@@ -30,6 +30,10 @@ and `NOTIFY_FROM_EMAIL`; scheduled delivery also needs `MAIL_FLUSH_SECRET` and
 the GitHub Actions mail-flush workflow. The Cloud Run launch guide documents
 the verified sender and staging test steps.
 
+Optional WhatsApp Cloud: `WHATSAPP_CLOUD_TOKEN` and `WHATSAPP_CLOUD_PHONE_NUMBER_ID`.
+Queued WhatsApp stays pending until both are set, and is never marked sent without a
+Graph message id. Meta template names are documented in `src/lib/notifications/whatsapp-cloud.ts`.
+
 `VITE_*` values are public by design. Never prefix the service role.
 
 ## Shop hosts in development

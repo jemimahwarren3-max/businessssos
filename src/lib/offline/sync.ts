@@ -4,6 +4,43 @@ export type SubmitSale = (sale: PendingSale) => Promise<{ id: string }>;
 
 export type SyncProgress = { localId: string; status: PendingSale["status"]; error?: string };
 
+function failurePatch(error: unknown): {
+  status: "failed";
+  error: string;
+  isOverSold: boolean;
+  isClosedDrawer: boolean;
+} {
+  const message = error instanceof Error ? error.message : "Couldn't sync this sale.";
+  const isOverSold = /not enough stock|out of stock/i.test(message);
+  const isClosedDrawer = /open the cash drawer/i.test(message);
+  return {
+    status: "failed",
+    error: isClosedDrawer ? "Open the cash drawer, then tap Sync now." : message,
+    isOverSold,
+    isClosedDrawer,
+  };
+}
+
+async function attemptSale(
+  sale: PendingSale,
+  submitSale: SubmitSale,
+  onProgress?: (update: SyncProgress) => void,
+): Promise<"synced" | "failed"> {
+  await updatePendingSale(sale.localId, { status: "syncing" });
+  onProgress?.({ localId: sale.localId, status: "syncing" });
+  try {
+    await submitSale(sale);
+    await removePendingSale(sale.localId);
+    onProgress?.({ localId: sale.localId, status: "pending" });
+    return "synced";
+  } catch (error) {
+    const patch = failurePatch(error);
+    await updatePendingSale(sale.localId, patch);
+    onProgress?.({ localId: sale.localId, status: "failed", error: patch.error });
+    return "failed";
+  }
+}
+
 /**
  * Replays queued offline sales against the real create_sale RPC, one at a
  * time and in the order they were made — never in parallel, so the server's
@@ -26,25 +63,26 @@ export async function syncPendingSales(
   let failed = 0;
 
   for (const sale of queue) {
-    await updatePendingSale(sale.localId, { status: "syncing" });
-    onProgress?.({ localId: sale.localId, status: "syncing" });
-    try {
-      await submitSale(sale);
-      await removePendingSale(sale.localId);
-      synced++;
-      onProgress?.({ localId: sale.localId, status: "pending" });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Couldn't sync this sale.";
-      const isOverSold = /not enough stock|out of stock/i.test(message);
-      await updatePendingSale(sale.localId, {
-        status: "failed",
-        error: message,
-        isOverSold,
-      });
-      failed++;
-      onProgress?.({ localId: sale.localId, status: "failed", error: message });
-    }
+    const result = await attemptSale(sale, submitSale, onProgress);
+    if (result === "synced") synced++;
+    else failed++;
   }
 
   return { synced, failed };
+}
+
+/** Cashier retry for one dead-lettered sale. Does not touch later rows, so a
+ * closed-drawer cash sale can be retried after the till is opened without a
+ * developer clearing the queue. */
+export async function syncOnePendingSale(
+  businessId: string,
+  localId: string,
+  submitSale: SubmitSale,
+  onProgress?: (update: SyncProgress) => void,
+): Promise<{ synced: number; failed: number }> {
+  const queue = await listPendingSales(businessId);
+  const sale = queue.find((row) => row.localId === localId);
+  if (!sale) return { synced: 0, failed: 0 };
+  const result = await attemptSale(sale, submitSale, onProgress);
+  return result === "synced" ? { synced: 1, failed: 0 } : { synced: 0, failed: 1 };
 }

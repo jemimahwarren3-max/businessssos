@@ -4,6 +4,8 @@
 // host stays on /store/{slug}. Draft preview stays on the platform host
 // because the sign-in cookie is not shared with shop subdomains.
 
+import { isStorePreviewFlag } from "./preview-search";
+
 export type PlatformRoot = {
   protocol: string;
   hostname: string;
@@ -235,8 +237,7 @@ export function rewriteStoreOutputUrl(
 }
 
 export function isDraftPreview(url: URL): boolean {
-  const value = url.searchParams.get("preview");
-  return value === "1" || value === '"1"';
+  return isStorePreviewFlag(url.searchParams.get("preview"));
 }
 
 export function publicStoreRedirect(url: URL, root: PlatformRoot, shopHosts = true): string | null {

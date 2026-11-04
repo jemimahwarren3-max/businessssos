@@ -28,7 +28,7 @@ Verified-purchase reviews and listing reports. Reviews require the order access 
 
 ## Batch 2: merchant notifications (shipped)
 
-In-app alerts for new orders, complaints, reviews, listing reports, and low-stock crossings. Email copies and shopper receipts through Resend when `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. Outbox stays pending until then. WhatsApp Cloud is not used.
+In-app alerts for new orders, complaints, reviews, listing reports, and low-stock crossings. Email copies and shopper receipts through Resend when `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` are set. Outbox stays pending until then. WhatsApp Cloud is an optional outbox channel: opted-in rows stay pending until credentials exist and are never marked sent without a Meta message id.
 
 ## Batch 3: staging `locations` drift (shipped)
 

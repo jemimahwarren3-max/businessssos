@@ -64,8 +64,8 @@ export function StoreLaunchCentre({
       {!compact ? (
         <p className="rounded-lg bg-muted/50 px-3 py-2 text-[13px] text-muted-foreground">
           <strong className="font-medium text-foreground">Business tools vs online shop:</strong>{" "}
-          Invoices, inventory, and POS work without a public storefront. Online selling is optional
-          — turn it on here when you are ready.
+          Invoices, inventory, and POS work without a public storefront. Online selling is optional.
+          Turn it on here when you are ready.
         </p>
       ) : null}
 
@@ -143,9 +143,9 @@ function StepBody({
       <p className="text-sm font-medium">
         <span className="text-muted-foreground">{step.step}.</span> {step.title}
         {step.done ? (
-          <span className="sr-only"> — completed</span>
+          <span className="sr-only">, completed</span>
         ) : (
-          <span className="sr-only"> — not completed</span>
+          <span className="sr-only">, not completed</span>
         )}
       </p>
       <p className="text-[13px] text-muted-foreground">{step.description}</p>

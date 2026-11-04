@@ -48,7 +48,7 @@ export function StorefrontOverview({
             Store overview
           </h2>
           <p className="text-sm text-muted-foreground">
-            Status and shortcuts for your online shop — separate from invoices and POS.
+            Status and shortcuts for your online shop. Separate from invoices and POS.
           </p>
         </div>
         <Badge variant="outline" className="capitalize">
@@ -86,7 +86,7 @@ export function StorefrontOverview({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <OverviewCard title="Shop name" value={store.storeName || "—"} />
+          <OverviewCard title="Shop name" value={store.storeName || "-"} />
           <OverviewCard
             title="Publication"
             value={store.status === "published" ? "Published" : "Draft"}
@@ -120,8 +120,7 @@ export function StorefrontOverview({
           No products yet. Add items in{" "}
           <Link to="/inventory" className="font-medium text-primary underline">
             Inventory
-          </Link>{" "}
-          — the same products appear here when you publish them to the shop.
+          </Link>. The same products appear here when you publish them to the shop.
         </p>
       ) : publishedCount === 0 ? (
         <p className="rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
@@ -159,7 +158,7 @@ export function StorefrontOverview({
         ) : null}
         {store?.slug ? (
           <Button asChild size="sm" variant="outline">
-            <Link to="/store/$slug" params={{ slug: store.slug }} search={{ preview: "1" }}>
+            <Link to="/store/$slug" params={{ slug: store.slug }} search={{ preview: 1 }}>
               Preview store
             </Link>
           </Button>
