@@ -494,7 +494,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           >
             {heroImage ? (
               <div className="aspect-[4/3] md:aspect-auto md:min-h-[28rem]">
-                <img src={heroImage} alt="" className="h-full w-full object-cover" />
+                <img src={heroImage} alt="" className="h-full w-full object-cover" fetchPriority="high" />
               </div>
             ) : null}
             {heroText}
@@ -506,6 +506,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                 src={heroImage}
                 alt=""
                 className="absolute inset-0 h-full max-h-[30rem] w-full object-cover opacity-15"
+                fetchPriority="high"
               />
             ) : null}
             {heroText}

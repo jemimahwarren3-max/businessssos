@@ -40,6 +40,16 @@ export const Route = createFileRoute("/store/$slug")({
     const description =
       store.content.seoDescription || store.tagline || store.about || `Shop ${store.storeName}`;
     const template = getTemplate(store.templateId);
+    const url = storePublicUrl(store.slug);
+    const storeJsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Store",
+      name: store.storeName,
+      description: description.slice(0, 180),
+      url,
+      ...(store.logoUrl ? { logo: store.logoUrl } : {}),
+      ...(store.theme.coverUrl ? { image: store.theme.coverUrl } : {}),
+    }).replace(/</g, "\\u003c");
     return {
       meta: [
         { title: store.content.seoTitle || store.storeName },
@@ -55,9 +65,10 @@ export const Route = createFileRoute("/store/$slug")({
         { name: "twitter:description", content: description.slice(0, 180) },
         ...(preview ? [{ name: "robots", content: "noindex, nofollow" }] : []),
       ],
+      scripts: preview ? [] : [{ type: "application/ld+json", children: storeJsonLd }],
       links: [
         { rel: "stylesheet", href: template.fontHref },
-        ...(preview ? [] : [{ rel: "canonical", href: storePublicUrl(store.slug) }]),
+        ...(preview ? [] : [{ rel: "canonical", href: url }]),
       ],
     };
   },
