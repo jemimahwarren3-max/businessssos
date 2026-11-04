@@ -1084,8 +1084,8 @@ export function StoreBuilder({
         <TabsContent value="preview" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not
-              visible to the public.
+              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not visible
+              to the public.
             </p>
             <div className="flex gap-2">
               <Button

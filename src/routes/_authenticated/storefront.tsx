@@ -386,12 +386,19 @@ function StorefrontEditor({
         </section>
       ) : null}
 
-      <StoreBuilder
-        key={`${businessId}-${initial.store?.slug ?? "new"}-${initial.products.length}`}
-        businessId={businessId}
-        initial={initial}
-        canManage={permissions.includes("business.settings")}
-      />
+      {store ? (
+        <StoreBuilder
+          key={`${businessId}-${store.slug}-${initial.products.length}`}
+          businessId={businessId}
+          initial={initial}
+          canManage={permissions.includes("business.settings")}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Create your store above, then you can design the shop and choose which products appear
+          online.
+        </p>
+      )}
 
       <OnlineOrdersFulfilmentPanel
         businessId={businessId}

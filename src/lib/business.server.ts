@@ -100,6 +100,39 @@ export function isMissingDbFunction(error: unknown): boolean {
   );
 }
 
+/** Staging/production may not have applied the latest ALTER TABLE yet. */
+export function isMissingDbColumn(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  const message = (error as { message?: string } | null)?.message ?? "";
+  return (
+    code === "42703" ||
+    code === "PGRST204" ||
+    /column .* does not exist/i.test(message) ||
+    /could not find the .* column/i.test(message)
+  );
+}
+
+const BUSINESS_WORKSPACE_COLUMNS =
+  "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at";
+
+export async function loadBusinessWorkspaceRow(supabase: Db, businessId: string) {
+  const withModel = await supabase
+    .from("businesses")
+    .select(`${BUSINESS_WORKSPACE_COLUMNS}, commerce_model`)
+    .eq("id", businessId)
+    .maybeSingle();
+  if (!withModel.error || !isMissingDbColumn(withModel.error)) return withModel;
+  console.error(
+    "[businessos] commerce_model column missing, loading workspace without it",
+    withModel.error,
+  );
+  return supabase
+    .from("businesses")
+    .select(BUSINESS_WORKSPACE_COLUMNS)
+    .eq("id", businessId)
+    .maybeSingle();
+}
+
 function skipMissingRpc(context: string, error: unknown): boolean {
   if (!error) return true;
   if (!isMissingDbFunction(error)) return false;
@@ -340,13 +373,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     { data: hasOwnerBypass, error: entitlementError },
     { data: featureFlags, error: featureFlagError },
   ] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select(
-        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at, commerce_model",
-      )
-      .eq("id", membership.business_id)
-      .maybeSingle(),
+    loadBusinessWorkspaceRow(supabase, membership.business_id),
     supabase
       .from("subscriptions")
       .select("plan, status, trial_ends_at")

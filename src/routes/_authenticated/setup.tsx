@@ -258,7 +258,10 @@ function Setup() {
           {checklist.map((item) => (
             <Link
               key={item.key}
-              to={item.href as "/inventory" | "/services"}
+              to={
+                item.href as
+                  "/inventory" | "/services" | "/sales" | "/storefront" | "/settings/team"
+              }
               className="group flex items-center gap-4 rounded-2xl border bg-card p-4 transition hover:border-primary"
             >
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10">

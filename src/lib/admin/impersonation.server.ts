@@ -3,6 +3,7 @@ import {
   dbFail,
   invalidateWorkspaceCacheForBusiness,
   isMissingDbFunction,
+  loadBusinessWorkspaceRow,
   type Workspace,
 } from "@/lib/business.server";
 import { cacheDel, workspaceCacheKey } from "@/lib/cache/redis.server";
@@ -117,13 +118,7 @@ export async function loadWorkspaceWhileImpersonating(
     { data: permissions, error: permissionError },
     featureFlagsResult,
   ] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select(
-        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
-      )
-      .eq("id", businessId)
-      .maybeSingle(),
+    loadBusinessWorkspaceRow(supabase, businessId),
     supabase
       .from("subscriptions")
       .select("plan, status, trial_ends_at")

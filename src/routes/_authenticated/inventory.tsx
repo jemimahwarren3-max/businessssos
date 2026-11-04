@@ -507,6 +507,20 @@ function Inventory() {
     ],
   );
 
+  if (workspace.isError) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
+        <h1 className="text-2xl font-semibold">We couldn&apos;t open inventory</h1>
+        <p className="text-sm text-muted-foreground">
+          Nothing was deleted. This is a load error. Try again, do not create a second store.
+        </p>
+        <Button className="rounded-full" onClick={() => void workspace.refetch()}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
   if (!workspace.data) {
     return (
       <div className="mx-auto max-w-6xl space-y-4 p-6">

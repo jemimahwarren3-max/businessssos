@@ -78,7 +78,7 @@ export type LaunchStep = {
   title: string;
   description: string;
   done: boolean;
-  to: "/storefront" | "/notifications";
+  to: "/storefront" | "/notifications" | "/inventory";
   hash?: string;
 };
 
@@ -135,10 +135,9 @@ export function buildLaunchSteps(
       id: "products",
       step: 3,
       title: "Add products",
-      description: "Choose which catalogue items appear on the public shop.",
+      description: "Add items in Inventory, then choose which appear on the public shop.",
       done: checklist.products,
-      to: "/storefront",
-      hash: "launch-products",
+      to: "/inventory",
     },
     {
       id: "payments",

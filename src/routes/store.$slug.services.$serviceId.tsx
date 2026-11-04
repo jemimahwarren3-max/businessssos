@@ -35,7 +35,7 @@ function upcomingDates(count = 14) {
 function PublicServicePage() {
   const { store } = StoreRoute.useLoaderData();
   const { serviceId } = Route.useParams();
-  const service = store.services.find((item) => item.id === serviceId);
+  const service = (store.services ?? []).find((item) => item.id === serviceId);
   if (!service) throw notFound();
 
   const [on, setOn] = useState(upcomingDates()[0] ?? "");

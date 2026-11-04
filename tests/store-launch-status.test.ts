@@ -57,7 +57,7 @@ describe("buildLaunchSteps", () => {
     expect(steps.map((step) => step.to)).toEqual([
       "/storefront",
       "/storefront",
-      "/storefront",
+      "/inventory",
       "/storefront",
       "/storefront",
       "/notifications",
@@ -65,6 +65,7 @@ describe("buildLaunchSteps", () => {
     ]);
     expect(steps.find((step) => step.id === "launch")?.hash).toBe(LAUNCH_PUBLISH_HASH);
     expect(steps.find((step) => step.id === "design")?.hash).toBe("launch-design");
+    expect(steps.find((step) => step.id === "products")?.hash).toBeUndefined();
     expect(steps.find((step) => step.id === "notifications")?.hash).toBeUndefined();
   });
 

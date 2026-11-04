@@ -50,6 +50,10 @@ function ratioClass(ratio: "square" | "portrait" | "landscape") {
   return "aspect-square";
 }
 
+function storeServices(store: PublicStore) {
+  return store.services ?? [];
+}
+
 function fontPairStacks(pair: PublicStore["theme"]["fontPair"], templateFont: string) {
   switch (pair) {
     case "editorial":
@@ -119,7 +123,7 @@ export function StoreChrome({
       <Link to="/store/$slug" params={{ slug: store.slug }} search={previewSearch}>
         Shop
       </Link>
-      {store.services.length > 0 ? <a href="#services-catalogue">Services</a> : null}
+      {storeServices(store).length > 0 ? <a href="#services-catalogue">Services</a> : null}
       <Link
         to="/store/$slug/search"
         params={{ slug: store.slug }}
@@ -426,6 +430,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
 export function Catalog({ store, query }: { store: PublicStore; query?: string }) {
   const template = getTemplate(store.templateId);
   const { theme } = store;
+  const services = storeServices(store);
   const preview = useStorePreview();
   const previewSearch = preview ? { preview: 1 as const } : {};
   const [category, setCategory] = useState<string>("all");
@@ -473,14 +478,14 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
       {blurb ? <p className="mt-3 max-w-xl opacity-80">{blurb}</p> : null}
       <a
         href={
-          store.products.length === 0 && store.services.length > 0
+          store.products.length === 0 && services.length > 0
             ? "#services-catalogue"
             : "#shop-catalogue"
         }
         className="mt-5 inline-flex rounded-md px-4 py-2 text-sm font-semibold"
         style={{ backgroundColor: theme.button, color: theme.buttonText }}
       >
-        {store.products.length === 0 && store.services.length > 0 ? "View services" : "Shop now"}
+        {store.products.length === 0 && services.length > 0 ? "View services" : "Shop now"}
       </a>
       {template.layout === "services" ? (
         <p className="mt-4 max-w-xl text-sm opacity-70">
@@ -675,10 +680,8 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         </div>
       ) : null}
       {(query
-        ? store.services.filter((service) =>
-            service.name.toLowerCase().includes(query.toLowerCase()),
-          )
-        : store.services
+        ? services.filter((service) => service.name.toLowerCase().includes(query.toLowerCase()))
+        : services
       ).length > 0 ? (
         <section id="services-catalogue" className="mx-auto max-w-6xl px-4 py-8">
           <h2 className="mb-3 text-xl font-semibold" style={{ color: theme.primary }}>
@@ -686,10 +689,10 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
             {(query
-              ? store.services.filter((service) =>
+              ? services.filter((service) =>
                   service.name.toLowerCase().includes(query.toLowerCase()),
                 )
-              : store.services
+              : services
             ).map((service) => {
               const price =
                 service.pricingType === "quote" && service.price <= 0
@@ -726,7 +729,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         </section>
       ) : null}
       {products.length === 0 ? (
-        store.services.length === 0 ? (
+        services.length === 0 ? (
           <p id="shop-catalogue" className="mx-auto max-w-6xl px-4 py-16 opacity-70">
             No products are published in this view yet.
           </p>

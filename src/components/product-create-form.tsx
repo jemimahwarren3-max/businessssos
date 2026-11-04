@@ -103,11 +103,13 @@ export function ProductCreateForm({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value={NO_CATEGORY}>No category</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
+                    {categories
+                      .filter((cat) => cat.id)
+                      .map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -270,11 +272,13 @@ export function ProductCreateForm({
                 </FormControl>
                 <SelectContent>
                   <SelectItem value={NO_SUPPLIER}>No supplier</SelectItem>
-                  {suppliers.map((supplier) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
+                  {suppliers
+                    .filter((supplier) => supplier.id)
+                    .map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />

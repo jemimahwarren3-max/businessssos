@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isMissingDbColumn,
   isMissingDbFunction,
   SCHEMA_DRIFT_USER_MESSAGE,
   userFacingDbMessage,
@@ -90,6 +91,22 @@ describe("userFacingDbMessage", () => {
       }),
     ).toBe(true);
     expect(isMissingDbFunction({ code: "42501", message: "permission denied" })).toBe(false);
+  });
+
+  it("treats a missing businesses.commerce_model column as skippable schema drift", () => {
+    expect(
+      isMissingDbColumn({
+        code: "42703",
+        message: "column businesses.commerce_model does not exist",
+      }),
+    ).toBe(true);
+    expect(
+      isMissingDbColumn({
+        code: "PGRST204",
+        message: "Could not find the 'commerce_model' column of 'businesses' in the schema cache",
+      }),
+    ).toBe(true);
+    expect(isMissingDbColumn({ code: "42501", message: "permission denied" })).toBe(false);
   });
 });
 
