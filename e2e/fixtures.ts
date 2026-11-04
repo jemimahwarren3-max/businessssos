@@ -1,4 +1,4 @@
-import { test as base } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
 const authDir = path.join(import.meta.dirname, ".auth");
@@ -11,4 +11,9 @@ export const test = base.extend<Fixtures>({
   storageState: path.join(authDir, "owner.json"),
 });
 
-export { expect } from "@playwright/test";
+export { expect };
+
+/** AppShell page titles are h1. Empty states are h2 and must not match the same locator. */
+export function pageHeading(page: Page, name: string | RegExp) {
+  return page.getByRole("heading", { name, level: 1 });
+}

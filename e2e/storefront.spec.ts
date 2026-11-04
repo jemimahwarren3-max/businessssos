@@ -18,7 +18,8 @@ test.describe("storefront public experience", () => {
     const status = response?.status() ?? 0;
     const is404 = status === 404 || status >= 400;
     const hasNotFound = await page
-      .getByText(/not found|doesn't exist|no shop/i)
+      .getByText(/not found|doesn't exist|no shop|isn't live|page not found/i)
+      .first()
       .isVisible()
       .catch(() => false);
     expect(is404 || hasNotFound).toBe(true);
