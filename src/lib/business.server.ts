@@ -122,6 +122,7 @@ export type Workspace = {
     logo_url: string | null;
     business_path: string;
     setup_completed_at: string | null;
+    commerce_model?: string;
   };
   role: string;
   permissions: string[];
@@ -342,7 +343,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     supabase
       .from("businesses")
       .select(
-        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
+        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at, commerce_model",
       )
       .eq("id", membership.business_id)
       .maybeSingle(),
@@ -383,7 +384,7 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   const billingExempt = flags?.billingExempt === true;
 
   const workspace: Workspace = {
-    business,
+    business: business as unknown as Workspace["business"],
     role: membership.role,
     permissions: Array.isArray(permissions) ? permissions : [],
     plan: subscription?.plan ?? "free",
@@ -503,7 +504,9 @@ export async function getSetupProgress(supabase: Db, businessId: string) {
   return data as unknown as {
     business_path: string;
     setup_completed_at: string | null;
+    commerce_model?: string;
     has_products: boolean;
+    has_services?: boolean;
     product_count: number;
     has_sales: boolean;
     sale_count: number;
@@ -1042,7 +1045,8 @@ export async function createSale(supabase: Db, input: SaleInput) {
     _payment_method: input.paymentMethod,
     _notes: (input.notes || null) as never,
     _items: input.items.map((item) => ({
-      productId: item.productId,
+      productId: item.productId || undefined,
+      serviceId: item.serviceId || undefined,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
     })) as never,

@@ -198,6 +198,22 @@ export const publicStoreSchema = z.object({
   payments: paymentsSchema,
   categories: z.array(z.object({ id: z.string(), name: z.string() })),
   products: z.array(publicProductSchema),
+  services: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string().catch(""),
+        price: z.coerce.number().catch(0),
+        durationMinutes: z.coerce.number().catch(60),
+        imageUrl: z.string().nullable().catch(null),
+        pricingType: z.enum(["fixed", "quote"]).catch("fixed"),
+        requiresBooking: z.boolean().catch(true),
+        categoryId: z.string().nullable().catch(null),
+        categoryName: z.string().nullable().catch(null),
+      }),
+    )
+    .default([]),
   preview: z.boolean().optional(),
 });
 

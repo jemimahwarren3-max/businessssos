@@ -43,6 +43,8 @@ import { SaleReceiptPrintView, type SaleReceiptProps } from "@/components/sale-r
 import { useDebounce } from "@/hooks/use-debounce";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { addSale, getCashDrawerFn, getCustomers, getProducts } from "@/lib/business.functions";
+import { listServicesFn } from "@/lib/services.functions";
+import type { ServiceRow } from "@/lib/services.server";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
 import {
   POS_PAYMENT_RAILS,
@@ -63,6 +65,7 @@ import {
   getPosDraft,
   listPendingSales,
   removePendingSale,
+  cartLineKey,
   replaceCachedProducts,
   savePosDraft,
   searchCachedProducts,
@@ -155,6 +158,7 @@ function Sales() {
   const canSell = hasPermission(workspace.data, "sales.create");
 
   const [search, setSearch] = useState("");
+  const [catalogTab, setCatalogTab] = useState<"products" | "services">("products");
   const debouncedSearch = useDebounce(search);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -179,6 +183,7 @@ function Sales() {
   const isOnline = useOnlineStatus();
   const fetchProducts = useServerFn(getProducts);
   const fetchCustomers = useServerFn(getCustomers);
+  const fetchServices = useServerFn(listServicesFn);
   const createSaleFn = useServerFn(addSale);
   const loadDrawer = useServerFn(getCashDrawerFn);
 
@@ -187,6 +192,12 @@ function Sales() {
       navigate({ to: "/onboarding", replace: true });
     }
   }, [workspace.isLoading, workspace.data, navigate]);
+
+  useEffect(() => {
+    if (workspace.data?.business.commerce_model === "services") {
+      setCatalogTab("services");
+    }
+  }, [workspace.data?.business.commerce_model]);
 
   const drawer = useQuery({
     queryKey: ["cash-drawer", businessId],
@@ -197,8 +208,17 @@ function Sales() {
 
   const products = useQuery({
     queryKey: ["products", businessId, debouncedSearch],
-    enabled: Boolean(businessId) && isOnline && debouncedSearch.trim().length > 0,
+    enabled:
+      Boolean(businessId) &&
+      isOnline &&
+      catalogTab === "products" &&
+      debouncedSearch.trim().length > 0,
     queryFn: () => fetchProducts({ data: { businessId: businessId!, search: debouncedSearch } }),
+  });
+  const posServices = useQuery({
+    queryKey: ["services", businessId],
+    enabled: Boolean(businessId) && isOnline && catalogTab === "services",
+    queryFn: () => fetchServices({ data: { businessId: businessId!, includeArchived: false } }),
   });
 
   // Offline fallback for the same search, read from whatever was cached
@@ -370,10 +390,12 @@ function Sales() {
   function addToCart(product: SearchResultProduct) {
     if (!draftReady) return;
     setCart((prev) => {
-      const existing = prev.find((item) => item.productId === product.id);
+      const existing = prev.find((item) => !item.serviceId && item.productId === product.id);
       if (existing) {
         return prev.map((item) =>
-          item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item,
+          !item.serviceId && item.productId === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
         );
       }
       return [
@@ -386,6 +408,36 @@ function Sales() {
           taxRate: Number(product.tax_rate),
           quantity: 1,
           stock: Number(product.stock),
+        },
+      ];
+    });
+    setSearch("");
+  }
+
+  function addServiceToCart(service: ServiceRow) {
+    if (!draftReady) return;
+    if (!isOnline) {
+      toast.error("Service sales need a connection so stock is not mixed up offline.");
+      return;
+    }
+    setCart((prev) => {
+      const existing = prev.find((item) => item.serviceId === service.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.serviceId === service.id ? { ...item, quantity: item.quantity + 1 } : item,
+        );
+      }
+      return [
+        ...prev,
+        {
+          productId: "",
+          serviceId: service.id,
+          name: service.name,
+          sku: null,
+          unitPrice: Number(service.price),
+          taxRate: 0,
+          quantity: 1,
+          stock: 0,
         },
       ];
     });
@@ -424,13 +476,13 @@ function Sales() {
     }
   }
 
-  function updateQuantity(productId: string, quantity: number) {
+  function updateQuantity(lineKey: string, quantity: number) {
     if (quantity <= 0) {
-      setCart((prev) => prev.filter((item) => item.productId !== productId));
+      setCart((prev) => prev.filter((item) => cartLineKey(item) !== lineKey));
       return;
     }
     setCart((prev) =>
-      prev.map((item) => (item.productId === productId ? { ...item, quantity } : item)),
+      prev.map((item) => (cartLineKey(item) === lineKey ? { ...item, quantity } : item)),
     );
   }
 
@@ -512,15 +564,20 @@ function Sales() {
           if (tender.amountOriginal) row.amountOriginal = tender.amountOriginal;
           return row;
         }),
-        items: cart.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        })),
+        items: cart.map((item) =>
+          item.serviceId
+            ? { serviceId: item.serviceId, quantity: item.quantity, unitPrice: item.unitPrice }
+            : { productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice },
+        ),
         idempotencyKey,
       });
 
       if (!isOnline) {
+        if (parsed.items.some((item) => item.serviceId)) {
+          throw new Error(
+            "Service sales need a connection. Complete this sale once you are back online.",
+          );
+        }
         const pending: PendingSale = {
           localId: crypto.randomUUID(),
           businessId: parsed.businessId,
@@ -529,7 +586,7 @@ function Sales() {
           discount: parsed.discount,
           paymentMethod: parsed.paymentMethod,
           items: parsed.items.map((item) => ({
-            productId: item.productId,
+            ...(item.productId ? { productId: item.productId } : {}),
             quantity: item.quantity,
             unitPrice: item.unitPrice,
           })),
@@ -550,7 +607,9 @@ function Sales() {
         }
         await addPendingSale(pending);
         for (const item of parsed.items) {
-          await decrementCachedStock(parsed.businessId, item.productId, item.quantity);
+          if (item.productId) {
+            await decrementCachedStock(parsed.businessId, item.productId, item.quantity);
+          }
         }
         return { id: "", offline: true as const };
       }
@@ -637,6 +696,15 @@ function Sales() {
 
   const results = isOnline ? (products.data ?? []) : (offlineProducts.data ?? []);
   const resultsLoading = isOnline ? products.isLoading : offlineProducts.isLoading;
+  const serviceNeedle = search.trim().toLowerCase();
+  const serviceResults = (posServices.data ?? []).filter((row) => {
+    if (!row.isActive) return false;
+    if (!serviceNeedle) return true;
+    return (
+      row.name.toLowerCase().includes(serviceNeedle) ||
+      (row.categoryName ?? "").toLowerCase().includes(serviceNeedle)
+    );
+  });
   const pendingList = pendingSales.data ?? [];
   const failedList = pendingList.filter((sale) => sale.status === "failed");
   const waitingList = pendingList.filter((sale) => sale.status !== "failed");
@@ -686,6 +754,24 @@ function Sales() {
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="order-2 space-y-4 lg:order-1">
           <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={catalogTab === "products" ? "default" : "outline"}
+              onClick={() => setCatalogTab("products")}
+            >
+              Products
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={catalogTab === "services" ? "default" : "outline"}
+              onClick={() => setCatalogTab("services")}
+            >
+              Services
+            </Button>
+          </div>
+          <div className="flex gap-2">
             <div className="relative flex-1">
               <Search
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -696,9 +782,13 @@ function Sales() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                placeholder="Search by name, SKU or scan a barcode"
+                placeholder={
+                  catalogTab === "services"
+                    ? "Search services"
+                    : "Search by name, SKU or scan a barcode"
+                }
                 className="pl-9"
-                aria-label="Search products"
+                aria-label={catalogTab === "services" ? "Search services" : "Search products"}
               />
             </div>
             <Button
@@ -717,6 +807,42 @@ function Sales() {
               <div className="px-6 py-16 text-center text-sm text-muted-foreground">
                 Checking for a saved cart…
               </div>
+            ) : catalogTab === "services" ? (
+              posServices.isLoading ? (
+                <div className="space-y-3 p-5">
+                  {[0, 1, 2].map((i) => (
+                    <Skeleton key={i} className="h-12" />
+                  ))}
+                </div>
+              ) : serviceResults.length === 0 ? (
+                <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+                  No services yet. Add them under Services. They will not reduce stock.
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {serviceResults.map((service) => (
+                    <li key={service.id}>
+                      <button
+                        type="button"
+                        onClick={() => addServiceToCart(service)}
+                        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-3.5 text-left hover:bg-muted/40"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{service.name}</p>
+                          <p className="truncate text-[13px] text-muted-foreground">
+                            {service.durationMinutes} min
+                            {service.pricingType === "quote" ? " · Quote" : ""}
+                            {" · no stock"}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">
+                          {formatMoney(Number(service.price), currency)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )
             ) : !search.trim() ? (
               <div className="px-6 py-16 text-center text-sm text-muted-foreground">
                 Start typing a product name, SKU, or scan a barcode to add it to the cart.
@@ -787,14 +913,21 @@ function Sales() {
 
           {cart.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Add products to start a sale.
+              Add products or services to start a sale.
             </p>
           ) : (
             <ul className="space-y-2.5">
               {cart.map((item) => (
-                <li key={item.productId} className="rounded-lg border border-border p-2.5">
+                <li key={cartLineKey(item)} className="rounded-lg border border-border p-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="min-w-0 truncate text-sm font-medium">{item.name}</p>
+                    <p className="min-w-0 truncate text-sm font-medium">
+                      {item.name}
+                      {item.serviceId ? (
+                        <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                          service
+                        </span>
+                      ) : null}
+                    </p>
                     <span className="shrink-0 text-sm font-semibold tabular-nums">
                       {formatMoney(
                         item.unitPrice * item.quantity * (1 + item.taxRate / 100),
@@ -811,7 +944,7 @@ function Sales() {
                         variant="outline"
                         size="icon"
                         className="size-7"
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        onClick={() => updateQuantity(cartLineKey(item), item.quantity - 1)}
                         aria-label="Decrease quantity"
                       >
                         <Minus className="size-3.5" aria-hidden="true" />
@@ -823,7 +956,7 @@ function Sales() {
                         variant="outline"
                         size="icon"
                         className="size-7"
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        onClick={() => updateQuantity(cartLineKey(item), item.quantity + 1)}
                         aria-label="Increase quantity"
                       >
                         <Plus className="size-3.5" aria-hidden="true" />

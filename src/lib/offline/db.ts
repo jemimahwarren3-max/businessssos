@@ -15,7 +15,12 @@ export type CachedProduct = {
   cachedAt?: string;
 };
 
-export type PendingSaleItem = { productId: string; quantity: number; unitPrice: number };
+export type PendingSaleItem = {
+  productId?: string | undefined;
+  serviceId?: string | undefined;
+  quantity: number;
+  unitPrice: number;
+};
 
 export type PendingSale = {
   localId: string;
@@ -44,6 +49,7 @@ export type PendingSale = {
  * the last ring-up on screen. */
 export type PosDraftCartItem = {
   productId: string;
+  serviceId?: string;
   name: string;
   sku: string | null;
   unitPrice: number;
@@ -51,6 +57,10 @@ export type PosDraftCartItem = {
   quantity: number;
   stock: number;
 };
+
+export function cartLineKey(item: { productId?: string; serviceId?: string }): string {
+  return item.serviceId ? `s:${item.serviceId}` : `p:${item.productId ?? ""}`;
+}
 
 export type PosDraftTender = {
   key: string;

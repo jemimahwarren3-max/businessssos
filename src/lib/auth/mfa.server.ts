@@ -78,7 +78,9 @@ export function totpQrSrc(qrCode: string): string {
   if (svgPayload) {
     const header = raw.slice(0, raw.indexOf(",") + 1).toLowerCase();
     if (header.includes("base64")) return raw;
-    let svg = svgPayload[1];
+    const encoded = svgPayload[1];
+    if (!encoded) return raw;
+    let svg = encoded;
     try {
       svg = decodeURIComponent(svg);
     } catch {

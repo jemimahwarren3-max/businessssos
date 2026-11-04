@@ -370,7 +370,7 @@ function Inventory() {
         header: "Wholesale",
         cell: ({ row }) =>
           row.original.wholesale_price == null ? (
-            <span className="text-muted-foreground">-<//span>
+            <span className="text-muted-foreground">-</span>
           ) : (
             <span className="tabular-nums text-muted-foreground">
               {formatMoney(Number(row.original.wholesale_price), currency)}
