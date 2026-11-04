@@ -109,15 +109,25 @@ const orderTermsSchema = z.object({
     .optional(),
 });
 
+const optionalText = z
+  .string()
+  .nullish()
+  .transform((value) => value ?? "");
+const optionalGalleryUrls = z
+  .array(z.string().max(500))
+  .max(8)
+  .nullish()
+  .transform((value) => value ?? []);
+
 export const publicProductSchema = z.object({
   id: z.string(),
   slug: z.string(),
   name: z.string(),
   description: z.string(),
-  details: z.string(),
-  sizeGuide: z.string(),
+  details: optionalText,
+  sizeGuide: optionalText,
   imageUrl: z.string().nullable(),
-  galleryUrls: z.array(z.string().max(500)).max(8).default([]),
+  galleryUrls: optionalGalleryUrls,
   price: z.coerce.number(),
   currency: z.string(),
   unit: z.string(),
@@ -517,15 +527,15 @@ const adminProductSchema = z.object({
   stock: z.coerce.number(),
   unit: z.string(),
   imageUrl: z.string().nullable(),
-  galleryUrls: z.array(z.string().max(500)).max(8).default([]),
+  galleryUrls: optionalGalleryUrls,
   categoryName: z.string().nullable(),
   published: z.boolean(),
   slug: z.string().nullable(),
   featured: z.boolean(),
   minQty: z.coerce.number(),
   maxQty: z.coerce.number().nullable(),
-  details: z.string(),
-  sizeGuide: z.string(),
+  details: optionalText,
+  sizeGuide: optionalText,
 });
 
 export const adminStoreSchema = z.object({
@@ -551,12 +561,23 @@ export const adminStoreSchema = z.object({
       heroSubtitle: z.string(),
       policies: z.string(),
       hours: z.string(),
-      socials: z.object({
-        instagram: z.string().nullable(),
-        facebook: z.string().nullable(),
-        website: z.string().nullable(),
-        tiktok: z.string().nullable(),
-      }),
+      socials: z
+        .object({
+          instagram: z.string().nullable(),
+          facebook: z.string().nullable(),
+          website: z.string().nullable(),
+          tiktok: z.string().nullable(),
+        })
+        .nullish()
+        .transform(
+          (value) =>
+            value ?? {
+              instagram: null,
+              facebook: null,
+              website: null,
+              tiktok: null,
+            },
+        ),
       delivery: deliverySchema,
       payments: paymentsSchema,
       publishedAt: z.string().nullable(),

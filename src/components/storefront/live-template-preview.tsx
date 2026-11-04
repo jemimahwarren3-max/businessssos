@@ -361,9 +361,9 @@ function PreviewProductGrid({
           style={{ backgroundColor: theme.surface }}
         >
           <div className="aspect-[4/3] bg-black/5">
-            {product.imageUrl || product.galleryUrls[0] ? (
+            {product.imageUrl || product.galleryUrls?.[0] ? (
               <img
-                src={product.imageUrl ?? product.galleryUrls[0]}
+                src={product.imageUrl ?? product.galleryUrls?.[0]}
                 alt={product.name}
                 className="h-full w-full object-cover"
               />

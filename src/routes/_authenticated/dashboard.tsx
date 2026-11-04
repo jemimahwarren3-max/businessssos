@@ -106,7 +106,7 @@ function Dashboard() {
   const fetchBriefing = useServerFn(getDailyBusinessBriefingFn);
   const fetchServiceReports = useServerFn(getServiceReportsFn);
   const businessId = workspace.data?.business.id;
-  const rawCommerceModel = workspace.data?.business.commerce_model;
+  const rawCommerceModel = workspace.data?.business?.commerce_model;
   const commerceModel = isCommerceModel(rawCommerceModel) ? rawCommerceModel : "products";
   const servicesFirst = navShowsServicesFirst(commerceModel);
   const canReadBriefing =

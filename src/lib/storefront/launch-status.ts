@@ -21,17 +21,35 @@ const PUBLISH_KEYS = [
   "previewed",
 ] as const;
 
+const EMPTY_CHECKLIST: AdminStore["checklist"] = {
+  name: false,
+  template: false,
+  products: false,
+  payments: false,
+  fulfilment: false,
+  policies: false,
+  previewed: false,
+  published: false,
+};
+
+function checklistOrEmpty(
+  checklist: AdminStore["checklist"] | null | undefined,
+): AdminStore["checklist"] {
+  return checklist ?? EMPTY_CHECKLIST;
+}
+
 function publishReady(checklist: AdminStore["checklist"]): boolean {
   return PUBLISH_KEYS.every((key) => checklist[key]);
 }
 
 export function deriveStoreLaunchDisplay(input: {
-  checklist: AdminStore["checklist"];
+  checklist: AdminStore["checklist"] | null | undefined;
   storeStatus: string | null | undefined;
   billingEnabled: boolean;
   isOperateLocked: boolean;
 }): StoreLaunchDisplay {
-  const { checklist, storeStatus, billingEnabled, isOperateLocked } = input;
+  const checklist = checklistOrEmpty(input.checklist);
+  const { storeStatus, billingEnabled, isOperateLocked } = input;
 
   if (storeStatus === "published") {
     return {
@@ -107,10 +125,11 @@ export function launchHashHasPageTarget(hash: string | undefined | null): boolea
 }
 
 export function buildLaunchSteps(
-  checklist: AdminStore["checklist"],
-  options: { notificationsConfigured?: boolean },
+  checklist: AdminStore["checklist"] | null | undefined,
+  options?: { notificationsConfigured?: boolean },
 ): LaunchStep[] {
-  const notificationsConfigured = options.notificationsConfigured ?? false;
+  const notificationsConfigured = options?.notificationsConfigured ?? false;
+  checklist = checklistOrEmpty(checklist);
 
   return [
     {

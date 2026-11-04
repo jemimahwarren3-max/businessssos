@@ -662,7 +662,8 @@ export async function listProducts(
   search: string,
   supplierId?: string,
 ) {
-  let query = supabase
+  const term = search.trim();
+  let withWholesaleQuery = supabase
     .from("products")
     .select(
       "id, name, sku, barcode, unit, cost_price, selling_price, wholesale_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
@@ -671,12 +672,39 @@ export async function listProducts(
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
-  const term = search.trim();
-  if (term) query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`);
-  if (supplierId) query = query.eq("supplier_id", supplierId);
-  const { data, error } = await query;
-  if (error) dbFail("list products", error);
-  return data ?? [];
+  if (term) {
+    withWholesaleQuery = withWholesaleQuery.or(
+      `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,
+    );
+  }
+  if (supplierId) withWholesaleQuery = withWholesaleQuery.eq("supplier_id", supplierId);
+  const withWholesale = await withWholesaleQuery;
+  if (!withWholesale.error || !isMissingDbColumn(withWholesale.error)) {
+    if (withWholesale.error) dbFail("list products", withWholesale.error);
+    return withWholesale.data ?? [];
+  }
+  console.error(
+    "[businessos] wholesale_price column missing, listing products without it",
+    withWholesale.error,
+  );
+  let withoutWholesaleQuery = supabase
+    .from("products")
+    .select(
+      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
+    )
+    .eq("business_id", businessId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (term) {
+    withoutWholesaleQuery = withoutWholesaleQuery.or(
+      `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,
+    );
+  }
+  if (supplierId) withoutWholesaleQuery = withoutWholesaleQuery.eq("supplier_id", supplierId);
+  const withoutWholesale = await withoutWholesaleQuery;
+  if (withoutWholesale.error) dbFail("list products", withoutWholesale.error);
+  return (withoutWholesale.data ?? []).map((row) => ({ ...row, wholesale_price: null }));
 }
 
 export async function listLocations(
@@ -813,7 +841,9 @@ export async function createProduct(supabase: Db, input: ProductInput) {
       .update({ wholesale_price: input.wholesalePrice })
       .eq("id", data.id)
       .eq("business_id", input.businessId);
-    if (wholesaleError) dbFail("save wholesale price", wholesaleError);
+    if (wholesaleError && !isMissingDbColumn(wholesaleError)) {
+      dbFail("save wholesale price", wholesaleError);
+    }
   }
   return data;
 }

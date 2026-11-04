@@ -30,6 +30,18 @@ describe("deriveStoreLaunchDisplay", () => {
     expect(result.badge).toBe("Live");
   });
 
+  it("treats a missing checklist as not set up instead of throwing", () => {
+    expect(
+      deriveStoreLaunchDisplay({
+        checklist: undefined,
+        storeStatus: "draft",
+        billingEnabled: true,
+        isOperateLocked: false,
+      }).phase,
+    ).toBe("not_set_up");
+    expect(buildLaunchSteps(undefined, { notificationsConfigured: false })).toHaveLength(7);
+  });
+
   it("requires payment before launch when billing is on and operate is locked", () => {
     const ready = {
       name: true,

@@ -307,22 +307,22 @@ export function StoreChrome({
                 Message on WhatsApp
               </a>
             ) : null}
-            {store.socials.website ? (
+            {store.socials?.website ? (
               <a className="block" style={{ color: theme.link }} href={store.socials.website}>
                 Website
               </a>
             ) : null}
-            {store.socials.instagram ? (
+            {store.socials?.instagram ? (
               <a className="block" style={{ color: theme.link }} href={store.socials.instagram}>
                 Instagram
               </a>
             ) : null}
-            {store.socials.facebook ? (
+            {store.socials?.facebook ? (
               <a className="block" style={{ color: theme.link }} href={store.socials.facebook}>
                 Facebook
               </a>
             ) : null}
-            {store.socials.tiktok ? (
+            {store.socials?.tiktok ? (
               <a
                 className="block"
                 style={{ color: theme.link }}
@@ -816,7 +816,9 @@ export function ProductView({
   const [saved, setSaved] = useState(false);
   const images = useMemo(
     () =>
-      [product.imageUrl, ...product.galleryUrls].filter((image): image is string => Boolean(image)),
+      [product.imageUrl, ...(product.galleryUrls ?? [])].filter((image): image is string =>
+        Boolean(image),
+      ),
     [product.galleryUrls, product.imageUrl],
   );
   const [selectedImage, setSelectedImage] = useState(images[0] ?? null);

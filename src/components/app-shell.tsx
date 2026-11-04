@@ -309,8 +309,9 @@ export function AppShell({
   });
   const isOperateLocked = workspace.data?.isOperateLocked ?? false;
   const businessId = workspace.data?.business.id;
-  const commerceModel: CommerceModel = isCommerceModel(workspace.data?.business.commerce_model)
-    ? workspace.data.business.commerce_model
+  const rawCommerceModel = workspace.data?.business?.commerce_model;
+  const commerceModel: CommerceModel = isCommerceModel(rawCommerceModel)
+    ? rawCommerceModel
     : "products";
   const groups = navGroupsFor(commerceModel);
   const mobileNav = mobileNavFor(commerceModel, groups);

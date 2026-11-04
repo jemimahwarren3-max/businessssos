@@ -47,11 +47,40 @@ import {
 import { getNotifyEmailFn } from "@/lib/business.functions";
 import { defaultShopPatch } from "@/lib/storefront/onboarding-defaults";
 
+function StorefrontError({ error, reset }: { error: unknown; reset: () => void }) {
+  const normalized = error instanceof Error ? error : new Error("Unknown storefront error");
+  return (
+    <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
+      <h1 className="text-2xl font-semibold">We couldn&apos;t open the store builder</h1>
+      <p className="text-sm text-muted-foreground">
+        {readableError(
+          normalized,
+          "Nothing was deleted. Try again, or add products from Inventory first.",
+        )}
+      </p>
+      {normalized.message ? (
+        <p className="break-words font-mono text-[11px] text-muted-foreground">
+          {normalized.message}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button className="rounded-full" onClick={reset}>
+          Try again
+        </Button>
+        <Button asChild variant="outline" className="rounded-full">
+          <a href="/inventory">Open inventory</a>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated/storefront")({
   head: () => ({
     meta: [{ title: `Storefront | ${BRAND.name}` }, { name: "robots", content: "noindex" }],
   }),
   component: StorefrontPage,
+  errorComponent: StorefrontError,
 });
 
 function StorefrontPage() {
