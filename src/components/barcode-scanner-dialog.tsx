@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Camera } from "lucide-react";
 import {
   Dialog,
@@ -35,34 +34,37 @@ export function BarcodeScannerDialog({
     let controls: { stop: () => void } | undefined;
     setError(null);
 
-    const reader = new BrowserMultiFormatReader();
-    reader
-      .decodeFromConstraints(
-        { video: { facingMode: "environment" } },
-        videoRef.current ?? undefined,
-        (result) => {
-          if (cancelled || detected || !result) return;
-          detected = true;
-          controls?.stop();
-          onDetected(result.getText());
-          onOpenChange(false);
-        },
-      )
-      .then((c) => {
-        if (cancelled) {
-          c.stop();
-        } else {
-          controls = c;
-        }
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(
-          err instanceof Error && err.name === "NotAllowedError"
-            ? "Camera access was denied. Allow camera access in your browser to scan."
-            : "Couldn't access a camera on this device.",
-        );
-      });
+    import("@zxing/browser").then(({ BrowserMultiFormatReader }) => {
+      if (cancelled) return;
+      const reader = new BrowserMultiFormatReader();
+      reader
+        .decodeFromConstraints(
+          { video: { facingMode: "environment" } },
+          videoRef.current ?? undefined,
+          (result) => {
+            if (cancelled || detected || !result) return;
+            detected = true;
+            controls?.stop();
+            onDetected(result.getText());
+            onOpenChange(false);
+          },
+        )
+        .then((c) => {
+          if (cancelled) {
+            c.stop();
+          } else {
+            controls = c;
+          }
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setError(
+            err instanceof Error && err.name === "NotAllowedError"
+              ? "Camera access was denied. Allow camera access in your browser to scan."
+              : "Couldn't access a camera on this device.",
+          );
+        });
+    });
 
     return () => {
       cancelled = true;

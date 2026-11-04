@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { HintTooltip } from "@/components/hint-tooltip";
 import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
@@ -861,18 +862,20 @@ function Invoices() {
                     </Button>
                   ) : null}
                   {["sent", "partially_paid"].includes(detail.data.invoice.status) && canCreate ? (
-                    <Button
-                      variant="outline"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (confirm("Cancel this invoice? This can't be undone.")) {
-                          statusMutation.mutate("cancelled");
-                        }
-                      }}
-                      disabled={statusMutation.isPending}
-                    >
-                      Cancel invoice
-                    </Button>
+                    <ConfirmDialog
+                      description="Cancel this invoice? This can't be undone."
+                      confirmLabel="Cancel invoice"
+                      onConfirm={() => statusMutation.mutate("cancelled")}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          disabled={statusMutation.isPending}
+                        >
+                          Cancel invoice
+                        </Button>
+                      }
+                    />
                   ) : null}
                 </div>
                 {["sent", "partially_paid"].includes(detail.data.invoice.status) &&

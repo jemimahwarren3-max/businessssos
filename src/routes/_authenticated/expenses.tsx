@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Download, Loader2, Plus, Receipt, Trash2, Upload } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -298,19 +299,21 @@ function Expenses() {
                   {formatMoney(expense.amount, currency)}
                 </span>
                 {canDelete ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      if (confirm("Delete this expense? This can't be undone.")) {
-                        deleteMutation.mutate(expense.id);
-                      }
-                    }}
-                    aria-label="Delete expense"
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </Button>
+                  <ConfirmDialog
+                    description="Delete this expense? This can't be undone."
+                    confirmLabel="Delete"
+                    onConfirm={() => deleteMutation.mutate(expense.id)}
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label="Delete expense"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    }
+                  />
                 ) : (
                   <span />
                 )}

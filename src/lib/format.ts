@@ -5,7 +5,7 @@ export function formatMoney(amount: number, currency = "USD") {
     return `ZiG ${value.toFixed(2)}`;
   }
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: code,
       maximumFractionDigits: 2,

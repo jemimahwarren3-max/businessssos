@@ -14,6 +14,7 @@ import {
   Truck,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -394,18 +395,20 @@ function Suppliers() {
                       >
                         <Pencil className="size-4" aria-hidden="true" />
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => {
-                          if (confirm("Delete this supplier? This can't be undone.")) {
-                            deleteMutation.mutate(supplier.id);
-                          }
-                        }}
-                        aria-label="Delete supplier"
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </Button>
+                      <ConfirmDialog
+                        description="Delete this supplier? This can't be undone."
+                        confirmLabel="Delete"
+                        onConfirm={() => deleteMutation.mutate(supplier.id)}
+                        trigger={
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            aria-label="Delete supplier"
+                          >
+                            <Trash2 className="size-4" aria-hidden="true" />
+                          </Button>
+                        }
+                      />
                     </div>
                   ) : null}
                 </li>

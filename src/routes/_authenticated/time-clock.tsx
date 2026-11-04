@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Check, Clock, Loader2, LogIn, LogOut, Pencil, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -375,20 +376,22 @@ function TimeClock() {
                             <Pencil className="size-3.5" aria-hidden="true" />
                           </Button>
                         ) : null}
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="size-8"
-                          aria-label="Delete"
-                          disabled={deleteMutation.isPending}
-                          onClick={() => {
-                            if (confirm("Delete this time entry? This can't be undone.")) {
-                              deleteMutation.mutate(entry.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden="true" />
-                        </Button>
+                        <ConfirmDialog
+                          description="Delete this time entry? This can't be undone."
+                          confirmLabel="Delete"
+                          onConfirm={() => deleteMutation.mutate(entry.id)}
+                          trigger={
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="size-8"
+                              aria-label="Delete"
+                              disabled={deleteMutation.isPending}
+                            >
+                              <Trash2 className="size-3.5" aria-hidden="true" />
+                            </Button>
+                          }
+                        />
                       </div>
                     </td>
                   </tr>

@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Plus, Wallet } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -371,21 +372,16 @@ function LayByPage() {
                       </Button>
                     ) : null}
                     {canSell && row.status !== "collected" && row.status !== "cancelled" ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              "Cancel this lay-by? Money already taken becomes a held deposit. It is not refunded automatically.",
-                            )
-                          ) {
-                            cancelMutation.mutate(row.id);
-                          }
-                        }}
-                      >
-                        Cancel
-                      </Button>
+                      <ConfirmDialog
+                        description="Cancel this lay-by? Money already taken becomes a held deposit. It is not refunded automatically."
+                        confirmLabel="Cancel lay-by"
+                        onConfirm={() => cancelMutation.mutate(row.id)}
+                        trigger={
+                          <Button size="sm" variant="ghost">
+                            Cancel
+                          </Button>
+                        }
+                      />
                     ) : null}
                   </div>
                 </li>
