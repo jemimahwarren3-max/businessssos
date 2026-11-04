@@ -32,10 +32,15 @@ const EXPORT_TABLES = [
   "customers",
   "sales",
   "sale_items",
+  "sale_refunds",
+  "sale_refund_items",
   "invoices",
   "invoice_items",
   "quotes",
   "quote_items",
+  "purchase_orders",
+  "purchase_order_items",
+  "recurring_invoices",
   "payments",
   "expenses",
   "inventory_movements",
@@ -43,6 +48,11 @@ const EXPORT_TABLES = [
   "product_stock",
   "cash_sessions",
   "cash_movements",
+  "laybys",
+  "layby_items",
+  "layby_instalments",
+  "customer_deposits",
+  "time_entries",
 ] as const;
 
 export type BusinessExport = {

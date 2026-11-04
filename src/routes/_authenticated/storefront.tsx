@@ -86,7 +86,7 @@ function StorefrontPage() {
       });
     },
     onSuccess: () => {
-      toast.success("Store created — continue setup below");
+      toast.success("Store created. Continue setup below.");
       void queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
     },
     onError: (error: Error) => toast.error(readableError(error, "Could not create your store.")),
@@ -118,7 +118,7 @@ function StorefrontPage() {
       isReadOnly={workspaceData.isReadOnly}
       billingEnabled={workspaceData.billingEnabled}
       title="My Online Store"
-      subtitle="Launch centre, design, payments, and online orders — separate from invoices and POS."
+      subtitle="Launch centre, design, payments, and online orders. Separate from invoices and POS."
     >
       {!businessId ? (
         <p className="text-sm text-muted-foreground">
@@ -289,11 +289,11 @@ function StorefrontEditor({
           </a>
           {shopHostsEnabled() ? (
             <span className="mt-1 block">
-              Shoppers use *.{BRAND.domain} — your dashboard stays on {BRAND.domain}.
+              Shoppers use *.{BRAND.domain}. Your dashboard stays on {BRAND.domain}.
             </span>
           ) : null}
           {" · "}
-          <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: "1" }}>
+          <Link to="/store/$slug" params={{ slug: store!.slug }} search={{ preview: 1 }}>
             Customer preview
           </Link>
         </p>

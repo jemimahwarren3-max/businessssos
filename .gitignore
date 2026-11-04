@@ -49,3 +49,4 @@ supabase/.temp/
 # Playwright
 test-results/
 playwright-report/
+e2e/.auth/

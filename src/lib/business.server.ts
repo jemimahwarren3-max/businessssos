@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { cacheDel, cacheGet, cacheSet, workspaceCacheKey } from "@/lib/cache/redis.server";
 import {
   canOperateWithPlatformEntitlement,
@@ -11,8 +11,14 @@ import { flushNotificationOutboxForBusiness } from "@/lib/notifications.mail.ser
 import type {
   ConvertQuoteInput,
   CreateBusinessInput,
+  ApplyDepositInput,
+  CollectLaybyInput,
+  CreateLaybyInput,
+  CreditPaymentInput,
+  CustomerDepositInput,
   CustomerImportRow,
   CustomerInput,
+  LaybyInstalmentInput,
   ExpenseImportRow,
   ExpenseInput,
   InvoiceInput,
@@ -32,6 +38,7 @@ import type {
   SaleLineImportRow,
   StockAdjustInput,
   SupplierInput,
+  SupplierPaymentInput,
   UpdateSupplierInput,
 } from "./business.schemas";
 
@@ -47,7 +54,7 @@ function fail(message: string): never {
 }
 
 const USER_FACING_DB =
-  /already taken|already exists|already belong|signed in|choose another|does not allow|not allowed/i;
+  /already taken|already exists|already belong|signed in|choose another|choose one of the store|does not allow|not allowed|cover image must|theme colors must|supported font|store theme settings|store content must|enter a shop name|cash drawer|not enough stock|outstanding|payment amount|select a customer|you do not have permission|that customer|a sale needs|discount cannot|item quantity|recognised payment|does not owe|cannot itself be on credit|could not be found|tender amounts must add up|each tender|split across|use each payment method|3-letter currency|original amount|does not convert|supplier|deposit|lay-by|collect-after|held deposit|not ready to collect|already paid in full/i;
 
 function firstUserFacingLine(message: string): string {
   return message.replace(/^ERROR:\s*/i, "").split("\n")[0] ?? message;
@@ -69,10 +76,30 @@ export function userFacingDbMessage(error: unknown): string {
   if (message && USER_FACING_DB.test(message)) {
     return firstUserFacingLine(message);
   }
-  if (code === "42883" || /schema cache|could not find the function/i.test(message)) {
+  if (isMissingDbFunction(error)) {
     return "Shop setup is out of date. Wait a minute and try again.";
   }
   return "Something went wrong saving your data. Please try again.";
+}
+
+/** Optional RPCs (feature flags, impersonation, platform bypass) may be
+ * missing on a staging database that has not applied every migration.
+ * Treat those as "function not installed" rather than wiping the workspace. */
+export function isMissingDbFunction(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  const message = (error as { message?: string } | null)?.message ?? "";
+  return (
+    code === "42883" ||
+    code === "PGRST202" ||
+    /schema cache|could not find the function/i.test(message)
+  );
+}
+
+function skipMissingRpc(context: string, error: unknown): boolean {
+  if (!error) return true;
+  if (!isMissingDbFunction(error)) return false;
+  console.error(`[businessos] ${context} skipped (function missing)`, error);
+  return true;
 }
 
 export function dbFail(context: string, error: unknown): never {
@@ -88,6 +115,8 @@ export type Workspace = {
     currency: string;
     onboarding_completed: boolean;
     logo_url: string | null;
+    business_path: string;
+    setup_completed_at: string | null;
   };
   role: string;
   permissions: string[];
@@ -163,8 +192,15 @@ async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
     supabase.rpc("get_business_feature_flags" as never, { _business_id: businessId } as never),
   ]);
   if (error) dbFail("check subscription status", error);
-  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
-  if (flagError) dbFail("check business feature flags", flagError);
+  if (
+    entitlementError &&
+    !skipMissingRpc("check platform subscription entitlement", entitlementError)
+  ) {
+    dbFail("check platform subscription entitlement", entitlementError);
+  }
+  if (flagError && !skipMissingRpc("check business feature flags", flagError)) {
+    dbFail("check business feature flags", flagError);
+  }
   const billingExempt =
     flagRow &&
     typeof flagRow === "object" &&
@@ -172,7 +208,7 @@ async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
     (flagRow as { billingExempt?: boolean }).billingExempt === true;
   return {
     subscription,
-    hasOwnerBypass: Boolean(hasOwnerBypass) || billingExempt,
+    hasOwnerBypass: Boolean(hasOwnerBypass) || Boolean(billingExempt),
   };
 }
 
@@ -182,7 +218,8 @@ export async function assertCanWrite(supabase: Db, businessId: string) {
     "is_platform_impersonating" as never,
     { _business_id: businessId } as never,
   );
-  if (impErr) dbFail("impersonation check", impErr);
+  if (impErr && !skipMissingRpc("impersonation check", impErr))
+    dbFail("impersonation check", impErr);
   if (impersonating) {
     fail("Support view is read-only. End impersonation in the admin console to make changes.");
   }
@@ -196,7 +233,8 @@ export async function assertCanOperate(supabase: Db, businessId: string) {
     "is_platform_impersonating" as never,
     { _business_id: businessId } as never,
   );
-  if (impErr) dbFail("impersonation check", impErr);
+  if (impErr && !skipMissingRpc("impersonation check", impErr))
+    dbFail("impersonation check", impErr);
   if (impersonating) {
     fail("Support view is read-only. End impersonation in the admin console to make changes.");
   }
@@ -248,7 +286,12 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
 
   const { getActiveImpersonation, loadWorkspaceWhileImpersonating } =
     await import("@/lib/admin/impersonation.server");
-  const impersonation = await getActiveImpersonation(userId);
+  let impersonation: Awaited<ReturnType<typeof getActiveImpersonation>> = null;
+  try {
+    impersonation = await getActiveImpersonation(userId);
+  } catch (error) {
+    console.error("[businessos] impersonation lookup failed", error);
+  }
   if (impersonation) {
     const workspace = await loadWorkspaceWhileImpersonating(
       supabase,
@@ -281,7 +324,9 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id, name, business_type, currency, onboarding_completed, logo_url")
+      .select(
+        "id, name, business_type, currency, onboarding_completed, logo_url, business_path, setup_completed_at",
+      )
       .eq("id", membership.business_id)
       .maybeSingle(),
     supabase
@@ -302,8 +347,15 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     ),
   ]);
   if (bizError) dbFail("load business", bizError);
-  if (entitlementError) dbFail("check platform subscription entitlement", entitlementError);
-  if (featureFlagError) dbFail("load business feature flags", featureFlagError);
+  if (
+    entitlementError &&
+    !skipMissingRpc("check platform subscription entitlement", entitlementError)
+  ) {
+    dbFail("check platform subscription entitlement", entitlementError);
+  }
+  if (featureFlagError && !skipMissingRpc("load business feature flags", featureFlagError)) {
+    dbFail("load business feature flags", featureFlagError);
+  }
   if (!business) return null;
 
   const flags =
@@ -320,13 +372,13 @@ export async function loadWorkspace(supabase: Db, userId: string): Promise<Works
     planStatus: subscription?.status ?? "trialing",
     isReadOnly: !canWriteWithPlatformEntitlement(
       subscription ?? null,
-      hasOwnerBypass || billingExempt,
+      Boolean(hasOwnerBypass) || billingExempt,
     ),
     isOperateLocked: !canOperateWithPlatformEntitlement(
       subscription ?? null,
-      hasOwnerBypass || billingExempt,
+      Boolean(hasOwnerBypass) || billingExempt,
     ),
-    isPlatformOwner: hasOwnerBypass,
+    isPlatformOwner: Boolean(hasOwnerBypass),
     billingEnabled: isBillingEnabled(),
     ...(flags ? { featureFlags: flags } : {}),
   };
@@ -373,6 +425,9 @@ export async function createBusinessRecord(
     _currency: input.currency,
     _phone: input.phone ?? "",
     _address: input.address ?? "",
+    _business_path: (input as { businessPath?: string }).businessPath ?? "management",
+    _onboarding_config: ((input as { onboardingConfig?: Record<string, unknown> })
+      .onboardingConfig ?? {}) as Json,
   });
   if (error) dbFail("create business", error);
   const businessIdStr =
@@ -394,7 +449,7 @@ export async function createBusinessRecord(
     type: "welcome",
     title: "Welcome to Kwetuu",
     message: isBillingEnabled()
-      ? "Your 3-day Pro trial has started. Add your first products to begin."
+      ? "Your 14-day Pro trial has started. Add your first products to begin."
       : "You're in! Kwetuu is free during our beta — add your first products to begin.",
     severity: "info",
   });
@@ -419,6 +474,72 @@ export async function markOnboardingComplete(supabase: Db, userId: string): Prom
     .eq("id", workspace.business.id);
   if (error) dbFail("complete onboarding", error);
   await cacheDel(workspaceCacheKey(userId));
+}
+
+export async function getSetupProgress(supabase: Db, businessId: string) {
+  const { data, error } = await supabase.rpc("get_setup_progress", {
+    _business_id: businessId,
+  });
+  if (error) dbFail("load setup progress", error);
+  return data as unknown as {
+    business_path: string;
+    setup_completed_at: string | null;
+    has_products: boolean;
+    product_count: number;
+    has_sales: boolean;
+    sale_count: number;
+    storefront_enabled: boolean;
+    has_customers: boolean;
+    has_team: boolean;
+    onboarding_config: Record<string, string | number | boolean | null>;
+  };
+}
+
+export async function saveOnboardingConfig(
+  supabase: Db,
+  businessId: string,
+  config: Record<string, unknown>,
+) {
+  const { error } = await supabase.rpc("save_onboarding_config", {
+    _business_id: businessId,
+    _config: config as Json,
+  });
+  if (error) dbFail("save onboarding config", error);
+}
+
+export async function saveOnboardingSettings(
+  supabase: Db,
+  businessId: string,
+  settings: {
+    paymentMethods: string[];
+    allowsCredit: boolean;
+    allowsLayby: boolean;
+    tracksStock: boolean;
+    sellsServices: boolean;
+    pricingModel: string;
+    offersDelivery: boolean;
+    offersCollection: boolean;
+  },
+) {
+  const { error } = await supabase.rpc("save_onboarding_settings", {
+    _business_id: businessId,
+    _payment_methods: settings.paymentMethods,
+    _allows_credit: settings.allowsCredit,
+    _allows_layby: settings.allowsLayby,
+    _tracks_stock: settings.tracksStock,
+    _sells_services: settings.sellsServices,
+    _pricing_model: settings.pricingModel,
+    _offers_delivery: settings.offersDelivery,
+    _offers_collection: settings.offersCollection,
+  });
+  if (error) dbFail("save onboarding settings", error);
+}
+
+export async function markSetupComplete(supabase: Db, businessId: string) {
+  const { error } = await supabase.rpc("mark_setup_complete", {
+    _business_id: businessId,
+  });
+  if (error) dbFail("mark setup complete", error);
 }
 
 /* -------------------------------- billing -------------------------------- */
@@ -490,7 +611,7 @@ export async function listProducts(
   let query = supabase
     .from("products")
     .select(
-      "id, name, sku, barcode, unit, cost_price, selling_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
+      "id, name, sku, barcode, unit, cost_price, selling_price, wholesale_price, stock, min_stock, tax_rate, is_active, updated_at, supplier_id, image_url, category_id",
     )
     .eq("business_id", businessId)
     .is("deleted_at", null)
@@ -632,6 +753,14 @@ export async function createProduct(supabase: Db, input: ProductInput) {
     .rpc("create_product", createProductRpcArgs(input))
     .single();
   if (error || !data) dbFail("create product", error);
+  if (typeof input.wholesalePrice === "number") {
+    const { error: wholesaleError } = await supabase
+      .from("products")
+      .update({ wholesale_price: input.wholesalePrice })
+      .eq("id", data.id)
+      .eq("business_id", input.businessId);
+    if (wholesaleError) dbFail("save wholesale price", wholesaleError);
+  }
   return data;
 }
 
@@ -670,6 +799,16 @@ export async function importProducts(
           : "couldn't be saved";
       errors.push(`Row ${index + 2}: ${row.name || "unnamed product"}, ${reason}`);
       continue;
+    }
+    if (typeof row.wholesalePrice === "number") {
+      const productId = data[0]?.id;
+      if (productId) {
+        await supabase
+          .from("products")
+          .update({ wholesale_price: row.wholesalePrice })
+          .eq("id", productId)
+          .eq("business_id", input.businessId);
+      }
     }
     imported++;
   }
@@ -713,7 +852,28 @@ export async function listCustomers(supabase: Db, businessId: string, search: st
   if (term) query = query.or(`name.ilike.%${term}%,phone.ilike.%${term}%,email.ilike.%${term}%`);
   const { data, error } = await query;
   if (error) dbFail("list customers", error);
-  return data ?? [];
+  const rows = data ?? [];
+  const ids = rows.map((row) => row.id);
+  if (ids.length === 0) return rows.map((row) => ({ ...row, last_paid_at: null as string | null }));
+
+  const { data: payments, error: payError } = await supabase
+    .from("payments")
+    .select("customer_id, paid_at")
+    .eq("business_id", businessId)
+    .in("customer_id", ids)
+    .order("paid_at", { ascending: false })
+    .limit(500);
+  if (payError) dbFail("list customer payments", payError);
+
+  const lastPaid = new Map<string, string>();
+  for (const payment of payments ?? []) {
+    if (!payment.customer_id || lastPaid.has(payment.customer_id)) continue;
+    lastPaid.set(payment.customer_id, payment.paid_at);
+  }
+  return rows.map((row) => ({
+    ...row,
+    last_paid_at: lastPaid.get(row.id) ?? null,
+  }));
 }
 
 export async function createCustomer(supabase: Db, userId: string, input: CustomerInput) {
@@ -863,6 +1023,16 @@ export async function createSale(supabase: Db, input: SaleInput) {
       unitPrice: item.unitPrice,
     })) as never,
     _idempotency_key: input.idempotencyKey,
+    _rail: (input.rail || null) as never,
+    _tenders: (input.tenders && input.tenders.length > 0
+      ? input.tenders.map((tender) => ({
+          rail: tender.rail,
+          amount: tender.amount,
+          currency: tender.currency || null,
+          amountOriginal: tender.amountOriginal ?? null,
+          reference: tender.reference || null,
+        }))
+      : null) as never,
   });
   if (error) dbFail("create sale", error);
   void flushNotificationOutboxForBusiness(supabase, input.businessId);
@@ -910,7 +1080,7 @@ export async function listSales(
 }
 
 export async function getSaleDetail(supabase: Db, businessId: string, saleId: string) {
-  const [saleRes, itemsRes, refundsRes] = await Promise.all([
+  const [saleRes, itemsRes, refundsRes, paymentsRes] = await Promise.all([
     supabase
       .from("sales")
       .select("*, customers(name, phone, email)")
@@ -933,11 +1103,18 @@ export async function getSaleDetail(supabase: Db, businessId: string, saleId: st
       .eq("sale_id", saleId)
       .eq("business_id", businessId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("payments")
+      .select("id, amount, method, rail, currency, amount_original, reference, paid_at")
+      .eq("sale_id", saleId)
+      .eq("business_id", businessId)
+      .order("paid_at", { ascending: true }),
   ]);
   if (saleRes.error) dbFail("load sale", saleRes.error);
   if (!saleRes.data) fail("That sale could not be found.");
   if (itemsRes.error) dbFail("load sale items", itemsRes.error);
   if (refundsRes.error) dbFail("load sale refunds", refundsRes.error);
+  if (paymentsRes.error) dbFail("load sale payments", paymentsRes.error);
 
   const refundedByItem = new Map<string, number>();
   for (const refund of refundsRes.data ?? []) {
@@ -959,6 +1136,16 @@ export async function getSaleDetail(supabase: Db, businessId: string, saleId: st
       refunded_quantity: refundedByItem.get(item.id) ?? 0,
     })),
     refunds: refundsRes.data ?? [],
+    payments: (paymentsRes.data ?? []).map((row) => ({
+      id: row.id,
+      amount: Number(row.amount),
+      method: row.method,
+      rail: row.rail,
+      currency: row.currency,
+      amount_original: row.amount_original == null ? null : Number(row.amount_original),
+      reference: row.reference,
+      paid_at: row.paid_at,
+    })),
   };
 }
 
@@ -1200,6 +1387,176 @@ export async function recordInvoicePayment(supabase: Db, input: PaymentInput) {
     _idempotency_key: input.idempotencyKey,
   });
   if (error) dbFail("record payment", error);
+  return { id: data as string };
+}
+
+export async function recordCustomerCreditPayment(supabase: Db, input: CreditPaymentInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("record_customer_credit_payment", {
+    _business_id: input.businessId,
+    _customer_id: input.customerId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("record credit repayment", error);
+  return { id: data as string };
+}
+
+export async function recordSupplierPayment(supabase: Db, input: SupplierPaymentInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("record_supplier_payment", {
+    _business_id: input.businessId,
+    _supplier_id: input.supplierId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("record supplier payment", error);
+  return { id: data as string };
+}
+
+export async function takeCustomerDeposit(supabase: Db, input: CustomerDepositInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("take_customer_deposit", {
+    _business_id: input.businessId,
+    _customer_id: input.customerId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("take customer deposit", error);
+  return { id: data as string };
+}
+
+export async function refundCustomerDeposit(
+  supabase: Db,
+  input: { businessId: string; depositId: string },
+) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("refund_customer_deposit", {
+    _business_id: input.businessId,
+    _deposit_id: input.depositId,
+  });
+  if (error) dbFail("refund customer deposit", error);
+  return { id: data as string };
+}
+
+export async function applyCustomerDeposit(supabase: Db, input: ApplyDepositInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("apply_customer_deposit", {
+    _business_id: input.businessId,
+    _deposit_id: input.depositId,
+    _target: input.target,
+    _layby_id: (input.laybyId ?? null) as never,
+  });
+  if (error) dbFail("apply customer deposit", error);
+  return { id: data as string };
+}
+
+export async function listCustomerDeposits(supabase: Db, businessId: string, customerId?: string) {
+  let query = supabase
+    .from("customer_deposits")
+    .select(
+      "id, customer_id, amount, status, method, rail, reference, applied_to, layby_id, created_at, customers(name)",
+    )
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (customerId) query = query.eq("customer_id", customerId);
+  const { data, error } = await query;
+  if (error) dbFail("list customer deposits", error);
+  return data ?? [];
+}
+
+export async function listLaybys(supabase: Db, businessId: string) {
+  const { data, error } = await supabase
+    .from("laybys")
+    .select(
+      "id, layby_number, status, total, amount_paid, collect_after, notes, created_at, customer_id, sale_id, customers(name, phone)",
+    )
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) dbFail("list lay-bys", error);
+  return data ?? [];
+}
+
+export async function listLaybyItems(supabase: Db, businessId: string, laybyId: string) {
+  const { data, error } = await supabase
+    .from("layby_items")
+    .select("id, product_id, name, quantity, unit_price, tax, line_total")
+    .eq("business_id", businessId)
+    .eq("layby_id", laybyId)
+    .order("created_at", { ascending: true });
+  if (error) dbFail("list lay-by items", error);
+  return data ?? [];
+}
+
+export async function createLayby(supabase: Db, input: CreateLaybyInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
+  const { data, error } = await supabase.rpc("create_layby", {
+    _business_id: input.businessId,
+    _customer_id: input.customerId,
+    _items: input.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    })),
+    _collect_after: (input.collectAfter ?? null) as never,
+    _notes: (input.notes || null) as never,
+  });
+  if (error) dbFail("create lay-by", error);
+  return { id: data as string };
+}
+
+export async function recordLaybyInstalment(supabase: Db, input: LaybyInstalmentInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "payments.record");
+  const { data, error } = await supabase.rpc("record_layby_instalment", {
+    _business_id: input.businessId,
+    _layby_id: input.laybyId,
+    _amount: input.amount,
+    _method: input.method,
+    _rail: (input.rail || null) as never,
+    _reference: (input.reference || null) as never,
+    _idempotency_key: input.idempotencyKey,
+  });
+  if (error) dbFail("record lay-by instalment", error);
+  return { id: data as string };
+}
+
+export async function collectLayby(supabase: Db, input: CollectLaybyInput) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
+  const { data, error } = await supabase.rpc("collect_layby", {
+    _business_id: input.businessId,
+    _layby_id: input.laybyId,
+    _location_id: (input.locationId ?? null) as never,
+  });
+  if (error) dbFail("collect lay-by", error);
+  return { id: data as string };
+}
+
+export async function cancelLayby(supabase: Db, input: { businessId: string; laybyId: string }) {
+  await assertCanOperate(supabase, input.businessId);
+  await assertPermission(supabase, input.businessId, "sales.create");
+  const { data, error } = await supabase.rpc("cancel_layby", {
+    _business_id: input.businessId,
+    _layby_id: input.laybyId,
+  });
+  if (error) dbFail("cancel lay-by", error);
   return { id: data as string };
 }
 
@@ -1675,6 +2032,17 @@ export async function importSalesDetailed(
 
 /* ------------------------------ dashboard ------------------------------ */
 
+export type DailyTakingsRail = { rail: string; method: string; amount: number };
+
+export type DailyTakings = {
+  day: string;
+  timezone: string;
+  received: DailyTakingsRail[];
+  creditOnAccount: number;
+};
+
+export type DashboardDebtor = { id: string; name: string; outstanding: number };
+
 export type DashboardData = {
   currency: string;
   todaySales: number;
@@ -1688,7 +2056,42 @@ export type DashboardData = {
   series: { label: string; sales: number; profit: number }[];
   health: { score: number; label: string; signals: { tone: string; text: string }[] };
   lowStock: { id: string; name: string; stock: number; min_stock: number; unit: string }[];
+  todayTakings: DailyTakings;
+  debtors: DashboardDebtor[];
 };
+
+const EMPTY_TAKINGS: DailyTakings = {
+  day: "",
+  timezone: "Africa/Harare",
+  received: [],
+  creditOnAccount: 0,
+};
+
+export async function loadDailyTakings(supabase: Db, businessId: string): Promise<DailyTakings> {
+  const { data, error } = await supabase.rpc("get_daily_takings", {
+    _business_id: businessId,
+  });
+  if (error) {
+    if (skipMissingRpc("daily takings", error)) return EMPTY_TAKINGS;
+    dbFail("daily takings", error);
+  }
+  const raw = data as {
+    day?: string;
+    timezone?: string;
+    received?: { rail?: string; method?: string; amount?: number }[] | null;
+    creditOnAccount?: number;
+  } | null;
+  return {
+    day: String(raw?.day ?? ""),
+    timezone: String(raw?.timezone ?? "Africa/Harare"),
+    received: (raw?.received ?? []).map((row) => ({
+      rail: String(row.rail ?? row.method ?? ""),
+      method: String(row.method ?? ""),
+      amount: round2(Number(row.amount ?? 0)),
+    })),
+    creditOnAccount: round2(Number(raw?.creditOnAccount ?? 0)),
+  };
+}
 
 function dayKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -1704,40 +2107,50 @@ export async function loadDashboard(
   windowStart.setDate(windowStart.getDate() - (days * 2 - 1));
   windowStart.setHours(0, 0, 0, 0);
 
-  const [businessRes, salesRes, invoiceRes, productRes, expenseRes] = await Promise.all([
-    supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
-    supabase
-      .from("sales")
-      .select("total, cost_total, discount, created_at")
-      .eq("business_id", businessId)
-      // partially_refunded sales still contribute their (already-reduced)
-      // remaining total — only fully refunded/cancelled sales are excluded.
-      .in("status", ["completed", "partially_refunded"])
-      .gte("created_at", windowStart.toISOString()),
-    // No date filter is possible here by design — an unpaid invoice from
-    // last year is still "outstanding" today — so .limit() is the only
-    // available bound. Safety net only: a business that somehow exceeds it
-    // would see an understated outstanding total, not an error, but this is
-    // far beyond realistic usage for this app's target market.
-    supabase
-      .from("invoices")
-      .select("customer_id, total, amount_paid, status, due_date")
-      .eq("business_id", businessId)
-      .in("status", ["sent", "partially_paid", "overdue"])
-      .limit(2000),
-    supabase
-      .from("products")
-      .select("id, name, stock, min_stock, unit")
-      .eq("business_id", businessId)
-      .is("deleted_at", null)
-      .eq("is_active", true)
-      .limit(500),
-    supabase
-      .from("expenses")
-      .select("amount, expense_date")
-      .eq("business_id", businessId)
-      .gte("expense_date", dayKey(windowStart)),
-  ]);
+  const [businessRes, salesRes, invoiceRes, productRes, expenseRes, debtorsRes, takings] =
+    await Promise.all([
+      supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
+      supabase
+        .from("sales")
+        .select("total, cost_total, discount, created_at")
+        .eq("business_id", businessId)
+        // partially_refunded sales still contribute their (already-reduced)
+        // remaining total — only fully refunded/cancelled sales are excluded.
+        .in("status", ["completed", "partially_refunded"])
+        .gte("created_at", windowStart.toISOString()),
+      // No date filter is possible here by design — an unpaid invoice from
+      // last year is still "outstanding" today — so .limit() is the only
+      // available bound. Safety net only: a business that somehow exceeds it
+      // would see an understated outstanding total, not an error, but this is
+      // far beyond realistic usage for this app's target market.
+      supabase
+        .from("invoices")
+        .select("customer_id, total, amount_paid, status, due_date")
+        .eq("business_id", businessId)
+        .in("status", ["sent", "partially_paid", "overdue"])
+        .limit(2000),
+      supabase
+        .from("products")
+        .select("id, name, stock, min_stock, unit")
+        .eq("business_id", businessId)
+        .is("deleted_at", null)
+        .eq("is_active", true)
+        .limit(500),
+      supabase
+        .from("expenses")
+        .select("amount, expense_date")
+        .eq("business_id", businessId)
+        .gte("expense_date", dayKey(windowStart)),
+      supabase
+        .from("customers")
+        .select("id, name, outstanding_balance")
+        .eq("business_id", businessId)
+        .is("deleted_at", null)
+        .gt("outstanding_balance", 0)
+        .order("outstanding_balance", { ascending: false })
+        .limit(1000),
+      loadDailyTakings(supabase, businessId),
+    ]);
 
   const currency = businessRes.data?.currency ?? "USD";
   const sales = salesRes.data ?? [];
@@ -1779,11 +2192,14 @@ export async function loadDashboard(
   const todayKey = dayKey(now);
   const today = buckets.get(todayKey) ?? { sales: 0, profit: 0 };
 
-  const outstanding = invoices.reduce(
-    (sum, inv) => sum + Math.max(Number(inv.total ?? 0) - Number(inv.amount_paid ?? 0), 0),
-    0,
-  );
-  const outstandingCustomers = new Set(invoices.map((inv) => inv.customer_id).filter(Boolean)).size;
+  const allDebtors = (debtorsRes.data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    outstanding: round2(Number(row.outstanding_balance ?? 0)),
+  }));
+  const outstanding = allDebtors.reduce((sum, row) => sum + row.outstanding, 0);
+  const outstandingCustomers = allDebtors.length;
+  const debtors = allDebtors.slice(0, 8);
   const overdueCount = invoices.filter(
     (inv) => inv.due_date && new Date(inv.due_date) < now,
   ).length;
@@ -1852,8 +2268,14 @@ export async function loadDashboard(
       tone: "warn",
       text: `${overdueCount} invoice${overdueCount === 1 ? "" : "s"} overdue`,
     });
-  } else if (outstanding > 0) {
+  } else if (invoices.length > 0) {
     signals.push({ tone: "info", text: "All invoices are still within terms" });
+  }
+  if (outstandingCustomers > 0) {
+    signals.push({
+      tone: "info",
+      text: `${outstandingCustomers} customer${outstandingCustomers === 1 ? "" : "s"} on the credit book`,
+    });
   }
 
   if (expenseTotal > current.sales && current.sales > 0) {
@@ -1888,6 +2310,8 @@ export async function loadDashboard(
       min_stock: Number(p.min_stock),
       unit: p.unit,
     })),
+    todayTakings: takings,
+    debtors,
   };
 }
 

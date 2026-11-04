@@ -6,7 +6,9 @@ import {
   claimShopperOrderFn,
   getShopperAccountFn,
   setShopperConsentFn,
+  setShopperMarketingConsentFn,
 } from "@/lib/storefront/storefront.functions";
+import { mergeGuestCartIntoUserCart } from "@/lib/storefront/cart";
 import type { ShopperAccount } from "@/lib/storefront/contract";
 import { formatMoney, friendlyDateTime, readableError } from "@/lib/format";
 import { fulfilmentHowLabel, paymentHowLabel } from "@/lib/storefront/receipt";
@@ -28,6 +30,7 @@ function ShopperAccountPage() {
   const loadAccount = useServerFn(getShopperAccountFn);
   const claim = useServerFn(claimShopperOrderFn);
   const saveConsent = useServerFn(setShopperConsentFn);
+  const saveMarketing = useServerFn(setShopperMarketingConsentFn);
   const [user, setUser] = useState<{ userId: string; email: string | null } | null | undefined>(
     undefined,
   );
@@ -49,6 +52,7 @@ function ShopperAccountPage() {
       setAccount(null);
       return;
     }
+    mergeGuestCartIntoUserCart(store.slug, signedIn.userId);
     const next = await loadAccount({ data: { slug: store.slug } });
     setAccount(next);
   }
@@ -123,6 +127,20 @@ function ShopperAccountPage() {
     setError(null);
     try {
       const updated = await saveConsent({ data: { slug: store.slug, messages: next } });
+      setAccount(updated);
+    } catch (reason) {
+      setError(readableError(reason as Error, "Your preference was not saved."));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onMarketing(next: boolean) {
+    if (!user || pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      const updated = await saveMarketing({ data: { slug: store.slug, marketing: next } });
       setAccount(updated);
     } catch (reason) {
       setError(readableError(reason as Error, "Your preference was not saved."));
@@ -263,6 +281,19 @@ function ShopperAccountPage() {
         <span>
           {store.storeName} may send extra shop messages (promos, restocks). Order receipts and
           status emails are not this checkbox — those still go to the address on the order.
+        </span>
+      </label>
+      <label className="mt-3 flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={account?.marketingConsent ?? false}
+          disabled={pending || !account}
+          onChange={(event) => void onMarketing(event.target.checked)}
+        />
+        <span>
+          WhatsApp news from {store.storeName}. This is the marketing list. Messages stay queued
+          until WhatsApp Cloud is connected, and are never marked sent without Meta&apos;s message
+          id.
         </span>
       </label>
       <form

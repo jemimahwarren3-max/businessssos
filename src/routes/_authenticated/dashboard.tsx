@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, isRedirect, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -31,6 +31,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
 import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
+import { DailyTakingsList } from "@/components/daily-takings";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
@@ -39,9 +40,18 @@ import { getDailyBusinessBriefingFn } from "@/lib/growth.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   beforeLoad: async () => {
-    const workspace = await getWorkspace();
-    if (!workspace) {
-      throw redirect({ to: "/onboarding", replace: true });
+    try {
+      const workspace = await getWorkspace();
+      if (!workspace) {
+        throw redirect({ to: "/onboarding", replace: true });
+      }
+      if (!workspace.business.setup_completed_at) {
+        throw redirect({ to: "/setup", replace: true });
+      }
+    } catch (error) {
+      if (isRedirect(error)) throw error;
+      // A failed workspace load must not bounce an existing shop back into
+      // onboarding. The page shows retry instead.
     }
   },
   head: () => ({
@@ -97,6 +107,8 @@ function Dashboard() {
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
       navigate({ to: "/onboarding", replace: true });
+    } else if (workspace.data && !workspace.data.business.setup_completed_at) {
+      navigate({ to: "/setup", replace: true });
     }
   }, [workspace.isLoading, workspace.data, navigate]);
 
@@ -124,6 +136,26 @@ function Dashboard() {
     staleTime: 60 * 60 * 1000,
     queryFn: () => fetchBriefing({ data: { businessId: businessId! } }),
   });
+
+  if (workspace.isError) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 p-6 text-center">
+        <h1 className="text-2xl font-semibold">We couldn't open your dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Nothing was deleted. Try again, or open shop setup if you still need to finish creating
+          your store.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button className="rounded-full" onClick={() => void workspace.refetch()}>
+            Try again
+          </Button>
+          <Button asChild variant="outline" className="rounded-full">
+            <Link to="/onboarding">Open shop setup</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!workspace.data) {
     return (
@@ -180,7 +212,7 @@ function Dashboard() {
                 Your AI business briefing
               </h2>
               <p className="text-[13px] text-muted-foreground">
-                Optional. Sales numbers above come from your books — this only runs when you ask.
+                Optional. Sales numbers above come from your books. This only runs when you ask.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -240,7 +272,7 @@ function Dashboard() {
             ) : null}
             {data.outstanding > 0 ? (
               <Button asChild size="sm" variant="outline">
-                <Link to="/invoices">Review outstanding invoices</Link>
+                <Link to="/customers">Review credit book</Link>
               </Button>
             ) : null}
             {storefront.data && !storefront.data.checklist.published ? (
@@ -286,6 +318,84 @@ function Dashboard() {
           tone={data && data.lowStockCount > 0 ? "down" : "up"}
           icon={Boxes}
         />
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <section className="surface p-5">
+          <h2 className="text-lg font-semibold">Today&apos;s takings</h2>
+          <p className="text-[13px] text-muted-foreground">
+            Cash, EcoCash, InnBucks, ZIPIT, bank and card recorded today.
+          </p>
+          <div className="mt-4">
+            {dashboard.isLoading ? (
+              <Skeleton className="h-32 w-full" />
+            ) : (
+              <DailyTakingsList takings={data?.todayTakings} currency={currency} />
+            )}
+          </div>
+        </section>
+        <section className="surface p-5">
+          <h2 className="text-lg font-semibold">Running out</h2>
+          <p className="text-[13px] text-muted-foreground">Products at or below minimum stock.</p>
+          {data && data.lowStock.length > 0 ? (
+            <ul className="mt-4 divide-y divide-border">
+              {data.lowStock.map((item) => (
+                <li
+                  key={item.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{item.name}</p>
+                    <p className="text-[13px] text-muted-foreground">
+                      Minimum {formatNumber(item.min_stock)} {item.unit}
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      item.stock <= 0
+                        ? "rounded-lg bg-danger-soft px-2.5 py-1 text-[13px] font-semibold text-destructive"
+                        : "rounded-lg bg-warning-soft px-2.5 py-1 text-[13px] font-semibold text-warning-foreground"
+                    }
+                  >
+                    {item.stock <= 0 ? "Out of stock" : `${formatNumber(item.stock)} left`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {data ? "Nothing is running low right now." : "Loading…"}
+            </p>
+          )}
+          {data && data.lowStockCount > 0 ? (
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link to="/inventory">Open inventory</Link>
+            </Button>
+          ) : null}
+        </section>
+        <section className="surface p-5">
+          <h2 className="text-lg font-semibold">Who owes you</h2>
+          <p className="text-[13px] text-muted-foreground">From the customer credit book.</p>
+          {data && data.debtors.length > 0 ? (
+            <ul className="mt-4 divide-y divide-border">
+              {data.debtors.map((debtor) => (
+                <li key={debtor.id} className="flex items-center justify-between gap-3 py-3">
+                  <p className="min-w-0 truncate text-sm font-medium">{debtor.name}</p>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums">
+                    {formatMoney(debtor.outstanding, currency)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {data ? "No one is on the credit book." : "Loading…"}
+            </p>
+          )}
+          <Button asChild variant="outline" size="sm" className="mt-3">
+            <Link to="/customers">Open credit book</Link>
+          </Button>
+        </section>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -408,40 +518,6 @@ function Dashboard() {
           )}
         </section>
       </div>
-
-      <section className="surface mt-4 p-5">
-        <h2 className="text-lg font-semibold">Needs restocking</h2>
-        {data && data.lowStock.length > 0 ? (
-          <ul className="mt-4 divide-y divide-border">
-            {data.lowStock.map((item) => (
-              <li
-                key={item.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{item.name}</p>
-                  <p className="text-[13px] text-muted-foreground">
-                    Minimum {formatNumber(item.min_stock)} {item.unit}
-                  </p>
-                </div>
-                <span
-                  className={
-                    item.stock <= 0
-                      ? "rounded-lg bg-danger-soft px-2.5 py-1 text-[13px] font-semibold text-destructive"
-                      : "rounded-lg bg-warning-soft px-2.5 py-1 text-[13px] font-semibold text-warning-foreground"
-                  }
-                >
-                  {item.stock <= 0 ? "Out of stock" : `${formatNumber(item.stock)} left`}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {data ? "Nothing is running low right now." : "Loading…"}
-          </p>
-        )}
-      </section>
     </AppShell>
   );
 }

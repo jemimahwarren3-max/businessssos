@@ -1,10 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ClipboardList, Download, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
@@ -90,16 +100,17 @@ function PurchaseOrders() {
       toast.error(readableError(error, "Couldn't update that purchase order.")),
   });
 
+  const [pendingAction, setPendingAction] = useState<{
+    po: { id: string; po_number: string };
+    action: "received" | "cancelled";
+  } | null>(null);
+
   function markReceived(po: { id: string; po_number: string }) {
-    if (confirm(`Mark ${po.po_number} as received? This adds its items to stock.`)) {
-      statusMutation.mutate({ purchaseOrderId: po.id, status: "received" });
-    }
+    setPendingAction({ po, action: "received" });
   }
 
   function cancelOrder(po: { id: string; po_number: string }) {
-    if (confirm(`Cancel ${po.po_number}? This can't be undone.`)) {
-      statusMutation.mutate({ purchaseOrderId: po.id, status: "cancelled" });
-    }
+    setPendingAction({ po, action: "cancelled" });
   }
 
   if (!workspace.data) {
@@ -130,6 +141,7 @@ function PurchaseOrders() {
   }
 
   return (
+    <>
     <AppShell
       businessName={workspace.data.business.name}
       role={workspace.data.role}
@@ -274,5 +286,35 @@ function PurchaseOrders() {
         )}
       </div>
     </AppShell>
+
+    <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {pendingAction?.action === "received"
+              ? `Mark ${pendingAction.po.po_number} as received? This adds its items to stock.`
+              : `Cancel ${pendingAction?.po.po_number}? This can't be undone.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Go back</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (pendingAction) {
+                statusMutation.mutate({
+                  purchaseOrderId: pendingAction.po.id,
+                  status: pendingAction.action,
+                });
+              }
+              setPendingAction(null);
+            }}
+          >
+            {pendingAction?.action === "received" ? "Mark received" : "Cancel order"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

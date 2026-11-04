@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { HintTooltip } from "@/components/hint-tooltip";
 import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
@@ -51,7 +52,7 @@ import {
   updateInvoiceStatus,
 } from "@/lib/business.functions";
 import { invoiceSchema, PAYMENT_METHODS, type LineItemInput } from "@/lib/business.schemas";
-import { formatMoney, friendlyDate, readableError } from "@/lib/format";
+import { formatMoney, friendlyDate, readableError, todayLocal } from "@/lib/format";
 import { computeTotals } from "@/lib/invoice-calc";
 import { INVOICE_HINTS } from "@/lib/nav-hints";
 import { downloadXlsx } from "@/lib/xlsx-export";
@@ -82,7 +83,7 @@ const EMPTY_ITEM: LineItemInput = {
 };
 const EMPTY_FORM = {
   customerId: "",
-  issueDate: new Date().toISOString().slice(0, 10),
+  issueDate: todayLocal(),
   dueDate: "",
   discount: "0",
   notes: "",
@@ -530,7 +531,7 @@ function Invoices() {
                   <ul className="space-y-1">
                     {aiSuggestion.items.map((item, index) => (
                       <li key={`${item.productId}-${index}`}>
-                        {item.quantity} × {item.name} —{" "}
+                        {item.quantity} x {item.name},{" "}
                         {formatMoney(item.quantity * item.unitPrice, currency)} before tax
                       </li>
                     ))}
@@ -861,18 +862,20 @@ function Invoices() {
                     </Button>
                   ) : null}
                   {["sent", "partially_paid"].includes(detail.data.invoice.status) && canCreate ? (
-                    <Button
-                      variant="outline"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (confirm("Cancel this invoice? This can't be undone.")) {
-                          statusMutation.mutate("cancelled");
-                        }
-                      }}
-                      disabled={statusMutation.isPending}
-                    >
-                      Cancel invoice
-                    </Button>
+                    <ConfirmDialog
+                      description="Cancel this invoice? This can't be undone."
+                      confirmLabel="Cancel invoice"
+                      onConfirm={() => statusMutation.mutate("cancelled")}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          disabled={statusMutation.isPending}
+                        >
+                          Cancel invoice
+                        </Button>
+                      }
+                    />
                   ) : null}
                 </div>
                 {["sent", "partially_paid"].includes(detail.data.invoice.status) &&

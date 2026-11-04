@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { DeferredImage } from "@/components/deferred-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -382,7 +383,7 @@ export function OnlineOrdersFulfilmentPanel({
                     Open PDF
                   </a>
                 ) : (
-                  <img
+                  <DeferredImage
                     alt="Customer payment screenshot"
                     className="mt-2 max-h-72 rounded border"
                     src={selectedOrder.proofUrl}
@@ -575,7 +576,7 @@ export function OnlineOrdersFulfilmentPanel({
           <ul className="mt-3 space-y-1 text-muted-foreground">
             {selectedOrder.events.map((event) => (
               <li key={event.createdAt + event.eventType}>
-                {friendlyDateTime(event.createdAt)} — {event.message}
+                {friendlyDateTime(event.createdAt)}: {event.message}
               </li>
             ))}
           </ul>

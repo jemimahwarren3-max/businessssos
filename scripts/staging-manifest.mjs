@@ -77,6 +77,75 @@ export const STAGING_MIGRATION_MANIFEST = [
   },
   { file: "20261031163000_create_business_idempotent.sql" },
   { file: "20261102010000_fix_browse_marketplace_readonly.sql" },
+  {
+    file: "20261102120000_storefront_template_allowlist.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'save_storefront'
+          and pg_get_functiondef(p.oid) like '%save_storefront_allowlist_base%'
+      ) as skip
+    `,
+  },
+  {
+    file: "20261102140000_morning_desk.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'record_customer_credit_payment'
+      ) as skip
+    `,
+  },
+  {
+    file: "20261102160000_split_tenders.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'payments'
+          and column_name = 'amount_original'
+      ) as skip
+    `,
+  },
+  {
+    // Older manifest entries recreate 8-arg create_sale on every apply.
+    // Always drop leftover overloads so 8-arg calls uniquely match Stage 2.
+    file: "20261102161000_create_sale_unique.sql",
+  },
+  {
+    file: "20261102180000_notebook_delivery.sql",
+    skipIf: `
+      select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'customer_deposits'
+      ) as skip
+    `,
+  },
+  {
+    file: "20261102210000_whatsapp_channel.sql",
+    skipIf: `
+      select exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'complete_notification_outbox'
+          and pg_get_functiondef(p.oid) like '%provider message id%'
+      ) as skip
+    `,
+  },
+  {
+    // Always re-apply: ADD COLUMN IF NOT EXISTS + CREATE OR REPLACE. Skipping
+    // on setup_completed_at left staging without the jsonb Create shop RPC.
+    file: "20261103080000_onboarding_journey.sql",
+  },
+  {
+    // After the journey file, drop leftover 5-arg / timezone 7-arg overloads
+    // so Create shop uniquely matches the jsonb signature.
+    file: "20261103020000_create_business_unique.sql",
+  },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
@@ -155,6 +224,24 @@ export const STAGING_READINESS_CHECKS = [
       where n.nspname = 'public' and p.proname = 'create_product'
         and p.proargnames is not null
         and '_category_id' = any (p.proargnames)
+    ) as ok`,
+  },
+  {
+    id: "business_feature_flags",
+    label: "get_business_feature_flags() (workspace load must not 404 onboarding)",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'get_business_feature_flags'
+    ) as ok`,
+  },
+  {
+    id: "storefront_template_allowlist",
+    label: "save_storefront() accepts 60 website templates",
+    sql: `select exists (
+      select 1 from pg_constraint
+      where conname = 'storefronts_template_check'
+        and pg_get_constraintdef(oid) like '%food-counter%'
     ) as ok`,
   },
 ];

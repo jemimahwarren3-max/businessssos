@@ -85,13 +85,28 @@ jobs:
 
       - run: npm ci
 
-      - name: Install Playwright Chromium
-        run: npx playwright install chromium --with-deps
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
 
-      - name: Deployed smoke tests
+      - name: Smoke tests (production, read-only)
         env:
           E2E_BASE_URL: https://mykwetuu.com
-        run: npm run test:e2e
+        run: npx playwright test --config e2e/playwright.config.ts --project=smoke
+
+      - name: Full E2E tests (staging)
+        env:
+          E2E_BASE_URL: https://mykwetuu.com
+          E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
+          E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
+        run: npx playwright test --config e2e/playwright.config.ts --project=chromium
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
 
   deploy:
     needs: check

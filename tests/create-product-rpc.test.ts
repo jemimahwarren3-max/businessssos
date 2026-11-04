@@ -25,6 +25,13 @@ describe("createProductRpcArgs", () => {
     expect(args._selling_price).toBe(3);
     expect(args._stock).toBe(10);
     expect(args._supplier_id).toBeNull();
+    expect(args).not.toHaveProperty("_wholesale_price");
+  });
+
+  it("still omits wholesale from create_product when a second price is set", () => {
+    expect(createProductRpcArgs({ ...honey, wholesalePrice: 2 })).not.toHaveProperty(
+      "_wholesale_price",
+    );
   });
 
   it("omits _category_id when the field is an empty string", () => {

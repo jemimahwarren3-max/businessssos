@@ -1,4 +1,3 @@
-import { readSheet } from "read-excel-file/browser";
 
 const MAX_IMPORT_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 500;
@@ -105,6 +104,7 @@ export async function parseSpreadsheetFile(file: File): Promise<string[][]> {
     return parseCsvText(text);
   }
   if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+    const { readSheet } = await import("read-excel-file/browser");
     const rows = await readSheet(file);
     const parsedRows = rows.map((row) => row.map((cell) => (cell == null ? "" : String(cell))));
     return validateParsedRows(parsedRows);

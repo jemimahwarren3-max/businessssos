@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { userFacingDbMessage } from "@/lib/business.server";
+import { isMissingDbFunction, userFacingDbMessage } from "@/lib/business.server";
 import { readableError } from "@/lib/format";
 
 describe("userFacingDbMessage", () => {
@@ -58,6 +58,32 @@ describe("userFacingDbMessage", () => {
           "Could not find the function public.create_product with parameter _category_id in the schema cache",
       }),
     ).toBe("Shop setup is out of date. Wait a minute and try again.");
+  });
+
+  it("passes through store-design and cover-image RPC copy", () => {
+    expect(
+      userFacingDbMessage({
+        code: "B0001",
+        message: "Choose one of the store designs.",
+      }),
+    ).toBe("Choose one of the store designs.");
+    expect(
+      userFacingDbMessage({
+        code: "P0001",
+        message: "Cover image must use a valid HTTPS URL.",
+      }),
+    ).toBe("Cover image must use a valid HTTPS URL.");
+  });
+
+  it("treats missing optional RPCs as skippable instead of a wiped workspace", () => {
+    expect(
+      isMissingDbFunction({
+        code: "PGRST202",
+        message:
+          "Could not find the function public.get_business_feature_flags in the schema cache",
+      }),
+    ).toBe(true);
+    expect(isMissingDbFunction({ code: "42501", message: "permission denied" })).toBe(false);
   });
 });
 
