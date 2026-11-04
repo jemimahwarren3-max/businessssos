@@ -448,6 +448,7 @@ function Suppliers() {
               <Label htmlFor="s-phone">Phone</Label>
               <Input
                 id="s-phone"
+                type="tel"
                 value={form.phone}
                 maxLength={40}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}

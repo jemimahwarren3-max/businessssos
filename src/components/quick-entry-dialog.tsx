@@ -613,6 +613,7 @@ export function QuickEntryDialog({
               <Label htmlFor="qe-phone">Phone (optional)</Label>
               <Input
                 id="qe-phone"
+                type="tel"
                 maxLength={40}
                 value={customerForm.phone}
                 onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}

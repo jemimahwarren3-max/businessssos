@@ -139,7 +139,7 @@ function Commission() {
         </p>
       </div>
 
-      <div className="surface overflow-hidden">
+      <div className="surface overflow-x-auto">
         {report.isLoading ? (
           <div className="space-y-3 p-5">
             {[0, 1, 2].map((i) => (

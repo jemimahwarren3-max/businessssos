@@ -851,6 +851,7 @@ export function StoreBuilder({
             <label className="text-sm">
               <Label>Phone</Label>
               <Input
+                type="tel"
                 value={phone}
                 disabled={disabled}
                 onChange={(event) => setPhone(event.target.value)}

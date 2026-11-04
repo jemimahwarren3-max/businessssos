@@ -276,7 +276,7 @@ function TimeClock() {
       </div>
 
       {canViewTeam ? (
-        <div className="surface overflow-hidden">
+        <div className="surface overflow-x-auto">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">Team timesheets</h2>
             <Tabs value={range} onValueChange={setRange}>

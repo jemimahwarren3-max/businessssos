@@ -455,6 +455,7 @@ function Customers() {
               <Label htmlFor="c-phone">Phone</Label>
               <Input
                 id="c-phone"
+                type="tel"
                 value={form.phone}
                 maxLength={40}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}

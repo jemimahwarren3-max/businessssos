@@ -363,6 +363,7 @@ function Onboarding() {
                 <Label htmlFor="biz-phone">WhatsApp or phone number (optional)</Label>
                 <Input
                   id="biz-phone"
+                  type="tel"
                   maxLength={40}
                   value={form.phone ?? ""}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
