@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -309,7 +310,7 @@ export function ProductCreateForm({
           )}
         />
         <div className="space-y-1.5 sm:col-span-2">
-          <FormLabel htmlFor="p-photo">Photo (optional)</FormLabel>
+          <Label htmlFor="p-photo">Photo (optional)</Label>
           <Input
             id="p-photo"
             type="file"
