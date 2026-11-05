@@ -110,25 +110,57 @@ export function StoreBuilder({
   businessId,
   initial,
   canManage,
+  creatingStore,
+  onCreateStore,
 }: {
   businessId: string;
   initial: AdminStore;
   canManage: boolean;
+  creatingStore: boolean;
+  onCreateStore: () => void;
 }) {
-  if (!initial.store) return null;
-  return <StoreBuilderReady businessId={businessId} initial={initial} canManage={canManage} />;
+  const store = initial.store;
+  if (!store) {
+    return (
+      <section id="store-builder" className="surface space-y-3 p-5">
+        <h2 className="text-lg font-semibold">Set up your store</h2>
+        <p className="text-sm text-muted-foreground">
+          Create a store to customize its design and online details.
+        </p>
+        {canManage ? (
+          <Button type="button" disabled={creatingStore} onClick={onCreateStore}>
+            {creatingStore ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+            Set up your store
+          </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Ask an owner or admin to set up the store.
+          </p>
+        )}
+      </section>
+    );
+  }
+  return (
+    <StoreBuilderReady
+      businessId={businessId}
+      initial={initial}
+      store={store}
+      canManage={canManage}
+    />
+  );
 }
 
 function StoreBuilderReady({
   businessId,
   initial,
+  store,
   canManage,
 }: {
   businessId: string;
   initial: AdminStore;
+  store: NonNullable<AdminStore["store"]>;
   canManage: boolean;
 }) {
-  const store = initial.store!;
   const queryClient = useQueryClient();
   const [builderTab, setBuilderTab] = useState(
     () =>

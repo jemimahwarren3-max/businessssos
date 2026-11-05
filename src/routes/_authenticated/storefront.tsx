@@ -169,6 +169,8 @@ function StorefrontPage() {
               billingEnabled={workspaceData.billingEnabled}
               isOperateLocked={workspaceData.isOperateLocked}
               notificationsConfigured={notifyEmail.data === true}
+              creatingStore={createStoreMutation.isPending}
+              onCreateStore={() => createStoreMutation.mutate()}
             />
           ) : null}
         </>
@@ -184,6 +186,8 @@ function StorefrontEditor({
   billingEnabled,
   isOperateLocked,
   notificationsConfigured,
+  creatingStore,
+  onCreateStore,
 }: {
   businessId: string;
   initial: AdminStore;
@@ -191,6 +195,8 @@ function StorefrontEditor({
   billingEnabled: boolean;
   isOperateLocked: boolean;
   notificationsConfigured: boolean;
+  creatingStore: boolean;
+  onCreateStore: () => void;
 }) {
   const queryClient = useQueryClient();
   const save = useServerFn(saveStorefrontFn);
@@ -372,6 +378,8 @@ function StorefrontEditor({
         businessId={businessId}
         initial={initial}
         canManage={permissions.includes("business.settings")}
+        creatingStore={creatingStore}
+        onCreateStore={onCreateStore}
       />
 
       <OnlineOrdersFulfilmentPanel
