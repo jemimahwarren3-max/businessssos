@@ -23,8 +23,9 @@ environment separation and release checks below are complete.
 - Confirm each service's build-time `VITE_SUPABASE_*` settings and runtime
   `SUPABASE_*` settings refer to the same environment.
 - Forward server-only provider secrets such as `GEMINI_API_KEY` and
-  `ANTHROPIC_API_KEY` only to the intended runtime; never expose them as
-  `VITE_*` build variables. `ANTHROPIC_API_KEY` enables the Claude shop builder.
+  `ANTHROPIC_API_KEY` and optional `PEXELS_API_KEY` only to the intended
+  runtime; never expose them as `VITE_*` build variables. `ANTHROPIC_API_KEY`
+  enables the Claude shop builder, and `PEXELS_API_KEY` enables product photo search.
 - Give staging and production distinct `APP_URL` values; only production may
   use `https://mykwetuu.com`.
 - Protect production deployment with a restricted branch and required

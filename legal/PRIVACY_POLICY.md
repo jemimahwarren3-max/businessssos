@@ -76,6 +76,7 @@ Depending on configuration we may process information connected with:
 - WhatsApp click-to-chat links a merchant publishes. If you opt in at checkout, we may queue transactional WhatsApp order updates on that order. Signed-in shoppers can join a shop's WhatsApp news list. Those messages stay queued until WhatsApp Cloud is configured, and are never marked sent without a Meta message id. Chat content on WhatsApp is processed by Meta once a message is actually delivered.
 - Groq, if a merchant uses the optional AI assistant: an aggregated business summary plus the typed question. Groq does not receive raw customer emails or phone numbers from the customer list in the current implementation.
 - Anthropic, if a merchant selects "Build with AI": the business name/type, active product names/descriptions, optional shop brief, and uploaded storefront logo when available. The shop builder does not send customer records or payment credentials.
+- Pexels, if a merchant searches for a product photo: the product-name search term is sent to Pexels. A selected image remains hosted by Pexels and is requested directly by browsers using its CDN URL. The Pexels API key is server-only.
 - Hosting and database providers (see section 9).
 
 We do not access an external account just because you have a Kwetuu account.
@@ -155,6 +156,7 @@ We may share relevant information with providers that actually support the deplo
 | Hosting (Cloud Run is the intended production host; Render may be used temporarily) | Running the application                                                        |
 | Groq                                                                                | Optional AI assistant, if configured                                           |
 | Anthropic                                                                           | Optional Claude shop-builder draft generation, when selected and configured     |
+| Pexels                                                                              | Optional product-photo search when selected and configured                       |
 | Sentry                                                                              | Optional error monitoring, if configured                                       |
 | Upstash                                                                             | Optional short-lived workspace cache, if configured                            |
 | Google Fonts                                                                        | Typeface files requested by the browser                                        |
