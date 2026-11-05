@@ -20,6 +20,7 @@ import { HintTooltip } from "@/components/hint-tooltip";
 import { DocumentPrintView } from "@/components/document-print-view";
 import { LineItemsEditor } from "@/components/line-items-editor";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/hint";
 import {
   Dialog,
   DialogContent,
@@ -376,7 +377,7 @@ function Invoices() {
             title={INVOICE_HINTS.search}
           />
         </div>
-        <HintTooltip hint={INVOICE_HINTS.search} side="top">
+        <Hint tip={INVOICE_HINTS.search} side="top">
           <button
             type="button"
             className="grid size-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
@@ -384,7 +385,7 @@ function Invoices() {
           >
             <CircleHelp className="size-4" aria-hidden="true" />
           </button>
-        </HintTooltip>
+        </Hint>
       </div>
 
       <div className="surface mt-4 overflow-hidden">

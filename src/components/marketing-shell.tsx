@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Logo } from "@/components/logo";
+import { Hint } from "@/components/ui/hint";
 import { BRAND } from "@/lib/brand";
 import { MARKETING_NAV } from "@/lib/marketing-nav";
 
@@ -38,14 +39,16 @@ export function MarketingShell({ children }: { children: ReactNode }) {
               Start a store
             </Link>
           </nav>
-          <button
-            type="button"
-            className="p-2 md:hidden"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-          >
-            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+          <Hint tip={menuOpen ? "Close menu" : "Open menu"}>
+            <button
+              type="button"
+              className="p-2 md:hidden"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+            >
+              {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          </Hint>
         </div>
         {menuOpen ? (
           <div className="border-t px-5 pb-6 pt-3 md:hidden">

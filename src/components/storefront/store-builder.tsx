@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/hint";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -1350,23 +1351,33 @@ function StoreBuilderReady({
         >
           Discard changes
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={
-            disabled ||
-            publishMutation.isPending ||
-            (store.status !== "published" && eligibility.data?.state !== "eligible_to_publish")
-          }
-          title={
+        <Hint
+          tip={
             store.status !== "published" && eligibility.data?.state !== "eligible_to_publish"
-              ? "Complete launch requirements above before publishing"
-              : undefined
+              ? "Complete launch requirements above before publishing."
+              : store.status === "published"
+                ? "Make your shop unavailable to customers."
+                : "Make your shop available to customers."
           }
-          onClick={() => publishMutation.mutate(store.status !== "published")}
         >
-          {store.status === "published" ? "Unpublish" : "Publish store"}
-        </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={
+              disabled ||
+              publishMutation.isPending ||
+              (store.status !== "published" && eligibility.data?.state !== "eligible_to_publish")
+            }
+            title={
+              store.status !== "published" && eligibility.data?.state !== "eligible_to_publish"
+                ? "Complete launch requirements above before publishing"
+                : undefined
+            }
+            onClick={() => publishMutation.mutate(store.status !== "published")}
+          >
+            {store.status === "published" ? "Unpublish" : "Publish store"}
+          </Button>
+        </Hint>
         {listing.data?.hasStore ? (
           <label className="flex items-center gap-2 text-sm">
             <input
