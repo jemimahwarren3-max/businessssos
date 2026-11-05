@@ -606,7 +606,7 @@ function Onboarding() {
                   <SelectContent>
                     {CURRENCIES.map((code) => (
                       <SelectItem key={code} value={code}>
-                        {code}
+                        {code === "ZWG" ? "ZiG (ZWG)" : code}
                       </SelectItem>
                     ))}
                   </SelectContent>
