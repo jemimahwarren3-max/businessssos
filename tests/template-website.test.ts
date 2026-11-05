@@ -12,8 +12,8 @@ describe("website-like storefront templates", () => {
   it("gives every category a sample catalogue for picker websites", () => {
     for (const category of TEMPLATE_CATEGORIES) {
       const products = sampleProductsForCategory(category.id);
-      expect(products.length).toBe(4);
-      expect(new Set(products.map((product) => product.name)).size).toBe(4);
+      expect(products.length).toBe(8);
+      expect(new Set(products.map((product) => product.name)).size).toBe(8);
     }
   });
 
@@ -25,6 +25,11 @@ describe("website-like storefront templates", () => {
       expect(
         new Set(designs.map((template) => `${template.catalogStyle}:${template.cardStyle}`)).size,
       ).toBe(6);
+      expect(
+        designs.every((template) =>
+          template.fontHref.startsWith("https://fonts.googleapis.com/css2?family="),
+        ),
+      ).toBe(true);
     }
   });
 

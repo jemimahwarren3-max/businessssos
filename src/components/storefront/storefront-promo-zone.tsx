@@ -71,7 +71,7 @@ export function StorefrontPromoZone({
   return (
     <section
       aria-label="Shop promotions"
-      className="mx-auto grid max-w-6xl gap-3 px-4 py-6 sm:grid-cols-2"
+      className="mx-auto grid max-w-6xl gap-4 px-4 py-8 sm:grid-cols-2"
       data-promo-layout={layout}
       data-template={template.id}
     >
@@ -99,8 +99,8 @@ export function StorefrontPromoZone({
             {category && onSelectCategory ? (
               <button
                 type="button"
-                className="mt-3 rounded-md px-3 py-2 text-sm font-medium"
-                style={{ backgroundColor: theme.button, color: theme.buttonText }}
+                className="mt-3 rounded-md px-3 py-2 text-sm font-medium transition-transform hover:scale-[1.02] motion-reduce:transition-none"
+                style={{ backgroundColor: theme.accent, color: theme.buttonText }}
                 onClick={() => onSelectCategory(category.id)}
               >
                 Explore {category.name}
@@ -108,7 +108,7 @@ export function StorefrontPromoZone({
             ) : category ? (
               <span
                 className="mt-3 inline-flex rounded-md px-3 py-2 text-sm font-medium"
-                style={{ backgroundColor: theme.button, color: theme.buttonText }}
+                style={{ backgroundColor: theme.accent, color: theme.buttonText }}
               >
                 Explore {category.name}
               </span>
@@ -130,6 +130,7 @@ export function StorefrontPromoZone({
             className={cn(
               "relative min-w-0 overflow-hidden",
               promoLayoutClasses(layout),
+              "transition-all duration-200 hover:shadow-lg motion-reduce:transition-none",
               (layout === "campaign" || layout === "list") && "sm:col-span-2",
               layout !== "campaign" && "rounded-xl border",
               layout === "list" && "rounded-none border-b",

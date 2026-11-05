@@ -676,7 +676,7 @@ function StoreBuilderReady({
                   <TemplatePreview
                     template={previewTemplate}
                     storeName={storeName || previewTemplate.name}
-                    className="mb-3 h-44"
+                    className="mb-3 h-[211px]"
                   />
                   <p className="font-semibold">{previewTemplate.name}</p>
                   <p className="text-xs text-muted-foreground">{previewTemplate.bestFor}</p>
