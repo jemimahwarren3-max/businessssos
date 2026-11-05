@@ -1360,23 +1360,20 @@ function StoreBuilderReady({
                 : "Make your shop available to customers."
           }
         >
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={
-              disabled ||
-              publishMutation.isPending ||
-              (store.status !== "published" && eligibility.data?.state !== "eligible_to_publish")
-            }
-            title={
-              store.status !== "published" && eligibility.data?.state !== "eligible_to_publish"
-                ? "Complete launch requirements above before publishing"
-                : undefined
-            }
-            onClick={() => publishMutation.mutate(store.status !== "published")}
-          >
-            {store.status === "published" ? "Unpublish" : "Publish store"}
-          </Button>
+          <span className="inline-flex">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={
+                disabled ||
+                publishMutation.isPending ||
+                (store.status !== "published" && eligibility.data?.state !== "eligible_to_publish")
+              }
+              onClick={() => publishMutation.mutate(store.status !== "published")}
+            >
+              {store.status === "published" ? "Unpublish" : "Publish store"}
+            </Button>
+          </span>
         </Hint>
         {listing.data?.hasStore ? (
           <label className="flex items-center gap-2 text-sm">

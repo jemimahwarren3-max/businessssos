@@ -44,7 +44,6 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       aria-label={`Switch to ${nextTheme} mode`}
-      title={`Switch to ${nextTheme} mode`}
       onClick={() => {
         applyTheme(nextTheme);
         setTheme(nextTheme);

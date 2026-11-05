@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +15,25 @@ export function Hint({
   side?: HintSide;
   className?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const touchRef = useRef(false);
+
   if (!tip.trim()) return children;
 
   return (
     <TooltipProvider delayDuration={400}>
-      <Tooltip>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger
+          asChild
+          onPointerDown={(event) => {
+            touchRef.current = event.pointerType === "touch";
+          }}
+          onClick={() => {
+            if (touchRef.current) setOpen(true);
+          }}
+        >
+          {children}
+        </TooltipTrigger>
         <TooltipContent
           side={side}
           sideOffset={6}
