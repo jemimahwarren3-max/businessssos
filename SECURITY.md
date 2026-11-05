@@ -72,7 +72,7 @@ roles)` SECURITY DEFINER helper functions, not by application-layer
   to the `service_role` via `GRANT`/`REVOKE`, not an in-function identity
   check (an earlier version used `current_user = 'service_role'` inside a
   `SECURITY DEFINER` function, which is unsound, `current_user` inside
-  such a function always reflects the function's _owner_, never the
+  such a function always reflects the function's *owner*, never the
   caller, this was found and fixed during this session's audit).
 - **The platform-admin account requires TOTP MFA**, enforced server-side on
   every admin action (`requireAdmin()` in `src/lib/admin/admin.server.ts`),
@@ -156,7 +156,7 @@ top of RLS and authentication, not the primary security boundary.
 
 The `rate_limit_hits` table backing this had a real gap, found via
 Supabase's own Security Advisor rather than this session's own review: on
-staging, RLS was disabled _and_ `anon`/`authenticated` held full
+staging, RLS was disabled *and* `anon`/`authenticated` held full
 INSERT/SELECT/UPDATE/DELETE grants directly on the table, an
 unauthenticated caller could have hit PostgREST directly and deleted their
 own bucket to bypass brute-force protection on sign-in/sign-up/password
