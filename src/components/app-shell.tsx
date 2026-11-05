@@ -69,6 +69,7 @@ import {
 } from "@/lib/commerce-model";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type NavItem = {
   to: string;
@@ -452,6 +453,7 @@ export function AppShell({
                 </HintTooltip>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                <ThemeToggle />
                 <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
                   <Button
                     variant="default"
@@ -563,9 +565,7 @@ export function AppShell({
           <main id="main-content" className="mx-auto max-w-6xl px-4 pb-28 pt-6 lg:pb-12">
             <div className="flex flex-wrap items-start gap-4 sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">
-                  {title}
-                </h1>
+                <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">{title}</h1>
                 {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
               </div>
               {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
