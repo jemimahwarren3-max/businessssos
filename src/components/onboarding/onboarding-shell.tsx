@@ -70,8 +70,10 @@ export function OnboardingHeading({ title, description }: { title: string; descr
   );
 }
 
-export function OnboardingCard({ children }: { children: ReactNode }) {
+export function OnboardingCard({ children, title }: { children: ReactNode; title?: string }) {
   return (
-    <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-soft">{children}</div>
+    <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-soft" title={title}>
+      {children}
+    </div>
   );
 }

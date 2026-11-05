@@ -119,6 +119,7 @@ function StorefrontPage() {
       billingEnabled={workspaceData.billingEnabled}
       title="My Online Store"
       subtitle="Launch centre, design, payments, and online orders. Separate from invoices and POS."
+      subtitleAsTooltip
     >
       {!businessId ? (
         <p className="text-sm text-muted-foreground">
@@ -308,14 +309,13 @@ function StorefrontEditor({
         <section className="surface space-y-3 p-4">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" aria-hidden="true" />
-            <h2 className="text-base font-semibold">Build a shop draft with AI</h2>
+            <h2
+              className="text-base font-semibold"
+              title="Describe your products, customers, and the look you want. AI suggestions are generated using your configured provider; the brief and active product names/descriptions are shared with that provider. Review everything before applying. Nothing is saved or published automatically."
+            >
+              Build a shop draft with AI
+            </h2>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Describe your products, customers, and the look you want. AI suggests shop copy, a
-            design, SEO text, and a colour palette. Your brief and active product names/descriptions
-            are sent to your configured AI provider. Review everything before applying; it will not
-            save or publish your shop.
-          </p>
           <Textarea
             value={shopBrief}
             onChange={(event) => setShopBrief(event.target.value)}
@@ -381,12 +381,12 @@ function StorefrontEditor({
       />
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold">Verified purchase reviews</h2>
-        <p className="text-sm text-muted-foreground">
-          Shoppers can review a line only with the order access code, after the order is ready, out
-          for delivery, or completed. Hiding a review removes it from the public product page. It
-          does not delete the record.
-        </p>
+        <h2
+          className="text-base font-semibold"
+          title="Shoppers can review a line only with the order access code, after the order is ready, out for delivery, or completed. Hiding a review removes it from the public product page. It does not delete the record."
+        >
+          Verified purchase reviews
+        </h2>
         {reviews.isError ? (
           <p className="text-sm text-muted-foreground">
             {readableError(
@@ -445,10 +445,12 @@ function StorefrontEditor({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold">Listing reports</h2>
-        <p className="text-sm text-muted-foreground">
-          Anyone can report a published shop or product. Reports are not a public ranking.
-        </p>
+        <h2
+          className="text-base font-semibold"
+          title="Anyone can report a published shop or product. Reports are not a public ranking."
+        >
+          Listing reports
+        </h2>
         {listingReports.isError ? (
           <p className="text-sm text-muted-foreground">
             {readableError(
@@ -504,11 +506,12 @@ function StorefrontEditor({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold">Customer reports</h2>
-        <p className="text-sm text-muted-foreground">
-          Shoppers can report a problem from checkout or the order page. Resolving a report here
-          does not automatically refund money.
-        </p>
+        <h2
+          className="text-base font-semibold"
+          title="Shoppers can report a problem from checkout or the order page. Resolving a report here does not automatically refund money."
+        >
+          Customer reports
+        </h2>
         {complaints.isError ? (
           <p className="text-sm text-muted-foreground">
             {readableError(

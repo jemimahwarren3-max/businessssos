@@ -86,11 +86,12 @@ function SecuritySection() {
   return (
     <div className="surface max-w-xl space-y-4 p-5">
       <div>
-        <h2 className="text-lg font-semibold">Two-factor authentication</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Require a 6-digit code from an authenticator app, in addition to your password, every time
-          you sign in.
-        </p>
+        <h2
+          className="text-lg font-semibold"
+          title="Require a 6-digit code from an authenticator app, in addition to your password, every time you sign in."
+        >
+          Two-factor authentication
+        </h2>
       </div>
 
       {status.data.enrolled && status.data.currentLevel === "aal2" ? (
@@ -199,11 +200,12 @@ function DevicesSection() {
   return (
     <div className="surface max-w-xl space-y-3 p-5">
       <div>
-        <h2 className="text-lg font-semibold">Sign out other devices</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          If you think someone else has access to your account, sign out every other browser and
-          device at once. This one stays signed in.
-        </p>
+        <h2
+          className="text-lg font-semibold"
+          title="If you think someone else has access to your account, sign out every other browser and device at once. This one stays signed in."
+        >
+          Sign out other devices
+        </h2>
       </div>
       <Button
         variant="outline"
@@ -246,12 +248,12 @@ function ShopAlertsSection({ businessId }: { businessId: string }) {
 
   return (
     <div className="surface max-w-xl space-y-3 p-5">
-      <h2 className="text-lg font-semibold">Shop alerts</h2>
-      <p className="text-sm text-muted-foreground">
-        In-app alerts always appear in the bell. Email copies, when the operator has configured
-        Resend, go to owners, admins, and managers who leave this on. WhatsApp is a chat link, not
-        an alert channel.
-      </p>
+      <h2
+        className="text-lg font-semibold"
+        title="In-app alerts always appear in the bell. Email copies, when the operator has configured Resend, go to owners, admins, and managers who leave this on. WhatsApp is a chat link, not an alert channel."
+      >
+        Shop alerts
+      </h2>
       {preference.isError ? (
         <p className="text-sm text-muted-foreground">
           {readableError(
@@ -279,12 +281,12 @@ function LowDataSection() {
   return (
     <div className="surface max-w-xl space-y-3 p-5">
       <div>
-        <h2 className="text-lg font-semibold">Low-data mode</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Product photos wait until you tap them. Logos and sign-in images still load. Follow data
-          saver uses your phone's Data Saver setting
-          {saveData ? " (on right now)" : ""}.
-        </p>
+        <h2
+          className="text-lg font-semibold"
+          title={`Product photos wait until you tap them. Logos and sign-in images still load. Follow data saver uses your phone's Data Saver setting${saveData ? " (on right now)" : ""}.`}
+        >
+          Low-data mode
+        </h2>
       </div>
       <RadioGroup
         value={preference}
@@ -338,11 +340,12 @@ function PlatformAdminEntry() {
   if (!admin.data?.isAdmin) return null;
   return (
     <div className="surface mb-4 max-w-xl p-5">
-      <h2 className="text-lg font-semibold">Kwetuu platform admin</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Monitor all businesses, subscriptions, storefronts, and platform settings. Requires
-        authenticator verification.
-      </p>
+      <h2
+        className="text-lg font-semibold"
+        title="Monitor all businesses, subscriptions, storefronts, and platform settings. Requires authenticator verification."
+      >
+        Kwetuu platform admin
+      </h2>
       <Button asChild className="mt-3" variant="outline" size="sm">
         <Link to="/admin">Open admin console</Link>
       </Button>
@@ -384,7 +387,14 @@ function AccountSettings() {
 
   if (workspace.isLoading || !workspace.data) {
     return (
-      <AppShell businessName="" role="" plan="" title="Account" subtitle="Manage your account.">
+      <AppShell
+        businessName=""
+        role=""
+        plan=""
+        title="Account"
+        subtitle="Manage your account."
+        subtitleAsTooltip
+      >
         <Skeleton className="h-64" />
       </AppShell>
     );
@@ -399,6 +409,7 @@ function AccountSettings() {
       billingEnabled={workspace.data.billingEnabled}
       title="Account"
       subtitle="Manage your Kwetuu account."
+      subtitleAsTooltip
     >
       <div className="mb-4">
         <SecuritySection />

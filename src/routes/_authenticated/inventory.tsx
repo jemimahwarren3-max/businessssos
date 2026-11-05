@@ -593,6 +593,7 @@ function Inventory() {
       billingEnabled={workspace.data.billingEnabled}
       title="Inventory"
       subtitle="Totals on this page. Sales and stock changes use the default location. Moving stock between locations is not available yet."
+      subtitleAsTooltip
       actions={
         <>
           {rows.length > 0 ? (
@@ -726,12 +727,11 @@ function Inventory() {
             <h2 className="mt-3 text-lg font-semibold">
               {search ? "No products match that search" : "No products yet"}
             </h2>
-            <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-              {search
-                ? "Try a shorter search term."
-                : "Add your first product and Kwetuu will start tracking stock, profit and restock alerts for you."}
-            </p>
-            {canEdit && !search ? (
+            {search ? (
+              <Button className="mt-5" variant="outline" onClick={() => setSearch("")}>
+                Clear search
+              </Button>
+            ) : canEdit ? (
               <Button className="mt-5 gap-1.5" onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" aria-hidden="true" /> Add your first product
               </Button>

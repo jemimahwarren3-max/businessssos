@@ -709,7 +709,7 @@ function Onboarding() {
             title="Your online store"
             description="We'll create a storefront for your business. You can customise the design, add products and publish when you're ready."
           />
-          <OnboardingCard>
+          <OnboardingCard title="You can choose a storefront design, add products and set delivery details after setup. Your store stays private until you choose to publish.">
             <div className="space-y-4">
               <div className="flex items-center justify-between rounded-xl border bg-card p-4">
                 <span className="text-sm font-medium">Customers can collect from me</span>
@@ -729,10 +729,6 @@ function Onboarding() {
                   onChange={(e) => setConfig({ offersDelivery: e.target.checked })}
                 />
               </div>
-              <p className="text-sm text-muted-foreground">
-                You can choose a storefront design, add products and set delivery details after
-                setup. Your store stays private until you choose to publish.
-              </p>
             </div>
           </OnboardingCard>
         </>

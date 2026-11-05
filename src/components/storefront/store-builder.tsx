@@ -549,11 +549,12 @@ function StoreBuilderReady({
     <section id="store-builder" className="scroll-mt-24 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Store builder</h2>
-          <p className="text-sm text-muted-foreground">
-            Design, branding, online products, and customer-facing information. Preview uses your
-            real catalogue. Nothing is published until you choose Publish.
-          </p>
+          <h2
+            className="text-lg font-semibold"
+            title="Design, branding, online products, and customer-facing information. Preview uses your real catalogue. Nothing is published until you choose Publish."
+          >
+            Store builder
+          </h2>
         </div>
         {publicUrl ? (
           <Link
@@ -586,11 +587,12 @@ function StoreBuilderReady({
           <TabsTrigger value="preview">Preview</TabsTrigger>
         </TabsList>
 
-        <TabsContent id="launch-design" value="design" className="scroll-mt-24 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Each design is a shop website: header, homepage, and product grid. Switching keeps your
-            products.
-          </p>
+        <TabsContent
+          id="launch-design"
+          value="design"
+          className="scroll-mt-24 space-y-4"
+          title="Each design is a shop website with a header, homepage, and product grid. Switching designs keeps your products."
+        >
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Shop type</span>
             <select
@@ -630,6 +632,7 @@ function StoreBuilderReady({
                   className="rounded-xl border p-3 text-left transition-shadow hover:shadow-sm disabled:opacity-60"
                   style={{ outline: selected ? "2px solid var(--primary)" : undefined }}
                   aria-pressed={selected}
+                  title={previewTemplate.description}
                 >
                   <TemplatePreview
                     template={previewTemplate}
@@ -638,9 +641,6 @@ function StoreBuilderReady({
                   />
                   <p className="font-semibold">{previewTemplate.name}</p>
                   <p className="text-xs text-muted-foreground">{previewTemplate.bestFor}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {previewTemplate.description}
-                  </p>
                 </button>
               );
             })}
@@ -691,11 +691,12 @@ function StoreBuilderReady({
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="font-medium">Promotional banners</h3>
-                <p className="text-sm text-muted-foreground">
-                  Add up to four shop-authored promotions. Their layout follows the selected
-                  storefront design.
-                </p>
+                <h3
+                  className="font-medium"
+                  title="Add up to four shop-authored promotions. Their layout follows the selected storefront design."
+                >
+                  Promotional banners
+                </h3>
               </div>
               <Button
                 type="button"
@@ -720,9 +721,6 @@ function StoreBuilderReady({
                 Add banner
               </Button>
             </div>
-            {content.promoTiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No promotional banners yet.</p>
-            ) : null}
             {content.promoTiles.map((tile, index) => (
               <fieldset key={tile.id} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
                 <legend className="px-1 text-sm font-medium">
@@ -1247,12 +1245,12 @@ function StoreBuilderReady({
           </div>
         </TabsContent>
 
-        <TabsContent value="preview" className="space-y-3">
+        <TabsContent
+          value="preview"
+          className="space-y-3"
+          title={`Live preview of ${template.name} as a shop website. Draft, not visible to the public.`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not visible
-              to the public.
-            </p>
             <div className="flex gap-2">
               <Button
                 type="button"

@@ -207,13 +207,13 @@ function Dashboard() {
         <section className="surface mb-4 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <h2
+                className="flex items-center gap-2 text-lg font-semibold"
+                title="Optional. Sales numbers above come from your books. This only runs when you ask."
+              >
                 <Sparkles className="size-4.5 text-primary" aria-hidden="true" />
                 Your AI business briefing
               </h2>
-              <p className="text-[13px] text-muted-foreground">
-                Optional. Sales numbers above come from your books. This only runs when you ask.
-              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -258,11 +258,12 @@ function Dashboard() {
       {canReadBriefing && data ? (
         <section className="surface mb-4 space-y-3 p-5">
           <div>
-            <h2 className="text-base font-semibold">Recommended next steps</h2>
-            <p className="text-[13px] text-muted-foreground">
-              Based on your recorded business activity. Each button opens a page for you to review
-              and decide; AI does not apply changes.
-            </p>
+            <h2
+              className="text-base font-semibold"
+              title="Based on your recorded business activity. Each button opens a page for you to review and decide; AI does not apply changes."
+            >
+              Recommended next steps
+            </h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {data.lowStockCount > 0 ? (
@@ -322,10 +323,12 @@ function Dashboard() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <section className="surface p-5">
-          <h2 className="text-lg font-semibold">Today&apos;s takings</h2>
-          <p className="text-[13px] text-muted-foreground">
-            Cash, EcoCash, InnBucks, ZIPIT, bank and card recorded today.
-          </p>
+          <h2
+            className="text-lg font-semibold"
+            title="Cash, EcoCash, InnBucks, ZIPIT, bank and card recorded today."
+          >
+            Today&apos;s takings
+          </h2>
           <div className="mt-4">
             {dashboard.isLoading ? (
               <Skeleton className="h-32 w-full" />
@@ -335,8 +338,9 @@ function Dashboard() {
           </div>
         </section>
         <section className="surface p-5">
-          <h2 className="text-lg font-semibold">Running out</h2>
-          <p className="text-[13px] text-muted-foreground">Products at or below minimum stock.</p>
+          <h2 className="text-lg font-semibold" title="Products at or below minimum stock.">
+            Running out
+          </h2>
           {data && data.lowStock.length > 0 ? (
             <ul className="mt-4 divide-y divide-border">
               {data.lowStock.map((item) => (
@@ -374,8 +378,9 @@ function Dashboard() {
           ) : null}
         </section>
         <section className="surface p-5">
-          <h2 className="text-lg font-semibold">Who owes you</h2>
-          <p className="text-[13px] text-muted-foreground">From the customer credit book.</p>
+          <h2 className="text-lg font-semibold" title="From the customer credit book.">
+            Who owes you
+          </h2>
           {data && data.debtors.length > 0 ? (
             <ul className="mt-4 divide-y divide-border">
               {data.debtors.map((debtor) => (
@@ -402,8 +407,9 @@ function Dashboard() {
         <section className="surface p-5 lg:col-span-2">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:justify-between">
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold">Sales and profit</h2>
-              <p className="text-[13px] text-muted-foreground">Based on completed sales.</p>
+              <h2 className="text-lg font-semibold" title="Based on completed sales.">
+                Sales and profit
+              </h2>
             </div>
             <Tabs value={range} onValueChange={setRange} className="shrink-0">
               <TabsList>
@@ -477,10 +483,12 @@ function Dashboard() {
         </section>
 
         <section className="surface p-5">
-          <h2 className="text-lg font-semibold">Business Health</h2>
-          <p className="text-[13px] text-muted-foreground">
-            Calculated from your own data, no guesswork.
-          </p>
+          <h2
+            className="text-lg font-semibold"
+            title="Calculated from your own data, no guesswork."
+          >
+            Business Health
+          </h2>
           {data ? (
             <>
               <div className="mt-5 flex items-center gap-4">
