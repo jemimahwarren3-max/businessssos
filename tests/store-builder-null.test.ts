@@ -34,6 +34,7 @@ describe("store builder without a store record", () => {
     const markup = renderToStaticMarkup(
       createElement(StoreBuilder, {
         businessId: "business-1",
+        businessType: "grocery",
         initial: initialWithoutStore,
         canManage: true,
         creatingStore: false,

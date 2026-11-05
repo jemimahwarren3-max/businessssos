@@ -75,6 +75,7 @@ Depending on configuration we may process information connected with:
 - Transactional shopper emails (order receipt and later status updates) when an email was given at checkout and Resend is configured. The access code is included only on the first receipt.
 - WhatsApp click-to-chat links a merchant publishes. If you opt in at checkout, we may queue transactional WhatsApp order updates on that order. Signed-in shoppers can join a shop's WhatsApp news list. Those messages stay queued until WhatsApp Cloud is configured, and are never marked sent without a Meta message id. Chat content on WhatsApp is processed by Meta once a message is actually delivered.
 - Groq, if a merchant uses the optional AI assistant: an aggregated business summary plus the typed question. Groq does not receive raw customer emails or phone numbers from the customer list in the current implementation.
+- Anthropic, if a merchant selects "Build with AI": the business name/type, active product names/descriptions, optional shop brief, and uploaded storefront logo when available. The shop builder does not send customer records or payment credentials.
 - Hosting and database providers (see section 9).
 
 We do not access an external account just because you have a Kwetuu account.
@@ -153,6 +154,7 @@ We may share relevant information with providers that actually support the deplo
 | Paynow                                                                              | Kwetuu subscription payments only                                              |
 | Hosting (Cloud Run is the intended production host; Render may be used temporarily) | Running the application                                                        |
 | Groq                                                                                | Optional AI assistant, if configured                                           |
+| Anthropic                                                                           | Optional Claude shop-builder draft generation, when selected and configured     |
 | Sentry                                                                              | Optional error monitoring, if configured                                       |
 | Upstash                                                                             | Optional short-lived workspace cache, if configured                            |
 | Google Fonts                                                                        | Typeface files requested by the browser                                        |
@@ -229,9 +231,9 @@ Kwetuu is intended for adults acting as business owners, staff or customers. We 
 
 ## 16. Automated processing and AI
 
-The optional AI assistant may send Groq a summary of business figures plus the question you type. Outputs can be wrong. Review them before relying on them for money, stock or legal decisions.
+The optional AI assistant may send Groq or Gemini a summary of business figures plus the question you type. The shop builder may send business details, active product names/descriptions, your optional brief, and your uploaded shop logo to Anthropic when you select "Build with AI". Outputs can be wrong. Review them before relying on them for money, stock or legal decisions.
 
-We will not claim that data is never used to improve a provider's models unless that is confirmed in the provider agreement.
+The providers' retention, model-training, processing-region, and contract terms require operator/legal review. We will not claim that data is never used to improve a provider's models unless that is confirmed in the provider agreement.
 
 Do not paste sensitive personal information into the assistant unless that processing is authorised and necessary.
 

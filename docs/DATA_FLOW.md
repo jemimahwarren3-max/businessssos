@@ -15,7 +15,8 @@ Server (Node / Nitro, TanStack Start server functions)
   ├──▶ Supabase Postgres, all business data, RLS-enforced per request
   ├──▶ Supabase Auth, identity, session issuance
   ├──▶ Paynow, payment initiation/polling (subscription billing only)
-  ├──▶ Groq, AI Assistant inference (aggregated business summary + question)
+  ├──▶ Gemini or Groq, AI Assistant inference (aggregated business summary + question)
+  ├──▶ Anthropic, shop-builder inference (business details, catalogue, optional logo)
   ├──▶ Resend, merchant shop alerts and shopper receipts (queued if unset)
   └──▶ Upstash Redis, optional cache-aside for workspace lookups (no
        customer/transaction data; fails open if unconfigured)
@@ -73,8 +74,9 @@ business (surfaced on the Billing settings page).
    product names. Never raw database access, and never full transaction
    history or customer contact details.
 2. That summary, a fixed system prompt, and up to the last 12 messages of
-   the conversation are sent to Gemini when `GEMINI_API_KEY` is configured;
-   otherwise they are sent to Groq when `GROQ_API_KEY` is configured.
+   the conversation are sent to the configured AI Assistant provider
+   (`AI_PROVIDER` selects Gemini or Groq; by default Groq is preferred if
+   both keys are present).
 3. The provider's response is returned to the user. Nothing from this exchange is
    persisted server-side beyond the conversation shown in the browser tab
    (no chat history table).
@@ -82,6 +84,16 @@ business (surfaced on the Billing settings page).
 **Third-party data retention**: Gemini's and Groq's retention/training policies for this
 traffic have not been independently confirmed, see
 `legal/LEGAL_REVIEW_REQUIRED.md`.
+
+The separate shop builder sends the business name/type, up to 30 active
+product names/descriptions, the merchant's optional brief, and the uploaded
+storefront logo when available to Anthropic's Claude Haiku 5.5 Messages API.
+This only happens after an authorized merchant selects "Build with AI". The
+server verifies the logo belongs to the business's Supabase Storage path,
+validates its image type, and never fetches a client-supplied URL. The response
+is validated and previewed; it is not saved until the merchant applies it.
+Anthropic's retention, training, processing region, and contract terms require
+operator/legal review before production use.
 
 ## Flow 4: Account deletion
 

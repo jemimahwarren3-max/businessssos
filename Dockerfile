@@ -1,6 +1,6 @@
 # Official runtime is Google Cloud Run. Render remains a temporary host.
 # Vite inlines VITE_* values at build time. Pass them as build args.
-# Runtime secrets (SESSION_SECRET, SUPABASE_SERVICE_ROLE_KEY, Paynow, Groq)
+# Runtime secrets (SESSION_SECRET, Supabase service role, payment, AI providers)
 # must be supplied as Cloud Run environment variables, never baked in.
 
 FROM node:22.12.0-bookworm-slim AS build

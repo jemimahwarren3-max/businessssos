@@ -164,6 +164,7 @@ function StorefrontPage() {
           {showEditor ? (
             <StorefrontEditor
               businessId={businessId}
+              businessType={workspaceData.business.business_type}
               initial={admin.data}
               permissions={workspaceData.permissions}
               billingEnabled={workspaceData.billingEnabled}
@@ -181,6 +182,7 @@ function StorefrontPage() {
 
 function StorefrontEditor({
   businessId,
+  businessType,
   initial,
   permissions,
   billingEnabled,
@@ -190,6 +192,7 @@ function StorefrontEditor({
   onCreateStore,
 }: {
   businessId: string;
+  businessType: string;
   initial: AdminStore;
   permissions: string[];
   billingEnabled: boolean;
@@ -255,7 +258,14 @@ function StorefrontEditor({
   });
 
   const shopDraftMutation = useMutation({
-    mutationFn: () => generateShopDraft({ data: { businessId, brief: shopBrief } }),
+    mutationFn: () =>
+      generateShopDraft({
+        data: {
+          businessId,
+          brief: shopBrief,
+          ...(store?.logoUrl ? { logoUrl: store.logoUrl } : {}),
+        },
+      }),
     onSuccess: setShopDraft,
     onError: (error: Error) =>
       toast.error(readableError(error, "Could not generate a shop draft.")),
@@ -311,28 +321,28 @@ function StorefrontEditor({
         Published out of stock: {initial.metrics.outOfStockPublished}
       </p>
 
-      {permissions.includes("business.settings") && permissions.includes("ai.use") ? (
+      {permissions.includes("business.settings") && permissions.includes("ai.use") && store ? (
         <section className="surface space-y-3 p-4">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" aria-hidden="true" />
             <h2
               className="text-base font-semibold"
-              title="Describe your products, customers, and the look you want. AI suggestions are generated using your configured provider; the brief and active product names/descriptions are shared with that provider. Review everything before applying. Nothing is saved or published automatically."
+              title="Claude uses your business name and type, active product names and descriptions, this optional brief, and your uploaded shop logo when available. Review every field before applying; nothing is saved or published automatically."
             >
-              Build a shop draft with AI
+              Build with AI
             </h2>
           </div>
           <Textarea
             value={shopBrief}
             onChange={(event) => setShopBrief(event.target.value)}
             maxLength={1200}
-            placeholder="For example: I sell handmade skincare in Harare. I want a calm botanical look, clear product descriptions, and a friendly tone for gift buyers."
+            placeholder="Optional: describe your preferred look or tone."
             aria-label="Describe the shop you want"
           />
           <Button
             type="button"
             variant="outline"
-            disabled={shopDraftMutation.isPending || shopBrief.trim().length < 10}
+            disabled={shopDraftMutation.isPending}
             onClick={() => shopDraftMutation.mutate()}
           >
             {shopDraftMutation.isPending ? (
@@ -340,27 +350,101 @@ function StorefrontEditor({
             ) : (
               <Sparkles className="size-4" aria-hidden="true" />
             )}
-            Generate shop ideas
+            Build with AI
           </Button>
           {shopDraft ? (
             <div className="space-y-3 rounded-lg border p-3">
-              <div>
-                <p className="font-medium">{shopDraft.storeName}</p>
-                <p className="text-sm text-muted-foreground">{shopDraft.rationale}</p>
-                <p className="mt-1 text-sm">
-                  Suggested design: {getTemplate(shopDraft.templateId).name}
-                </p>
-                <p className="mt-1 text-sm">
-                  Search title: {shopDraft.seoTitle || shopDraft.storeName}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Search description: {shopDraft.seoDescription}
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">{shopDraft.rationale}</p>
               <p className="text-sm">
-                <span className="font-medium">{shopDraft.heroTitle}</span>
-                {shopDraft.heroSubtitle ? `: ${shopDraft.heroSubtitle}` : ""}
+                Suggested design: {getTemplate(shopDraft.templateId).name} ·{" "}
+                {getTemplate(shopDraft.templateId).defaultPalette}
               </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-1 text-sm font-medium">
+                  Store name
+                  <Input
+                    value={shopDraft.storeName}
+                    maxLength={80}
+                    onChange={(event) =>
+                      setShopDraft((current) =>
+                        current ? { ...current, storeName: event.target.value } : current,
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm font-medium">
+                  Tagline
+                  <Input
+                    value={shopDraft.tagline}
+                    maxLength={160}
+                    onChange={(event) =>
+                      setShopDraft((current) =>
+                        current ? { ...current, tagline: event.target.value } : current,
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm font-medium sm:col-span-2">
+                  About
+                  <Textarea
+                    value={shopDraft.about}
+                    maxLength={600}
+                    onChange={(event) =>
+                      setShopDraft((current) =>
+                        current ? { ...current, about: event.target.value } : current,
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm font-medium">
+                  Hero headline
+                  <Input
+                    value={shopDraft.heroTitle}
+                    maxLength={100}
+                    onChange={(event) =>
+                      setShopDraft((current) =>
+                        current ? { ...current, heroTitle: event.target.value } : current,
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm font-medium">
+                  Hero subtitle
+                  <Input
+                    value={shopDraft.heroSubtitle}
+                    maxLength={180}
+                    onChange={(event) =>
+                      setShopDraft((current) =>
+                        current ? { ...current, heroSubtitle: event.target.value } : current,
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm font-medium">
+                  Search title
+                  <Input
+                    value={shopDraft.seoTitle}
+                    maxLength={60}
+                    onChange={(event) =>
+                      setShopDraft((current) =>
+                        current ? { ...current, seoTitle: event.target.value } : current,
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm font-medium sm:col-span-2">
+                  Search description
+                  <Textarea
+                    value={shopDraft.seoDescription}
+                    maxLength={160}
+                    onChange={(event) =>
+                      setShopDraft((current) =>
+                        current ? { ...current, seoDescription: event.target.value } : current,
+                      )
+                    }
+                  />
+                </label>
+              </div>
               <Button
                 type="button"
                 disabled={applyAiDraftMutation.isPending}
@@ -376,6 +460,7 @@ function StorefrontEditor({
       <StoreBuilder
         key={`${businessId}-${initial.store?.slug ?? "new"}-${initial.products.length}`}
         businessId={businessId}
+        businessType={businessType}
         initial={initial}
         canManage={permissions.includes("business.settings")}
         creatingStore={creatingStore}

@@ -23,6 +23,7 @@ import {
   isTemplateId,
   templateForBusinessType,
 } from "@/lib/storefront/templates";
+import { SHOP_DRAFT_PALETTE_IDS } from "@/lib/storefront/shop-draft";
 import {
   persistedCoverUrl,
   STORE_PALETTES,
@@ -222,6 +223,15 @@ describe("storefront templates", () => {
     }
     expect(templateForBusinessType("boutique")).toBe("fashion-boutique");
     expect(templateForBusinessType("grocery")).toBe("grocery");
+    expect(templateForBusinessType("hardware")).toBe("home-utility");
+    expect(templateForBusinessType("pharmacy")).toBe("wellness-apothecary");
+    expect(templateForBusinessType("salon")).toBe("beauty-studio");
+    expect(templateForBusinessType("restaurant")).toBe("food-cafe");
+    expect(templateForBusinessType(" bakery ")).toBe("food-bakery");
+    expect(templateForBusinessType("unknown")).toBe("modern-minimal");
+    for (const storefrontTemplate of STORE_TEMPLATES) {
+      expect(SHOP_DRAFT_PALETTE_IDS).toContain(storefrontTemplate.defaultPalette);
+    }
     expect(getTemplate("grocery").layout).toBe("dense");
     expect(getTemplate("wholesale").layout).toBe("wholesale");
     expect(getTemplate("social").layout).toBe("social");

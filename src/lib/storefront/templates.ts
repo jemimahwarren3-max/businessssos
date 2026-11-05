@@ -567,11 +567,11 @@ export function getTemplate(id: string): StoreTemplate {
 const TYPE_TO_TEMPLATE: Record<string, TemplateId> = {
   grocery: "grocery",
   boutique: "fashion-boutique",
-  hardware: "home",
+  hardware: "home-utility",
   electronics: "electronics-tech",
-  pharmacy: "beauty-clinic",
-  salon: "beauty",
-  restaurant: "food-counter",
+  pharmacy: "wellness-apothecary",
+  salon: "beauty-studio",
+  restaurant: "food-cafe",
   bakery: "food-bakery",
   wholesale: "wholesale",
   services: "digital",
@@ -579,5 +579,5 @@ const TYPE_TO_TEMPLATE: Record<string, TemplateId> = {
 };
 
 export function templateForBusinessType(businessType: string): TemplateId {
-  return TYPE_TO_TEMPLATE[businessType] ?? "modern-minimal";
+  return TYPE_TO_TEMPLATE[businessType.trim().toLowerCase()] ?? "modern-minimal";
 }

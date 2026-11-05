@@ -272,6 +272,7 @@ export type AdminHealth = {
   aiDisabled: boolean;
   groqConfigured: boolean;
   geminiConfigured: boolean;
+  anthropicConfigured: boolean;
 };
 
 export async function logPlatformAudit(
@@ -545,6 +546,7 @@ export async function getAdminHealth(userId: string, tokens: SupabaseTokens): Pr
       process.env["AI_PROVIDER"]?.trim().toLowerCase() === "off",
     groqConfigured: Boolean(process.env["GROQ_API_KEY"]?.trim()),
     geminiConfigured: Boolean(process.env["GEMINI_API_KEY"]?.trim()),
+    anthropicConfigured: Boolean(process.env["ANTHROPIC_API_KEY"]?.trim()),
   };
 }
 

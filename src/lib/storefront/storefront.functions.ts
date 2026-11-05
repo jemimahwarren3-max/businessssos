@@ -9,6 +9,7 @@ import { uploadStorefrontBrandingImage } from "@/lib/storefront/branding-media.s
 import { removeProductGalleryImage, uploadProductGalleryImage } from "@/lib/product-media.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
 import { generateShopDraft } from "./ai-builder.server";
+import { shopDraftInputSchema } from "./shop-draft";
 import { recordStorefrontEvent } from "@/lib/growth.server";
 import { storefrontEventSchema } from "@/lib/growth.contract";
 import {
@@ -83,15 +84,7 @@ export const getPlatformFxFn = createServerFn({ method: "GET" })
 
 export const generateShopDraftFn = createServerFn({ method: "POST" })
   .middleware(aiShopBuilderLimit)
-  .inputValidator((data: unknown) =>
-    parseAndSanitize(
-      z.object({
-        businessId: z.string().uuid(),
-        brief: z.string().trim().min(10).max(1200),
-      }),
-      data,
-    ),
-  )
+  .inputValidator((data: unknown) => parseAndSanitize(shopDraftInputSchema, data))
   .handler(async ({ data, context }) => generateShopDraft(context.supabase as Db, data));
 
 export const getMarketplaceFn = createServerFn({ method: "POST" })

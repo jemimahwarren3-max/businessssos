@@ -46,6 +46,7 @@ import {
   getTemplate,
   STORE_TEMPLATES,
   TEMPLATE_CATEGORIES,
+  templateForBusinessType,
   type TemplateId,
 } from "@/lib/storefront/templates";
 import {
@@ -108,12 +109,14 @@ function snapshotFromState(input: {
 
 export function StoreBuilder({
   businessId,
+  businessType,
   initial,
   canManage,
   creatingStore,
   onCreateStore,
 }: {
   businessId: string;
+  businessType: string;
   initial: AdminStore;
   canManage: boolean;
   creatingStore: boolean;
@@ -143,6 +146,7 @@ export function StoreBuilder({
   return (
     <StoreBuilderReady
       businessId={businessId}
+      businessType={businessType}
       initial={initial}
       store={store}
       canManage={canManage}
@@ -152,11 +156,13 @@ export function StoreBuilder({
 
 function StoreBuilderReady({
   businessId,
+  businessType,
   initial,
   store,
   canManage,
 }: {
   businessId: string;
+  businessType: string;
   initial: AdminStore;
   store: NonNullable<AdminStore["store"]>;
   canManage: boolean;
@@ -573,6 +579,7 @@ function StoreBuilderReady({
   });
 
   const template = getTemplate(templateId);
+  const recommendedTemplateId = templateForBusinessType(businessType);
   const categoryTemplates = STORE_TEMPLATES.filter((row) => row.category === templateCategory);
   const publicUrl = store.slug ? storePublicUrl(store.slug) : "";
   const disabled = !canManage;
@@ -673,6 +680,9 @@ function StoreBuilderReady({
                   />
                   <p className="font-semibold">{previewTemplate.name}</p>
                   <p className="text-xs text-muted-foreground">{previewTemplate.bestFor}</p>
+                  {previewTemplate.id === recommendedTemplateId ? (
+                    <p className="mt-2 text-xs font-medium text-primary">Suggested for you</p>
+                  ) : null}
                 </button>
               );
             })}
