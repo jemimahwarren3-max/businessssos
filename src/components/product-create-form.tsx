@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { PexelsImagePicker } from "@/components/pexels-image-picker";
 import { productCreateFieldsSchema } from "@/lib/business.schemas";
 
 const NO_SUPPLIER = "none";
@@ -36,7 +37,7 @@ type ProductCreateFormProps = {
   categories: NamedOption[];
   pending: boolean;
   onCancel: () => void;
-  onSubmit: (values: ProductCreateFields, photo: File | null) => void;
+  onSubmit: (values: ProductCreateFields, photo: File | null, imageUrl: string | null) => void;
 };
 
 export function ProductCreateForm({
@@ -48,6 +49,7 @@ export function ProductCreateForm({
   onSubmit,
 }: ProductCreateFormProps) {
   const [photo, setPhoto] = useState<File | null>(null);
+  const [pexelsImageUrl, setPexelsImageUrl] = useState<string | null>(null);
   const form = useForm<ProductCreateFields>({
     resolver: zodResolver(productCreateFieldsSchema),
     defaultValues: {
@@ -70,7 +72,9 @@ export function ProductCreateForm({
     <Form {...form}>
       <form
         className="grid gap-4 sm:grid-cols-2"
-        onSubmit={form.handleSubmit((values) => onSubmit(values, photo))}
+        onSubmit={form.handleSubmit((values) =>
+          onSubmit(values, photo, photo ? null : pexelsImageUrl),
+        )}
       >
         <FormField
           control={form.control}
@@ -310,12 +314,23 @@ export function ProductCreateForm({
             id="p-photo"
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+            onChange={(event) => {
+              const uploadedPhoto = event.target.files?.[0] ?? null;
+              setPhoto(uploadedPhoto);
+              if (uploadedPhoto) setPexelsImageUrl(null);
+            }}
           />
           <p className="text-[13px] text-muted-foreground">
             JPEG, PNG, or WebP, up to 12 MB. Photos are resized on this device before upload.
           </p>
         </div>
+        {!photo ? (
+          <PexelsImagePicker
+            query={form.watch("name")}
+            selectedUrl={pexelsImageUrl}
+            onSelect={setPexelsImageUrl}
+          />
+        ) : null}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel

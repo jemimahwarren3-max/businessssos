@@ -220,7 +220,7 @@ function PublicServicePage() {
                       }
                       style={
                         startsAt === slot
-                          ? { backgroundColor: theme.button, color: theme.buttonText }
+                          ? { backgroundColor: theme.accent, color: theme.buttonText }
                           : undefined
                       }
                     >
@@ -254,7 +254,7 @@ function PublicServicePage() {
             type="submit"
             disabled={pending || (!isQuote && !startsAt)}
             className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50"
-            style={{ backgroundColor: theme.button, color: theme.buttonText }}
+            style={{ backgroundColor: theme.accent, color: theme.buttonText }}
           >
             {pending ? "Sending…" : isQuote ? "Send request" : "Request booking"}
           </button>

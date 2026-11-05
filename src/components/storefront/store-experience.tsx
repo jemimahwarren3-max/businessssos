@@ -121,7 +121,13 @@ export function StoreChrome({
       )}
       style={{ color: theme.link }}
     >
-      <Link to="/store/$slug" params={{ slug: store.slug }} search={previewSearch}>
+      <Link
+        to="/store/$slug"
+        params={{ slug: store.slug }}
+        search={previewSearch}
+        activeOptions={{ exact: true }}
+        activeProps={{ style: { color: accent } }}
+      >
         Shop
       </Link>
       {storeServices(store).length > 0 ? <a href="#services-catalogue">Services</a> : null}
@@ -129,6 +135,8 @@ export function StoreChrome({
         to="/store/$slug/search"
         params={{ slug: store.slug }}
         search={preview ? { q: "", preview: 1 } : { q: "" }}
+        activeOptions={{ exact: true }}
+        activeProps={{ style: { color: accent } }}
       >
         Search
       </Link>
@@ -136,6 +144,8 @@ export function StoreChrome({
         to="/store/$slug/account"
         params={{ slug: store.slug }}
         search={preview ? { preview: 1 } : {}}
+        activeOptions={{ exact: true }}
+        activeProps={{ style: { color: accent } }}
       >
         Orders
       </Link>
@@ -143,8 +153,18 @@ export function StoreChrome({
         to="/store/$slug/cart"
         params={{ slug: store.slug }}
         search={preview ? { preview: 1 } : {}}
+        activeOptions={{ exact: true }}
+        activeProps={{ style: { color: accent } }}
       >
-        Cart{count > 0 ? ` (${count})` : ""}
+        Cart
+        {count > 0 ? (
+          <span
+            className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px]"
+            style={{ backgroundColor: accent, color: theme.buttonText }}
+          >
+            {count}
+          </span>
+        ) : null}
       </Link>
     </nav>
   );
@@ -348,7 +368,7 @@ export function StoreChrome({
         <a
           href={whatsapp}
           className="fixed bottom-4 right-4 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-lg"
-          style={{ background: theme.button, color: theme.buttonText }}
+          style={{ background: accent, color: theme.buttonText }}
         >
           WhatsApp
         </a>
@@ -360,6 +380,7 @@ export function StoreChrome({
 export function ProductCard({ store, product }: { store: PublicStore; product: PublicProduct }) {
   const template = getTemplate(store.templateId);
   const { theme } = store;
+  const accent = theme.accent || store.accentColor || template.defaultAccent;
   const preview = useStorePreview();
   const line =
     template.cardStyle === "line" || template.catalogStyle === "rows" || template.layout === "menu";
@@ -376,7 +397,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
       params={{ slug: store.slug, productSlug: product.slug }}
       search={preview ? { preview: 1 } : {}}
       className={cn(
-        "group overflow-hidden border",
+        "group relative overflow-hidden border transition-all duration-200 hover:z-10 hover:scale-[1.02] hover:shadow-lg focus-visible:z-10 focus-visible:scale-[1.02] focus-visible:shadow-lg motion-reduce:transition-none",
         line ? "flex items-center gap-3 border-x-0 border-t-0" : "block",
         template.cardStyle === "minimal" && "border-0",
         overlay && "relative rounded-none",
@@ -415,12 +436,19 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
       {overlay ? (
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3 text-white">
           <p className="font-medium leading-snug">{product.name}</p>
-          <p className="mt-1 text-sm">{price}</p>
+          <p className="mt-1 text-sm">
+            <span
+              className="rounded px-1"
+              style={{ backgroundColor: accent, color: theme.buttonText }}
+            >
+              {price}
+            </span>
+          </p>
         </div>
       ) : (
         <div className={cn("min-w-0 p-3", template.density === "compact" && "p-2")}>
           <p className="font-medium leading-snug">{product.name}</p>
-          <p className="mt-1 text-sm" style={{ color: theme.primary }}>
+          <p className="mt-1 text-sm" style={{ color: accent }}>
             {price}
           </p>
           <p className="mt-1 text-xs text-neutral-500">{product.stockLabel}</p>
@@ -436,6 +464,7 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
 export function Catalog({ store, query }: { store: PublicStore; query?: string }) {
   const template = getTemplate(store.templateId);
   const { theme } = store;
+  const accent = theme.accent || store.accentColor || template.defaultAccent;
   const services = storeServices(store);
   const preview = useStorePreview();
   const previewSearch = preview ? { preview: 1 as const } : {};
@@ -466,30 +495,35 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
   const title = store.heroTitle || store.storeName;
   const blurb = store.heroSubtitle || store.about || store.tagline;
   const heroImage = theme.coverUrl || featured?.imageUrl;
+  const fullBleedImage = theme.coverUrl;
   const fonts = fontPairStacks(theme.fontPair, template.fontFamily);
-  const heroText = (
+  const heroText = (overImage = false) => (
     <div className="relative px-6 py-10 md:px-12">
       <p
         className="text-xs font-semibold uppercase tracking-[0.18em]"
-        style={{ color: theme.accent }}
+        style={{ color: overImage ? "#FFFFFF" : accent }}
       >
         {template.categoryName}
       </p>
       <h1
-        className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight"
-        style={{ color: theme.primary, fontFamily: fonts.heading }}
+        className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl"
+        style={{ color: overImage ? "#FFFFFF" : theme.primary, fontFamily: fonts.heading }}
       >
         {title}
       </h1>
-      {blurb ? <p className="mt-3 max-w-xl opacity-80">{blurb}</p> : null}
+      {blurb ? (
+        <p className="mt-3 max-w-xl opacity-90" style={overImage ? { color: "#FFFFFF" } : {}}>
+          {blurb}
+        </p>
+      ) : null}
       <a
         href={
           store.products.length === 0 && services.length > 0
             ? "#services-catalogue"
             : "#shop-catalogue"
         }
-        className="mt-5 inline-flex rounded-md px-4 py-2 text-sm font-semibold"
-        style={{ backgroundColor: theme.button, color: theme.buttonText }}
+        className="mt-6 inline-flex rounded-md px-5 py-3 text-sm font-semibold shadow-sm transition-transform hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
+        style={{ backgroundColor: accent, color: theme.buttonText }}
       >
         {store.products.length === 0 && services.length > 0 ? "View services" : "Shop now"}
       </a>
@@ -529,34 +563,43 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                 />
               </div>
             ) : null}
-            {heroText}
+            {heroText()}
           </section>
         ) : template.heroStyle === "full-bleed" ? (
-          <section className="relative overflow-hidden" style={{ backgroundColor: theme.surface }}>
-            {heroImage ? (
+          <section
+            className="relative isolate min-h-[28rem] overflow-hidden md:min-h-[34rem]"
+            style={{
+              backgroundColor: theme.surface,
+              backgroundImage: fullBleedImage
+                ? undefined
+                : `linear-gradient(135deg, ${theme.surface} 0%, ${theme.accent}30 52%, ${theme.background} 100%)`,
+            }}
+          >
+            {fullBleedImage ? (
               <img
-                src={heroImage}
+                src={fullBleedImage}
                 alt=""
-                className="absolute inset-0 h-full max-h-[30rem] w-full object-cover opacity-15"
+                className="absolute inset-0 -z-10 h-full w-full object-cover"
                 fetchPriority="high"
               />
             ) : null}
-            {heroText}
+            {fullBleedImage ? <div className="absolute inset-0 -z-10 bg-black/45" /> : null}
+            {heroText(Boolean(fullBleedImage))}
           </section>
         ) : template.heroStyle === "centered" ? (
           <section
-            className="mx-auto max-w-4xl px-4 py-14 text-center"
+            className="mx-auto max-w-4xl px-4 py-16 text-center md:py-20"
             style={{ backgroundColor: theme.surface }}
           >
-            {heroText}
+            {heroText()}
           </section>
         ) : template.heroStyle === "compact" ? (
           <section
-            className="mx-auto max-w-6xl px-4 py-7"
+            className="mx-auto max-w-6xl px-4 py-9"
             style={{ backgroundColor: theme.surface }}
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
-              {heroText}
+              {heroText()}
               {heroImage ? (
                 <img
                   src={heroImage}
@@ -572,7 +615,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
             className="grid md:grid-cols-[0.8fr_1.2fr]"
             style={{ backgroundColor: theme.surface }}
           >
-            <div className="flex flex-col justify-center">{heroText}</div>
+            <div className="flex flex-col justify-center">{heroText()}</div>
             {heroImage ? (
               <img
                 src={heroImage}
@@ -586,7 +629,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
             className="mx-auto max-w-5xl px-4 py-12"
             style={{ backgroundColor: theme.surface }}
           >
-            {heroText}
+            {heroText()}
           </section>
         )
       ) : null}
@@ -597,7 +640,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
             className={cn("rounded-full border px-3 py-1 text-sm")}
             style={
               category === "all"
-                ? { background: theme.button, color: theme.buttonText, borderColor: theme.button }
+                ? { background: accent, color: theme.buttonText, borderColor: accent }
                 : { color: theme.text, borderColor: theme.accent + "70" }
             }
             onClick={() => setCategory("all")}
@@ -610,7 +653,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
               className={cn("rounded-full border px-3 py-1 text-sm")}
               style={
                 category === item.id
-                  ? { background: theme.button, color: theme.buttonText, borderColor: theme.button }
+                  ? { background: accent, color: theme.buttonText, borderColor: accent }
                   : { color: theme.text, borderColor: theme.accent + "70" }
               }
               onClick={() => setCategory(item.id)}
@@ -627,8 +670,11 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         </p>
       ) : null}
       {theme.sections.featured && featuredProducts.length > 0 ? (
-        <section className="mx-auto max-w-6xl px-4 py-6" data-featured-layout={template.layout}>
-          <h2 className="mb-3 text-lg font-semibold" style={{ color: theme.primary }}>
+        <section
+          className="mx-auto max-w-6xl px-4 py-10 md:py-12"
+          data-featured-layout={template.layout}
+        >
+          <h2 className="mb-5 text-lg font-semibold" style={{ color: theme.primary }}>
             {featuredSectionTitle(template.category)}
           </h2>
           {template.layout === "menu" ? (
@@ -672,7 +718,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
               .slice(0, 4);
             if (!items.length || !collection.title) return null;
             return (
-              <section key={collection.id} className="mx-auto max-w-6xl px-4 py-5">
+              <section key={collection.id} className="mx-auto max-w-6xl px-4 py-10">
                 <div className="mb-3">
                   <h2 className="text-xl font-semibold" style={{ color: theme.primary }}>
                     {collection.title}
@@ -681,7 +727,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                     <p className="mt-1 text-sm opacity-75">{collection.description}</p>
                   ) : null}
                 </div>
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
                   {items.map((product) => (
                     <ProductCard key={product.id} store={store} product={product} />
                   ))}
@@ -695,8 +741,8 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         ? services.filter((service) => service.name.toLowerCase().includes(query.toLowerCase()))
         : services
       ).length > 0 ? (
-        <section id="services-catalogue" className="mx-auto max-w-6xl px-4 py-8">
-          <h2 className="mb-3 text-xl font-semibold" style={{ color: theme.primary }}>
+        <section id="services-catalogue" className="mx-auto max-w-6xl px-4 py-10 md:py-12">
+          <h2 className="mb-5 text-xl font-semibold" style={{ color: theme.primary }}>
             Services
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -716,7 +762,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                   to="/store/$slug/services/$serviceId"
                   params={{ slug: store.slug, serviceId: service.id }}
                   search={previewSearch}
-                  className="overflow-hidden rounded-xl border"
+                  className="overflow-hidden rounded-xl border transition-all duration-200 hover:scale-[1.02] hover:shadow-lg motion-reduce:transition-none"
                   style={{ backgroundColor: theme.surface }}
                 >
                   {service.imageUrl ? (
@@ -729,7 +775,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
                       </p>
                     ) : null}
                     <p className="font-medium leading-snug">{service.name}</p>
-                    <p className="mt-1 text-sm" style={{ color: theme.primary }}>
+                    <p className="mt-1 text-sm" style={{ color: accent }}>
                       {price}
                       {service.durationMinutes ? ` · ${service.durationMinutes} min` : ""}
                     </p>
@@ -769,7 +815,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
         <div
           id="shop-catalogue"
           className={cn(
-            "mx-auto grid max-w-6xl gap-4 px-4 pb-16",
+            "mx-auto grid max-w-6xl gap-5 px-4 pb-20",
             grid,
             template.catalogStyle === "masonry" && "md:[&>a:nth-child(3n+2)]:mt-8",
           )}
@@ -822,6 +868,7 @@ export function ProductView({
   const { track } = useStoreAnalytics();
   const template = getTemplate(store.templateId);
   const { theme } = store;
+  const accent = theme.accent || store.accentColor || template.defaultAccent;
   const [qty, setQty] = useState(product.minQty);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -874,7 +921,7 @@ export function ProductView({
   }
 
   return (
-    <article className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-2">
+    <article className="mx-auto grid max-w-6xl gap-8 px-4 py-8 pb-24 md:grid-cols-2 md:pb-8">
       <div
         className={cn("bg-neutral-100", ratioClass(template.imageRatio))}
         style={{ backgroundColor: theme.surface }}
@@ -913,7 +960,7 @@ export function ProductView({
       </div>
       <div>
         <h1 className="text-3xl font-semibold">{product.name}</h1>
-        <p className="mt-3 text-xl" style={{ color: theme.primary }}>
+        <p className="mt-3 text-xl font-semibold" style={{ color: accent }}>
           {formatMoney(product.price, product.currency)}
           {product.unit && product.unit !== "unit" ? ` per ${product.unit}` : ""}
         </p>
@@ -979,8 +1026,8 @@ export function ProductView({
           </label>
           <button
             type="button"
-            className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50"
-            style={{ background: theme.button, color: theme.buttonText }}
+            className="rounded-md px-4 py-2 text-sm font-semibold transition-transform hover:scale-[1.02] disabled:opacity-50 motion-reduce:transition-none"
+            style={{ background: accent, color: theme.buttonText }}
             disabled={!product.available}
             onClick={add}
           >
@@ -1051,6 +1098,21 @@ export function ProductView({
             </div>
           </div>
         ) : null}
+      </div>
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur md:hidden"
+        style={{ backgroundColor: theme.surface, borderColor: `${accent}40` }}
+      >
+        <button
+          type="button"
+          className="w-full rounded-md px-4 py-3 text-sm font-semibold disabled:opacity-50"
+          style={{ backgroundColor: accent, color: theme.buttonText }}
+          disabled={!product.available}
+          onClick={add}
+        >
+          {template.layout === "services" ? "Add request" : "Add to cart"} ·{" "}
+          {formatMoney(product.price * qty, product.currency)}
+        </button>
       </div>
     </article>
   );

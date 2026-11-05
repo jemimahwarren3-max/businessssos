@@ -12,7 +12,13 @@ Copy `.env.example` to `.env`. Use `npm run env:staging` or `env:production` to 
 
 Required: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, matching `VITE_*`, `SESSION_SECRET`, `APP_URL`.
 
-Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `AI_PROVIDER` (`gemini` or `groq`; when both API keys exist the app defaults to Groq unless set), `GEMINI_API_KEY`, `GROQ_API_KEY`, optional `AI_DAILY_LIMIT_*` caps, `PAYNOW_INTEGRATION_*` (USD) and `PAYNOW_INTEGRATION_*_ZIG` (ZiG/ZWG subscription checkout), `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`.
+Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `AI_PROVIDER` (`gemini` or `groq`; when both API keys exist the AI Assistant defaults to Groq unless set), `GEMINI_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY` (Claude shop builder only), optional `PEXELS_API_KEY` (product photo search), optional `AI_DAILY_LIMIT_*` caps, `PAYNOW_INTEGRATION_*` (USD) and `PAYNOW_INTEGRATION_*_ZIG` (ZiG/ZWG subscription checkout), `RESEND_API_KEY`, `MAIL_FLUSH_SECRET`.
+
+The shop builder calls Claude Haiku 5.5 only when a merchant explicitly selects **Build with AI**.
+Its server-side key is required for that feature; there is no provider fallback. `AI_DISABLED=true`
+also disables shop-draft generation. Never expose `ANTHROPIC_API_KEY` through a `VITE_*` variable.
+`PEXELS_API_KEY` enables the optional product photo search; never expose it through a `VITE_*`
+variable. Without the key, the Pexels option is hidden.
 
 When turning on paid enforcement, set **`BILLING_ENABLED=true`** on Cloud Run **and** run once on the production database:
 

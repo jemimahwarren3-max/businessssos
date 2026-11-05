@@ -65,7 +65,14 @@ function AuditLog() {
 
   if (workspace.isLoading || !workspace.data) {
     return (
-      <AppShell businessName="" role="" plan="" title="Audit log" subtitle="Recent activity.">
+      <AppShell
+        businessName=""
+        role=""
+        plan=""
+        title="Audit log"
+        subtitle="Recent activity."
+        subtitleAsTooltip
+      >
         <Skeleton className="h-64" />
       </AppShell>
     );
@@ -80,6 +87,7 @@ function AuditLog() {
       billingEnabled={workspace.data.billingEnabled}
       title="Audit log"
       subtitle="Who changed what, and when."
+      subtitleAsTooltip
     >
       {!canView ? (
         <p className="text-sm text-muted-foreground">
@@ -90,11 +98,21 @@ function AuditLog() {
       ) : !logs.data || logs.data.entries.length === 0 ? (
         <div className="surface px-6 py-16 text-center">
           <History className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
-          <h2 className="mt-3 text-lg font-semibold">Nothing recorded yet</h2>
-          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-            Sensitive changes, team roles, permissions, deletions, and more, will show up here as
-            they happen.
-          </p>
+          <h2
+            className="mt-3 text-lg font-semibold"
+            title="Sensitive changes, team roles, permissions, deletions, and more, will show up here as they happen."
+          >
+            Nothing recorded yet
+          </h2>
+          <Button
+            className="mt-4"
+            variant="outline"
+            size="sm"
+            disabled={logs.isFetching}
+            onClick={() => void logs.refetch()}
+          >
+            Refresh
+          </Button>
         </div>
       ) : (
         <div className="surface overflow-hidden">

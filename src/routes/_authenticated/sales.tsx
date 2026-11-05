@@ -21,6 +21,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/hint";
 import {
   Dialog,
   DialogContent,
@@ -979,23 +980,31 @@ function Sales() {
                             )
                           }
                         />
-                        <button
-                          type="button"
-                          className="text-[12px] text-muted-foreground underline"
-                          onClick={() =>
-                            setTenders((prev) =>
-                              prev.map((row) =>
-                                row.key === tender.key
-                                  ? { ...row, showOriginal: !row.showOriginal }
-                                  : row,
-                              ),
-                            )
+                        <Hint
+                          tip={
+                            tender.showOriginal
+                              ? "Hide the original amount and currency."
+                              : "Record this tender using a different currency."
                           }
                         >
-                          {tender.showOriginal
-                            ? "Hide other currency"
-                            : "Recorded as another currency"}
-                        </button>
+                          <button
+                            type="button"
+                            className="text-[12px] text-muted-foreground underline"
+                            onClick={() =>
+                              setTenders((prev) =>
+                                prev.map((row) =>
+                                  row.key === tender.key
+                                    ? { ...row, showOriginal: !row.showOriginal }
+                                    : row,
+                                ),
+                              )
+                            }
+                          >
+                            {tender.showOriginal
+                              ? "Hide other currency"
+                              : "Recorded as another currency"}
+                          </button>
+                        </Hint>
                         {tender.showOriginal ? (
                           <div className="grid grid-cols-2 gap-2">
                             <Select
@@ -1008,9 +1017,11 @@ function Sales() {
                                 )
                               }
                             >
-                              <SelectTrigger aria-label="Recorded currency">
-                                <SelectValue />
-                              </SelectTrigger>
+                              <Hint tip="Select the currency the customer handed over.">
+                                <SelectTrigger aria-label="Recorded currency">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </Hint>
                               <SelectContent>
                                 {CURRENCIES.map((code) => (
                                   <SelectItem key={code} value={code}>

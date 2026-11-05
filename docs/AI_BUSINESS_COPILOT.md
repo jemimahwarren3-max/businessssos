@@ -10,9 +10,12 @@ without a separate user action.
 - The dashboard briefing summarizes recorded sales, expenses, invoices, stock,
   and consented storefront activity. Recommended next-step buttons open the
   relevant existing pages for the user to review.
-- The shop builder uses the owner's brief and active catalogue to suggest shop
-  copy, SEO title/description, a template, and a palette. "Apply ideas to
-  editor" only fills the editable form. The owner must separately save and
+- The shop builder sends the business name/type, up to 30 active product
+  names/descriptions, the optional owner brief, and the uploaded storefront
+  logo when available to Anthropic Claude Haiku 5.5. It suggests shop copy,
+  SEO title/description, a template, and that template's default palette.
+  The editable preview is shown only after the owner selects "Build with AI";
+  applying fills the editable form, and the owner must separately save and
   publish.
 - Invoice assistance uses the owner's request, existing customer names, and
   active product catalogue. The server accepts only IDs from that business and
@@ -30,13 +33,16 @@ the browser.
 
 ## Provider configuration and data sharing
 
-`GEMINI_API_KEY` is preferred when configured. `GROQ_API_KEY` is used as the
-fallback when Gemini is not configured. A configured but failing Gemini key
-returns an error; it does not silently switch providers.
+The AI Assistant uses `GEMINI_API_KEY` or `GROQ_API_KEY` according to
+`AI_PROVIDER`; a configured but failing provider returns an error and does not
+silently switch. The shop builder is separate: it requires the server-only
+`ANTHROPIC_API_KEY` and does not fall back to Gemini or Groq. `AI_DISABLED`
+disables both workflows.
 
 Prompts can include summarized business metrics, the owner's message, product
 names/descriptions/prices/tax rates, and customer IDs/names when needed to
-prepare an invoice. The application does not send payment credentials or
-service-role keys to the model. Provider retention, training, processing
-region, and contractual terms still require operator/legal review before
-production use; see `THIRD_PARTY_SERVICES.md` and `DATA_FLOW.md`.
+prepare an invoice. Shop-builder requests also include the uploaded shop logo
+when available. The application does not send payment credentials or
+service-role keys to a model. Provider retention, training, processing region,
+and contractual terms still require operator/legal review before production
+use; see `THIRD_PARTY_SERVICES.md` and `DATA_FLOW.md`.

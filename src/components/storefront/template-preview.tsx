@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { StoreTemplate } from "@/lib/storefront/templates";
 import { sampleProductsForCategory } from "@/lib/storefront/template-placeholders";
@@ -107,7 +108,12 @@ function Hero({
   if (template.heroStyle === "full-bleed") {
     return (
       <div className="relative h-16 overflow-hidden">
-        <Swatch accent={accent} className="absolute inset-0 size-full" />
+        <span
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(135deg, ${surface} 0%, ${accent} 52%, ${surface} 100%)`,
+          }}
+        />
         <div className="absolute inset-0 bg-black/25" />
         <div className="relative flex h-full items-end p-2 text-white">{copy}</div>
       </div>
@@ -153,6 +159,20 @@ export function TemplatePreview({
   className?: string;
   storeName?: string;
 }) {
+  useEffect(() => {
+    const href = new URL(template.fontHref, document.baseURI).href;
+    const alreadyLoaded = Array.from(
+      document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+    ).some((link) => link.href === href);
+    if (alreadyLoaded) return;
+
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset["templateFont"] = template.fontFamily;
+    document.head.append(link);
+  }, [template.fontFamily, template.fontHref]);
+
   const theme = themeFromPalette(template.defaultPalette, template.defaultAccent);
   const products = sampleProductsForCategory(template.category);
   const title = storeName || template.name;
@@ -201,12 +221,15 @@ export function TemplatePreview({
             template.navigationStyle === "compact" && "text-[6px]",
           )}
         >
-          <span>Shop</span>
+          <span style={{ color: theme.accent }}>Shop</span>
           <span>Search</span>
-          <span>Cart</span>
+          <span className="flex items-center gap-0.5">
+            Cart
+            <span className="size-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
+          </span>
         </span>
       </header>
-      <Hero template={template} title={title} accent={theme.primary} surface={theme.surface} />
+      <Hero template={template} title={title} accent={theme.accent} surface={theme.surface} />
       <div
         className={cn(
           "gap-1 p-1.5",
@@ -221,7 +244,7 @@ export function TemplatePreview({
             key={product.name}
             name={product.name}
             price={product.price}
-            accent={theme.primary}
+            accent={theme.accent}
             surface={theme.surface}
             cardStyle={template.cardStyle}
           />

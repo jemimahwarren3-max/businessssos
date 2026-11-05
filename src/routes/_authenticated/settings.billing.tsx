@@ -168,6 +168,7 @@ function Billing() {
         plan=""
         title="Billing"
         subtitle="Manage your Kwetuu subscription."
+        subtitleAsTooltip
       >
         <Skeleton className="h-64" />
       </AppShell>
@@ -203,6 +204,7 @@ function Billing() {
       billingEnabled={workspace.data.billingEnabled}
       title="Billing"
       subtitle="Manage your Kwetuu subscription."
+      subtitleAsTooltip
     >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">

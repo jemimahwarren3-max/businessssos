@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/hint";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
@@ -114,42 +115,46 @@ function BusinessSettings() {
       billingEnabled={workspace.data?.billingEnabled ?? false}
       title="Business"
       subtitle="What you sell, opening hours, and booking rules."
+      subtitleAsTooltip
     >
       {!canEdit ? (
         <p className="text-sm text-muted-foreground">Your role cannot change these settings.</p>
       ) : (
         <div className="max-w-2xl space-y-8">
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold">What you sell</h2>
-            <p className="text-sm text-muted-foreground">
-              This changes which screens are emphasised. You can still add products or services
-              later.
-            </p>
+            <h2
+              className="text-sm font-semibold"
+              title="This changes which screens are emphasised. You can still add products or services later."
+            >
+              What you sell
+            </h2>
             <div className="grid gap-2 sm:grid-cols-3">
               {COMMERCE_MODELS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setModel(option.value)}
-                  className={
-                    model === option.value
-                      ? "rounded-xl border-2 border-primary bg-accent px-3 py-3 text-left"
-                      : "rounded-xl border border-border px-3 py-3 text-left hover:bg-muted"
-                  }
-                >
-                  <p className="text-sm font-medium">{option.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
-                </button>
+                <Hint key={option.value} tip={option.description}>
+                  <button
+                    type="button"
+                    onClick={() => setModel(option.value)}
+                    className={
+                      model === option.value
+                        ? "rounded-xl border-2 border-primary bg-accent px-3 py-3 text-left"
+                        : "rounded-xl border border-border px-3 py-3 text-left hover:bg-muted"
+                    }
+                  >
+                    <p className="text-sm font-medium">{option.label}</p>
+                  </button>
+                </Hint>
               ))}
             </div>
           </section>
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold">Confirm bookings automatically</h2>
-                <p className="text-sm text-muted-foreground">
-                  Off means online requests stay pending until you approve them.
-                </p>
+                <h2
+                  className="text-sm font-semibold"
+                  title="Off means online requests stay pending until you approve them."
+                >
+                  Confirm bookings automatically
+                </h2>
               </div>
               <Switch checked={autoConfirm} onCheckedChange={setAutoConfirm} />
             </div>
@@ -218,10 +223,12 @@ function BusinessSettings() {
             </div>
           </section>
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold">Closed days</h2>
-            <p className="text-sm text-muted-foreground">
-              Public holidays or days you are not taking bookings.
-            </p>
+            <h2
+              className="text-sm font-semibold"
+              title="Public holidays or days you are not taking bookings."
+            >
+              Closed days
+            </h2>
             <div className="flex flex-wrap gap-2">
               <Input
                 type="date"

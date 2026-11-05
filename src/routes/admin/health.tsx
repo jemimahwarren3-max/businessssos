@@ -69,6 +69,11 @@ function AdminHealthPage() {
             detail="Optional second provider."
           />
           <StatusRow
+            label="Anthropic API key"
+            ok={health.data.anthropicConfigured}
+            detail="Claude shop builder only. Server-side secret; not used for AI Assistant chat."
+          />
+          <StatusRow
             label="AI kill switch"
             ok={!health.data.aiDisabled}
             detail={

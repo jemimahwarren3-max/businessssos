@@ -54,7 +54,7 @@ function SearchPage() {
         />
         <button
           className="rounded-md px-4 py-2 text-sm"
-          style={{ backgroundColor: store.theme.button, color: store.theme.buttonText }}
+          style={{ backgroundColor: store.theme.accent, color: store.theme.buttonText }}
           type="submit"
         >
           Search

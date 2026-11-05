@@ -15,13 +15,16 @@ Server (Node / Nitro, TanStack Start server functions)
   ├──▶ Supabase Postgres, all business data, RLS-enforced per request
   ├──▶ Supabase Auth, identity, session issuance
   ├──▶ Paynow, payment initiation/polling (subscription billing only)
-  ├──▶ Groq, AI Assistant inference (aggregated business summary + question)
+  ├──▶ Gemini or Groq, AI Assistant inference (aggregated business summary + question)
+  ├──▶ Anthropic, shop-builder inference (business details, catalogue, optional logo)
+  ├──▶ Pexels, product photo search (product name, only when requested)
   ├──▶ Resend, merchant shop alerts and shopper receipts (queued if unset)
   └──▶ Upstash Redis, optional cache-aside for workspace lookups (no
        customer/transaction data; fails open if unconfigured)
 
 Browser (independently of the server)
-  └──▶ Google Fonts, typeface + stylesheet, direct browser→Google request
+  ├──▶ Google Fonts, typeface + stylesheet, direct browser→Google request
+  └──▶ Pexels CDN, selected product photos, direct browser→Pexels request
 ```
 
 ## Flow 1: A signed-in request
@@ -73,8 +76,9 @@ business (surfaced on the Billing settings page).
    product names. Never raw database access, and never full transaction
    history or customer contact details.
 2. That summary, a fixed system prompt, and up to the last 12 messages of
-   the conversation are sent to Gemini when `GEMINI_API_KEY` is configured;
-   otherwise they are sent to Groq when `GROQ_API_KEY` is configured.
+   the conversation are sent to the configured AI Assistant provider
+   (`AI_PROVIDER` selects Gemini or Groq; by default Groq is preferred if
+   both keys are present).
 3. The provider's response is returned to the user. Nothing from this exchange is
    persisted server-side beyond the conversation shown in the browser tab
    (no chat history table).
@@ -83,7 +87,31 @@ business (surfaced on the Billing settings page).
 traffic have not been independently confirmed, see
 `legal/LEGAL_REVIEW_REQUIRED.md`.
 
-## Flow 4: Account deletion
+The separate shop builder sends the business name/type, up to 30 active
+product names/descriptions, the merchant's optional brief, and the uploaded
+storefront logo when available to Anthropic's Claude Haiku 5.5 Messages API.
+This only happens after an authorized merchant selects "Build with AI". The
+server verifies the logo belongs to the business's Supabase Storage path,
+validates its image type, and never fetches a client-supplied URL. The response
+is validated and previewed; it is not saved until the merchant applies it.
+Anthropic's retention, training, processing region, and contract terms require
+operator/legal review before production use.
+
+## Flow 4: Pexels photo search
+
+1. A signed-in merchant explicitly searches from the product form. The server
+   sends the typed product-name search term to Pexels using the server-only
+   `PEXELS_API_KEY`; the key is never sent to the browser. Search is limited
+   to nine photos and rate-limited per account and against a shared provider quota.
+2. The merchant chooses a result. BusinessOS stores its Pexels CDN URL in the
+   existing product image field; it does not download or re-upload the image.
+   The browser later requests the selected image directly from Pexels.
+3. If `PEXELS_API_KEY` is not configured, the photo-search option is hidden.
+   Merchant-uploaded images continue to use the existing Supabase Storage flow.
+
+Pexels processing terms and retention should be reviewed before production use.
+
+## Flow 5: Account deletion
 
 1. `delete_owned_businesses()` (Postgres, `SECURITY DEFINER`) checks every
    business the caller owns for other active members; if any exist,
@@ -102,7 +130,7 @@ This is genuinely immediate, permanent deletion, not a soft-delete flag,
 verified live this session (business, products, and login all confirmed
 gone from the database immediately after the call).
 
-## Flow 5: Data export
+## Flow 7: Data export
 
 `src/lib/data-export.server.ts` reads every business-owned table
 (`products`, `categories`, `suppliers`, `customers`, `sales`, `sale_items`,
@@ -112,7 +140,7 @@ returns it as one JSON object, downloaded client-side as a file. Nothing is
 written to disk or a temp table server-side, it's assembled in memory per
 request and streamed back.
 
-## Flow 6: Transactional shop email (Resend)
+## Flow 8: Transactional shop email (Resend)
 
 1. Database functions enqueue shopper receipts/status updates and opted-in
    merchant alerts in `notification_outbox`. The first shopper receipt may

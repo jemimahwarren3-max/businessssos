@@ -113,9 +113,14 @@ function CheckoutPage() {
         return;
       }
       const guestLines = readCart(store.slug);
-      const merged = guestLines.length > 0 ? mergeGuestCartIntoUserCart(store.slug, user.userId) : readCart(store.slug, user.userId);
+      const merged =
+        guestLines.length > 0
+          ? mergeGuestCartIntoUserCart(store.slug, user.userId)
+          : readCart(store.slug, user.userId);
       setGuestCartNotice(
-        guestLines.length > 0 ? `Your guest cart was saved to your account (${merged.length} item${merged.length === 1 ? "" : "s"}).` : null,
+        guestLines.length > 0
+          ? `Your guest cart was saved to your account (${merged.length} item${merged.length === 1 ? "" : "s"}).`
+          : null,
       );
       setShopper({ userId: user.userId, email: user.email });
       setLines(merged);
@@ -708,7 +713,7 @@ function CheckoutPage() {
           </p>
           <button
             className="mt-4 w-full rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50"
-            style={{ backgroundColor: store.theme.button, color: store.theme.buttonText }}
+            style={{ backgroundColor: store.theme.accent, color: store.theme.buttonText }}
             disabled={
               pending ||
               lines.length === 0 ||

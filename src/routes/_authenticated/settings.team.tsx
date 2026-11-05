@@ -253,7 +253,14 @@ function Team() {
 
   if (workspace.isLoading || !workspace.data) {
     return (
-      <AppShell businessName="" role="" plan="" title="Team" subtitle="Manage who has access.">
+      <AppShell
+        businessName=""
+        role=""
+        plan=""
+        title="Team"
+        subtitle="Manage who has access."
+        subtitleAsTooltip
+      >
         <Skeleton className="h-64" />
       </AppShell>
     );
@@ -269,6 +276,7 @@ function Team() {
         billingEnabled={workspace.data.billingEnabled}
         title="Team"
         subtitle="Manage who has access to this business."
+        subtitleAsTooltip
       >
         <div className="surface px-6 py-16 text-center">
           <Users className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
@@ -290,6 +298,7 @@ function Team() {
       billingEnabled={workspace.data.billingEnabled}
       title="Team"
       subtitle="Invite people to your business and manage what they can do."
+      subtitleAsTooltip
       actions={
         <Button className="gap-1.5" onClick={() => setInviteOpen(true)}>
           <Plus className="size-4" aria-hidden="true" /> Add team member
@@ -298,11 +307,11 @@ function Team() {
     >
       <div className="surface mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <p className="text-sm font-semibold">Shop sign-in</p>
-          <p className="text-[13px] text-muted-foreground">
-            Everyone on your team, including you, signs in with your business name (
-            <span className="font-medium text-foreground">{businessName}</span>), the shop password,
-            then their own name and password.
+          <p
+            className="text-sm font-semibold"
+            title={`Everyone on your team, including you, signs in with your business name (${businessName}), the shop password, then their own name and password.`}
+          >
+            Shop sign-in
           </p>
         </div>
         <div className="flex items-center gap-2">

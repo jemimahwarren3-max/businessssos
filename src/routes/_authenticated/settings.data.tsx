@@ -120,7 +120,14 @@ function DataExport() {
 
   if (workspace.isLoading || !workspace.data) {
     return (
-      <AppShell businessName="" role="" plan="" title="Export data" subtitle="Download your data.">
+      <AppShell
+        businessName=""
+        role=""
+        plan=""
+        title="Export data"
+        subtitle="Download your data."
+        subtitleAsTooltip
+      >
         <Skeleton className="h-40" />
       </AppShell>
     );
@@ -135,16 +142,16 @@ function DataExport() {
       billingEnabled={workspace.data.billingEnabled}
       title="Export data"
       subtitle="Download everything Kwetuu stores for your business."
+      subtitleAsTooltip
     >
       <div className="surface max-w-xl space-y-4 p-5">
         <div>
-          <h2 className="text-lg font-semibold">Your data, in one file</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Products, customers, sales, invoices, quotes, expenses, and stock history, everything
-            tied to your business, as a single file you can keep, back up, or move elsewhere. JSON
-            keeps every field for a full backup; Excel is easier to open and browse; PDF is best for
-            printing or sharing a read-only copy.
-          </p>
+          <h2
+            className="text-lg font-semibold"
+            title="Products, customers, sales, invoices, quotes, expenses, and stock history, everything tied to your business, as a single file you can keep, back up, or move elsewhere. JSON keeps every field for a full backup; Excel is easier to open and browse; PDF is best for printing or sharing a read-only copy."
+          >
+            Your data, in one file
+          </h2>
         </div>
 
         {!canExport ? (

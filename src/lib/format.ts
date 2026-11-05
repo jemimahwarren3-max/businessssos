@@ -2,7 +2,10 @@ export function formatMoney(amount: number, currency = "USD") {
   const value = Number.isFinite(amount) ? amount : 0;
   const code = currency === "ZiG" ? "ZWG" : currency;
   if (code === "ZWG") {
-    return `ZiG ${value.toFixed(2)}`;
+    return `ZiG ${new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(value)}`;
   }
   try {
     return new Intl.NumberFormat("en-GB", {

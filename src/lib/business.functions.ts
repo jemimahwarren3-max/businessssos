@@ -131,6 +131,11 @@ import {
   verifyShopLogin,
 } from "./team.server";
 import { uploadProductImage } from "./product-media.server";
+import {
+  isPexelsImageSearchConfigured,
+  searchPexelsPhotos,
+  setPexelsProductImage,
+} from "./pexels.server";
 import { parseAndSanitize } from "./security";
 import { authedRateLimit, ipRateLimit } from "./rate-limit.server";
 import {
@@ -226,6 +231,15 @@ const checkoutRateLimit = [
 // stricter cap keeps it from being hammered.
 const exportRateLimit = [
   authedRateLimit({ keyPrefix: "data-export", maxRequests: 3, windowSeconds: 60 }),
+] as const;
+
+const pexelsImageSearchLimit = [
+  authedRateLimit({
+    keyPrefix: "pexels-image-search",
+    maxRequests: 20,
+    windowSeconds: 60,
+    message: "Too many photo searches. Please wait a moment and try again.",
+  }),
 ] as const;
 
 // Every call here hits an AI provider, tighter than the general API limit, on top
@@ -473,6 +487,35 @@ export const uploadProductImageFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseProductPhotoForm(data))
   .handler(async ({ data, context }) =>
     uploadProductImage(context.supabase as Db, data.businessId, data.productId, data.file),
+  );
+
+export const getPexelsImageSearchEnabledFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .handler(() => isPexelsImageSearchConfigured());
+
+export const searchPexelsImagesFn = createServerFn({ method: "POST" })
+  .middleware([...authAndRateLimit, ...pexelsImageSearchLimit])
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ query: z.string().trim().min(1).max(100) }), data),
+  )
+  .handler(({ data }) => searchPexelsPhotos(data.query));
+
+export const setPexelsProductImageFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      businessIdSchema.extend({
+        productId: z.string().uuid(),
+        imageUrl: z
+          .string()
+          .url()
+          .regex(/^https:\/\/images\.pexels\.com\/photos\/\d+\//, "Choose a valid Pexels photo."),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) =>
+    setPexelsProductImage(context.supabase as Db, data.businessId, data.productId, data.imageUrl),
   );
 
 export const updateStock = createServerFn({ method: "POST" })

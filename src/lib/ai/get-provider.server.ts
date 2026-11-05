@@ -27,12 +27,16 @@ function configuredProvider(): AIProviderName | null {
   return null;
 }
 
-export function getAIProvider(): AIProvider {
+export function assertAIEnabled(): void {
   if (aiIsDisabled()) {
     throw new Error(
       "AI is temporarily disabled. Shops, POS, and orders still work. Set AI_DISABLED=false or AI_PROVIDER to groq/gemini to resume.",
     );
   }
+}
+
+export function getAIProvider(): AIProvider {
+  assertAIEnabled();
   const choice = configuredProvider();
   if (choice === "gemini") {
     if (!process.env["GEMINI_API_KEY"]?.trim()) {

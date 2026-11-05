@@ -48,6 +48,7 @@ import {
   getProducts,
   getSuppliers,
   importProductsFn,
+  setPexelsProductImageFn,
   updateStock,
   uploadProductImageFn,
 } from "@/lib/business.functions";
@@ -202,6 +203,7 @@ function Inventory() {
   const fetchSuppliers = useServerFn(getSuppliers);
   const createProduct = useServerFn(addProduct);
   const uploadPhoto = useServerFn(uploadProductImageFn);
+  const setPexelsProductImage = useServerFn(setPexelsProductImageFn);
   const adjustStock = useServerFn(updateStock);
   const importProductsRows = useServerFn(importProductsFn);
   const fetchCategories = useServerFn(getCategories);
@@ -287,7 +289,11 @@ function Inventory() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async (input: { fields: Record<string, unknown>; photo: File | null }) => {
+    mutationFn: async (input: {
+      fields: Record<string, unknown>;
+      photo: File | null;
+      imageUrl: string | null;
+    }) => {
       const photo = input.photo ? await optimizeProductImage(input.photo) : null;
       const parsed = productSchema.parse({
         ...input.fields,
@@ -295,18 +301,44 @@ function Inventory() {
       });
       const created = await createProduct({ data: parsed });
       const productId = Array.isArray(created) ? created[0]?.id : created?.id;
-      if (photo && productId) {
-        const form = new FormData();
-        form.set("businessId", businessId!);
-        form.set("productId", productId);
-        form.set("file", photo);
-        await uploadPhoto({ data: form });
+      let imageError: string | null = null;
+      if (photo || input.imageUrl) {
+        if (!productId) {
+          imageError = "The product was saved, but its photo could not be attached.";
+        } else {
+          try {
+            if (photo) {
+              const form = new FormData();
+              form.set("businessId", businessId!);
+              form.set("productId", productId);
+              form.set("file", photo);
+              await uploadPhoto({ data: form });
+            } else if (input.imageUrl) {
+              await setPexelsProductImage({
+                data: { businessId: businessId!, productId, imageUrl: input.imageUrl },
+              });
+            }
+          } catch (error) {
+            const imageFailure =
+              error instanceof Error
+                ? error
+                : new Error("The product was saved, but its photo could not be attached.");
+            imageError = readableError(
+              imageFailure,
+              "The product was saved, but its photo could not be attached.",
+            );
+          }
+        }
       }
-      return created;
+      return { created, imageError };
     },
-    onSuccess: async () => {
+    onSuccess: async ({ imageError }) => {
       setAddOpen(false);
-      toast.success("Product added.");
+      if (imageError) {
+        toast.error(imageError);
+      } else {
+        toast.success("Product added.");
+      }
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       await queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
@@ -593,6 +625,7 @@ function Inventory() {
       billingEnabled={workspace.data.billingEnabled}
       title="Inventory"
       subtitle="Totals on this page. Sales and stock changes use the default location. Moving stock between locations is not available yet."
+      subtitleAsTooltip
       actions={
         <>
           {rows.length > 0 ? (
@@ -726,12 +759,11 @@ function Inventory() {
             <h2 className="mt-3 text-lg font-semibold">
               {search ? "No products match that search" : "No products yet"}
             </h2>
-            <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-              {search
-                ? "Try a shorter search term."
-                : "Add your first product and Kwetuu will start tracking stock, profit and restock alerts for you."}
-            </p>
-            {canEdit && !search ? (
+            {search ? (
+              <Button className="mt-5" variant="outline" onClick={() => setSearch("")}>
+                Clear search
+              </Button>
+            ) : canEdit ? (
               <Button className="mt-5 gap-1.5" onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" aria-hidden="true" /> Add your first product
               </Button>
@@ -890,8 +922,12 @@ function Inventory() {
             categories={categoryList}
             pending={addMutation.isPending}
             onCancel={() => setAddOpen(false)}
-            onSubmit={(values, photo) =>
-              addMutation.mutate({ fields: values as Record<string, unknown>, photo })
+            onSubmit={(values, photo, imageUrl) =>
+              addMutation.mutate({
+                fields: values as Record<string, unknown>,
+                photo,
+                imageUrl,
+              })
             }
           />
         </DialogContent>

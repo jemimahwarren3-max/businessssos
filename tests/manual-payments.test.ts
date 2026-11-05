@@ -25,6 +25,9 @@ describe("ZiG display", () => {
   it("labels ZWG amounts as ZiG without converting them", () => {
     expect(CURRENCIES).toContain("ZWG");
     expect(formatMoney(12.5, "ZWG")).toBe("ZiG 12.50");
+    expect(formatMoney(1250, "ZWG")).toBe("ZiG 1,250");
+    expect(formatMoney(1250.5, "ZWG")).toBe("ZiG 1,250.50");
+    expect(formatMoney(1250, "ZiG")).toBe("ZiG 1,250");
     expect(formatMoney(12.5, "USD")).toMatch(/12\.50/);
   });
 

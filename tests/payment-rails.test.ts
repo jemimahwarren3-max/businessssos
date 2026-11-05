@@ -9,6 +9,7 @@ import {
   tendersNeedCashDrawer,
   tendersNeedCustomer,
 } from "../src/lib/payment-rails";
+import { saleTenderSchema } from "../src/lib/business.schemas";
 
 describe("POS payment rails", () => {
   it("maps EcoCash and InnBucks onto mobile_money without inventing a new enum", () => {
@@ -44,5 +45,17 @@ describe("POS payment rails", () => {
     expect(tendersNeedCustomer(tenders)).toBe(false);
     expect(tendersAllocated(tenders)).toBe(10);
     expect(tendersLabel(tenders)).toBe("Cash + EcoCash");
+  });
+
+  it("accepts a cash tender recorded in ZiG", () => {
+    const tender = saleTenderSchema.parse({
+      rail: "cash",
+      amount: 12.5,
+      currency: "ZWG",
+      amountOriginal: 1250,
+    });
+
+    expect(tender.currency).toBe("ZWG");
+    expect(railToPaymentMethod(tender.rail)).toBe("cash");
   });
 });

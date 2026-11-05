@@ -152,7 +152,7 @@ function CartPage() {
           to="/store/$slug/checkout"
           params={{ slug: store.slug }}
           className="mt-6 inline-flex rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
-          style={{ backgroundColor: store.theme.button, color: store.theme.buttonText }}
+          style={{ backgroundColor: store.theme.accent, color: store.theme.buttonText }}
         >
           Checkout
         </Link>

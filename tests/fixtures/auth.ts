@@ -23,7 +23,7 @@ type LaunchFixtures = {
 function contextOptions(testInfo: TestInfo, storageState: string | { cookies: []; origins: [] }) {
   const projectUse = testInfo.project.use;
   return {
-    baseURL: process.env.E2E_BASE_URL?.trim() || "http://127.0.0.1:8080",
+    baseURL: process.env["E2E_BASE_URL"]?.trim() || "http://127.0.0.1:8080",
     storageState,
     ...(projectUse.viewport ? { viewport: projectUse.viewport } : {}),
     ...(typeof projectUse.deviceScaleFactor === "number"

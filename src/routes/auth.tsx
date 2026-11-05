@@ -20,9 +20,11 @@ import { BRAND } from "@/lib/brand";
 import { navigateAfterAuth } from "@/lib/auth/post-auth-navigate";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Hint } from "@/components/ui/hint";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -276,6 +278,9 @@ function AuthPage() {
   if (bootState === "checking") {
     return (
       <div className="marketplace-theme flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="fixed right-4 top-4 z-50">
+          <ThemeToggle />
+        </div>
         <Logo to="/" />
         <Loader2 className="size-6 animate-spin text-primary" aria-hidden="true" />
         <p className="text-sm text-muted-foreground">Checking your session…</p>
@@ -285,6 +290,9 @@ function AuthPage() {
 
   return (
     <div className="marketplace-theme grid min-h-screen lg:grid-cols-2">
+      <div className="fixed right-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="flex flex-col justify-center px-5 py-12 sm:px-10">
         <div className="mx-auto w-full max-w-sm">
           <Logo to="/" />
@@ -469,18 +477,20 @@ function AuthPage() {
                           placeholder="At least 8 characters"
                           className="pr-10"
                         />
-                        <button
-                          type="button"
-                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
-                          onClick={() => setShowPassword((visible) => !visible)}
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="size-4" aria-hidden="true" />
-                          ) : (
-                            <Eye className="size-4" aria-hidden="true" />
-                          )}
-                        </button>
+                        <Hint tip={showPassword ? "Hide password" : "Show password"}>
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowPassword((visible) => !visible)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="size-4" aria-hidden="true" />
+                            ) : (
+                              <Eye className="size-4" aria-hidden="true" />
+                            )}
+                          </button>
+                        </Hint>
                       </div>
                     </div>
                   ) : null}

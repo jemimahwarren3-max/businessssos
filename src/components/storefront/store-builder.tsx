@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/hint";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +47,7 @@ import {
   getTemplate,
   STORE_TEMPLATES,
   TEMPLATE_CATEGORIES,
+  templateForBusinessType,
   type TemplateId,
 } from "@/lib/storefront/templates";
 import {
@@ -108,27 +110,64 @@ function snapshotFromState(input: {
 
 export function StoreBuilder({
   businessId,
+  businessType,
   initial,
   canManage,
+  creatingStore,
+  onCreateStore,
 }: {
   businessId: string;
+  businessType: string;
   initial: AdminStore;
   canManage: boolean;
+  creatingStore: boolean;
+  onCreateStore: () => void;
 }) {
-  if (!initial.store) return null;
-  return <StoreBuilderReady businessId={businessId} initial={initial} canManage={canManage} />;
+  const store = initial.store;
+  if (!store) {
+    return (
+      <section id="store-builder" className="surface space-y-3 p-5">
+        <h2 className="text-lg font-semibold">Set up your store</h2>
+        <p className="text-sm text-muted-foreground">
+          Create a store to customize its design and online details.
+        </p>
+        {canManage ? (
+          <Button type="button" disabled={creatingStore} onClick={onCreateStore}>
+            {creatingStore ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+            Set up your store
+          </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Ask an owner or admin to set up the store.
+          </p>
+        )}
+      </section>
+    );
+  }
+  return (
+    <StoreBuilderReady
+      businessId={businessId}
+      businessType={businessType}
+      initial={initial}
+      store={store}
+      canManage={canManage}
+    />
+  );
 }
 
 function StoreBuilderReady({
   businessId,
+  businessType,
   initial,
+  store,
   canManage,
 }: {
   businessId: string;
+  businessType: string;
   initial: AdminStore;
+  store: NonNullable<AdminStore["store"]>;
   canManage: boolean;
 }) {
-  const store = initial.store!;
   const queryClient = useQueryClient();
   const [builderTab, setBuilderTab] = useState(
     () =>
@@ -541,6 +580,7 @@ function StoreBuilderReady({
   });
 
   const template = getTemplate(templateId);
+  const recommendedTemplateId = templateForBusinessType(businessType);
   const categoryTemplates = STORE_TEMPLATES.filter((row) => row.category === templateCategory);
   const publicUrl = store.slug ? storePublicUrl(store.slug) : "";
   const disabled = !canManage;
@@ -549,11 +589,12 @@ function StoreBuilderReady({
     <section id="store-builder" className="scroll-mt-24 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Store builder</h2>
-          <p className="text-sm text-muted-foreground">
-            Design, branding, online products, and customer-facing information. Preview uses your
-            real catalogue. Nothing is published until you choose Publish.
-          </p>
+          <h2
+            className="text-lg font-semibold"
+            title="Design, branding, online products, and customer-facing information. Preview uses your real catalogue. Nothing is published until you choose Publish."
+          >
+            Store builder
+          </h2>
         </div>
         {publicUrl ? (
           <Link
@@ -586,11 +627,12 @@ function StoreBuilderReady({
           <TabsTrigger value="preview">Preview</TabsTrigger>
         </TabsList>
 
-        <TabsContent id="launch-design" value="design" className="scroll-mt-24 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Each design is a shop website: header, homepage, and product grid. Switching keeps your
-            products.
-          </p>
+        <TabsContent
+          id="launch-design"
+          value="design"
+          className="scroll-mt-24 space-y-4"
+          title="Each design is a shop website with a header, homepage, and product grid. Switching designs keeps your products."
+        >
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Shop type</span>
             <select
@@ -630,17 +672,18 @@ function StoreBuilderReady({
                   className="rounded-xl border p-3 text-left transition-shadow hover:shadow-sm disabled:opacity-60"
                   style={{ outline: selected ? "2px solid var(--primary)" : undefined }}
                   aria-pressed={selected}
+                  title={previewTemplate.description}
                 >
                   <TemplatePreview
                     template={previewTemplate}
                     storeName={storeName || previewTemplate.name}
-                    className="mb-3 h-44"
+                    className="mb-3 h-[211px]"
                   />
                   <p className="font-semibold">{previewTemplate.name}</p>
                   <p className="text-xs text-muted-foreground">{previewTemplate.bestFor}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {previewTemplate.description}
-                  </p>
+                  {previewTemplate.id === recommendedTemplateId ? (
+                    <p className="mt-2 text-xs font-medium text-primary">Suggested for you</p>
+                  ) : null}
                 </button>
               );
             })}
@@ -691,11 +734,12 @@ function StoreBuilderReady({
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="font-medium">Promotional banners</h3>
-                <p className="text-sm text-muted-foreground">
-                  Add up to four shop-authored promotions. Their layout follows the selected
-                  storefront design.
-                </p>
+                <h3
+                  className="font-medium"
+                  title="Add up to four shop-authored promotions. Their layout follows the selected storefront design."
+                >
+                  Promotional banners
+                </h3>
               </div>
               <Button
                 type="button"
@@ -720,9 +764,6 @@ function StoreBuilderReady({
                 Add banner
               </Button>
             </div>
-            {content.promoTiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No promotional banners yet.</p>
-            ) : null}
             {content.promoTiles.map((tile, index) => (
               <fieldset key={tile.id} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
                 <legend className="px-1 text-sm font-medium">
@@ -1247,12 +1288,12 @@ function StoreBuilderReady({
           </div>
         </TabsContent>
 
-        <TabsContent value="preview" className="space-y-3">
+        <TabsContent
+          value="preview"
+          className="space-y-3"
+          title={`Live preview of ${template.name} as a shop website. Draft, not visible to the public.`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not visible
-              to the public.
-            </p>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -1310,23 +1351,30 @@ function StoreBuilderReady({
         >
           Discard changes
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={
-            disabled ||
-            publishMutation.isPending ||
-            (store.status !== "published" && eligibility.data?.state !== "eligible_to_publish")
-          }
-          title={
+        <Hint
+          tip={
             store.status !== "published" && eligibility.data?.state !== "eligible_to_publish"
-              ? "Complete launch requirements above before publishing"
-              : undefined
+              ? "Complete launch requirements above before publishing."
+              : store.status === "published"
+                ? "Make your shop unavailable to customers."
+                : "Make your shop available to customers."
           }
-          onClick={() => publishMutation.mutate(store.status !== "published")}
         >
-          {store.status === "published" ? "Unpublish" : "Publish store"}
-        </Button>
+          <span className="inline-flex">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={
+                disabled ||
+                publishMutation.isPending ||
+                (store.status !== "published" && eligibility.data?.state !== "eligible_to_publish")
+              }
+              onClick={() => publishMutation.mutate(store.status !== "published")}
+            >
+              {store.status === "published" ? "Unpublish" : "Publish store"}
+            </Button>
+          </span>
+        </Hint>
         {listing.data?.hasStore ? (
           <label className="flex items-center gap-2 text-sm">
             <input
