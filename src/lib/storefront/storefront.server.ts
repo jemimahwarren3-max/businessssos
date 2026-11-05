@@ -119,12 +119,9 @@ export async function loadPublicStore(input: {
   if (data == null) return null;
   const store = await parseRpc("load public store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: input.slug });
-  if (!offered.error) store.payments.paynow = offered.data === true;
-  try {
-    store.services = await loadPublicServices(input.slug);
-  } catch {
-    store.services = [];
-  }
+  if (offered.error) rpcFail("check public store Paynow availability", offered.error);
+  store.payments.paynow = offered.data === true;
+  store.services = await loadPublicServices(input.slug);
   return store;
 }
 
@@ -134,12 +131,9 @@ export async function loadStorePreview(supabase: Db, slug: string): Promise<Publ
   if (data == null) return null;
   const store = await parseRpc("preview store", { data, error: null }, publicStoreSchema);
   const offered = await supabase.rpc("shop_offers_paynow", { _slug: slug });
-  if (!offered.error) store.payments.paynow = offered.data === true;
-  try {
-    store.services = await loadPublicServices(slug);
-  } catch {
-    store.services = [];
-  }
+  if (offered.error) rpcFail("check preview Paynow availability", offered.error);
+  store.payments.paynow = offered.data === true;
+  store.services = await loadPublicServices(slug);
   return store;
 }
 
@@ -341,21 +335,14 @@ function emptyAdminStore(): AdminStore {
 
 async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promise<AdminStore> {
   if (!admin.store) return admin;
-  try {
-    const connected = await shopPaynowConnected(businessId);
-    const { data: available, error } = await supabaseAdmin.rpc("shop_offers_paynow_business", {
-      _business_id: businessId,
-    });
-    if (error) {
-      console.error("[businessos] shop Paynow availability", error);
-    } else {
-      admin.store.payments.paynowAvailable = available;
-    }
-    admin.store.payments.paynow = connected;
-    admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
-  } catch (error) {
-    console.error("[businessos] shop Paynow flag", error);
-  }
+  const connected = await shopPaynowConnected(businessId);
+  const { data: available, error } = await supabaseAdmin.rpc("shop_offers_paynow_business", {
+    _business_id: businessId,
+  });
+  if (error) rpcFail("load shop Paynow availability", error);
+  admin.store.payments.paynowAvailable = available;
+  admin.store.payments.paynow = connected;
+  admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
   return admin;
 }
 

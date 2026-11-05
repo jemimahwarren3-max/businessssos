@@ -90,6 +90,23 @@ export const TEMPLATE_CATEGORIES: readonly { id: StoreCategoryId; name: string }
   { id: "general", name: "General retail" },
 ];
 
+const FEATURED_SECTION_TITLES: Record<StoreCategoryId, string> = {
+  beauty: "Featured care",
+  fashion: "Featured edit",
+  electronics: "Featured technology",
+  home: "Featured for the home",
+  food: "Featured from the menu",
+  jewellery: "Featured collection",
+  wellness: "Featured wellbeing",
+  books: "Featured reads and gifts",
+  sports: "Featured gear",
+  general: "Featured products",
+};
+
+export function featuredSectionTitle(category: StoreCategoryId): string {
+  return FEATURED_SECTION_TITLES[category];
+}
+
 export type StoreLayout =
   | "grid"
   | "editorial"

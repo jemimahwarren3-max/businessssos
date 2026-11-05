@@ -56,7 +56,7 @@ enough to start) before this document is published anywhere external.
   (RLS), enabled on every business-owned table. A business can never read or
   write another business's data, this is enforced by RLS policies backed
   by `is_business_member(business_id)` / `has_business_role(business_id,
-  roles)` SECURITY DEFINER helper functions, not by application-layer
+roles)` SECURITY DEFINER helper functions, not by application-layer
   checks alone.
 - Every `createServerFn` that touches business data runs through the
   per-request RLS-scoped Supabase client (derived from the caller's own
@@ -72,7 +72,7 @@ enough to start) before this document is published anywhere external.
   to the `service_role` via `GRANT`/`REVOKE`, not an in-function identity
   check (an earlier version used `current_user = 'service_role'` inside a
   `SECURITY DEFINER` function, which is unsound, `current_user` inside
-  such a function always reflects the function's *owner*, never the
+  such a function always reflects the function's _owner_, never the
   caller, this was found and fixed during this session's audit).
 - **The platform-admin account requires TOTP MFA**, enforced server-side on
   every admin action (`requireAdmin()` in `src/lib/admin/admin.server.ts`),
@@ -114,12 +114,14 @@ enough to start) before this document is published anywhere external.
 ## Secrets management
 
 - The service-role Supabase client (`supabaseAdmin`, which bypasses RLS
-  entirely) is restricted by an ESLint `no-restricted-imports` rule to
-  exactly five files, each with a specific, narrow, documented reason to
-  need it: the Paynow webhook handler, the Paynow payment-polling module,
-  the platform-admin module, the account-deletion module, and the
-  legal-acceptance recording module. Any new caller requires deliberately
-  widening that allowlist, not just importing the client.
+  entirely) is restricted by an ESLint `no-restricted-imports` rule to an
+  explicit allowlist of server-side modules in `eslint.config.js`. The
+  current allowlist includes payment, admin, account, legal, team,
+  storefront, notification, growth, FX, and rate-limit modules. Every use
+  must remain server-only and validate the caller's ownership or
+  authorization before a privileged query. Any new caller requires
+  deliberately widening that allowlist and reviewing the operation's
+  authorization boundary.
 - No secrets are committed to the repository, `.env*` files are
   gitignored; `.env.example` documents required variables without real
   values.
@@ -137,16 +139,16 @@ earlier in-memory limiter was replaced during this session's hardening pass
 specifically because it reset on every server restart and wasn't shared
 across instances).
 
-| Endpoint | Limit | Keyed by |
-|---|---|---|
-| Sign in | 10 / min | IP |
-| Sign up | 5 / min | IP |
-| Password reset request | 5 / min | IP |
-| Delete account | 3 / min | user |
-| Data export | 3 / min | user |
-| Subscription checkout | 5 / min | user |
-| Paynow webhook | 30 / min | IP |
-| General authenticated API | 120 / min | user |
+| Endpoint                  | Limit     | Keyed by |
+| ------------------------- | --------- | -------- |
+| Sign in                   | 10 / min  | IP       |
+| Sign up                   | 5 / min   | IP       |
+| Password reset request    | 5 / min   | IP       |
+| Delete account            | 3 / min   | user     |
+| Data export               | 3 / min   | user     |
+| Subscription checkout     | 5 / min   | user     |
+| Paynow webhook            | 30 / min  | IP       |
+| General authenticated API | 120 / min | user     |
 
 Rate limiting is deliberately fail-open on its own infrastructure failure
 (a Postgres hiccup doesn't lock everyone out), it's defense-in-depth on
@@ -154,7 +156,7 @@ top of RLS and authentication, not the primary security boundary.
 
 The `rate_limit_hits` table backing this had a real gap, found via
 Supabase's own Security Advisor rather than this session's own review: on
-staging, RLS was disabled *and* `anon`/`authenticated` held full
+staging, RLS was disabled _and_ `anon`/`authenticated` held full
 INSERT/SELECT/UPDATE/DELETE grants directly on the table, an
 unauthenticated caller could have hit PostgREST directly and deleted their
 own bucket to bypass brute-force protection on sign-in/sign-up/password
@@ -170,7 +172,7 @@ correctly for real callers.
 ## Webhook authenticity
 
 The Paynow webhook (`src/server.ts`) verifies Paynow's SHA512 hash over the
-raw request body *before* doing any database lookup, rejecting with 401 if
+raw request body _before_ doing any database lookup, rejecting with 401 if
 it doesn't match. On top of that (not instead of it), the actual payment
 status is never trusted from the webhook body directly, the handler
 always re-polls Paynow's own servers via a stored `poll_url` before

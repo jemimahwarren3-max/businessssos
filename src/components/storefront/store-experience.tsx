@@ -5,10 +5,11 @@ import { readCart, writeCart, type CartLine } from "@/lib/storefront/cart";
 import { DeferredImage } from "@/components/deferred-image";
 import { ListingReportForm } from "@/components/storefront/listing-report-form";
 import { ProductReviewsBlock } from "@/components/storefront/product-reviews";
+import { StorefrontPromoZone } from "@/components/storefront/storefront-promo-zone";
 import { StoreReviewForm } from "@/components/storefront/review-form";
 import type { ProductReviews, PublicProduct, PublicStore } from "@/lib/storefront/contract";
 import { getProductReviewsFn } from "@/lib/storefront/storefront.functions";
-import { getTemplate } from "@/lib/storefront/templates";
+import { featuredSectionTitle, getTemplate } from "@/lib/storefront/templates";
 import { storeSurface } from "@/lib/storefront/store-surface";
 import { storePublicUrl } from "@/lib/storefront/host";
 import {
@@ -360,7 +361,8 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
   const template = getTemplate(store.templateId);
   const { theme } = store;
   const preview = useStorePreview();
-  const line = template.cardStyle === "line" || template.catalogStyle === "rows";
+  const line =
+    template.cardStyle === "line" || template.catalogStyle === "rows" || template.layout === "menu";
   const overlay = template.cardStyle === "overlay";
   const price = (
     <>
@@ -399,7 +401,11 @@ export function ProductCard({ store, product }: { store: PublicStore; product: P
         style={{ backgroundColor: theme.surface }}
       >
         {product.imageUrl ? (
-          <DeferredImage src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+          <DeferredImage
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-neutral-400">
             No photo
@@ -495,6 +501,15 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
       ) : null}
     </div>
   );
+  const promoZone = theme.sections.promoTiles ? (
+    <StorefrontPromoZone
+      template={template}
+      tiles={store.content.promoTiles}
+      categories={store.categories}
+      theme={theme}
+      onSelectCategory={setCategory}
+    />
+  ) : null;
 
   return (
     <div>
@@ -506,7 +521,12 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           >
             {heroImage ? (
               <div className="aspect-[4/3] md:aspect-auto md:min-h-[28rem]">
-                <img src={heroImage} alt="" className="h-full w-full object-cover" fetchPriority="high" />
+                <img
+                  src={heroImage}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  fetchPriority="high"
+                />
               </div>
             ) : null}
             {heroText}
@@ -538,7 +558,12 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
             <div className="flex flex-wrap items-center justify-between gap-4">
               {heroText}
               {heroImage ? (
-                <img src={heroImage} alt="" className="h-24 w-36 rounded-md object-cover" loading="lazy" />
+                <img
+                  src={heroImage}
+                  alt=""
+                  className="h-24 w-36 rounded-md object-cover"
+                  loading="lazy"
+                />
               ) : null}
             </div>
           </section>
@@ -565,6 +590,7 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           </section>
         )
       ) : null}
+      {template.heroStyle === "full-bleed" ? promoZone : null}
       {theme.sections.categories && store.categories.length > 0 ? (
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-4">
           <button
@@ -594,64 +620,49 @@ export function Catalog({ store, query }: { store: PublicStore; query?: string }
           ))}
         </div>
       ) : null}
+      {template.heroStyle === "compact" ? promoZone : null}
       {query ? (
         <p className="mx-auto max-w-6xl px-4 pb-4 text-sm text-neutral-500">
           Results for “{query}”
         </p>
       ) : null}
       {theme.sections.featured && featuredProducts.length > 0 ? (
-        <section className="mx-auto max-w-6xl px-4 py-6">
+        <section className="mx-auto max-w-6xl px-4 py-6" data-featured-layout={template.layout}>
           <h2 className="mb-3 text-lg font-semibold" style={{ color: theme.primary }}>
-            Featured collection
+            {featuredSectionTitle(template.category)}
           </h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} store={store} product={product} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {theme.sections.promoTiles && store.content.promoTiles.length > 0 ? (
-        <section className="mx-auto grid max-w-6xl gap-4 px-4 py-6 sm:grid-cols-2">
-          {store.content.promoTiles.map((tile) => {
-            const category = store.categories.find((item) => item.name === tile.categoryName);
-            const matching = store.products.filter(
-              (product) => product.categoryId === category?.id,
-            );
-            return (
-              <div
-                key={tile.id}
-                className="relative min-h-40 overflow-hidden rounded-xl"
-                style={{ backgroundColor: theme.surface }}
-              >
-                {tile.imageUrl ? (
-                  <img
-                    src={tile.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    className="absolute inset-0 h-full w-full object-cover opacity-35"
-                  />
-                ) : null}
-                <div className="relative p-6">
-                  <h2 className="text-xl font-semibold" style={{ color: theme.primary }}>
-                    {tile.title}
-                  </h2>
-                  <p className="mt-1 text-sm">{tile.subtitle}</p>
-                  {category ? (
-                    <button
-                      className="mt-4 rounded-md px-3 py-2 text-sm font-medium"
-                      style={{ backgroundColor: theme.button, color: theme.buttonText }}
-                      onClick={() => setCategory(category.id)}
-                    >
-                      Explore {tile.categoryName} ({matching.length})
-                    </button>
-                  ) : null}
-                </div>
+          {template.layout === "menu" ? (
+            <div className="divide-y border-y">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} store={store} product={product} />
+              ))}
+            </div>
+          ) : template.layout === "editorial" ? (
+            <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+              <ProductCard store={store} product={featuredProducts[0]!} />
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1">
+                {featuredProducts.slice(1).map((product) => (
+                  <ProductCard key={product.id} store={store} product={product} />
+                ))}
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "grid grid-cols-2 gap-4",
+                (template.layout === "dense" || template.layout === "grid") && "md:grid-cols-3",
+                (template.layout === "showcase" || template.layout === "luxury") &&
+                  "md:grid-cols-2",
+              )}
+            >
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} store={store} product={product} />
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
+      {template.heroStyle !== "full-bleed" && template.heroStyle !== "compact" ? promoZone : null}
       {theme.sections.collections && store.content.collections.length > 0 ? (
         <div className="space-y-3">
           {store.content.collections.map((collection) => {

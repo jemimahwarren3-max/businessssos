@@ -12,7 +12,7 @@ TanStack Start, Vite 8, React 19, Tailwind 4, Zod, Vitest, Supabase Auth + Postg
 
 Merchant app: products, stock movements, POS (online and queued offline), invoices, quotes, customers, suppliers, purchase orders, expenses, reports, roles, audit logs, data export, Pro subscription billing via platform Paynow, WhatsApp `wa.me` links.
 
-Customer app: published shop on `{slug}.{host}`, ten templates, cart, server-priced checkout (pickup / priced delivery / quote), access-code order tracking, optional shopper accounts, `/market` directory of shops that opted in.
+Customer app: published shop on `{slug}.{host}`, 60 templates across ten categories (six compositions per category), cart, server-priced checkout (pickup / priced delivery / quote), access-code order tracking, optional shopper accounts, `/market` directory of shops that opted in.
 
 Shared stock: POS `create_sale` and online `store_order` both update `products.stock`. Online orders do not book revenue until Record payment.
 
@@ -81,18 +81,18 @@ No P0 unauthenticated payment-credit path was found. Platform Paynow confirmatio
 
 ### D. Storefronts and marketplace 31–40
 
-| #   | Feature                      | Status | Notes                                                                             |
-| --- | ---------------------------- | ------ | --------------------------------------------------------------------------------- |
-| 31  | Shareable merchant shops     | IV     | Subdomain + redirect.                                                             |
-| 32  | Ten templates                | IV     | Distinct layouts, tested.                                                         |
-| 33  | Visual editor                | P      | Logo colour banner typography fields; not a free-form page builder.               |
-| 34  | Collections, search, filters | P      | Categories, search, sort. No merchandising collections.                           |
-| 35  | Public marketplace           | IV     | `/market`, published + `marketplace_visible`.                                     |
-| 36  | Auto publish/unpublish       | P      | Merchant publish and stock/availability on product pages. No scheduled unpublish. |
-| 37  | Product pages                | INV    | Price, seller, availability label.                                                |
-| 38  | Mobile cart/checkout         | INV    |                                                                                   |
-| 39  | Preview, draft, schedule     | P      | Preview and publish. No schedule.                                                 |
-| 40  | SEO / social / clean URLs    | P      | Titles, sitemap, shop hosts. Social images limited.                               |
+| #   | Feature                      | Status | Notes                                                                                 |
+| --- | ---------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| 31  | Shareable merchant shops     | IV     | Subdomain + redirect.                                                                 |
+| 32  | 60 storefront templates      | IV     | Ten categories with six hero/catalogue compositions each; promo zones vary by layout. |
+| 33  | Visual editor                | P      | Branding, typography, announcement and promo tiles; not a free-form page builder.     |
+| 34  | Collections, search, filters | P      | Category filtering, search, sort, and category-linked promo tiles.                    |
+| 35  | Public marketplace           | IV     | `/market`, published + `marketplace_visible`.                                         |
+| 36  | Auto publish/unpublish       | P      | Merchant publish and stock/availability on product pages. No scheduled unpublish.     |
+| 37  | Product pages                | INV    | Price, seller, availability label.                                                    |
+| 38  | Mobile cart/checkout         | INV    |                                                                                       |
+| 39  | Preview, draft, schedule     | P      | Preview and publish. No schedule.                                                     |
+| 40  | SEO / social / clean URLs    | P      | Titles, sitemap, shop hosts. Social images limited.                                   |
 
 ### E. Orders and fulfilment 41–50
 
@@ -210,7 +210,7 @@ Do not implement gift cards, store credit, or loyalty points until ledger and fr
 - Platform Paynow vs customer checkout are separate on purpose.
 - Locations are in git; POS still uses the default location. Transfers are not built.
 - README is still an old product prompt. `ENVIRONMENT_SETUP.md` is the operator guide.
-- Ten templates are real layouts, not ten colour skins.
+- 60 storefront templates are rendered from live shop data, with six distinct hero and promotional-zone compositions per category.
 
 ## 6. Baseline checks
 

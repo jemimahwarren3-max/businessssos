@@ -421,7 +421,7 @@ export async function loadPublicServices(slug: string): Promise<PublicService[]>
       _slug: slug,
     },
   );
-  if (result.error) return [];
+  if (result.error) dbFail("load public store services", result.error);
   return (result.data as PublicService[]) ?? [];
 }
 

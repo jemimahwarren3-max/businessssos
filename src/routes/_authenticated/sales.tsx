@@ -550,7 +550,9 @@ function Sales() {
         }
         await addPendingSale(pending);
         for (const item of parsed.items) {
-          await decrementCachedStock(parsed.businessId, item.productId, item.quantity);
+          if (item.productId) {
+            await decrementCachedStock(parsed.businessId, item.productId, item.quantity);
+          }
         }
         return { id: "", offline: true as const };
       }
