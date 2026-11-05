@@ -655,6 +655,7 @@ function StoreBuilderReady({
                   ["featured", "Featured products"],
                   ["about", "About & contact"],
                   ["announcement", "Announcement bar"],
+                  ["promoTiles", "Promotional banners"],
                 ] as const
               ).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2">
@@ -674,6 +675,157 @@ function StoreBuilderReady({
               ))}
             </div>
           </fieldset>
+          <section className="space-y-4 rounded-xl border p-4">
+            <div className="space-y-2">
+              <Label htmlFor="store-announcement">Announcement bar text</Label>
+              <Input
+                id="store-announcement"
+                maxLength={200}
+                value={content.announcement}
+                disabled={disabled}
+                onChange={(event) =>
+                  setContent((current) => ({ ...current, announcement: event.target.value }))
+                }
+                placeholder="A shop update or offer written by you"
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-medium">Promotional banners</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add up to four shop-authored promotions. Their layout follows the selected
+                  storefront design.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={disabled || content.promoTiles.length >= 4}
+                onClick={() =>
+                  setContent((current) => ({
+                    ...current,
+                    promoTiles: [
+                      ...current.promoTiles,
+                      {
+                        id: crypto.randomUUID(),
+                        title: "",
+                        subtitle: "",
+                        imageUrl: "",
+                        categoryName: "",
+                      },
+                    ],
+                  }))
+                }
+              >
+                Add banner
+              </Button>
+            </div>
+            {content.promoTiles.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No promotional banners yet.</p>
+            ) : null}
+            {content.promoTiles.map((tile, index) => (
+              <fieldset key={tile.id} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
+                <legend className="px-1 text-sm font-medium">
+                  Banner {index + 1}
+                  {tile.title ? `: ${tile.title}` : ""}
+                </legend>
+                <div className="text-sm">
+                  <Label htmlFor={`promo-title-${tile.id}`}>Title</Label>
+                  <Input
+                    id={`promo-title-${tile.id}`}
+                    maxLength={80}
+                    value={tile.title}
+                    disabled={disabled}
+                    onChange={(event) =>
+                      setContent((current) => ({
+                        ...current,
+                        promoTiles: current.promoTiles.map((item) =>
+                          item.id === tile.id ? { ...item, title: event.target.value } : item,
+                        ),
+                      }))
+                    }
+                  />
+                </div>
+                <div className="text-sm">
+                  <Label htmlFor={`promo-category-${tile.id}`}>Link to category (optional)</Label>
+                  <select
+                    id={`promo-category-${tile.id}`}
+                    className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3"
+                    value={tile.categoryName}
+                    disabled={disabled}
+                    onChange={(event) =>
+                      setContent((current) => ({
+                        ...current,
+                        promoTiles: current.promoTiles.map((item) =>
+                          item.id === tile.id
+                            ? { ...item, categoryName: event.target.value }
+                            : item,
+                        ),
+                      }))
+                    }
+                  >
+                    <option value="">No category link</option>
+                    {initial.categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="text-sm sm:col-span-2">
+                  <Label htmlFor={`promo-subtitle-${tile.id}`}>Supporting text</Label>
+                  <Textarea
+                    id={`promo-subtitle-${tile.id}`}
+                    maxLength={160}
+                    value={tile.subtitle}
+                    disabled={disabled}
+                    onChange={(event) =>
+                      setContent((current) => ({
+                        ...current,
+                        promoTiles: current.promoTiles.map((item) =>
+                          item.id === tile.id ? { ...item, subtitle: event.target.value } : item,
+                        ),
+                      }))
+                    }
+                  />
+                </div>
+                <div className="text-sm sm:col-span-2">
+                  <Label htmlFor={`promo-image-${tile.id}`}>Image URL (optional)</Label>
+                  <Input
+                    id={`promo-image-${tile.id}`}
+                    type="url"
+                    maxLength={500}
+                    value={tile.imageUrl}
+                    disabled={disabled}
+                    onChange={(event) =>
+                      setContent((current) => ({
+                        ...current,
+                        promoTiles: current.promoTiles.map((item) =>
+                          item.id === tile.id ? { ...item, imageUrl: event.target.value } : item,
+                        ),
+                      }))
+                    }
+                    placeholder="https://…"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={disabled}
+                    onClick={() =>
+                      setContent((current) => ({
+                        ...current,
+                        promoTiles: current.promoTiles.filter((item) => item.id !== tile.id),
+                      }))
+                    }
+                  >
+                    Remove banner
+                  </Button>
+                </div>
+              </fieldset>
+            ))}
+          </section>
         </TabsContent>
 
         <TabsContent value="branding" className="space-y-4">
@@ -1098,8 +1250,8 @@ function StoreBuilderReady({
         <TabsContent value="preview" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not
-              visible to the public.
+              Live preview of <strong>{template.name}</strong> as a shop website. Draft, not visible
+              to the public.
             </p>
             <div className="flex gap-2">
               <Button

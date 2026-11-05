@@ -341,21 +341,14 @@ function emptyAdminStore(): AdminStore {
 
 async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promise<AdminStore> {
   if (!admin.store) return admin;
-  try {
-    const connected = await shopPaynowConnected(businessId);
-    const { data: available, error } = await supabaseAdmin.rpc("shop_offers_paynow_business", {
-      _business_id: businessId,
-    });
-    if (error) {
-      console.error("[businessos] shop Paynow availability", error);
-    } else {
-      admin.store.payments.paynowAvailable = available;
-    }
-    admin.store.payments.paynow = connected;
-    admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
-  } catch (error) {
-    console.error("[businessos] shop Paynow flag", error);
-  }
+  const connected = await shopPaynowConnected(businessId);
+  const { data: available, error } = await supabaseAdmin.rpc("shop_offers_paynow_business", {
+    _business_id: businessId,
+  });
+  if (error) rpcFail("load shop Paynow availability", error);
+  admin.store.payments.paynowAvailable = available;
+  admin.store.payments.paynow = connected;
+  admin.store.payments.acceptPaynow = admin.store.payments.acceptPaynow || false;
   return admin;
 }
 

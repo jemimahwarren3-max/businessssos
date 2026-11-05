@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kwetuu Launch Readiness | BusinessOS AI</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        color: #24211f;
+        background: #f7f5f2;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+      }
+
+      body {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 20px 64px;
+      }
+
+      h1,
+      h2 {
+        letter-spacing: -0.025em;
+      }
+
+      h1 {
+        margin-bottom: 8px;
+        font-size: clamp(2rem, 5vw, 3.2rem);
+      }
+
+      h2 {
+        margin-top: 40px;
+        font-size: 1.45rem;
+      }
+
+      p {
+        line-height: 1.55;
+      }
+
+      .lead {
+        max-width: 850px;
+        color: #59534e;
+      }
+
+      .verdict {
+        margin: 24px 0;
+        padding: 20px 22px;
+        border: 1px solid #d48767;
+        border-left: 6px solid #a4352b;
+        border-radius: 12px;
+        background: #fff2ef;
+      }
+
+      .verdict strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #8c241d;
+        font-size: 1.25rem;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin: 22px 0;
+      }
+
+      .card {
+        padding: 16px;
+        border: 1px solid #e1ddd8;
+        border-radius: 10px;
+        background: #fff;
+      }
+
+      .card span {
+        display: block;
+        margin-top: 6px;
+        color: #615b56;
+        font-size: 0.9rem;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid #e1ddd8;
+        border-radius: 10px;
+        background: white;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.91rem;
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #ece8e4;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f1eeea;
+        font-size: 0.82rem;
+        white-space: nowrap;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .status {
+        display: inline-block;
+        min-width: 72px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .pass {
+        color: #155b38;
+        background: #e4f4e9;
+      }
+
+      .fail {
+        color: #8c241d;
+        background: #ffe4df;
+      }
+
+      .skip {
+        color: #594f19;
+        background: #fff4c6;
+      }
+
+      .not-run {
+        color: #514c48;
+        background: #eeece9;
+      }
+
+      .note {
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #e1ddd8;
+      }
+
+      code {
+        padding: 1px 4px;
+        border-radius: 4px;
+        background: #f1eeea;
+        overflow-wrap: anywhere;
+      }
+
+      ul {
+        padding-left: 22px;
+        line-height: 1.65;
+      }
+
+      a {
+        color: #8d3926;
+      }
+
+      footer {
+        margin-top: 42px;
+        color: #67615c;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p>Kwetuu production readiness audit</p>
+      <h1>Launch readiness report</h1>
+      <p class="lead">
+        This report records checks actually run against the local production build. It does not
+        infer production behavior from documentation. No production deployment, database migration,
+        or database test write was performed.
+      </p>
+    </header>
+
+    <section class="verdict" aria-label="Launch verdict">
+      <strong>NOT READY</strong>
+      P0 journeys remain unverified, the local marketplace smoke test returned HTTP 500, and
+      TypeScript reports unresolved onboarding errors. The required merchant, customer, payment,
+      and tenant-isolation journeys were not run against isolated staging data.
+    </section>
+
+    <section class="summary" aria-label="Run summary">
+      <div class="card">
+        <strong>Production build</strong>
+        <span class="status pass">PASS</span>
+        <span><code>npm run build</code> exited successfully.</span>
+      </div>
+      <div class="card">
+        <strong>TypeScript</strong>
+        <span class="status fail">FAIL</span>
+        <span><code>npx tsc --noEmit</code> reports unresolved names in onboarding.</span>
+      </div>
+      <div class="card">
+        <strong>Lint</strong>
+        <span class="status fail">FAIL</span>
+        <span>Full lint reports repository-wide Prettier line-ending errors. Changed code files pass targeted ESLint.</span>
+      </div>
+      <div class="card">
+        <strong>Vitest</strong>
+        <span class="status pass">PASS*</span>
+        <span>347 passed, 76 skipped, 0 failed across 93 files.</span>
+      </div>
+      <div class="card">
+        <strong>Playwright smoke</strong>
+        <span class="status fail">FAIL</span>
+        <span>5 run, 4 passed, 1 failed, 0 skipped.</span>
+      </div>
+      <div class="card">
+        <strong>Database / RLS</strong>
+        <span class="status not-run">NOT RUN</span>
+        <span>No staging credentials or isolated test records were configured.</span>
+      </div>
+    </section>
+
+    <h2>Build and runtime checks</h2>
+    <ul>
+      <li>
+        <strong>Production build: PASS.</strong> Vite/Nitro completed the client and server bundles.
+      </li>
+      <li>
+        <strong>TypeScript: FAIL.</strong> The onboarding route references undeclared values such
+        as <code>businessId</code>, <code>modeChosen</code>, <code>shopStep</code>,
+        <code>templateChoices</code>, and <code>publishMutation</code>. These prevent a clean type
+        check.
+      </li>
+      <li>
+        <strong>Lint: FAIL.</strong> Repository lint reports widespread Prettier CRLF/LF
+        discrepancies in files outside this audit. Targeted ESLint on changed code files passes.
+      </li>
+      <li>
+        <strong>Vitest: PASS with skips.</strong> 347 tests passed and 76 were skipped. Skipped tests
+        are not evidence of working launch journeys.
+      </li>
+      <li>
+        <strong>Local server:</strong> The Nitro production server started. Its logs repeatedly
+        reported missing <code>SUPABASE_URL</code> and
+        <code>SUPABASE_SERVICE_ROLE_KEY</code> because no local environment file was configured.
+      </li>
+    </ul>
+
+    <h2>Executed Playwright evidence</h2>
+    <p>
+    Playwright discovery found 146 tests across the existing suite. This run executed only the
+      read-only local smoke project. It did not execute the complete P0 suite.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Result</th>
+            <th>Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Home page responds</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Local production server returned a successful response.</td>
+          </tr>
+          <tr>
+            <td>Home, auth, and staff login have no uncaught browser errors</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>No uncaught page errors observed on those three routes.</td>
+          </tr>
+          <tr>
+            <td>Auth page responds</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Local production server returned a successful response.</td>
+          </tr>
+          <tr>
+            <td>Staff login page responds</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Local production server returned a successful response.</td>
+          </tr>
+          <tr>
+            <td>Marketplace browse</td>
+            <td><span class="status fail">FAIL</span></td>
+            <td>
+              <code>/market</code> returned HTTP 500. The local process logged missing Supabase
+              environment variables. This is a real local failure, not a successful browse check.
+              <a href="test-results/e2e-smoke-public-smoke-marketplace-browse-loads-smoke/test-failed-1.png">
+                Failure screenshot
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p><a href="playwright-report/index.html">Open the Playwright HTML report</a></p>
+
+    <h2>P0 launch journey results</h2>
+    <p>
+      A P0 result is marked PASS only when that journey was executed and verified. Missing staging
+      identities and test data are recorded as NOT RUN, not as implied success.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Journey</th>
+            <th>Result</th>
+            <th>Evidence / blocker</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Application loads</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Local home route responded.</td>
+          </tr>
+          <tr>
+            <td>No fatal browser errors</td>
+            <td><span class="status pass">PASS</span></td>
+            <td>Checked home, auth, and staff login only.</td>
+          </tr>
+          <tr>
+            <td>Merchant registration form submission</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No isolated staging registration identity configured.</td>
+          </tr>
+          <tr>
+            <td>Account is created and verified in Supabase</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No staging registration was attempted.</td>
+          </tr>
+          <tr>
+            <td>Merchant login</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No staging merchant credentials configured.</td>
+          </tr>
+          <tr>
+            <td>Merchant dashboard opens</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No authenticated merchant session was configured.</td>
+          </tr>
+          <tr>
+            <td>Business row is saved with the correct owner</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>Would create data; no isolated staging fixture was supplied.</td>
+          </tr>
+          <tr>
+            <td>Product creation and inventory listing</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>Requires an isolated merchant business and product fixture.</td>
+          </tr>
+          <tr>
+            <td>Storefront publish returns HTTP 200 with correct products</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No published staging test store configured.</td>
+          </tr>
+          <tr>
+            <td>Guest browsing shows the correct products</td>
+            <td><span class="status fail">FAIL</span></td>
+            <td>The related local marketplace browse returned HTTP 500.</td>
+          </tr>
+          <tr>
+            <td>Add to cart preserves the correct item and price</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No live store fixture configured.</td>
+          </tr>
+          <tr>
+            <td>Separate merchant carts stay isolated</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No two-merchant staging fixture configured.</td>
+          </tr>
+          <tr>
+            <td>Guest checkout creates an order for the correct business</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No checkout write was made.</td>
+          </tr>
+          <tr>
+            <td>Merchant sees only their own order</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>Requires real staging merchant and order records.</td>
+          </tr>
+          <tr>
+            <td>Stock decrements exactly once after verified payment</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No payment or stock write was attempted.</td>
+          </tr>
+          <tr>
+            <td>Duplicate checkout is rejected or idempotent</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No checkout request was submitted.</td>
+          </tr>
+          <tr>
+            <td>Failed or unverified payment does not complete an order</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>Provider verification was not exercised.</td>
+          </tr>
+          <tr>
+            <td>Unpaid business cannot publish or receive orders</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>Requires a staging account with known unpaid subscription state.</td>
+          </tr>
+          <tr>
+            <td>RLS blocks cross-business reads and writes</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>No actual Supabase JWT/API tenant-isolation test was run.</td>
+          </tr>
+          <tr>
+            <td>Mobile checkout completes at 390 × 844</td>
+            <td><span class="status not-run">NOT RUN</span></td>
+            <td>Mobile project is configured, but checkout needs isolated staging data.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Failure-scenario tests</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Purchase quantity greater than stock</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Double submit within 500 ms</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Refresh during checkout</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Logged-out dashboard refresh redirects to login</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Change order URL to another business order ID</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Direct API edit of another merchant product</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Empty registration form</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Upload an executable as a product image</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Open an unpublished storefront URL</td><td><span class="status not-run">NOT RUN</span></td></tr>
+          <tr><td>Merchant A JWT calls merchant B RPC</td><td><span class="status not-run">NOT RUN</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Security and RLS findings</h2>
+    <ul>
+      <li>
+        <strong>Service-role exposure:</strong> source uses a server-side admin client in
+        allowlisted <code>*.server.ts</code> modules. No
+        <code>SUPABASE_SERVICE_ROLE_KEY</code> or <code>service_role</code> string was found in the
+        built public client assets. This static scan does not replace a runtime/API security test.
+      </li>
+      <li>
+        <strong>Public catalogue path:</strong> the public storefront loader calls the
+        <code>get_public_store</code> RPC through the anon client. Tenant isolation and unpublished
+        store behavior remain unverified against Supabase.
+      </li>
+      <li>
+        <strong>Documentation correction:</strong> <code>SECURITY.md</code> previously claimed
+        service-role access was restricted to exactly five files. The current ESLint allowlist is
+        broader; the description now reflects the actual categories and authorization requirement.
+      </li>
+      <li>
+        <strong>RLS verification:</strong> NOT RUN. No staging access token or isolated merchant
+        identities were available. Production was not queried or modified.
+      </li>
+    </ul>
+
+    <h2>Fixes applied during this audit</h2>
+    <ul>
+      <li>Playwright now rejects non-local base URLs and launches the built Nitro Node server.</li>
+      <li>
+        Added role-aware merchant A/B, customer A/B, and guest fixtures. Missing role credentials
+        skip setup rather than reading stale auth-state files.
+      </li>
+      <li>Moved storefront launch checklist links to their typed internal route targets.</li>
+      <li>
+        Offline POS stock deduction now skips service-only sale lines that have no product ID.
+      </li>
+      <li>
+        Public service and Paynow availability lookup errors are surfaced instead of being silently
+        converted into empty or default data.
+      </li>
+      <li>Corrected the service-role allowlist description in <code>SECURITY.md</code>.</li>
+    </ul>
+
+    <h2>Remaining launch blockers and limitations</h2>
+    <ul>
+      <li>
+        Resolve the existing onboarding TypeScript errors, then rerun
+        <code>npx tsc --noEmit</code>.
+      </li>
+      <li>
+        Resolve the full-repository Prettier line-ending errors and rerun
+        <code>npm run lint</code>.
+      </li>
+      <li>
+        Configure local build-time/runtime Supabase environment variables, then rerun the marketplace
+        smoke test.
+      </li>
+      <li>
+        Provision isolated staging-only merchant A/B and customer A/B accounts, test products,
+        payment state, and disposable orders. Then implement and execute the full P0 and failure
+        scenario suite, including direct authenticated Supabase RLS assertions.
+      </li>
+      <li>
+        The complete data-backed P0 Playwright suite is not yet implemented. The 146 discovered
+        tests include existing regression coverage, not proof of every requested launch journey.
+      </li>
+      <li>Complete mobile checkout, payment verification, stock idempotency, and subscription tests.</li>
+      <li>No deploy or migration has been performed. No production data was used.</li>
+    </ul>
+
+    <footer>
+      Generated from local test evidence. A skipped or unrun P0 check is not a pass. Verdict:
+      <strong>NOT READY</strong>.
+    </footer>
+  </body>
+</html>

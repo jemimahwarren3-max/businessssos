@@ -1,7 +1,8 @@
 import { formatMoney } from "@/lib/format";
 import type { AdminStore, StorefrontContent } from "@/lib/storefront/contract";
+import { StorefrontPromoZone } from "@/components/storefront/storefront-promo-zone";
 import type { StorefrontTheme } from "@/lib/storefront/theme";
-import type { StoreTemplate } from "@/lib/storefront/templates";
+import { featuredSectionTitle, type StoreTemplate } from "@/lib/storefront/templates";
 import { sampleProductsForCategory } from "@/lib/storefront/template-placeholders";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +73,14 @@ export function LiveTemplatePreview({
       : template.catalogStyle === "wide" || template.catalogStyle === "masonry"
         ? "grid-cols-2"
         : "grid-cols-2";
+  const promoZone = theme.sections.promoTiles ? (
+    <StorefrontPromoZone
+      template={template}
+      tiles={content.promoTiles}
+      categories={categories.map((name) => ({ id: name, name }))}
+      theme={theme}
+    />
+  ) : null;
 
   return (
     <div
@@ -189,6 +198,7 @@ export function LiveTemplatePreview({
           ) : null}
         </section>
       ) : null}
+      {template.heroStyle === "full-bleed" ? promoZone : null}
 
       {theme.sections.categories && categories.length > 0 ? (
         <div className="flex gap-2 overflow-hidden px-4 py-3">
@@ -203,28 +213,37 @@ export function LiveTemplatePreview({
           ))}
         </div>
       ) : null}
+      {template.heroStyle === "compact" ? promoZone : null}
 
       {theme.sections.featured && featured.length > 0 ? (
-        <section className="px-4 py-3">
-          <h4 className="mb-2 text-sm font-semibold">Featured</h4>
-          <PreviewProductGrid products={featured.slice(0, 2)} theme={theme} template={template} />
+        <section className="px-4 py-3" data-featured-layout={template.layout}>
+          <h4 className="mb-2 text-sm font-semibold">{featuredSectionTitle(template.category)}</h4>
+          {template.layout === "editorial" ? (
+            <div className="grid gap-3 md:grid-cols-[1.2fr_0.8fr]">
+              <PreviewProductGrid
+                products={featured.slice(0, 1)}
+                theme={theme}
+                template={template}
+              />
+              <PreviewProductGrid
+                products={featured.slice(1, 2)}
+                theme={theme}
+                template={template}
+                className="grid-cols-1"
+              />
+            </div>
+          ) : (
+            <PreviewProductGrid
+              products={featured.slice(0, 2)}
+              theme={theme}
+              template={template}
+              {...(template.layout === "menu" ? { className: "grid-cols-1" } : {})}
+            />
+          )}
         </section>
       ) : null}
 
-      {theme.sections.promoTiles && content.promoTiles.length > 0 ? (
-        <section className="grid gap-2 px-4 py-3 sm:grid-cols-2">
-          {content.promoTiles.map((tile) => (
-            <article
-              key={tile.id}
-              className="rounded-md border p-3 text-xs"
-              style={{ borderColor: theme.accent + "40" }}
-            >
-              <p className="font-semibold">{tile.title}</p>
-              <p className="mt-1 opacity-70">{tile.subtitle}</p>
-            </article>
-          ))}
-        </section>
-      ) : null}
+      {template.heroStyle !== "full-bleed" && template.heroStyle !== "compact" ? promoZone : null}
 
       {theme.sections.collections && content.collections.length > 0 ? (
         <section className="space-y-2 px-4 py-3">
@@ -347,13 +366,15 @@ function PreviewProductGrid({
   products,
   theme,
   template,
+  className,
 }: {
   products: PreviewProduct[];
   theme: StorefrontTheme;
   template: StoreTemplate;
+  className?: string;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className={cn("grid grid-cols-2 gap-3", className)}>
       {products.map((product) => (
         <article
           key={product.id}

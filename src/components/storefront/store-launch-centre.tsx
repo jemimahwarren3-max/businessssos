@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Circle, ExternalLink } from "lucide-react";
+import { CheckCircle2, Circle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AdminStore } from "@/lib/storefront/contract";
@@ -76,27 +76,14 @@ export function StoreLaunchCentre({
       <ol className="space-y-2">
         {steps.map((step) => (
           <li key={step.id}>
-            {step.external ? (
-              <Link
-                to={step.href}
-                className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
-              >
-                <StepIcon done={step.done} />
-                <StepBody step={step} />
-                <ExternalLink
-                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-              </Link>
-            ) : (
-              <a
-                href={step.href}
-                className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
-              >
-                <StepIcon done={step.done} />
-                <StepBody step={step} />
-              </a>
-            )}
+            <Link
+              to={step.to}
+              {...(step.hash ? { hash: step.hash } : {})}
+              className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
+            >
+              <StepIcon done={step.done} />
+              <StepBody step={step} />
+            </Link>
           </li>
         ))}
       </ol>
