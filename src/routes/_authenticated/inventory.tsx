@@ -197,6 +197,7 @@ function Inventory() {
   } | null>(null);
   const [stockQty, setStockQty] = useState("");
   const [stockReason, setStockReason] = useState("");
+  const [productLimit, setProductLimit] = useState(100);
 
   const fetchProducts = useServerFn(getProducts);
   const fetchLocations = useServerFn(getLocations);
@@ -220,9 +221,12 @@ function Inventory() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const products = useQuery({
-    queryKey: ["products", businessId, debouncedSearch],
+    queryKey: ["products", businessId, debouncedSearch, productLimit],
     enabled: Boolean(businessId),
-    queryFn: () => fetchProducts({ data: { businessId: businessId!, search: debouncedSearch } }),
+    queryFn: () =>
+      fetchProducts({
+        data: { businessId: businessId!, search: debouncedSearch, limit: productLimit },
+      }),
   });
   const storefront = useQuery({
     queryKey: ["storefront", businessId],
@@ -904,6 +908,13 @@ function Inventory() {
             <div className="hidden lg:block">
               <DataTable columns={columns} data={rows} caption="Inventory products" />
             </div>
+            {!search && rows.length >= productLimit && productLimit < 500 ? (
+              <div className="flex justify-center border-t border-border p-4">
+                <Button variant="outline" onClick={() => setProductLimit((n) => n + 100)}>
+                  Show more products
+                </Button>
+              </div>
+            ) : null}
           </>
         )}
       </div>

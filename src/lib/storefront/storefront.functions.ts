@@ -5,6 +5,7 @@ import { assertCanWrite, assertPermission, type Db } from "@/lib/business.server
 import { saveShopPaynowCredentials } from "@/lib/payments/shop-paynow.server";
 import { parseAndSanitize } from "@/lib/security";
 import { loadPlatformFx } from "@/lib/platform-fx-read.server";
+import { ttlCache } from "@/lib/ttl-cache.server";
 import { uploadStorefrontBrandingImage } from "@/lib/storefront/branding-media.server";
 import { removeProductGalleryImage, uploadProductGalleryImage } from "@/lib/product-media.server";
 import { authedRateLimit, ipRateLimit } from "@/lib/rate-limit.server";
@@ -78,14 +79,18 @@ const shopper = [
   authedRateLimit({ keyPrefix: "store-shopper", maxRequests: 30, windowSeconds: 60 }),
 ] as const;
 
-export const getPlatformFxFn = createServerFn({ method: "GET" })
-  .middleware(publicLimit)
-  .handler(async () => loadPlatformFx());
+const platformFxCache = ttlCache<Awaited<ReturnType<typeof loadPlatformFx>>>(5 * 60_000);
+
+export const getPlatformFxFn = createServerFn({ method: "GET" }).handler(async () =>
+  platformFxCache("fx", () => loadPlatformFx()),
+);
 
 export const generateShopDraftFn = createServerFn({ method: "POST" })
   .middleware(aiShopBuilderLimit)
   .inputValidator((data: unknown) => parseAndSanitize(shopDraftInputSchema, data))
   .handler(async ({ data, context }) => generateShopDraft(context.supabase as Db, data));
+
+const marketplaceCache = ttlCache<Awaited<ReturnType<typeof loadMarketplace>>>(60_000);
 
 export const getMarketplaceFn = createServerFn({ method: "POST" })
   .middleware(publicLimit)
@@ -99,7 +104,10 @@ export const getMarketplaceFn = createServerFn({ method: "POST" })
       data,
     ),
   )
-  .handler(async ({ data }) => loadMarketplace(data));
+  .handler(async ({ data }) => {
+    if (data.query || data.category || data.offset) return loadMarketplace(data);
+    return marketplaceCache("home", () => loadMarketplace(data));
+  });
 
 export const getMarketplaceListingFn = createServerFn({ method: "POST" })
   .middleware(authed)
