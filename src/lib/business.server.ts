@@ -265,30 +265,12 @@ async function loadSubscriptionEntitlement(supabase: Db, businessId: string) {
 
 /** Gate for setup writes (products, drafts, storefront design), trialing allowed. */
 export async function assertCanWrite(supabase: Db, businessId: string) {
-  const { data: impersonating, error: impErr } = await supabase.rpc(
-    "is_platform_impersonating" as never,
-    { _business_id: businessId } as never,
-  );
-  if (impErr && !skipMissingRpc("impersonation check", impErr))
-    dbFail("impersonation check", impErr);
-  if (impersonating) {
-    fail("Support view is read-only. End impersonation in the admin console to make changes.");
-  }
   const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
   if (!canWriteWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(READ_ONLY_MESSAGE);
 }
 
 /** Gate for publish, POS, and cash drawer, requires paid `active` subscription. */
 export async function assertCanOperate(supabase: Db, businessId: string) {
-  const { data: impersonating, error: impErr } = await supabase.rpc(
-    "is_platform_impersonating" as never,
-    { _business_id: businessId } as never,
-  );
-  if (impErr && !skipMissingRpc("impersonation check", impErr))
-    dbFail("impersonation check", impErr);
-  if (impersonating) {
-    fail("Support view is read-only. End impersonation in the admin console to make changes.");
-  }
   const { subscription, hasOwnerBypass } = await loadSubscriptionEntitlement(supabase, businessId);
   if (!canOperateWithPlatformEntitlement(subscription, hasOwnerBypass)) fail(OPERATE_MESSAGE);
 }

@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import { PlatformAccessPanel } from "@/components/platform-access-panel";
 import { Hint } from "@/components/ui/hint";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -293,6 +294,9 @@ function BusinessSettings() {
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             {saveMutation.isPending ? "Saving…" : "Save"}
           </Button>
+          {["owner", "admin"].includes(workspace.data?.role ?? "") && workspace.data ? (
+            <PlatformAccessPanel businessId={workspace.data.business.id} />
+          ) : null}
         </div>
       )}
     </AppShell>

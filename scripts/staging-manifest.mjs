@@ -157,6 +157,7 @@ export const STAGING_MIGRATION_MANIFEST = [
     // without excluding supplier payouts.
     file: "20261103121000_daily_takings_exclude_suppliers.sql",
   },
+  { file: "20261106130000_platform_access_consent.sql" },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
