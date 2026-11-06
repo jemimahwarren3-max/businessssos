@@ -1,42 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createFileRoute, isRedirect, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
+  BarChart3,
   Boxes,
-  CheckCircle2,
-  Info,
-  Plus,
-  Sparkles,
-  TrendingUp,
-  Users,
-  Wallet,
+  CircleDollarSign,
+  PackagePlus,
+  Receipt,
+  ShoppingCart,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
-import { formatMoney, formatNumber, formatPercent, greeting, readableError } from "@/lib/format";
-import { DailyTakingsList } from "@/components/daily-takings";
+import { formatMoney, formatNumber, greeting, readableError } from "@/lib/format";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
 import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { BRAND } from "@/lib/brand";
-import { getDailyBusinessBriefingFn } from "@/lib/growth.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   beforeLoad: async () => {
@@ -69,40 +52,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
 
-const RANGES = [
-  { key: "1", label: "Today" },
-  { key: "7", label: "7 days" },
-  { key: "30", label: "30 days" },
-  { key: "90", label: "3 months" },
-  { key: "365", label: "1 year" },
-];
-
-// The area chart below conveys this same trend purely visually — screen
-// reader users get this sentence instead via role="img"/aria-label.
-function salesChartSummary(
-  series: { label: string; sales: number; profit: number }[],
-  currency: string,
-) {
-  if (series.length === 0) return "No sales data for this period.";
-  const first = series[0]!;
-  const last = series[series.length - 1]!;
-  return (
-    `Sales and profit from ${first.label} to ${last.label}: ` +
-    `sales went from ${formatMoney(first.sales, currency)} to ${formatMoney(last.sales, currency)}, ` +
-    `profit went from ${formatMoney(first.profit, currency)} to ${formatMoney(last.profit, currency)}.`
-  );
-}
-
 function Dashboard() {
   const navigate = useNavigate();
   const workspace = useWorkspace();
-  const [range, setRange] = useState("7");
-  const [wantBriefing, setWantBriefing] = useState(false);
   const fetchDashboard = useServerFn(getDashboard);
-  const fetchBriefing = useServerFn(getDailyBusinessBriefingFn);
   const businessId = workspace.data?.business.id;
-  const canReadBriefing =
-    hasPermission(workspace.data, "reports.financial") && hasPermission(workspace.data, "ai.use");
+  const canReadSales = hasPermission(workspace.data, "reports.financial");
+  const canCreateSales = hasPermission(workspace.data, "sales.create");
+  const canReadExpenses = hasPermission(workspace.data, "expenses.create");
+  const canReadInventory = hasPermission(workspace.data, "inventory.import");
+  const canReadFinancials = hasPermission(workspace.data, "reports.financial");
+  const canManageStore = hasPermission(workspace.data, "business.settings");
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -113,28 +73,22 @@ function Dashboard() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const dashboard = useQuery({
-    queryKey: ["dashboard", businessId, range],
+    queryKey: ["dashboard", businessId],
     enabled: Boolean(businessId),
-    queryFn: () => fetchDashboard({ data: { businessId: businessId!, days: Number(range) } }),
+    queryFn: () => fetchDashboard({ data: { businessId: businessId!, days: 7 } }),
   });
   const loadStore = useServerFn(getStorefrontAdminFn);
   const storefront = useQuery({
     queryKey: ["storefront", businessId],
-    enabled: Boolean(businessId),
+    enabled: Boolean(businessId) && canManageStore,
     queryFn: () => loadStore({ data: { businessId: businessId! } }),
   });
   const fetchNotifyEmail = useServerFn(getNotifyEmailFn);
   const notifyEmail = useQuery({
     queryKey: ["notify-email", businessId],
-    enabled: Boolean(businessId),
+    enabled: Boolean(businessId) && canManageStore,
     queryFn: () => fetchNotifyEmail({ data: { businessId: businessId! } }),
     staleTime: 60_000,
-  });
-  const briefing = useQuery({
-    queryKey: ["daily-business-briefing", businessId],
-    enabled: Boolean(businessId) && canReadBriefing && wantBriefing,
-    staleTime: 60 * 60 * 1000,
-    queryFn: () => fetchBriefing({ data: { businessId: businessId! } }),
   });
 
   if (workspace.isError) {
@@ -173,6 +127,55 @@ function Dashboard() {
 
   const currency = dashboard.data?.currency ?? workspace.data.business.currency;
   const data = dashboard.data;
+  const summaryCards = [
+    ...(canReadSales
+      ? [
+          {
+            label: "Today's sales",
+            value: data?.todaySales == null ? undefined : formatMoney(data.todaySales, currency),
+            icon: ShoppingCart,
+          },
+        ]
+      : []),
+    ...(canReadExpenses
+      ? [
+          {
+            label: "Today's expenses",
+            value:
+              data?.todayExpenses == null ? undefined : formatMoney(data.todayExpenses, currency),
+            icon: Receipt,
+          },
+        ]
+      : []),
+    ...(canReadFinancials
+      ? [
+          {
+            label: "Estimated profit",
+            value:
+              data?.todayEstimatedProfit == null
+                ? undefined
+                : formatMoney(data.todayEstimatedProfit, currency),
+            hint: "Sales minus expenses",
+            icon: CircleDollarSign,
+          },
+        ]
+      : []),
+    ...(canReadInventory
+      ? [
+          {
+            label: "Low-stock products",
+            value: data == null ? undefined : `${formatNumber(data.lowStockCount)} products`,
+            icon: Boxes,
+          },
+        ]
+      : []),
+  ];
+  const actions = [
+    ...(canCreateSales ? [{ label: "Add sale", to: "/sales", icon: ShoppingCart }] : []),
+    ...(canReadInventory ? [{ label: "Add stock", to: "/inventory", icon: PackagePlus }] : []),
+    ...(canReadExpenses ? [{ label: "Record expense", to: "/expenses", icon: Receipt }] : []),
+    ...(canReadFinancials ? [{ label: "View reports", to: "/reports", icon: BarChart3 }] : []),
+  ];
 
   return (
     <AppShell
@@ -182,14 +185,10 @@ function Dashboard() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title={`${greeting()}`}
-      subtitle={`Here's how ${workspace.data.business.name} is doing.`}
-      actions={
-        <Button className="gap-1.5" onClick={() => navigate({ to: "/inventory" })}>
-          <Plus className="size-4" aria-hidden="true" /> Add product
-        </Button>
-      }
+      subtitleAsTooltip
+      subtitle={`Business activity for ${workspace.data.business.name}`}
     >
-      {storefront.data ? (
+      {canManageStore && storefront.data ? (
         <div className="mb-4">
           <StoreLaunchCentre
             admin={storefront.data}
@@ -203,329 +202,98 @@ function Dashboard() {
           />
         </div>
       ) : null}
-      {canReadBriefing ? (
-        <section className="surface mb-4 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2
-                className="flex items-center gap-2 text-lg font-semibold"
-                title="Optional. Sales numbers above come from your books. This only runs when you ask."
-              >
-                <Sparkles className="size-4.5 text-primary" aria-hidden="true" />
-                Your AI business briefing
-              </h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={wantBriefing && briefing.isFetching}
-                onClick={() => {
-                  setWantBriefing(true);
-                  if (wantBriefing) void briefing.refetch();
-                }}
-              >
-                {briefing.data ? "Refresh briefing" : "Generate today's briefing"}
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/growth">Explore growth</Link>
-              </Button>
-            </div>
-          </div>
-          {wantBriefing && briefing.isLoading ? (
-            <Skeleton className="mt-4 h-16 w-full" />
-          ) : briefing.isError ? (
-            <p className="mt-4 text-sm text-destructive">
-              {readableError(briefing.error, "Today's AI briefing is unavailable.")}
-            </p>
-          ) : briefing.data ? (
-            <div>
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">
-                {briefing.data.text}
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {briefing.data.cached ? "Today's saved briefing" : "Generated today"} ·{" "}
-                {new Date(briefing.data.generatedAt).toLocaleTimeString("en", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
-          ) : null}
-        </section>
+      {storefront.isError ? (
+        <p role="alert" className="mb-4 text-sm text-destructive">
+          {readableError(storefront.error, "Store status is temporarily unavailable.")}
+        </p>
       ) : null}
-      {canReadBriefing && data ? (
-        <section className="surface mb-4 space-y-3 p-5">
-          <div>
-            <h2
-              className="text-base font-semibold"
-              title="Based on your recorded business activity. Each button opens a page for you to review and decide; AI does not apply changes."
-            >
-              Recommended next steps
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {data.lowStockCount > 0 ? (
-              <Button asChild size="sm" variant="outline">
-                <Link to="/inventory">Review {data.lowStockCount} low-stock items</Link>
-              </Button>
-            ) : null}
-            {data.outstanding > 0 ? (
-              <Button asChild size="sm" variant="outline">
-                <Link to="/customers">Review credit book</Link>
-              </Button>
-            ) : null}
-            {storefront.data && !storefront.data.checklist.published ? (
-              <Button asChild size="sm" variant="outline">
-                <Link to="/storefront">Continue building your shop</Link>
-              </Button>
-            ) : null}
-            <Button asChild size="sm" variant="outline">
-              <Link to="/insights">Review sales and stock insights</Link>
+      <section aria-label="Business summary">
+        <h2 className="sr-only">Business summary</h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryCards.map((card) => (
+            <StatCard
+              key={card.label}
+              label={card.label}
+              value={dashboard.isError ? "Unavailable" : card.value}
+              hint={card.hint}
+              icon={card.icon}
+            />
+          ))}
+          {dashboard.isLoading
+            ? [0, 1, 2, 3]
+                .slice(summaryCards.length)
+                .map((item) => (
+                  <div key={item} className="surface h-28 animate-pulse" aria-hidden="true" />
+                ))
+            : null}
+        </div>
+        {dashboard.isError ? (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p role="alert" className="text-sm text-destructive">
+              {readableError(dashboard.error, "Business summary could not be loaded.")}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => void dashboard.refetch()}>
+              Try again
             </Button>
+          </div>
+        ) : null}
+      </section>
+
+      {actions.length > 0 ? (
+        <section className="mt-6">
+          <h2 className="mb-3 text-base font-semibold">Quick actions</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {actions.map((action) => (
+              <Button key={action.to} asChild variant="outline" className="min-h-12 justify-start">
+                <Link to={action.to}>
+                  <action.icon className="size-4" aria-hidden="true" />
+                  {action.label}
+                </Link>
+              </Button>
+            ))}
           </div>
         </section>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Today's sales"
-          value={data ? formatMoney(data.todaySales, currency) : undefined}
-          hint={data ? `${formatPercent(data.salesChange)} vs previous period` : undefined}
-          tone={data && data.salesChange < 0 ? "down" : "up"}
-          icon={TrendingUp}
-        />
-        <StatCard
-          label="Today's profit"
-          value={data ? formatMoney(data.todayProfit, currency) : undefined}
-          hint={data ? `${formatPercent(data.profitChange)} vs previous period` : undefined}
-          tone={data && data.profitChange < 0 ? "down" : "up"}
-          icon={Wallet}
-        />
-        <StatCard
-          label="Customers who owe you"
-          value={data ? formatMoney(data.outstanding, currency) : undefined}
-          hint={
-            data
-              ? `${data.outstandingCustomers} customer${data.outstandingCustomers === 1 ? "" : "s"}`
-              : undefined
-          }
-          icon={Users}
-        />
-        <StatCard
-          label="Low stock"
-          value={data ? `${formatNumber(data.lowStockCount)} products` : undefined}
-          hint={data ? `${data.urgentStockCount} out of stock` : undefined}
-          tone={data && data.lowStockCount > 0 ? "down" : "up"}
-          icon={Boxes}
-        />
-      </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <section className="surface p-5">
-          <h2
-            className="text-lg font-semibold"
-            title="Cash, EcoCash, InnBucks, ZIPIT, bank and card recorded today."
-          >
-            Today&apos;s takings
+      <section className="surface mt-6 p-5" aria-labelledby="recent-activity-heading">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="recent-activity-heading" className="text-base font-semibold">
+            Recent activity
           </h2>
-          <div className="mt-4">
-            {dashboard.isLoading ? (
-              <Skeleton className="h-32 w-full" />
-            ) : (
-              <DailyTakingsList takings={data?.todayTakings} currency={currency} />
-            )}
-          </div>
-        </section>
-        <section className="surface p-5">
-          <h2 className="text-lg font-semibold" title="Products at or below minimum stock.">
-            Running out
-          </h2>
-          {data && data.lowStock.length > 0 ? (
-            <ul className="mt-4 divide-y divide-border">
-              {data.lowStock.map((item) => (
-                <li
-                  key={item.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{item.name}</p>
-                    <p className="text-[13px] text-muted-foreground">
-                      Minimum {formatNumber(item.min_stock)} {item.unit}
-                    </p>
-                  </div>
-                  <span
-                    className={
-                      item.stock <= 0
-                        ? "rounded-lg bg-danger-soft px-2.5 py-1 text-[13px] font-semibold text-destructive"
-                        : "rounded-lg bg-warning-soft px-2.5 py-1 text-[13px] font-semibold text-warning-foreground"
-                    }
-                  >
-                    {item.stock <= 0 ? "Out of stock" : `${formatNumber(item.stock)} left`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {data ? "Nothing is running low right now." : "Loading…"}
-            </p>
-          )}
-          {data && data.lowStockCount > 0 ? (
-            <Button asChild variant="outline" size="sm" className="mt-3">
-              <Link to="/inventory">Open inventory</Link>
+          {canReadFinancials ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/reports">View reports</Link>
             </Button>
           ) : null}
-        </section>
-        <section className="surface p-5">
-          <h2 className="text-lg font-semibold" title="From the customer credit book.">
-            Who owes you
-          </h2>
-          {data && data.debtors.length > 0 ? (
-            <ul className="mt-4 divide-y divide-border">
-              {data.debtors.map((debtor) => (
-                <li key={debtor.id} className="flex items-center justify-between gap-3 py-3">
-                  <p className="min-w-0 truncate text-sm font-medium">{debtor.name}</p>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums">
-                    {formatMoney(debtor.outstanding, currency)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {data ? "No one is on the credit book." : "Loading…"}
-            </p>
-          )}
-          <Button asChild variant="outline" size="sm" className="mt-3">
-            <Link to="/customers">Open credit book</Link>
-          </Button>
-        </section>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <section className="surface p-5 lg:col-span-2">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:justify-between">
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold" title="Based on completed sales.">
-                Sales and profit
-              </h2>
-            </div>
-            <Tabs value={range} onValueChange={setRange} className="shrink-0">
-              <TabsList>
-                {RANGES.map((r) => (
-                  <TabsTrigger key={r.key} value={r.key} className="text-[12px] sm:text-[13px]">
-                    {r.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-          <div
-            className="mt-5 h-64"
-            role={data ? "img" : undefined}
-            aria-label={data ? salesChartSummary(data.series, currency) : undefined}
-          >
-            {dashboard.isLoading ? (
-              <Skeleton className="h-full w-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data?.series ?? []}>
-                  <defs>
-                    <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.28} />
-                      <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    minTickGap={24}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={54}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--color-card)",
-                      fontSize: 13,
-                    }}
-                    formatter={(value: number) => formatMoney(Number(value), currency)}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="sales"
-                    name="Sales"
-                    stroke="var(--color-chart-1)"
-                    strokeWidth={2}
-                    fill="url(#salesFill)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="profit"
-                    name="Profit"
-                    stroke="var(--color-chart-2)"
-                    strokeWidth={2}
-                    fill="none"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </section>
-
-        <section className="surface p-5">
-          <h2
-            className="text-lg font-semibold"
-            title="Calculated from your own data, no guesswork."
-          >
-            Business Health
-          </h2>
-          {data ? (
-            <>
-              <div className="mt-5 flex items-center gap-4">
-                <div className="grid size-20 shrink-0 place-items-center rounded-full border-4 border-primary/25">
-                  <span className="text-2xl font-bold">{data.health.score}</span>
-                </div>
+        </div>
+        {dashboard.isLoading ? (
+          <Skeleton className="mt-4 h-20 w-full" />
+        ) : dashboard.isError ? (
+          <p className="mt-4 text-sm text-muted-foreground">Activity is unavailable.</p>
+        ) : data?.recentActivity.length ? (
+          <ul className="mt-3 divide-y divide-border">
+            {data.recentActivity.map((item, index) => (
+              <li
+                key={`${item.type}-${item.date}-${index}`}
+                className="flex min-h-12 items-center justify-between gap-3 py-2"
+              >
                 <div className="min-w-0">
-                  <p className="text-base font-semibold">{data.health.label}</p>
-                  <p className="text-[13px] text-muted-foreground">out of 100</p>
+                  <p className="truncate text-sm font-medium">{item.description}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.type === "sale" ? "Sale" : "Expense"} ·{" "}
+                    {new Date(item.date).toLocaleDateString()}
+                  </p>
                 </div>
-              </div>
-              <ul className="mt-5 space-y-2.5 text-sm">
-                {data.health.signals.map((signal) => (
-                  <li key={signal.text} className="flex gap-2">
-                    {signal.tone === "good" ? (
-                      <CheckCircle2
-                        className="mt-0.5 size-4 shrink-0 text-success"
-                        aria-hidden="true"
-                      />
-                    ) : signal.tone === "warn" ? (
-                      <AlertTriangle
-                        className="mt-0.5 size-4 shrink-0 text-warning"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden="true" />
-                    )}
-                    <span className="text-muted-foreground">{signal.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <Skeleton className="mt-5 h-40 w-full" />
-          )}
-        </section>
-      </div>
+                <span className="shrink-0 text-sm font-medium tabular-nums">
+                  {formatMoney(item.amount, currency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">No recent activity to show.</p>
+        )}
+      </section>
     </AppShell>
   );
 }
@@ -534,13 +302,11 @@ function StatCard({
   label,
   value,
   hint,
-  tone,
   icon: Icon,
 }: {
   label: string;
   value?: string | undefined;
   hint?: string | undefined;
-  tone?: "up" | "down" | undefined;
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
@@ -551,21 +317,12 @@ function StatCard({
         </p>
         <Icon className="size-4 shrink-0 text-muted-foreground" />
       </div>
-      {value ? (
+      {value !== undefined ? (
         <p className="mt-2.5 text-[26px] font-bold tracking-tight">{value}</p>
       ) : (
         <Skeleton className="mt-2.5 h-8 w-28" />
       )}
-      {hint ? (
-        <p className="mt-1 flex items-center gap-1 text-[13px] text-muted-foreground">
-          {tone === "down" ? (
-            <ArrowDownRight className="size-3.5 text-destructive" aria-hidden="true" />
-          ) : tone === "up" ? (
-            <ArrowUpRight className="size-3.5 text-success" aria-hidden="true" />
-          ) : null}
-          {hint}
-        </p>
-      ) : null}
+      {hint ? <p className="mt-1 text-[13px] text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }

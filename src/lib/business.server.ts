@@ -2114,8 +2114,10 @@ export type DashboardDebtor = { id: string; name: string; outstanding: number };
 
 export type DashboardData = {
   currency: string;
-  todaySales: number;
-  todayProfit: number;
+  todaySales: number | null;
+  todayProfit: number | null;
+  todayExpenses: number | null;
+  todayEstimatedProfit: number | null;
   salesChange: number;
   profitChange: number;
   outstanding: number;
@@ -2127,6 +2129,12 @@ export type DashboardData = {
   lowStock: { id: string; name: string; stock: number; min_stock: number; unit: string }[];
   todayTakings: DailyTakings;
   debtors: DashboardDebtor[];
+  recentActivity: {
+    type: "sale" | "expense";
+    description: string;
+    amount: number;
+    date: string;
+  }[];
 };
 
 const EMPTY_TAKINGS: DailyTakings = {
@@ -2171,58 +2179,105 @@ export async function loadDashboard(
   businessId: string,
   days: number,
 ): Promise<DashboardData> {
+  await assertMember(supabase, businessId);
+  const permissionChecks = ["expenses.create", "inventory.import", "reports.financial"] as const;
+  const permissionResults = await Promise.all(
+    permissionChecks.map(async (permission) => {
+      const { data, error } = await supabase.rpc("has_permission", {
+        _business_id: businessId,
+        _permission: permission,
+      });
+      if (error) dbFail("dashboard permission check", error);
+      return [permission, data === true] as const;
+    }),
+  );
+  const permissions = new Map(permissionResults);
+  const canReadSales = permissions.get("reports.financial");
+  const canReadExpenses =
+    permissions.get("expenses.create") || permissions.get("reports.financial");
+  const canReadInventory =
+    permissions.get("inventory.import") || permissions.get("reports.financial");
+  const canReadFinancials = permissions.get("reports.financial");
   const now = new Date();
   const windowStart = new Date(now);
   windowStart.setDate(windowStart.getDate() - (days * 2 - 1));
   windowStart.setHours(0, 0, 0, 0);
 
-  const [businessRes, salesRes, invoiceRes, productRes, expenseRes, debtorsRes, takings] =
-    await Promise.all([
-      supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
-      supabase
-        .from("sales")
-        .select("total, cost_total, discount, created_at")
-        .eq("business_id", businessId)
-        // partially_refunded sales still contribute their (already-reduced)
-        // remaining total, only fully refunded/cancelled sales are excluded.
-        .in("status", ["completed", "partially_refunded"])
-        .gte("created_at", windowStart.toISOString()),
-      // No date filter is possible here by design, an unpaid invoice from
-      // last year is still "outstanding" today, so .limit() is the only
-      // available bound. Safety net only: a business that somehow exceeds it
-      // would see an understated outstanding total, not an error, but this is
-      // far beyond realistic usage for this app's target market.
-      supabase
-        .from("invoices")
-        .select("customer_id, total, amount_paid, status, due_date")
-        .eq("business_id", businessId)
-        .in("status", ["sent", "partially_paid", "overdue"])
-        .limit(2000),
-      supabase
-        .from("products")
-        .select("id, name, stock, min_stock, unit")
-        .eq("business_id", businessId)
-        .is("deleted_at", null)
-        .eq("is_active", true)
-        .limit(500),
-      supabase
-        .from("expenses")
-        .select("amount, expense_date")
-        .eq("business_id", businessId)
-        .gte("expense_date", dayKey(windowStart)),
-      supabase
-        .from("customers")
-        .select("id, name, outstanding_balance")
-        .eq("business_id", businessId)
-        .is("deleted_at", null)
-        .gt("outstanding_balance", 0)
-        .order("outstanding_balance", { ascending: false })
-        .limit(1000),
-      loadDailyTakings(supabase, businessId),
-    ]);
+  type DashboardSale = { total: number; cost_total: number; created_at: string };
+  let sales: DashboardSale[] = [];
+  if (canReadSales && canReadFinancials) {
+    const result = await supabase
+      .from("sales")
+      .select("total, cost_total, created_at")
+      .eq("business_id", businessId)
+      .in("status", ["completed", "partially_refunded"])
+      .gte("created_at", windowStart.toISOString());
+    if (result.error) dbFail("dashboard sales", result.error);
+    sales = (result.data ?? []).map((sale) => ({
+      total: Number(sale.total ?? 0),
+      cost_total: Number(sale.cost_total ?? 0),
+      created_at: sale.created_at,
+    }));
+  } else if (canReadSales) {
+    const result = await supabase
+      .from("sales")
+      .select("total, created_at")
+      .eq("business_id", businessId)
+      .in("status", ["completed", "partially_refunded"])
+      .gte("created_at", windowStart.toISOString());
+    if (result.error) dbFail("dashboard sales", result.error);
+    sales = (result.data ?? []).map((sale) => ({
+      total: Number(sale.total ?? 0),
+      cost_total: 0,
+      created_at: sale.created_at,
+    }));
+  }
+
+  const [businessRes, invoiceRes, productRes, expenseRes, debtorsRes, takings] = await Promise.all([
+    supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
+    // No date filter is possible here by design, an unpaid invoice from
+    // last year is still "outstanding" today, so .limit() is the only
+    // available bound. Safety net only: a business that somehow exceeds it
+    // would see an understated outstanding total, not an error, but this is
+    // far beyond realistic usage for this app's target market.
+    canReadFinancials
+      ? supabase
+          .from("invoices")
+          .select("customer_id, total, amount_paid, status, due_date")
+          .eq("business_id", businessId)
+          .in("status", ["sent", "partially_paid", "overdue"])
+          .limit(2000)
+      : Promise.resolve({ data: [], error: null }),
+    canReadInventory
+      ? supabase
+          .from("products")
+          .select("id, name, stock, min_stock, unit")
+          .eq("business_id", businessId)
+          .is("deleted_at", null)
+          .eq("is_active", true)
+          .limit(500)
+      : Promise.resolve({ data: [], error: null }),
+    canReadExpenses
+      ? supabase
+          .from("expenses")
+          .select("amount, expense_date, description")
+          .eq("business_id", businessId)
+          .gte("expense_date", dayKey(windowStart))
+      : Promise.resolve({ data: [], error: null }),
+    canReadFinancials
+      ? supabase
+          .from("customers")
+          .select("id, name, outstanding_balance")
+          .eq("business_id", businessId)
+          .is("deleted_at", null)
+          .gt("outstanding_balance", 0)
+          .order("outstanding_balance", { ascending: false })
+          .limit(1000)
+      : Promise.resolve({ data: [], error: null }),
+    canReadFinancials ? loadDailyTakings(supabase, businessId) : Promise.resolve(EMPTY_TAKINGS),
+  ]);
 
   const currency = businessRes.data?.currency ?? "USD";
-  const sales = salesRes.data ?? [];
   const invoices = invoiceRes.data ?? [];
   const products = productRes.data ?? [];
   const expenses = expenseRes.data ?? [];
@@ -2241,8 +2296,8 @@ export async function loadDashboard(
   }
 
   for (const sale of sales) {
-    const total = Number(sale.total ?? 0);
-    const profit = total - Number(sale.cost_total ?? 0);
+    const total = sale.total;
+    const profit = canReadFinancials ? total - sale.cost_total : 0;
     const created = new Date(sale.created_at);
     if (created >= periodStart) {
       current.sales += total;
@@ -2280,6 +2335,26 @@ export async function loadDashboard(
   const lowStockCount = products.filter((p) => Number(p.stock) <= Number(p.min_stock)).length;
   const urgentStockCount = products.filter((p) => Number(p.stock) <= 0).length;
   const expenseTotal = expenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
+  const todayExpenses = expenses.reduce(
+    (sum, expense) => (expense.expense_date === todayKey ? sum + Number(expense.amount ?? 0) : sum),
+    0,
+  );
+  const recentActivity = [
+    ...sales.map((sale) => ({
+      type: "sale" as const,
+      description: "Sale recorded",
+      amount: sale.total,
+      date: sale.created_at,
+    })),
+    ...expenses.map((expense) => ({
+      type: "expense" as const,
+      description: expense.description || "Expense recorded",
+      amount: Number(expense.amount ?? 0),
+      date: expense.expense_date,
+    })),
+  ]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6);
 
   const pct = (curr: number, prev: number) =>
     prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0;
@@ -2358,29 +2433,38 @@ export async function loadDashboard(
 
   return {
     currency,
-    todaySales: today.sales,
-    todayProfit: today.profit,
-    salesChange,
-    profitChange,
+    todaySales: canReadSales ? today.sales : null,
+    todayProfit: canReadFinancials ? today.profit : null,
+    todayExpenses: canReadExpenses ? round2(todayExpenses) : null,
+    todayEstimatedProfit: canReadFinancials ? round2(today.sales - todayExpenses) : null,
+    salesChange: canReadFinancials ? salesChange : 0,
+    profitChange: canReadFinancials ? profitChange : 0,
     outstanding,
     outstandingCustomers,
     lowStockCount,
     urgentStockCount,
-    series: [...buckets.entries()].map(([key, value]) => ({
-      label: new Date(key).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      sales: Math.round(value.sales * 100) / 100,
-      profit: Math.round(value.profit * 100) / 100,
-    })),
-    health: { score, label, signals: signals.slice(0, 6) },
-    lowStock: lowStock.map((p) => ({
-      id: p.id,
-      name: p.name,
-      stock: Number(p.stock),
-      min_stock: Number(p.min_stock),
-      unit: p.unit,
-    })),
-    todayTakings: takings,
-    debtors,
+    series: canReadFinancials
+      ? [...buckets.entries()].map(([key, value]) => ({
+          label: new Date(key).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          sales: Math.round(value.sales * 100) / 100,
+          profit: Math.round(value.profit * 100) / 100,
+        }))
+      : [],
+    health: canReadFinancials
+      ? { score, label, signals: signals.slice(0, 6) }
+      : { score: 0, label: "Overview", signals: [] },
+    lowStock: canReadInventory
+      ? lowStock.map((p) => ({
+          id: p.id,
+          name: p.name,
+          stock: Number(p.stock),
+          min_stock: Number(p.min_stock),
+          unit: p.unit,
+        }))
+      : [],
+    todayTakings: canReadFinancials ? takings : EMPTY_TAKINGS,
+    debtors: canReadFinancials ? debtors : [],
+    recentActivity,
   };
 }
 
