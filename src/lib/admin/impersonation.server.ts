@@ -73,7 +73,12 @@ export async function startPlatformImpersonation(
     _reason: input.reason,
     _ttl_minutes: input.ttlMinutes ?? 60,
   });
-  if (result.error) dbFail("start impersonation", result.error);
+  if (result.error) {
+    if (/not approved support access/i.test(result.error.message ?? "")) {
+      throw new Error("The merchant has not approved support access for this shop yet.");
+    }
+    dbFail("start impersonation", result.error);
+  }
   await logPlatformAudit(adminUserId, "start_impersonation", input.reason, {
     businessId: input.businessId,
     sessionId: result.data,
@@ -147,7 +152,7 @@ export async function loadWorkspaceWhileImpersonating(
     permissions: Array.isArray(permissions) ? permissions : [],
     plan: subscription?.plan ?? "free",
     planStatus: subscription?.status ?? "trialing",
-    isReadOnly: true,
+    isReadOnly: !canWriteWithPlatformEntitlement(subscription ?? null, entitlementBypass),
     isOperateLocked: !canOperateWithPlatformEntitlement(subscription ?? null, entitlementBypass),
     isPlatformOwner: false,
     billingEnabled: isBillingEnabled(),
@@ -157,17 +162,47 @@ export async function loadWorkspaceWhileImpersonating(
   };
 }
 
-export async function assertNotImpersonating(supabase: Db, businessId: string) {
-  const { data, error } = await supabase.rpc(
-    "is_platform_impersonating" as never,
-    {
-      _business_id: businessId,
-    } as never,
-  );
-  if (error) dbFail("impersonation check", error);
-  if (data) {
-    throw new Error(
-      "Support view is read-only. End impersonation in the admin console to make changes.",
-    );
-  }
+export type PlatformAccessStatus = {
+  status: "none" | "pending" | "approved" | "declined" | "ended" | "expired";
+  requestId?: string;
+  expiresAt?: string;
+  decidedAt?: string;
+};
+
+export async function requestPlatformAccess(
+  adminUserId: string,
+  tokens: SupabaseTokens,
+  input: { businessId: string; reason: string },
+): Promise<PlatformAccessStatus> {
+  await requireAdmin(adminUserId, tokens);
+  const result = await untypedRpc("admin_request_business_access", {
+    _admin_user_id: adminUserId,
+    _business_id: input.businessId,
+    _reason: input.reason,
+  });
+  if (result.error) dbFail("request support access", result.error);
+  await logPlatformAudit(adminUserId, "request_support_access", input.reason, {
+    businessId: input.businessId,
+  });
+  return getPlatformAccessStatus(adminUserId, tokens, input.businessId);
+}
+
+export async function getPlatformAccessStatus(
+  adminUserId: string,
+  tokens: SupabaseTokens,
+  businessId: string,
+): Promise<PlatformAccessStatus> {
+  await requireAdmin(adminUserId, tokens);
+  const result = await untypedRpc("admin_get_business_access", {
+    _admin_user_id: adminUserId,
+    _business_id: businessId,
+  });
+  if (result.error) dbFail("load support access", result.error);
+  const row = (result.data ?? {}) as Record<string, unknown>;
+  return {
+    status: (row["status"] as PlatformAccessStatus["status"]) ?? "none",
+    ...(typeof row["requestId"] === "string" ? { requestId: row["requestId"] } : {}),
+    ...(typeof row["expiresAt"] === "string" ? { expiresAt: row["expiresAt"] } : {}),
+    ...(typeof row["decidedAt"] === "string" ? { decidedAt: row["decidedAt"] } : {}),
+  };
 }

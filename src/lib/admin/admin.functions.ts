@@ -45,6 +45,8 @@ import {
 import {
   endPlatformImpersonation,
   getActiveImpersonation,
+  getPlatformAccessStatus,
+  requestPlatformAccess,
   startPlatformImpersonation,
 } from "./impersonation.server";
 
@@ -333,6 +335,25 @@ export const startImpersonationFn = createServerFn({ method: "POST" })
       reason: data.reason,
       ...(data.ttlMinutes !== undefined ? { ttlMinutes: data.ttlMinutes } : {}),
     }),
+  );
+
+const accessRequestSchema = z.object({
+  businessId: z.string().uuid(),
+  reason: z.string().trim().min(3).max(300),
+});
+
+export const requestPlatformAccessFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => accessRequestSchema.parse(data))
+  .handler(async ({ data, context }) =>
+    requestPlatformAccess(context.userId, context.tokens, data),
+  );
+
+export const getPlatformAccessStatusFn = createServerFn({ method: "POST" })
+  .middleware(adminRateLimit)
+  .inputValidator((data: unknown) => businessIdSchema.parse(data))
+  .handler(async ({ data, context }) =>
+    getPlatformAccessStatus(context.userId, context.tokens, data.businessId),
   );
 
 export const endImpersonationFn = createServerFn({ method: "POST" })
