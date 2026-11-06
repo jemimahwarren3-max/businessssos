@@ -661,8 +661,9 @@ export async function listProducts(
   businessId: string,
   search: string,
   supplierId?: string,
+  limit = 100,
 ) {
-  const term = search.trim();
+  const term = search.trim().replace(/[,()]/g, "");
   let withWholesaleQuery = supabase
     .from("products")
     .select(
@@ -671,7 +672,7 @@ export async function listProducts(
     .eq("business_id", businessId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(limit);
   if (term) {
     withWholesaleQuery = withWholesaleQuery.or(
       `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,
@@ -695,7 +696,7 @@ export async function listProducts(
     .eq("business_id", businessId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(limit);
   if (term) {
     withoutWholesaleQuery = withoutWholesaleQuery.or(
       `name.ilike.%${term}%,sku.ilike.%${term}%,barcode.ilike.%${term}%`,

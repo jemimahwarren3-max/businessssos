@@ -449,12 +449,13 @@ export const getProducts = createServerFn({ method: "POST" })
       businessIdSchema.extend({
         search: z.string().max(80).default(""),
         supplierId: z.string().uuid().optional(),
+        limit: z.coerce.number().int().min(1).max(500).default(100),
       }),
       data,
     ),
   )
   .handler(async ({ data, context }) =>
-    listProducts(context.supabase as Db, data.businessId, data.search, data.supplierId),
+    listProducts(context.supabase as Db, data.businessId, data.search, data.supplierId, data.limit),
   );
 
 export const addProduct = createServerFn({ method: "POST" })

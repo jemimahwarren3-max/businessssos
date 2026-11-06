@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { allowAal1Session } from "@/integrations/supabase/auth-middleware";
 import { authedRateLimit } from "@/lib/rate-limit.server";
+import { ttlCache } from "@/lib/ttl-cache.server";
 import {
   getMfaStatus,
   enrollTotp,
@@ -301,8 +302,12 @@ export const getPlatformAnnouncementFn = createServerFn({ method: "GET" }).handl
   loadPlatformAnnouncement(),
 );
 
+const marketingCopyCache = ttlCache<Awaited<ReturnType<typeof loadPublicMarketingCopy>>>(
+  5 * 60_000,
+);
+
 export const getPublicMarketingCopyFn = createServerFn({ method: "GET" }).handler(async () =>
-  loadPublicMarketingCopy(),
+  marketingCopyCache("copy", () => loadPublicMarketingCopy()),
 );
 
 export const exportAdminTenantsCsvFn = createServerFn({ method: "GET" })
