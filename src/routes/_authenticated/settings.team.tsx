@@ -66,6 +66,7 @@ function Team() {
   const businessName = workspace.data?.business.name ?? "";
   const canManage = hasPermission(workspace.data, "users.view");
   const canManagePermissions = hasPermission(workspace.data, "roles.manage");
+  const isOwner = workspace.data?.role === "owner";
 
   const [section, setSection] = useState<"team" | "permissions">("team");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -113,7 +114,7 @@ function Team() {
 
   const invites = useQuery({
     queryKey: ["team-invites", businessId],
-    enabled: Boolean(businessId) && canManage,
+    enabled: Boolean(businessId) && isOwner,
     queryFn: () => fetchInvites({ data: { businessId: businessId! } }),
   });
 
@@ -297,12 +298,18 @@ function Team() {
       isReadOnly={workspace.data.isReadOnly}
       billingEnabled={workspace.data.billingEnabled}
       title="Team"
-      subtitle="Invite people to your business and manage what they can do."
+      subtitle={
+        isOwner
+          ? "Invite people to your business and manage what they can do."
+          : "Manage team access. Only owners can invite team members or manage admins."
+      }
       subtitleAsTooltip
       actions={
-        <Button className="gap-1.5" onClick={() => setInviteOpen(true)}>
-          <Plus className="size-4" aria-hidden="true" /> Add team member
-        </Button>
+        isOwner ? (
+          <Button className="gap-1.5" onClick={() => setInviteOpen(true)}>
+            <Plus className="size-4" aria-hidden="true" /> Add team member
+          </Button>
+        ) : undefined
       }
     >
       <div className="surface mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
@@ -349,6 +356,11 @@ function Team() {
                 {(members.data ?? []).map((m) => {
                   const isSelf = m.user_id === currentUserId;
                   const displayName = m.staff_name || m.full_name || m.email;
+                  const roleOptions = isOwner
+                    ? TEAM_ROLES
+                    : m.role === "owner" || m.role === "admin"
+                      ? [m.role]
+                      : INVITE_ROLES.filter((role) => role !== "admin");
                   return (
                     <li
                       key={m.id}
@@ -369,6 +381,7 @@ function Team() {
                       </div>
                       <Select
                         value={m.role}
+                        disabled={!isOwner && (m.role === "owner" || m.role === "admin")}
                         onValueChange={(newRole) =>
                           roleMutation.mutate({ memberUserId: m.user_id, newRole })
                         }
@@ -377,13 +390,11 @@ function Team() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {(workspace.data?.role === "owner" ? TEAM_ROLES : INVITE_ROLES).map(
-                            (r) => (
-                              <SelectItem key={r} value={r}>
-                                {ROLE_LABEL[r] ?? r}
-                              </SelectItem>
-                            ),
-                          )}
+                          {roleOptions.map((r) => (
+                            <SelectItem key={r} value={r}>
+                              {ROLE_LABEL[r] ?? r}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       {m.staff_name ? (
@@ -403,7 +414,11 @@ function Team() {
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground hover:text-destructive"
-                        disabled={isSelf || removeMutation.isPending}
+                        disabled={
+                          isSelf ||
+                          (!isOwner && (m.role === "owner" || m.role === "admin")) ||
+                          removeMutation.isPending
+                        }
                         onClick={() => removeMutation.mutate(m.user_id)}
                         aria-label={`Remove ${displayName}`}
                       >
@@ -416,7 +431,7 @@ function Team() {
             )}
           </div>
 
-          {(invites.data ?? []).length > 0 ? (
+          {isOwner && (invites.data ?? []).length > 0 ? (
             <div className="surface mt-4 overflow-hidden">
               <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">
                 Pending invites
@@ -459,7 +474,7 @@ function Team() {
             Role permissions
           </h2>
           <p className="border-b border-border px-5 py-2.5 text-[13px] text-muted-foreground">
-            Owner always has full access. Changes apply immediately.
+            Owner always has full access. Only owners can change admin permissions.
           </p>
           {permissionCatalog.isLoading || rolePermissions.isLoading ? (
             <div className="space-y-3 p-5">
@@ -514,7 +529,10 @@ function Team() {
                               <td key={r} className="px-3 py-2.5 text-center">
                                 <Switch
                                   checked={granted}
-                                  disabled={togglePermissionMutation.isPending}
+                                  disabled={
+                                    togglePermissionMutation.isPending ||
+                                    (r === "admin" && !isOwner)
+                                  }
                                   onCheckedChange={(checked) =>
                                     togglePermissionMutation.mutate({
                                       role: r,
