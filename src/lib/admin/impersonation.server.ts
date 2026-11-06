@@ -28,11 +28,13 @@ async function untypedRpc(
   fn: string,
   args: Record<string, unknown>,
 ): Promise<{ data: unknown; error: { message?: string } | null }> {
-  const rpc = supabaseAdmin.rpc as unknown as (
-    name: string,
-    params: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message?: string } | null }>;
-  return rpc(fn, args);
+  const client = supabaseAdmin as unknown as {
+    rpc: (
+      name: string,
+      params: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message?: string } | null }>;
+  };
+  return client.rpc(fn, args);
 }
 
 export async function getActiveImpersonation(
