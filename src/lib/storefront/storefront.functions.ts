@@ -39,6 +39,7 @@ import {
   loadMarketplaceListing,
   loadProductReviews,
   loadPublicStore,
+  loadStoreOrders,
   loadStorePreview,
   loadStoreLaunchEligibility,
   placeOrder,
@@ -275,6 +276,13 @@ export const getStorefrontAdminFn = createServerFn({ method: "POST" })
     parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
   )
   .handler(async ({ data, context }) => loadAdminStore(context.supabase as Db, data.businessId));
+
+export const getStorefrontOrdersFn = createServerFn({ method: "POST" })
+  .middleware(authed)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(z.object({ businessId: z.string().uuid() }), data),
+  )
+  .handler(async ({ data, context }) => loadStoreOrders(context.supabase as Db, data.businessId));
 
 export const saveStorefrontFn = createServerFn({ method: "POST" })
   .middleware(authed)

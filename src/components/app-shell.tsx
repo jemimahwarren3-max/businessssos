@@ -152,7 +152,7 @@ function navGroupsFor(model: CommerceModel): { label: string; items: NavItem[] }
           to: "/online-orders",
           label: "Orders",
           icon: Package,
-          permission: "business.settings",
+          permission: "orders.manage",
         },
       ],
     },
