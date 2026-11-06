@@ -1,0 +1,63 @@
+name: E2E (staging, manual)
+
+# Manual only. Builds the app against the staging Supabase project and runs the
+# full Playwright suite on a local server. Never points at mykwetuu.com.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build against staging
+        run: npm run build
+        env:
+          APP_URL: http://127.0.0.1:8080
+          SHOP_HOSTS: "true"
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: slajanbsfqjnuuiohbmg
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Full E2E on local staging build
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8080
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET }}
+          APP_URL: http://127.0.0.1:8080
+          SHOP_HOSTS: "true"
+          E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
+          E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
+        run: npx playwright test --config e2e/playwright.config.ts --project=chromium --reporter=list,html
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-staging-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
