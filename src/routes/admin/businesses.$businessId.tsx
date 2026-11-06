@@ -9,6 +9,8 @@ import {
   listStorefrontLaunchPaymentsFn,
   setBusinessFeatureFlagsFn,
   setStorefrontSuspendedFn,
+  getPlatformAccessStatusFn,
+  requestPlatformAccessFn,
   startImpersonationFn,
   waiveStoreLaunchFeeFn,
 } from "@/lib/admin/admin.functions";
@@ -42,6 +44,17 @@ function AdminBusinessDetailPage() {
   const fetchFlags = useServerFn(getBusinessFeatureFlagsFn);
   const saveFlags = useServerFn(setBusinessFeatureFlagsFn);
   const startImpersonation = useServerFn(startImpersonationFn);
+  const requestAccess = useServerFn(requestPlatformAccessFn);
+  const fetchAccessStatus = useServerFn(getPlatformAccessStatusFn);
+  const accessStatus = useQuery({
+    queryKey: ["admin-access-status", businessId],
+    queryFn: () => fetchAccessStatus({ data: { businessId } }),
+    refetchInterval: 15_000,
+  });
+  const requestMutation = useMutation({
+    mutationFn: () => requestAccess({ data: { businessId, reason: impersonationReason.trim() } }),
+    onSuccess: () => accessStatus.refetch(),
+  });
   const detail = useQuery({
     queryKey: ["admin-business", businessId],
     queryFn: () => fetch({ data: { businessId } }),
@@ -167,30 +180,53 @@ function AdminBusinessDetailPage() {
       </div>
 
       <section className="surface space-y-3 p-4">
-        <h2 className="text-sm font-semibold">Support impersonation</h2>
+        <h2 className="text-sm font-semibold">Support access</h2>
         <p className="text-sm text-muted-foreground">
-          Opens the merchant dashboard as this tenant (read-only). Every start/end is written to the
-          platform audit log.
+          The merchant must approve each request before you can open their dashboard. Changes you
+          make are recorded in the audit log, and access ends when the approval expires.
         </p>
-        <Label htmlFor="impersonation-reason">Reason (required)</Label>
-        <Input
-          id="impersonation-reason"
-          value={impersonationReason}
-          onChange={(event) => setImpersonationReason(event.target.value)}
-          placeholder="Ticket #1234, checkout issue"
-        />
+        {accessStatus.data?.status === "approved" ? (
+          <p className="text-sm">
+            Approved until {friendlyDateTime(accessStatus.data.expiresAt ?? "")}.
+          </p>
+        ) : accessStatus.data?.status === "pending" ? (
+          <p className="text-sm">Waiting for the merchant to approve.</p>
+        ) : accessStatus.data?.status === "declined" ? (
+          <p className="text-sm">The merchant declined. You can ask again.</p>
+        ) : null}
+        {accessStatus.data?.status !== "approved" && accessStatus.data?.status !== "pending" ? (
+          <>
+            <Label htmlFor="impersonation-reason">Reason (required)</Label>
+            <Input
+              id="impersonation-reason"
+              value={impersonationReason}
+              onChange={(event) => setImpersonationReason(event.target.value)}
+              placeholder="Ticket #1234, checkout issue"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={requestMutation.isPending || impersonationReason.trim().length < 3}
+              onClick={() => requestMutation.mutate()}
+            >
+              Request access
+            </Button>
+          </>
+        ) : null}
         {impersonate.isError ? (
           <p className="text-sm text-destructive">
-            {readableError(impersonate.error as Error, "Could not start support view.")}
+            {readableError(impersonate.error as Error, "Could not open the dashboard.")}
           </p>
         ) : null}
-        <Button
-          type="button"
-          disabled={impersonate.isPending || impersonationReason.trim().length < 3}
-          onClick={() => impersonate.mutate()}
-        >
-          Open merchant dashboard (read-only)
-        </Button>
+        {accessStatus.data?.status === "approved" ? (
+          <Button
+            type="button"
+            disabled={impersonate.isPending}
+            onClick={() => impersonate.mutate()}
+          >
+            Open merchant dashboard
+          </Button>
+        ) : null}
       </section>
 
       <section className="surface space-y-3 p-4">

@@ -139,6 +139,11 @@ import {
 import { parseAndSanitize } from "./security";
 import { authedRateLimit, ipRateLimit } from "./rate-limit.server";
 import {
+  decidePlatformAccessRequest,
+  endPlatformAccess,
+  listPlatformAccessRequests,
+} from "./platform-access.server";
+import {
   adjustStock,
   convertQuote,
   createBusinessRecord,
@@ -864,6 +869,38 @@ export const startSubscriptionCheckout = createServerFn({ method: "POST" })
     if (!email) throw new Error("Your account has no email on file, please contact support.");
     return initiateSubscriptionCheckout(context.supabase as Db, data, email);
   });
+
+export const listPlatformAccessRequestsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    listPlatformAccessRequests(context.supabase as Db, data.businessId),
+  );
+
+export const decidePlatformAccessRequestFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) =>
+    parseAndSanitize(
+      z.object({
+        businessId: z.string().uuid(),
+        requestId: z.string().uuid(),
+        approve: z.boolean(),
+        hours: z.coerce.number().int().min(1).max(72).default(24),
+      }),
+      data,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    await decidePlatformAccessRequest(context.supabase as Db, context.userId, data);
+    return { ok: true as const };
+  });
+
+export const endPlatformAccessFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(businessIdSchema, data))
+  .handler(async ({ data, context }) =>
+    endPlatformAccess(context.supabase as Db, context.userId, data.businessId),
+  );
 
 export const checkSubscriptionPaymentFn = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
