@@ -194,6 +194,7 @@ jobs:
           PAYNOW_INTEGRATION_KEY: ${{ secrets.PAYNOW_INTEGRATION_KEY }}
           PAYNOW_INTEGRATION_ID_ZIG: ${{ secrets.PAYNOW_INTEGRATION_ID_ZIG }}
           PAYNOW_INTEGRATION_KEY_ZIG: ${{ secrets.PAYNOW_INTEGRATION_KEY_ZIG }}
+          BILLING_ENABLED: ${{ secrets.BILLING_ENABLED }}
         run: |
           set -euo pipefail
           missing=0
@@ -221,7 +222,7 @@ jobs:
               "NODE_ENV": "production",
               "HOST": "0.0.0.0",
               "SHOP_HOSTS": "true",
-              "BILLING_ENABLED": "false",
+              "BILLING_ENABLED": "true" if os.environ.get("BILLING_ENABLED", "").lower() == "true" else "false",
               "APP_URL": os.environ["APP_URL"],
               "SUPABASE_URL": os.environ["SUPABASE_URL"],
               "SUPABASE_PUBLISHABLE_KEY": os.environ["SUPABASE_PUBLISHABLE_KEY"],
