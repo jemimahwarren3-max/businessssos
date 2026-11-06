@@ -475,6 +475,13 @@ function Expenses() {
               error: result.error.issues[0]?.message ?? "Invalid row",
             };
           }
+          if (Number.isNaN(new Date(result.data.expenseDate).getTime())) {
+            return {
+              rowNumber,
+              ok: false,
+              error: `Invalid date "${result.data.expenseDate}"`,
+            };
+          }
           const categoryNote = matched ? "" : ` (category "${record["category"]}" → Other)`;
           return {
             rowNumber,

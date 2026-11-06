@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Download, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csv";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,22 @@ import { readableError } from "@/lib/format";
 type ParsedRow<T> =
   | { rowNumber: number; ok: true; value: T; summary: string }
   | { rowNumber: number; ok: false; error: string };
+
+type ImportRow<T> =
+  | {
+      rowNumber: number;
+      record: Record<string, string>;
+      ok: true;
+      value: T;
+      summary: string;
+    }
+  | { rowNumber: number; record: Record<string, string>; ok: false; error: string };
+
+type ImportErrorRow = {
+  rowNumber: number;
+  record: Record<string, string>;
+  error: string;
+};
 
 export function ImportDialog<T>({
   open,
@@ -43,13 +60,14 @@ export function ImportDialog<T>({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
-  const [rows, setRows] = useState<ParsedRow<T>[]>([]);
+  const [rows, setRows] = useState<ImportRow<T>[]>([]);
   const [headerError, setHeaderError] = useState("");
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{
     imported: number;
     skipped: number;
     errors: string[];
+    errorRows: ImportErrorRow[];
   } | null>(null);
 
   function reset() {
@@ -74,21 +92,49 @@ export function ImportDialog<T>({
         return;
       }
       setHeaderError("");
-      setRows(records.map((record, index) => parseRow(record, index + 2)));
+      setRows(
+        records.map((record, index) => ({
+          ...parseRow(record, index + 2),
+          record,
+        })),
+      );
     } catch (error) {
       setHeaderError(readableError(error as Error, "We couldn't read that file."));
       setRows([]);
     }
   }
 
-  const validRows = rows.filter((r): r is Extract<ParsedRow<T>, { ok: true }> => r.ok);
-  const invalidRows = rows.filter((r): r is Extract<ParsedRow<T>, { ok: false }> => !r.ok);
+  const validRows = rows.filter((r): r is Extract<ImportRow<T>, { ok: true }> => r.ok);
+  const invalidRows = rows.filter((r): r is Extract<ImportRow<T>, { ok: false }> => !r.ok);
+
+  function downloadErrorRows(errorRows: ImportErrorRow[]) {
+    downloadCsv(
+      `${templateFilename}-errors`,
+      ["Source row", ...columns.map((column) => column.label), "Error"],
+      errorRows.map((row) => [
+        row.rowNumber,
+        ...columns.map((column) => row.record[column.key] ?? ""),
+        row.error,
+      ]),
+    );
+  }
 
   async function handleImport() {
     setImporting(true);
     try {
       const outcome = await onImport(validRows.map((r) => r.value));
-      setResult(outcome);
+      setResult({
+        ...outcome,
+        errorRows: outcome.errors.map((error) => {
+          const parsedRowNumber = Number(error.match(/^Row (\d+):/)?.[1]) || 0;
+          const importedRow = parsedRowNumber >= 2 ? validRows[parsedRowNumber - 2] : undefined;
+          return {
+            rowNumber: importedRow?.rowNumber ?? parsedRowNumber,
+            record: importedRow?.record ?? {},
+            error,
+          };
+        }),
+      });
       if (outcome.imported > 0)
         toast.success(`Imported ${outcome.imported} row${outcome.imported === 1 ? "" : "s"}.`);
     } catch (error) {
@@ -122,14 +168,24 @@ export function ImportDialog<T>({
                   {result.skipped > 0 ? `, skipped ${result.skipped}` : ""}.
                 </p>
                 {result.errors.length > 0 ? (
-                  <ul className="mt-1.5 space-y-0.5 text-[13px] text-muted-foreground">
-                    {result.errors.slice(0, 10).map((error, i) => (
-                      <li key={i}>{error}</li>
-                    ))}
-                    {result.errors.length > 10 ? (
-                      <li>…and {result.errors.length - 10} more.</li>
-                    ) : null}
-                  </ul>
+                  <>
+                    <ul className="mt-1.5 space-y-0.5 text-[13px] text-muted-foreground">
+                      {result.errors.slice(0, 10).map((error, i) => (
+                        <li key={i}>{error}</li>
+                      ))}
+                      {result.errors.length > 10 ? (
+                        <li>…and {result.errors.length - 10} more.</li>
+                      ) : null}
+                    </ul>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 gap-1.5"
+                      onClick={() => downloadErrorRows(result.errorRows)}
+                    >
+                      <Download className="size-3.5" aria-hidden="true" /> Download error rows
+                    </Button>
+                  </>
                 ) : null}
               </div>
             </div>
@@ -186,6 +242,24 @@ export function ImportDialog<T>({
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 {headerError}
               </p>
+            ) : null}
+            {invalidRows.length > 0 ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() =>
+                  downloadErrorRows(
+                    invalidRows.map((row) => ({
+                      rowNumber: row.rowNumber,
+                      record: row.record,
+                      error: row.error,
+                    })),
+                  )
+                }
+              >
+                <Download className="size-3.5" aria-hidden="true" /> Download error rows
+              </Button>
             ) : null}
 
             {rows.length > 0 ? (

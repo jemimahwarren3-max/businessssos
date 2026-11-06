@@ -594,8 +594,11 @@ export type Database = {
           description: string | null;
           expense_date: string;
           id: string;
+          import_batch_key: string | null;
+          is_historical: boolean;
           method: Database["public"]["Enums"]["payment_method"];
           receipt_url: string | null;
+          source_row_number: number | null;
           updated_at: string;
           vendor: string | null;
         };
@@ -608,8 +611,11 @@ export type Database = {
           description?: string | null;
           expense_date?: string;
           id?: string;
+          import_batch_key?: string | null;
+          is_historical?: boolean;
           method?: Database["public"]["Enums"]["payment_method"];
           receipt_url?: string | null;
+          source_row_number?: number | null;
           updated_at?: string;
           vendor?: string | null;
         };
@@ -622,8 +628,11 @@ export type Database = {
           description?: string | null;
           expense_date?: string;
           id?: string;
+          import_batch_key?: string | null;
+          is_historical?: boolean;
           method?: Database["public"]["Enums"]["payment_method"];
           receipt_url?: string | null;
+          source_row_number?: number | null;
           updated_at?: string;
           vendor?: string | null;
         };
@@ -982,6 +991,7 @@ export type Database = {
           rail: string | null;
           currency: string | null;
           amount_original: number | null;
+          is_historical: boolean;
           reference: string | null;
           sale_id: string | null;
           supplier_id: string | null;
@@ -1000,6 +1010,7 @@ export type Database = {
           rail?: string | null;
           currency?: string | null;
           amount_original?: number | null;
+          is_historical?: boolean;
           reference?: string | null;
           sale_id?: string | null;
           supplier_id?: string | null;
@@ -1018,6 +1029,7 @@ export type Database = {
           rail?: string | null;
           currency?: string | null;
           amount_original?: number | null;
+          is_historical?: boolean;
           reference?: string | null;
           sale_id?: string | null;
           supplier_id?: string | null;
@@ -1849,6 +1861,7 @@ export type Database = {
           created_at: string;
           discount: number;
           id: string;
+          is_historical: boolean;
           line_total: number;
           name: string;
           product_id: string | null;
@@ -1864,6 +1877,7 @@ export type Database = {
           created_at?: string;
           discount?: number;
           id?: string;
+          is_historical?: boolean;
           line_total: number;
           name: string;
           product_id?: string | null;
@@ -1879,6 +1893,7 @@ export type Database = {
           created_at?: string;
           discount?: number;
           id?: string;
+          is_historical?: boolean;
           line_total?: number;
           name?: string;
           product_id?: string | null;
@@ -2030,11 +2045,14 @@ export type Database = {
           discount: number;
           id: string;
           idempotency_key: string | null;
+          import_batch_key: string | null;
           location_id: string | null;
           notes: string | null;
           cash_session_id: string | null;
+          is_historical: boolean;
           payment_method: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
+          source_row_number: number | null;
           status: Database["public"]["Enums"]["sale_status"];
           subtotal: number;
           tax: number;
@@ -2052,11 +2070,14 @@ export type Database = {
           discount?: number;
           id?: string;
           idempotency_key?: string | null;
+          import_batch_key?: string | null;
           location_id?: string | null;
           notes?: string | null;
           cash_session_id?: string | null;
+          is_historical?: boolean;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number: string;
+          source_row_number?: number | null;
           status?: Database["public"]["Enums"]["sale_status"];
           subtotal?: number;
           tax?: number;
@@ -2074,11 +2095,14 @@ export type Database = {
           discount?: number;
           id?: string;
           idempotency_key?: string | null;
+          import_batch_key?: string | null;
           location_id?: string | null;
           notes?: string | null;
           cash_session_id?: string | null;
+          is_historical?: boolean;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           sale_number?: string;
+          source_row_number?: number | null;
           status?: Database["public"]["Enums"]["sale_status"];
           subtotal?: number;
           tax?: number;
@@ -3006,28 +3030,76 @@ export type Database = {
         };
         Returns: boolean;
       };
-      import_sale_history_row: {
+      import_historical_expense: {
         Args: {
+          _amount: number;
           _business_id: string;
-          _cost: number;
+          _category: string;
           _description: string;
-          _sale_date: string;
-          _total: number;
+          _expense_date: string;
+          _import_batch_key: string;
+          _source_row_number: number;
+          _vendor: string;
         };
-        Returns: string;
+        Returns: {
+          expense_id: string;
+          imported: boolean;
+        }[];
       };
-      import_sale_line: {
+      import_product_row: {
+        Args: {
+          _barcode: string;
+          _business_id: string;
+          _cost_price: number;
+          _description: string;
+          _location_id?: string | null;
+          _min_stock: number;
+          _name: string;
+          _selling_price: number;
+          _sku: string;
+          _stock: number;
+          _supplier_id?: string | null;
+          _tax_rate: number;
+          _unit: string;
+        };
+        Returns: {
+          id: string;
+          name: string;
+          stock: number;
+        }[];
+      };
+      import_historical_sale_line: {
         Args: {
           _business_id: string;
           _customer_id: string | null;
+          _import_batch_key: string;
           _notes: string | null;
           _payment_method: Database["public"]["Enums"]["payment_method"];
           _product_id: string;
           _quantity: number;
           _sale_date: string;
+          _source_row_number: number;
           _unit_price: number | null;
         };
-        Returns: string;
+        Returns: {
+          imported: boolean;
+          sale_id: string;
+        }[];
+      };
+      import_historical_sale_total: {
+        Args: {
+          _business_id: string;
+          _cost: number;
+          _description: string;
+          _import_batch_key: string;
+          _sale_date: string;
+          _source_row_number: number;
+          _total: number;
+        };
+        Returns: {
+          imported: boolean;
+          sale_id: string;
+        }[];
       };
       is_business_member: { Args: { _business_id: string }; Returns: boolean };
       list_time_entries: {

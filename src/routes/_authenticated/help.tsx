@@ -259,8 +259,9 @@ function Help() {
             </li>
             <li>
               <strong>Import detailed sales</strong> is the fuller version: real line-item
-              transactions matched to your actual products and customers, which do decrement stock
-              and count toward Top Products/Top Customers.
+              transactions matched to your actual products and customers. They do not change current
+              stock and count toward Top Products/Top Customers when historical data is included in
+              a report.
             </li>
           </ul>
         </Section>
