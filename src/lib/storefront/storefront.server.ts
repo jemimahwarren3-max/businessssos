@@ -353,12 +353,29 @@ async function withShopPaynowFlag(admin: AdminStore, businessId: string): Promis
 }
 
 export async function loadAdminStore(supabase: Db, businessId: string): Promise<AdminStore> {
+  await assertPermission(supabase, businessId, "business.settings");
   const result = await supabase.rpc("get_storefront_admin", { _business_id: businessId });
   if (result.error) rpcFail("load storefront", result.error);
   if (result.data == null) return emptyAdminStore();
   return withShopPaynowFlag(
     await parseRpc("load storefront", { data: result.data, error: null }, adminStoreSchema),
     businessId,
+  );
+}
+
+export async function loadStoreOrders(
+  supabase: Db,
+  businessId: string,
+): Promise<AdminStore["orders"]> {
+  await assertPermission(supabase, businessId, "orders.manage");
+  const result = await untypedRpc(supabase, "get_storefront_orders", {
+    _business_id: businessId,
+  });
+  if (result.error) rpcFail("load storefront orders", result.error);
+  return parseRpc(
+    "load storefront orders",
+    { data: result.data, error: null },
+    adminStoreSchema.shape.orders,
   );
 }
 
@@ -482,6 +499,7 @@ export async function loadAdminOrder(
   businessId: string,
   orderId: string,
 ): Promise<AdminOrder> {
+  await assertPermission(supabase, businessId, "orders.manage");
   try {
     await refreshShopPaynowForOrder(orderId);
   } catch (error) {
@@ -500,6 +518,7 @@ export async function saveSellerOrderNote(
   orderId: string,
   note: string,
 ): Promise<AdminOrder> {
+  await assertPermission(supabase, businessId, "orders.manage");
   await assertCanWrite(supabase, businessId);
   const result = await untypedRpc(supabase, "save_store_order_seller_note", {
     _business_id: businessId,
@@ -520,6 +539,7 @@ export async function saveOrderCourier(
     courierTrackingUrl: string;
   },
 ): Promise<AdminOrder> {
+  await assertPermission(supabase, businessId, "orders.manage");
   await assertCanWrite(supabase, businessId);
   const result = await untypedRpc(supabase, "save_store_order_courier", {
     _business_id: businessId,
@@ -540,6 +560,7 @@ export async function transitionOrder(
   reason?: string,
   paymentReference?: string,
 ) {
+  await assertPermission(supabase, businessId, "orders.manage");
   await assertCanWrite(supabase, businessId);
   if (action === "reject_proof") {
     const result = await supabase.rpc("reject_store_order_proof", {

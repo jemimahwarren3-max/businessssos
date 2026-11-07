@@ -131,7 +131,10 @@ test.describe("signed-in buttons", () => {
   test("Add product opens the form", async ({ page }) => {
     test.skip(!process.env.E2E_OWNER_EMAIL, "E2E_OWNER_EMAIL not set");
     await gotoSettled(page, "/inventory");
-    await page.getByRole("button", { name: /add product|add your first product/i }).first().click();
+    await page
+      .getByRole("button", { name: /add product|add your first product/i })
+      .first()
+      .click();
     await expect(page.getByLabel("Product name")).toBeVisible();
     await expect(page.locator("body")).not.toContainText(APP_ERROR);
   });

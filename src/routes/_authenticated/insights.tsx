@@ -192,8 +192,10 @@ function Insights() {
         )}
       </section>
 
-      <section className="surface mt-4 p-5">
-        <h2 className="text-lg font-semibold">Inventory forecast</h2>
+      <details className="surface mt-4 p-5">
+        <summary className="cursor-pointer text-lg font-semibold">
+          Stock running low{insights.isLoading ? "" : ` (${forecast.length})`}
+        </summary>
         <p className="text-[13px] text-muted-foreground">
           Based on the last 30 days of sales, products at risk of running out soon.
         </p>
@@ -237,7 +239,7 @@ function Insights() {
             Nothing is projected to run out in the next two weeks.
           </div>
         )}
-      </section>
+      </details>
     </AppShell>
   );
 }

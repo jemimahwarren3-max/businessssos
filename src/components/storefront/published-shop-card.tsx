@@ -12,7 +12,12 @@ export function PublishedShopCard({ shop }: { shop: Shop }) {
       className="surface block overflow-hidden p-0 transition-colors hover:bg-muted/40"
     >
       {shop.logoUrl ? (
-        <img src={shop.logoUrl} alt="" className="h-28 w-full object-cover bg-muted" loading="lazy" />
+        <img
+          src={shop.logoUrl}
+          alt=""
+          className="h-28 w-full object-cover bg-muted"
+          loading="lazy"
+        />
       ) : (
         <div className="h-28 bg-muted" />
       )}

@@ -833,6 +833,21 @@ export async function createProduct(supabase: Db, input: ProductInput) {
 
 export type ImportResult = { imported: number; skipped: number; errors: string[] };
 
+async function historicalImportBatchKey(
+  businessId: string,
+  kind: "expenses" | "sales-history" | "sales-detailed",
+  rows: unknown[],
+): Promise<string> {
+  const encoded = new TextEncoder().encode(JSON.stringify({ businessId, kind, rows }));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", encoded));
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function parseHistoricalDate(value: string): Date | null {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function importProducts(
   supabase: Db,
   userId: string,
@@ -844,7 +859,7 @@ export async function importProducts(
   const errors: string[] = [];
 
   for (const [index, row] of input.rows.entries()) {
-    const { data, error } = await supabase.rpc("create_product", {
+    const { data, error } = await supabase.rpc("import_product_row", {
       _business_id: input.businessId,
       _name: row.name,
       _sku: row.sku || "",
@@ -1848,6 +1863,7 @@ export async function listExpenses(
     .from("expenses")
     .select("id, category, description, amount, expense_date, method, vendor")
     .eq("business_id", businessId)
+    .eq("is_historical", false)
     .gte("expense_date", since.toISOString().slice(0, 10))
     .order("expense_date", { ascending: false })
     .limit(200);
@@ -1923,22 +1939,30 @@ export async function importExpenses(
   await assertCanWrite(supabase, input.businessId);
   let imported = 0;
   const errors: string[] = [];
+  const batchKey = await historicalImportBatchKey(input.businessId, "expenses", input.rows);
 
   for (const [index, row] of input.rows.entries()) {
-    const { error } = await supabase.from("expenses").insert({
-      business_id: input.businessId,
-      category: row.category,
-      description: row.description || null,
-      amount: row.amount,
-      expense_date: row.expenseDate,
-      vendor: row.vendor || null,
-      created_by: userId,
+    const expenseDate = parseHistoricalDate(row.expenseDate);
+    if (!expenseDate) {
+      errors.push(`Row ${index + 2}: invalid date "${row.expenseDate}"`);
+      continue;
+    }
+    const { data, error } = await supabase.rpc("import_historical_expense", {
+      _business_id: input.businessId,
+      _expense_date: expenseDate.toISOString().slice(0, 10),
+      _category: row.category,
+      _description: row.description || "",
+      _amount: row.amount,
+      _vendor: row.vendor || "",
+      _import_batch_key: batchKey,
+      _source_row_number: index + 2,
     });
-    if (error) {
+    if (error || !data?.[0]) {
       errors.push(`Row ${index + 2}: ${row.expenseDate}, couldn't be saved`);
       continue;
     }
-    imported++;
+    if (data[0].imported) imported++;
+    else errors.push(`Row ${index + 2}: already imported`);
   }
 
   await recordAudit(supabase, {
@@ -1965,25 +1989,29 @@ export async function importSalesHistory(
   await assertCanWrite(supabase, input.businessId);
   let imported = 0;
   const errors: string[] = [];
+  const batchKey = await historicalImportBatchKey(input.businessId, "sales-history", input.rows);
 
   for (const [index, row] of input.rows.entries()) {
-    const saleDate = new Date(row.saleDate);
-    if (Number.isNaN(saleDate.getTime())) {
+    const saleDate = parseHistoricalDate(row.saleDate);
+    if (!saleDate) {
       errors.push(`Row ${index + 2}: invalid date "${row.saleDate}"`);
       continue;
     }
-    const { error } = await supabase.rpc("import_sale_history_row", {
+    const { data, error } = await supabase.rpc("import_historical_sale_total", {
       _business_id: input.businessId,
       _sale_date: saleDate.toISOString(),
       _total: row.total,
       _cost: row.cost,
       _description: (row.description || null) as never,
+      _import_batch_key: batchKey,
+      _source_row_number: index + 2,
     });
-    if (error) {
+    if (error || !data?.[0]) {
       errors.push(`Row ${index + 2}: ${row.saleDate}, couldn't be saved`);
       continue;
     }
-    imported++;
+    if (data[0].imported) imported++;
+    else errors.push(`Row ${index + 2}: already imported`);
   }
 
   await recordAudit(supabase, {
@@ -2036,13 +2064,9 @@ export async function importCustomers(
   return { imported, skipped: errors.length, errors };
 }
 
-/** Real line-item historical sales, one row = one product = one sale.
- * Resolves product/customer names against this business's own records
- * (same deterministic substring search Inventory/Customers search already
- * use) before calling import_sale_line, which decrements stock and writes
- * every timestamp as the row's own date rather than "now". Kept as its own
- * RPC rather than a create_sale parameter, see import_sale_line's own
- * comment for why. */
+/** Historical line-item sales, one row = one product = one sale. Resolves
+ * product/customer names within this business and preserves the source date
+ * without changing stock or creating inventory movements. */
 export async function importSalesDetailed(
   supabase: Db,
   userId: string,
@@ -2052,10 +2076,11 @@ export async function importSalesDetailed(
   await assertCanWrite(supabase, input.businessId);
   let imported = 0;
   const errors: string[] = [];
+  const batchKey = await historicalImportBatchKey(input.businessId, "sales-detailed", input.rows);
 
   for (const [index, row] of input.rows.entries()) {
-    const saleDate = new Date(row.saleDate);
-    if (Number.isNaN(saleDate.getTime())) {
+    const saleDate = parseHistoricalDate(row.saleDate);
+    if (!saleDate) {
       errors.push(`Row ${index + 2}: invalid date "${row.saleDate}"`);
       continue;
     }
@@ -2070,7 +2095,7 @@ export async function importSalesDetailed(
       const customers = await listCustomers(supabase, input.businessId, row.customer);
       customerId = customers[0]?.id ?? null;
     }
-    const { error } = await supabase.rpc("import_sale_line", {
+    const { data, error } = await supabase.rpc("import_historical_sale_line", {
       _business_id: input.businessId,
       _sale_date: saleDate.toISOString(),
       _product_id: product.id,
@@ -2079,12 +2104,15 @@ export async function importSalesDetailed(
       _customer_id: customerId as never,
       _payment_method: row.paymentMethod,
       _notes: null as never,
+      _import_batch_key: batchKey,
+      _source_row_number: index + 2,
     });
-    if (error) {
+    if (error || !data?.[0]) {
       errors.push(`Row ${index + 2}: ${row.product}, couldn't be saved`);
       continue;
     }
-    imported++;
+    if (data[0].imported) imported++;
+    else errors.push(`Row ${index + 2}: already imported`);
   }
 
   await recordAudit(supabase, {
@@ -2114,8 +2142,10 @@ export type DashboardDebtor = { id: string; name: string; outstanding: number };
 
 export type DashboardData = {
   currency: string;
-  todaySales: number;
-  todayProfit: number;
+  todaySales: number | null;
+  todayProfit: number | null;
+  todayExpenses: number | null;
+  todayEstimatedProfit: number | null;
   salesChange: number;
   profitChange: number;
   outstanding: number;
@@ -2127,6 +2157,12 @@ export type DashboardData = {
   lowStock: { id: string; name: string; stock: number; min_stock: number; unit: string }[];
   todayTakings: DailyTakings;
   debtors: DashboardDebtor[];
+  recentActivity: {
+    type: "sale" | "expense";
+    description: string;
+    amount: number;
+    date: string;
+  }[];
 };
 
 const EMPTY_TAKINGS: DailyTakings = {
@@ -2171,58 +2207,108 @@ export async function loadDashboard(
   businessId: string,
   days: number,
 ): Promise<DashboardData> {
+  await assertMember(supabase, businessId);
+  const permissionChecks = ["expenses.create", "inventory.import", "reports.financial"] as const;
+  const permissionResults = await Promise.all(
+    permissionChecks.map(async (permission) => {
+      const { data, error } = await supabase.rpc("has_permission", {
+        _business_id: businessId,
+        _permission: permission,
+      });
+      if (error) dbFail("dashboard permission check", error);
+      return [permission, data === true] as const;
+    }),
+  );
+  const permissions = new Map(permissionResults);
+  const canReadSales = permissions.get("reports.financial");
+  const canReadExpenses =
+    permissions.get("expenses.create") || permissions.get("reports.financial");
+  const canReadInventory =
+    permissions.get("inventory.import") || permissions.get("reports.financial");
+  const canReadFinancials = permissions.get("reports.financial");
   const now = new Date();
   const windowStart = new Date(now);
   windowStart.setDate(windowStart.getDate() - (days * 2 - 1));
   windowStart.setHours(0, 0, 0, 0);
 
-  const [businessRes, salesRes, invoiceRes, productRes, expenseRes, debtorsRes, takings] =
-    await Promise.all([
-      supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
-      supabase
-        .from("sales")
-        .select("total, cost_total, discount, created_at")
-        .eq("business_id", businessId)
-        // partially_refunded sales still contribute their (already-reduced)
-        // remaining total, only fully refunded/cancelled sales are excluded.
-        .in("status", ["completed", "partially_refunded"])
-        .gte("created_at", windowStart.toISOString()),
-      // No date filter is possible here by design, an unpaid invoice from
-      // last year is still "outstanding" today, so .limit() is the only
-      // available bound. Safety net only: a business that somehow exceeds it
-      // would see an understated outstanding total, not an error, but this is
-      // far beyond realistic usage for this app's target market.
-      supabase
-        .from("invoices")
-        .select("customer_id, total, amount_paid, status, due_date")
-        .eq("business_id", businessId)
-        .in("status", ["sent", "partially_paid", "overdue"])
-        .limit(2000),
-      supabase
-        .from("products")
-        .select("id, name, stock, min_stock, unit")
-        .eq("business_id", businessId)
-        .is("deleted_at", null)
-        .eq("is_active", true)
-        .limit(500),
-      supabase
-        .from("expenses")
-        .select("amount, expense_date")
-        .eq("business_id", businessId)
-        .gte("expense_date", dayKey(windowStart)),
-      supabase
-        .from("customers")
-        .select("id, name, outstanding_balance")
-        .eq("business_id", businessId)
-        .is("deleted_at", null)
-        .gt("outstanding_balance", 0)
-        .order("outstanding_balance", { ascending: false })
-        .limit(1000),
-      loadDailyTakings(supabase, businessId),
-    ]);
+  type DashboardSale = { total: number; cost_total: number; created_at: string };
+  let sales: DashboardSale[] = [];
+  if (canReadSales && canReadFinancials) {
+    const result = await supabase
+      .from("sales")
+      .select("total, cost_total, created_at")
+      .eq("business_id", businessId)
+      .eq("is_historical", false)
+      .in("status", ["completed", "partially_refunded"])
+      .gte("created_at", windowStart.toISOString());
+    if (result.error) dbFail("dashboard sales", result.error);
+    sales = (result.data ?? []).map((sale) => ({
+      total: Number(sale.total ?? 0),
+      cost_total: Number(sale.cost_total ?? 0),
+      created_at: sale.created_at,
+    }));
+  } else if (canReadSales) {
+    const result = await supabase
+      .from("sales")
+      .select("total, created_at")
+      .eq("business_id", businessId)
+      .eq("is_historical", false)
+      .in("status", ["completed", "partially_refunded"])
+      .gte("created_at", windowStart.toISOString());
+    if (result.error) dbFail("dashboard sales", result.error);
+    sales = (result.data ?? []).map((sale) => ({
+      total: Number(sale.total ?? 0),
+      cost_total: 0,
+      created_at: sale.created_at,
+    }));
+  }
+
+  const [businessRes, invoiceRes, productRes, expenseRes, debtorsRes, takings] = await Promise.all([
+    supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
+    // No date filter is possible here by design, an unpaid invoice from
+    // last year is still "outstanding" today, so .limit() is the only
+    // available bound. Safety net only: a business that somehow exceeds it
+    // would see an understated outstanding total, not an error, but this is
+    // far beyond realistic usage for this app's target market.
+    canReadFinancials
+      ? supabase
+          .from("invoices")
+          .select("customer_id, total, amount_paid, status, due_date")
+          .eq("business_id", businessId)
+          .in("status", ["sent", "partially_paid", "overdue"])
+          .limit(2000)
+      : Promise.resolve({ data: [], error: null }),
+    canReadInventory
+      ? supabase
+          .from("products")
+          .select("id, name, stock, min_stock, unit")
+          .eq("business_id", businessId)
+          .is("deleted_at", null)
+          .eq("is_active", true)
+          .limit(500)
+      : Promise.resolve({ data: [], error: null }),
+    canReadExpenses
+      ? supabase
+          .from("expenses")
+          .select("amount, expense_date, description")
+          .eq("business_id", businessId)
+          .eq("is_historical", false)
+          .gte("expense_date", dayKey(windowStart))
+      : Promise.resolve({ data: [], error: null }),
+    canReadFinancials
+      ? supabase
+          .from("customers")
+          .select("id, name, outstanding_balance")
+          .eq("business_id", businessId)
+          .is("deleted_at", null)
+          .gt("outstanding_balance", 0)
+          .order("outstanding_balance", { ascending: false })
+          .limit(1000)
+      : Promise.resolve({ data: [], error: null }),
+    canReadFinancials ? loadDailyTakings(supabase, businessId) : Promise.resolve(EMPTY_TAKINGS),
+  ]);
 
   const currency = businessRes.data?.currency ?? "USD";
-  const sales = salesRes.data ?? [];
   const invoices = invoiceRes.data ?? [];
   const products = productRes.data ?? [];
   const expenses = expenseRes.data ?? [];
@@ -2241,8 +2327,8 @@ export async function loadDashboard(
   }
 
   for (const sale of sales) {
-    const total = Number(sale.total ?? 0);
-    const profit = total - Number(sale.cost_total ?? 0);
+    const total = sale.total;
+    const profit = canReadFinancials ? total - sale.cost_total : 0;
     const created = new Date(sale.created_at);
     if (created >= periodStart) {
       current.sales += total;
@@ -2280,6 +2366,26 @@ export async function loadDashboard(
   const lowStockCount = products.filter((p) => Number(p.stock) <= Number(p.min_stock)).length;
   const urgentStockCount = products.filter((p) => Number(p.stock) <= 0).length;
   const expenseTotal = expenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
+  const todayExpenses = expenses.reduce(
+    (sum, expense) => (expense.expense_date === todayKey ? sum + Number(expense.amount ?? 0) : sum),
+    0,
+  );
+  const recentActivity = [
+    ...sales.map((sale) => ({
+      type: "sale" as const,
+      description: "Sale recorded",
+      amount: sale.total,
+      date: sale.created_at,
+    })),
+    ...expenses.map((expense) => ({
+      type: "expense" as const,
+      description: expense.description || "Expense recorded",
+      amount: Number(expense.amount ?? 0),
+      date: expense.expense_date,
+    })),
+  ]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6);
 
   const pct = (curr: number, prev: number) =>
     prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0;
@@ -2358,29 +2464,38 @@ export async function loadDashboard(
 
   return {
     currency,
-    todaySales: today.sales,
-    todayProfit: today.profit,
-    salesChange,
-    profitChange,
+    todaySales: canReadSales ? today.sales : null,
+    todayProfit: canReadFinancials ? today.profit : null,
+    todayExpenses: canReadExpenses ? round2(todayExpenses) : null,
+    todayEstimatedProfit: canReadFinancials ? round2(today.sales - todayExpenses) : null,
+    salesChange: canReadFinancials ? salesChange : 0,
+    profitChange: canReadFinancials ? profitChange : 0,
     outstanding,
     outstandingCustomers,
     lowStockCount,
     urgentStockCount,
-    series: [...buckets.entries()].map(([key, value]) => ({
-      label: new Date(key).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      sales: Math.round(value.sales * 100) / 100,
-      profit: Math.round(value.profit * 100) / 100,
-    })),
-    health: { score, label, signals: signals.slice(0, 6) },
-    lowStock: lowStock.map((p) => ({
-      id: p.id,
-      name: p.name,
-      stock: Number(p.stock),
-      min_stock: Number(p.min_stock),
-      unit: p.unit,
-    })),
-    todayTakings: takings,
-    debtors,
+    series: canReadFinancials
+      ? [...buckets.entries()].map(([key, value]) => ({
+          label: new Date(key).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          sales: Math.round(value.sales * 100) / 100,
+          profit: Math.round(value.profit * 100) / 100,
+        }))
+      : [],
+    health: canReadFinancials
+      ? { score, label, signals: signals.slice(0, 6) }
+      : { score: 0, label: "Overview", signals: [] },
+    lowStock: canReadInventory
+      ? lowStock.map((p) => ({
+          id: p.id,
+          name: p.name,
+          stock: Number(p.stock),
+          min_stock: Number(p.min_stock),
+          unit: p.unit,
+        }))
+      : [],
+    todayTakings: canReadFinancials ? takings : EMPTY_TAKINGS,
+    debtors: canReadFinancials ? debtors : [],
+    recentActivity,
   };
 }
 
@@ -2413,6 +2528,7 @@ export async function loadReports(
   supabase: Db,
   businessId: string,
   days: number,
+  includeHistorical = false,
 ): Promise<ReportsData> {
   await assertPermission(supabase, businessId, "reports.financial");
   const now = new Date();
@@ -2420,34 +2536,43 @@ export async function loadReports(
   windowStart.setDate(windowStart.getDate() - (days - 1));
   windowStart.setHours(0, 0, 0, 0);
 
+  const salesQuery = supabase
+    .from("sales")
+    .select("customer_id, total, cost_total, tax, discount, created_at")
+    .eq("business_id", businessId)
+    .in("status", ["completed", "partially_refunded"])
+    .gte("created_at", windowStart.toISOString());
+  if (!includeHistorical) salesQuery.eq("is_historical", false);
+
+  const saleItemsQuery = supabase
+    .from("sale_items")
+    .select("product_id, name, quantity, line_total")
+    .eq("business_id", businessId)
+    .gte("created_at", windowStart.toISOString())
+    .limit(20000);
+  if (!includeHistorical) saleItemsQuery.eq("is_historical", false);
+
+  const expensesQuery = supabase
+    .from("expenses")
+    .select("category, amount")
+    .eq("business_id", businessId)
+    .gte("expense_date", dayKey(windowStart));
+  if (!includeHistorical) expensesQuery.eq("is_historical", false);
+
+  const paymentsQuery = supabase
+    .from("payments")
+    .select("method, amount")
+    .eq("business_id", businessId)
+    .gte("paid_at", windowStart.toISOString());
+  if (!includeHistorical) paymentsQuery.eq("is_historical", false);
+
   const [businessRes, salesRes, saleItemsRes, expensesRes, paymentsRes, productsRes, customersRes] =
     await Promise.all([
       supabase.from("businesses").select("currency").eq("id", businessId).maybeSingle(),
-      supabase
-        .from("sales")
-        .select("customer_id, total, cost_total, tax, discount, created_at")
-        .eq("business_id", businessId)
-        .in("status", ["completed", "partially_refunded"])
-        .gte("created_at", windowStart.toISOString()),
-      // Safety net only (see the invoices query in loadDashboard for the
-      // same tradeoff), the highest-cardinality table in the schema, one
-      // row per line item per sale.
-      supabase
-        .from("sale_items")
-        .select("product_id, name, quantity, line_total")
-        .eq("business_id", businessId)
-        .gte("created_at", windowStart.toISOString())
-        .limit(20000),
-      supabase
-        .from("expenses")
-        .select("category, amount")
-        .eq("business_id", businessId)
-        .gte("expense_date", dayKey(windowStart)),
-      supabase
-        .from("payments")
-        .select("method, amount")
-        .eq("business_id", businessId)
-        .gte("paid_at", windowStart.toISOString()),
+      salesQuery,
+      saleItemsQuery,
+      expensesQuery,
+      paymentsQuery,
       supabase
         .from("products")
         .select("id, name, stock, min_stock, cost_price, selling_price")
