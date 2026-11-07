@@ -24,7 +24,9 @@ test.describe("product management", () => {
     }
     await addButton.click();
 
-    await expect(page.getByRole("heading", { name: /add a product/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("heading", { name: /add a product/i })).toBeVisible({
+      timeout: 5_000,
+    });
 
     const nameInput = page.getByLabel(/product name/i);
     await nameInput.fill(`E2E Test Product ${Date.now()}`);
@@ -93,7 +95,9 @@ test.describe("other authenticated pages", () => {
   test("expenses page loads", async ({ page }) => {
     await page.goto("/expenses");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: /expense/i }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: /expense/i }).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("invoices page loads", async ({ page }) => {
@@ -114,13 +118,17 @@ test.describe("other authenticated pages", () => {
     await page.goto("/settings/account");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
     await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
-    await expect(page.locator("body")).toContainText(/account|profile|email|session/i, { timeout: 15_000 });
+    await expect(page.locator("body")).toContainText(/account|profile|email|session/i, {
+      timeout: 15_000,
+    });
   });
 
   test("team settings page loads", async ({ page }) => {
     await page.goto("/settings/team");
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
     await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
-    await expect(page.locator("body")).toContainText(/team|member|invite|session/i, { timeout: 15_000 });
+    await expect(page.locator("body")).toContainText(/team|member|invite|session/i, {
+      timeout: 15_000,
+    });
   });
 });

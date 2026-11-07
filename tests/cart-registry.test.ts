@@ -78,9 +78,7 @@ describe("cart registry", () => {
     writeCart("alpha-shop", [{ productId: "a", quantity: 2 }]);
     writeCart("alpha-shop", [{ productId: "b", quantity: 1 }], "user-1");
 
-    expect(listSavedCarts()).toEqual([
-      { slug: "alpha-shop", lineCount: 2, totalQuantity: 3 },
-    ]);
+    expect(listSavedCarts()).toEqual([{ slug: "alpha-shop", lineCount: 2, totalQuantity: 3 }]);
     expect(savedCartCount()).toBe(2);
   });
 });

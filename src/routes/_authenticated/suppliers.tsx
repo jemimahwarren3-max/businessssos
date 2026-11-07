@@ -400,11 +400,7 @@ function Suppliers() {
                         confirmLabel="Delete"
                         onConfirm={() => deleteMutation.mutate(supplier.id)}
                         trigger={
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            aria-label="Delete supplier"
-                          >
+                          <Button size="icon" variant="outline" aria-label="Delete supplier">
                             <Trash2 className="size-4" aria-hidden="true" />
                           </Button>
                         }

@@ -172,7 +172,8 @@ function Setup() {
           {
             key: "storefront",
             title: "Preview your online store",
-            description: "Choose a design and preview your store. You can publish after subscribing.",
+            description:
+              "Choose a design and preview your store. You can publish after subscribing.",
             href: "/storefront",
             icon: Store,
             done: !!p?.storefront_enabled,
