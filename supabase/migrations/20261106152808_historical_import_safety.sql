@@ -55,6 +55,7 @@ from public.sales s
 where s.id = p.sale_id and s.is_historical;
 
 drop function if exists public.import_sale_history_row(uuid, timestamptz, numeric, numeric, text);
+drop function if exists public.import_historical_sale_total(uuid, timestamptz, numeric, numeric, text, text, integer);
 create function public.import_historical_sale_total(
   _business_id uuid,
   _sale_date timestamptz,
@@ -132,6 +133,7 @@ revoke all on function public.import_historical_sale_total(uuid, timestamptz, nu
 grant execute on function public.import_historical_sale_total(uuid, timestamptz, numeric, numeric, text, text, integer) to authenticated;
 
 drop function if exists public.import_sale_line(uuid, timestamptz, uuid, numeric, numeric, uuid, public.payment_method, text);
+drop function if exists public.import_historical_sale_line(uuid, timestamptz, uuid, numeric, numeric, uuid, public.payment_method, text, text, integer);
 create function public.import_historical_sale_line(
   _business_id uuid,
   _sale_date timestamptz,
