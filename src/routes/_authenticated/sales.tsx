@@ -470,6 +470,18 @@ function Sales() {
   const remaining = Math.round((totals.total - tendersAllocated(activeTenders)) * 100) / 100;
   const needsDrawer = tendersNeedCashDrawer(activeTenders);
   const needsCustomer = tendersNeedCustomer(activeTenders);
+  const saleBlockReason =
+    cart.length === 0
+      ? "Add a product to the cart to start a sale."
+      : needsCustomer && !customerId
+        ? "Choose a customer for a credit sale."
+        : needsDrawer && isOnline && !cashDrawerOpen
+          ? "Open the cash drawer to take cash."
+          : splitPay && remaining !== 0
+            ? `Split payments are ${remaining > 0 ? "short" : "over"} by ${formatMoney(Math.abs(remaining), currency)}.`
+            : splitPay && activeTenders.some((tender) => tender.amount <= 0)
+              ? "Every payment needs an amount above zero."
+              : null;
   const hasUnconfirmedRail = activeTenders.some(
     (tender) => tender.rail === "ecocash" || tender.rail === "innbucks" || tender.rail === "zipit",
   );
@@ -1137,6 +1149,9 @@ function Sales() {
               </div>
             </div>
 
+            {saleBlockReason ? (
+              <p className="text-[13px] text-muted-foreground">{saleBlockReason}</p>
+            ) : null}
             <Button
               className="w-full gap-1.5"
               size="lg"

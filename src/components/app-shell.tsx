@@ -46,6 +46,7 @@ import {
 } from "@/lib/business.functions";
 import { HintTooltip } from "@/components/hint-tooltip";
 import { Logo } from "@/components/logo";
+import { QuickAddMenu } from "@/components/quick-add-menu";
 import { QuickEntryDialog } from "@/components/quick-entry-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -428,6 +429,7 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const signOutServerFn = useServerFn(signOutFn);
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   // Reuses the ["workspace"] query every page already populates, no extra
   // network request in practice, just reading businessId back out of it.
@@ -524,7 +526,7 @@ export function AppShell({
                       variant="default"
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => setQuickAddOpen(true)}
+                      onClick={() => setQuickMenuOpen(true)}
                     >
                       <Wand2 className="size-4" aria-hidden="true" />
                       <span className="hidden sm:inline">Quick add</span>
@@ -708,6 +710,14 @@ export function AppShell({
           </div>
         </nav>
 
+        <QuickAddMenu
+          open={quickMenuOpen}
+          onOpenChange={setQuickMenuOpen}
+          onTypeNote={() => {
+            setQuickMenuOpen(false);
+            setQuickAddOpen(true);
+          }}
+        />
         <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
       </div>
     </TooltipProvider>
