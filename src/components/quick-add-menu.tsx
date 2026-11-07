@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { Boxes, FileUp, Receipt, ShoppingCart, Wand2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const OPTIONS = [
   {
