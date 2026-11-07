@@ -1,7 +1,9 @@
 alter table public.sales
-  add column is_historical boolean not null default false,
-  add column import_batch_key text,
-  add column source_row_number integer,
+  add column if not exists is_historical boolean not null default false,
+  add column if not exists import_batch_key text,
+  add column if not exists source_row_number integer;
+alter table public.sales drop constraint if exists sales_import_identity_check;
+alter table public.sales
   add constraint sales_import_identity_check check (
     (import_batch_key is null and source_row_number is null)
     or (
@@ -11,18 +13,20 @@ alter table public.sales
       and source_row_number >= 2
     )
   );
-create unique index sales_import_row_uniq
+create unique index if not exists sales_import_row_uniq
   on public.sales (business_id, import_batch_key, source_row_number)
   where import_batch_key is not null;
 
 alter table public.sale_items
-  add column is_historical boolean not null default false;
+  add column if not exists is_historical boolean not null default false;
 alter table public.payments
-  add column is_historical boolean not null default false;
+  add column if not exists is_historical boolean not null default false;
 alter table public.expenses
-  add column is_historical boolean not null default false,
-  add column import_batch_key text,
-  add column source_row_number integer,
+  add column if not exists is_historical boolean not null default false,
+  add column if not exists import_batch_key text,
+  add column if not exists source_row_number integer;
+alter table public.expenses drop constraint if exists expenses_import_identity_check;
+alter table public.expenses
   add constraint expenses_import_identity_check check (
     (import_batch_key is null and source_row_number is null)
     or (
@@ -32,7 +36,7 @@ alter table public.expenses
       and source_row_number >= 2
     )
   );
-create unique index expenses_import_row_uniq
+create unique index if not exists expenses_import_row_uniq
   on public.expenses (business_id, import_batch_key, source_row_number)
   where import_batch_key is not null;
 

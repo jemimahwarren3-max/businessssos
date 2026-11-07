@@ -1,3 +1,11 @@
+drop policy if exists "owners create invites" on public.business_invites;
+drop policy if exists "owners read invites" on public.business_invites;
+drop policy if exists "owners update invites" on public.business_invites;
+drop policy if exists "owners and admins update lower roles" on public.business_members;
+drop policy if exists "owners add team members" on public.business_members;
+drop policy if exists "owners and admins remove lower roles" on public.business_members;
+drop policy if exists "owners and admins write lower-role permissions" on public.business_role_permissions;
+drop policy if exists "owners and admins delete lower-role permissions" on public.business_role_permissions;
 drop policy if exists "admins create invites" on public.business_invites;
 create policy "owners create invites" on public.business_invites for insert to authenticated
   with check (
