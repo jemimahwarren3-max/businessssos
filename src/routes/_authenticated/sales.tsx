@@ -699,7 +699,7 @@ function Sales() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="order-2 space-y-4 lg:order-1">
+        <div className="order-1 space-y-4 lg:order-1">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search
@@ -781,7 +781,7 @@ function Sales() {
           </div>
         </div>
 
-        <div className="surface order-1 space-y-4 p-4 lg:order-2 lg:sticky lg:top-20 lg:h-fit">
+        <div className="surface order-2 space-y-4 p-4 lg:order-2 lg:sticky lg:top-20 lg:h-fit">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Cart</h2>
             {cart.length > 0 ? (
