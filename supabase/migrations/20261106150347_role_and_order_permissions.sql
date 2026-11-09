@@ -334,3 +334,29 @@ end;
 $$;
 revoke all on function public.has_permission(uuid, text) from public;
 grant execute on function public.has_permission(uuid, text) to authenticated, service_role;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'transition_store_order_impl'
+  ) then
+    alter function public.transition_store_order(uuid, uuid, text, text) rename to transition_store_order_impl;
+  end if;
+end $$;
+revoke all on function public.transition_store_order_impl(uuid, uuid, text, text) from public, anon, authenticated;
+
+create or replace function public.transition_store_order(
+  _business_id uuid,
+  _order_id uuid,
+  _action text,
+  _reason text default null
+) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.storefront_require_orders(_business_id);
+  return public.transition_store_order_impl(_business_id, _order_id, _action, _reason);
+end;
+$$;
+revoke all on function public.transition_store_order(uuid, uuid, text, text) from public, anon;
+grant execute on function public.transition_store_order(uuid, uuid, text, text) to authenticated, service_role;
