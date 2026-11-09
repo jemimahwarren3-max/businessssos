@@ -76,6 +76,7 @@
     "idb": "^8.0.3",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
+    "mammoth": "^1.11.0",
     "paynow": "^2.2.2",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
@@ -97,13 +98,13 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
-    "@playwright/test": "^1.55.1",
     "@capacitor/android": "^8.5.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@capacitor/network": "^8.0.1",
+    "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.55.1",
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/cli": "^2.12.4",
     "@types/node": "^22.16.5",

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   extractJson,
   isRawDraft,
+  quickEntrySaleIsStockOk,
   resolveCustomer,
   resolveExpense,
+  type QuickEntrySaleDraft,
 } from "../src/lib/quick-entry.server";
 
 describe("extractJson", () => {
@@ -27,6 +29,7 @@ describe("extractJson", () => {
 describe("isRawDraft", () => {
   it("accepts each known type discriminator", () => {
     expect(isRawDraft({ type: "sale" })).toBe(true);
+    expect(isRawDraft({ type: "sale_batch" })).toBe(true);
     expect(isRawDraft({ type: "expense" })).toBe(true);
     expect(isRawDraft({ type: "customer" })).toBe(true);
     expect(isRawDraft({ type: "unknown" })).toBe(true);
@@ -76,6 +79,51 @@ describe("resolveExpense", () => {
     expect(resolveExpense({ type: "expense", amount: "not a number" })).toEqual({
       type: "unknown",
     });
+  });
+});
+
+describe("quickEntrySaleIsStockOk", () => {
+  const base: QuickEntrySaleDraft = {
+    type: "sale",
+    items: [],
+    customerId: "",
+    customerName: "",
+    customerPhone: "",
+    paymentMethod: "cash",
+    saleDate: "",
+  };
+
+  it("requires every line to have enough stock", () => {
+    const ok = quickEntrySaleIsStockOk({
+      ...base,
+      items: [
+        {
+          name: "Shirt",
+          quantity: 2,
+          productId: "p1",
+          unitPrice: 10,
+          taxRate: 0,
+          availableStock: 5,
+          stockOk: true,
+        },
+      ],
+    });
+    expect(ok).toBe(true);
+    const bad = quickEntrySaleIsStockOk({
+      ...base,
+      items: [
+        {
+          name: "Shirt",
+          quantity: 6,
+          productId: "p1",
+          unitPrice: 10,
+          taxRate: 0,
+          availableStock: 5,
+          stockOk: false,
+        },
+      ],
+    });
+    expect(bad).toBe(false);
   });
 });
 

@@ -562,7 +562,7 @@ export function AppShell({
                       variant="default"
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => setQuickMenuOpen(true)}
+                      onClick={() => setQuickAddOpen(true)}
                     >
                       <Wand2 className="size-4" aria-hidden="true" />
                       <span className="hidden sm:inline">Quick add</span>

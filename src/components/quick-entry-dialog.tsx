@@ -44,21 +44,26 @@ import {
   type LineItemInput,
 } from "@/lib/business.schemas";
 import { readableError } from "@/lib/format";
-import type { QuickEntryDraft } from "@/lib/quick-entry.server";
-import { parseSpreadsheetFile } from "@/lib/spreadsheet";
+import type { QuickEntryDraft, QuickEntrySaleDraft } from "@/lib/quick-entry.server";
+import { quickEntrySaleHasProducts, quickEntrySaleIsStockOk } from "@/lib/quick-entry.server";
+import { extractQuickAddFileText } from "@/lib/quick-add-files";
 
 const NONE = "__none";
 const EXAMPLES = [
+  "Sales 9 November",
   "Sold 3 shirts to Mary for $90",
   "Bought 20 cases of Mazoe from ABC Suppliers at $8 each",
   "Paid $45 for transport",
-  "New customer John, 0771234567",
 ];
 
 type SaleDraftState = {
   items: LineItemInput[];
   customerId: string;
+  customerName: string;
+  customerPhone: string;
   paymentMethod: (typeof PAYMENT_METHODS)[number]["value"];
+  saleDate: string;
+  stockByLine: boolean[];
 };
 
 type ExpenseDraftState = {
@@ -97,6 +102,62 @@ export function QuickEntryDialog({
   const [purchaseForm, setPurchaseForm] = useState<PurchaseDraftState | null>(null);
   const [expenseForm, setExpenseForm] = useState<ExpenseDraftState | null>(null);
   const [customerForm, setCustomerForm] = useState<CustomerDraftState | null>(null);
+  const [saleBatch, setSaleBatch] = useState<QuickEntrySaleDraft[] | null>(null);
+
+  function saleDraftToForm(sale: QuickEntrySaleDraft): SaleDraftState {
+    return {
+      items: sale.items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        taxRate: item.taxRate,
+      })),
+      customerId: sale.customerId,
+      customerName: sale.customerName,
+      customerPhone: sale.customerPhone,
+      paymentMethod: sale.paymentMethod,
+      saleDate: sale.saleDate,
+      stockByLine: sale.items.map((item) => item.stockOk),
+    };
+  }
+
+  async function resolveCustomerId(sale: QuickEntrySaleDraft): Promise<string> {
+    if (sale.customerId) return sale.customerId;
+    const name = sale.customerName.trim();
+    if (!name) return "";
+    const created = await createCustomerFn({
+      data: customerSchema.parse({
+        businessId,
+        name,
+        phone: sale.customerPhone,
+        email: "",
+      }),
+    });
+    return created.id;
+  }
+
+  async function submitSale(sale: QuickEntrySaleDraft, form: SaleDraftState) {
+    let customerId = form.customerId === NONE ? "" : form.customerId;
+    if (!customerId) customerId = await resolveCustomerId(sale);
+    const noteParts = ["Recorded via Quick Add"];
+    if (form.saleDate) noteParts.push(form.saleDate);
+    if (form.customerName.trim() && !customerId) noteParts.push(`customer: ${form.customerName}`);
+    const parsed = saleSchema.parse({
+      businessId,
+      customerId: customerId || "",
+      discount: 0,
+      paymentMethod: form.paymentMethod,
+      notes: noteParts.join(" · "),
+      items: form.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      idempotencyKey: crypto.randomUUID(),
+    });
+    return createSaleFn({ data: parsed });
+  }
 
   const parseFn = useServerFn(parseQuickEntryFn);
   const createSaleFn = useServerFn(addSale);
@@ -132,6 +193,7 @@ export function QuickEntryDialog({
     setPurchaseForm(null);
     setExpenseForm(null);
     setCustomerForm(null);
+    setSaleBatch(null);
   }
 
   function close() {
@@ -143,19 +205,17 @@ export function QuickEntryDialog({
     mutationFn: () => parseFn({ data: { businessId: businessId!, text } }),
     onSuccess: (result) => {
       setDraft(result);
-      if (result.type === "sale") {
-        setSaleForm({
-          items: result.items.map((item) => ({
-            productId: item.productId,
-            name: item.name,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            taxRate: item.taxRate,
-          })),
-          customerId: result.customerId,
-          paymentMethod: result.paymentMethod,
-        });
-      } else if (result.type === "purchase") {
+      if (result.type === "sale_batch") {
+        setSaleBatch(result.sales);
+        setSaleForm(null);
+      } else if (result.type === "sale") {
+        setSaleBatch(null);
+        setSaleForm(saleDraftToForm(result));
+      } else {
+        setSaleBatch(null);
+        setSaleForm(null);
+      }
+      if (result.type === "purchase") {
         setPurchaseForm({
           productId: result.productId,
           productName: result.productName,
@@ -180,19 +240,10 @@ export function QuickEntryDialog({
 
   const saleMutation = useMutation({
     mutationFn: async () => {
-      const parsed = saleSchema.parse({
-        businessId,
-        customerId: saleForm!.customerId === NONE ? "" : saleForm!.customerId,
-        discount: 0,
-        paymentMethod: saleForm!.paymentMethod,
-        items: saleForm!.items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        })),
-        idempotencyKey: crypto.randomUUID(),
-      });
-      return createSaleFn({ data: parsed });
+      const form = saleForm!;
+      const sale = draft?.type === "sale" ? draft : null;
+      if (!sale) throw new Error("No sale draft");
+      return submitSale(sale, form);
     },
     onSuccess: async () => {
       toast.success("Sale recorded.");
@@ -275,8 +326,43 @@ export function QuickEntryDialog({
     onError: (error: Error) => toast.error(readableError(error, "Couldn't add that customer.")),
   });
 
+  const saleBatchMutation = useMutation({
+    mutationFn: async () => {
+      if (!saleBatch?.length) throw new Error("No sales to record");
+      for (const sale of saleBatch) {
+        if (!quickEntrySaleHasProducts(sale) || !quickEntrySaleIsStockOk(sale)) {
+          throw new Error(
+            `Sale for ${sale.customerName || "walk-in"} has missing products or not enough stock.`,
+          );
+        }
+        await submitSale(sale, saleDraftToForm(sale));
+      }
+    },
+    onSuccess: async () => {
+      toast.success(
+        saleBatch?.length === 1
+          ? "Sale recorded."
+          : `${saleBatch?.length ?? 0} sales recorded from your file.`,
+      );
+      close();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["customers"] }),
+      ]);
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Couldn't record those sales.")),
+  });
+
   const saleItemsValid =
     saleForm != null && saleForm.items.length > 0 && saleForm.items.every((i) => i.productId);
+  const saleStockValid =
+    saleForm != null &&
+    (draft?.type === "sale" ? quickEntrySaleIsStockOk(draft) : saleForm.stockByLine.every(Boolean));
+  const saleBatchReady =
+    saleBatch != null &&
+    saleBatch.length > 0 &&
+    saleBatch.every((s) => quickEntrySaleHasProducts(s) && quickEntrySaleIsStockOk(s));
   const purchaseValid =
     purchaseForm != null && Boolean(purchaseForm.productId) && Number(purchaseForm.quantity) > 0;
 
@@ -292,8 +378,9 @@ export function QuickEntryDialog({
         <DialogHeader>
           <DialogTitle>Quick add</DialogTitle>
           <DialogDescription>
-            Type what happened, or attach a CSV/Excel file. Kwetuu reads it and shows a draft for
-            you to confirm before anything is saved.
+            Say what to record (for example &quot;Sales 9 November&quot;) or attach Excel, Word, or
+            CSV. Kwetuu matches products, adds new customers when needed, and will not sell items
+            that are out of stock.
           </DialogDescription>
         </DialogHeader>
 
@@ -302,14 +389,14 @@ export function QuickEntryDialog({
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Sold 3 shirts to Mary for $90"
+              placeholder="Sales 9 November — or describe a sale, purchase, or expense"
               rows={3}
               autoFocus
             />
             <input
               id="quick-add-file"
               type="file"
-              accept=".csv,.xlsx,.xls,.txt"
+              accept=".csv,.xlsx,.xls,.txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -318,16 +405,7 @@ export function QuickEntryDialog({
                   try {
                     let next = "";
                     const lower = file.name.toLowerCase();
-                    if (lower.endsWith(".txt")) {
-                      next = (await file.text()).trim().slice(0, 12_000);
-                    } else {
-                      const rows = await parseSpreadsheetFile(file);
-                      next = rows
-                        .slice(0, 40)
-                        .map((row) => row.join("\t"))
-                        .join("\n")
-                        .slice(0, 12_000);
-                    }
+                    next = await extractQuickAddFileText(file);
                     if (!next.trim()) {
                       toast.error("That file did not contain any rows we could read.");
                       return;
@@ -338,7 +416,7 @@ export function QuickEntryDialog({
                         : `From file ${file.name}:\n${next}`,
                     );
                     setFileLabel(file.name);
-                    toast.success("File added. Tap Understand to turn it into a draft.");
+                    toast.success("File added. Tap Prepare to review, then record.");
                   } catch (error) {
                     toast.error(readableError(error as Error, "Could not read that file."));
                   } finally {
@@ -384,7 +462,43 @@ export function QuickEntryDialog({
                 ) : (
                   <Wand2 className="size-4" aria-hidden="true" />
                 )}
-                Understand
+                Prepare
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : draft.type === "sale_batch" && saleBatch ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Found {saleBatch.length} sale{saleBatch.length === 1 ? "" : "s"} in your file. Each
+              line is checked against stock on hand; new customers are created automatically.
+            </p>
+            <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-border p-3 text-sm">
+              {saleBatch.map((sale, index) => {
+                const ok = quickEntrySaleHasProducts(sale) && quickEntrySaleIsStockOk(sale);
+                const label = sale.customerName.trim() || "Walk-in";
+                const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+                return (
+                  <li key={`${label}-${index}`} className={ok ? "" : "text-destructive"}>
+                    <span className="font-medium">{label}</span>
+                    {sale.saleDate ? ` · ${sale.saleDate}` : ""}: {itemCount} item
+                    {itemCount === 1 ? "" : "s"}
+                    {!ok ? " (fix stock or product match)" : ""}
+                  </li>
+                );
+              })}
+            </ul>
+            <DialogFooter>
+              <Button variant="ghost" onClick={reset}>
+                Back
+              </Button>
+              <Button
+                disabled={!saleBatchReady || saleBatchMutation.isPending}
+                onClick={() => saleBatchMutation.mutate()}
+              >
+                {saleBatchMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                Record {saleBatch.length} sale{saleBatch.length === 1 ? "" : "s"}
               </Button>
             </DialogFooter>
           </div>
@@ -427,6 +541,19 @@ export function QuickEntryDialog({
           </div>
         ) : draft.type === "sale" && saleForm ? (
           <div className="space-y-3">
+            {saleForm.customerName && !saleForm.customerId ? (
+              <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-[13px] text-muted-foreground">
+                Customer{" "}
+                <span className="font-medium text-foreground">{saleForm.customerName}</span>
+                {saleForm.customerPhone ? ` (${saleForm.customerPhone})` : ""} is not in your list
+                yet. Kwetuu will add them when you record this sale.
+              </p>
+            ) : null}
+            {saleForm.saleDate ? (
+              <p className="text-xs text-muted-foreground">
+                Sale date from your note: {saleForm.saleDate}
+              </p>
+            ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="qe-customer">Customer (optional)</Label>
               <Select
@@ -448,13 +575,29 @@ export function QuickEntryDialog({
             </div>
             <LineItemsEditor
               items={saleForm.items}
-              onChange={(items) => setSaleForm({ ...saleForm, items })}
+              onChange={(items) => {
+                const stockByLine = items.map((item) => {
+                  const product = (products.data ?? []).find((p) => p.id === item.productId);
+                  const stock = product ? Number(product.stock) : 0;
+                  return (
+                    Boolean(item.productId) &&
+                    Number(item.quantity) > 0 &&
+                    Number(item.quantity) <= stock
+                  );
+                });
+                setSaleForm({ ...saleForm, items, stockByLine });
+              }}
               products={productOptions}
               currency={currency}
             />
             {!saleItemsValid ? (
               <p className="text-[13px] text-warning-foreground">
                 Pick a product for every line before confirming.
+              </p>
+            ) : null}
+            {!saleStockValid ? (
+              <p className="text-[13px] text-destructive">
+                Not enough stock for one or more lines. Reduce quantities or receive stock first.
               </p>
             ) : null}
             <div className="space-y-1.5">
@@ -486,13 +629,13 @@ export function QuickEntryDialog({
               </Button>
               <Button
                 className="gap-1.5"
-                disabled={!saleItemsValid || saleMutation.isPending}
+                disabled={!saleItemsValid || !saleStockValid || saleMutation.isPending}
                 onClick={() => saleMutation.mutate()}
               >
                 {saleMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : null}
-                Confirm sale
+                Record sale
               </Button>
             </DialogFooter>
           </div>

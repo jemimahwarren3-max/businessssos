@@ -83,7 +83,7 @@ export function QuickAddMenu({
               <span>
                 <span className="block text-sm font-medium">Type a quick note</span>
                 <span className="block text-[13px] text-muted-foreground">
-                  Describe a sale or expense in plain words and review it first.
+                  Same as the header Quick add button: note plus optional file.
                 </span>
               </span>
             </button>

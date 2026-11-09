@@ -42,7 +42,7 @@ export const SECONDARY_NAV_HINTS: Record<string, string> = {
 
 export const HEADER_HINTS = {
   quickAdd:
-    "Describe a sale, expense, or stock change in one sentence. You review before anything is saved.",
+    "Type a short note or attach Excel, Word, or CSV. Products and customers are matched; out-of-stock sales are blocked.",
   notifications: "Orders, low stock, and other alerts for this business.",
   account: "Sign out or switch workspace from another tab.",
   role: "Your permissions in this business, owners can manage billing and team.",
