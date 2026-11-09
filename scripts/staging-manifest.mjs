@@ -163,6 +163,7 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261106151400_enforce_team_role_boundaries.sql" },
   { file: "20261106152808_historical_import_safety.sql" },
   { file: "20261109100000_stock_assistant_role.sql" },
+  { file: "20261109110000_stock_assistant_permissions.sql" },
   { file: "20261109120000_cash_sale_auto_session.sql" },
 ];
 
