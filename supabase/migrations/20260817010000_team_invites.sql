@@ -20,6 +20,15 @@ alter table public.business_invites add column if not exists token text;
 create unique index if not exists business_invites_token_key on public.business_invites(token);
 create index if not exists business_invites_business_idx on public.business_invites(business_id);
 create index if not exists business_invites_token_idx on public.business_invites(token);
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'business_invites' and column_name = 'token_hash'
+  ) then
+    alter table public.business_invites alter column token_hash drop not null;
+  end if;
+end $$;
 
 grant select, insert, update on public.business_invites to authenticated;
 grant all on public.business_invites to service_role;

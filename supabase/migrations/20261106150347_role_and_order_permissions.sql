@@ -311,3 +311,26 @@ end;
 $$;
 revoke all on function public.reject_store_order_proof(uuid, uuid, text) from public, anon;
 grant execute on function public.reject_store_order_proof(uuid, uuid, text) to authenticated;
+create or replace function public.has_permission(_business_id uuid, _permission text)
+returns boolean
+language plpgsql security definer set search_path = public as $$
+declare
+  _role public.app_role;
+begin
+  select m.role into _role from public.business_members m
+    where m.business_id = _business_id and m.user_id = auth.uid() and m.is_active;
+  if _role is null then
+    return false;
+  end if;
+  if _role = 'owner' then
+    return true;
+  end if;
+  perform public.seed_default_role_permissions(_business_id);
+  return exists (
+    select 1 from public.business_role_permissions
+    where business_id = _business_id and role = _role and permission_key = _permission
+  );
+end;
+$$;
+revoke all on function public.has_permission(uuid, text) from public;
+grant execute on function public.has_permission(uuid, text) to authenticated, service_role;

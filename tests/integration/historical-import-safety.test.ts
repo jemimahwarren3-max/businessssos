@@ -100,7 +100,7 @@ describeStaging("historical import safety", () => {
     expect(after?.historical).toBe(true);
     expect(after?.payment_historical).toBe(true);
     expect(after?.item_historical).toBe(true);
-    expect(after?.sale_count).toBe(1);
+    expect(Number(after?.sale_count)).toBe(1);
   });
 
   it("imports summary sales and expenses once with historical flags", async () => {
@@ -165,7 +165,7 @@ describeStaging("historical import safety", () => {
       );`,
     );
     expect(product?.id).toBeTruthy();
-    expect(product?.stock).toBe(1);
+    expect(Number(product?.stock)).toBe(1);
 
     const [after] = await sql<{ notifications: number; outbox: number }>(`
       select
