@@ -157,6 +157,7 @@ export const STAGING_MIGRATION_MANIFEST = [
     // without excluding supplier payouts.
     file: "20261103121000_daily_takings_exclude_suppliers.sql",
   },
+  { file: "20260817010000_team_invites.sql" },
   { file: "20261106130000_platform_access_consent.sql" },
   { file: "20261106150347_role_and_order_permissions.sql" },
   { file: "20261106151400_enforce_team_role_boundaries.sql" },

@@ -4,11 +4,11 @@
 -- stranger satisfies neither branch, so accepting needs a security definer
 -- RPC to bypass RLS safely (same reasoning as create_sale/import_sale_line).
 
-create table public.business_invites (
+create table if not exists public.business_invites (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.businesses(id) on delete cascade,
   role public.app_role not null,
-  token text not null unique,
+  token text not null,
   status text not null default 'pending' check (status in ('pending', 'accepted', 'revoked')),
   created_by uuid not null references auth.users(id),
   accepted_by uuid references auth.users(id),
@@ -16,20 +16,25 @@ create table public.business_invites (
   expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
-create index business_invites_business_idx on public.business_invites(business_id);
-create index business_invites_token_idx on public.business_invites(token);
+alter table public.business_invites add column if not exists token text;
+create unique index if not exists business_invites_token_key on public.business_invites(token);
+create index if not exists business_invites_business_idx on public.business_invites(business_id);
+create index if not exists business_invites_token_idx on public.business_invites(token);
 
 grant select, insert, update on public.business_invites to authenticated;
 grant all on public.business_invites to service_role;
 
 alter table public.business_invites enable row level security;
+drop policy if exists "admins read invites" on public.business_invites;
 create policy "admins read invites" on public.business_invites for select to authenticated
   using (public.has_business_role(business_id, array['owner','admin']::public.app_role[]));
+drop policy if exists "admins create invites" on public.business_invites;
 create policy "admins create invites" on public.business_invites for insert to authenticated
   with check (
     public.has_business_role(business_id, array['owner','admin']::public.app_role[])
     and created_by = auth.uid()
   );
+drop policy if exists "admins revoke invites" on public.business_invites;
 create policy "admins revoke invites" on public.business_invites for update to authenticated
   using (public.has_business_role(business_id, array['owner','admin']::public.app_role[]))
   with check (public.has_business_role(business_id, array['owner','admin']::public.app_role[]));
