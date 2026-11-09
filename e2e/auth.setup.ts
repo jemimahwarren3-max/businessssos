@@ -26,6 +26,21 @@ setup("authenticate test owner", async ({ page }) => {
   await authenticate(page, email, password, "owner.json");
 });
 
+for (const role of [
+  { file: "cashier", prefix: "CASHIER" },
+  { file: "stock_assistant", prefix: "STOCK" },
+] as const) {
+  setup(`authenticate ${role.file}`, async ({ page }) => {
+    const email = process.env[`E2E_${role.prefix}_EMAIL`];
+    const password = process.env[`E2E_${role.prefix}_PASSWORD`];
+    if (!email || !password) {
+      setup.skip(true, `E2E_${role.prefix}_EMAIL and E2E_${role.prefix}_PASSWORD are required`);
+      return;
+    }
+    await authenticate(page, email, password, `${role.file}.json`);
+  });
+}
+
 for (const role of ["merchant-a", "merchant-b", "customer-a", "customer-b"] as const) {
   const prefix = role.replace("-", "_").toUpperCase();
   setup(`authenticate ${role}`, async ({ page }) => {

@@ -2208,7 +2208,12 @@ export async function loadDashboard(
   days: number,
 ): Promise<DashboardData> {
   await assertMember(supabase, businessId);
-  const permissionChecks = ["expenses.create", "inventory.import", "reports.financial"] as const;
+  const permissionChecks = [
+    "expenses.create",
+    "inventory.import",
+    "inventory.view",
+    "reports.financial",
+  ] as const;
   const permissionResults = await Promise.all(
     permissionChecks.map(async (permission) => {
       const { data, error } = await supabase.rpc("has_permission", {
@@ -2224,7 +2229,9 @@ export async function loadDashboard(
   const canReadExpenses =
     permissions.get("expenses.create") || permissions.get("reports.financial");
   const canReadInventory =
-    permissions.get("inventory.import") || permissions.get("reports.financial");
+    permissions.get("inventory.import") ||
+    permissions.get("inventory.view") ||
+    permissions.get("reports.financial");
   const canReadFinancials = permissions.get("reports.financial");
   const now = new Date();
   const windowStart = new Date(now);

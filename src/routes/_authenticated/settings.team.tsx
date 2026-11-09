@@ -53,16 +53,25 @@ export const Route = createFileRoute("/_authenticated/settings/team")({
   component: Team,
 });
 
-const TEAM_ROLES = ["owner", "admin", "manager", "cashier", "accountant"] as const;
-const INVITE_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
+const TEAM_ROLES = [
+  "owner",
+  "admin",
+  "manager",
+  "cashier",
+  "accountant",
+  "stock_assistant",
+] as const;
+const INVITE_ROLES = ["admin", "manager", "cashier", "accountant", "stock_assistant"] as const;
 const INVITE_ROLE_HELP: Record<(typeof INVITE_ROLES)[number], string> = {
   admin: "Runs the business day to day, including the team, except owner-only settings.",
   manager: "Manages sales, stock, expenses, orders and reports.",
   cashier: "Records sales, searches products and prints receipts.",
   accountant: "Views and works with financial records.",
+  stock_assistant:
+    "Views products and stock levels and records stock in or out. No sales, expenses or financial reports.",
 };
 // Owner is deliberately excluded, always has every permission, not editable.
-const PERMISSION_ROLES = ["admin", "manager", "cashier", "accountant"] as const;
+const PERMISSION_ROLES = ["admin", "manager", "cashier", "accountant", "stock_assistant"] as const;
 
 function Team() {
   const navigate = useNavigate();

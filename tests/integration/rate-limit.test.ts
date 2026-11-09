@@ -15,15 +15,16 @@ describeStaging("rate limiting", () => {
     const key = `test-rl-${newId()}`;
     usedKey = key;
 
-    const results: boolean[] = [];
-    for (let i = 0; i < 4; i++) {
-      const [row] = await sql<{ allowed: boolean }>(
-        `select public.check_rate_limit('${key}', 3, 60) as allowed;`,
-      );
-      results.push(row!.allowed);
-    }
+    const [row] = await sql<{ results: boolean[] }>(`
+      select array[
+        public.check_rate_limit('${key}', 3, 60),
+        public.check_rate_limit('${key}', 3, 60),
+        public.check_rate_limit('${key}', 3, 60),
+        public.check_rate_limit('${key}', 3, 60)
+      ] as results;
+    `);
 
-    expect(results).toEqual([true, true, true, false]);
+    expect(row?.results).toEqual([true, true, true, false]);
   }, 30_000);
 
   it("different keys don't share a bucket", async () => {
