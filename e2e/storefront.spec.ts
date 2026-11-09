@@ -22,7 +22,10 @@ test.describe("storefront public experience", () => {
       .first()
       .isVisible()
       .catch(() => false);
-    expect(is404 || hasNotFound).toBe(true);
+    // Production shop-host rewrite sends unknown slugs to `{slug}.host`, then
+    // home. That is still "this shop is not here", not a real storefront.
+    const bouncedHome = new URL(page.url()).pathname === "/";
+    expect(is404 || hasNotFound || bouncedHome).toBe(true);
   });
 
   test("can browse a listed shop if any exist", async ({ page }) => {
