@@ -372,11 +372,12 @@ export async function loadStoreOrders(
     _business_id: businessId,
   });
   if (result.error) rpcFail("load storefront orders", result.error);
-  return parseRpc(
+  const orders = await parseRpc(
     "load storefront orders",
     { data: result.data, error: null },
     adminStoreSchema.shape.orders,
   );
+  return Array.isArray(orders) ? orders : [];
 }
 
 function withPersistedCover(patch: Json): Json {

@@ -21,7 +21,7 @@ function OnlineOrdersPage() {
   const businessId = workspace.data?.business.id;
   const load = useServerFn(getStorefrontOrdersFn);
   const admin = useQuery({
-    queryKey: ["storefront", businessId],
+    queryKey: ["storefront-orders", businessId],
     enabled: Boolean(businessId),
     queryFn: () => load({ data: { businessId: businessId! } }),
     refetchInterval: 30_000,
@@ -59,8 +59,9 @@ function OnlineOrdersPage() {
       {admin.data && businessId ? (
         <OnlineOrdersFulfilmentPanel
           businessId={businessId}
-          orders={admin.data}
+          orders={Array.isArray(admin.data) ? admin.data : []}
           storeName={workspace.data.business.name}
+          queryKeys={["storefront-orders", businessId]}
           showTitle={false}
         />
       ) : null}

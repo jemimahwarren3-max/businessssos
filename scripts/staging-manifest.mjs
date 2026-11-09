@@ -162,6 +162,7 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261106150347_role_and_order_permissions.sql" },
   { file: "20261106151400_enforce_team_role_boundaries.sql" },
   { file: "20261106152808_historical_import_safety.sql" },
+  { file: "20261109120000_cash_sale_auto_session.sql" },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
