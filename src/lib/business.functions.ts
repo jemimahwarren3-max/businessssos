@@ -40,6 +40,7 @@ import {
   productSchema,
   purchaseOrderSchema,
   purchaseOrderStatusSchema,
+  quickEntryImageExtractSchema,
   quickEntrySchema,
   quoteIdSchema,
   quoteSchema,
@@ -107,6 +108,7 @@ import {
 import { AI_LIMITS } from "./ai/limits.server";
 import { askAssistant } from "./ai.server";
 import { parseQuickEntry } from "./quick-entry.server";
+import { extractQuickAddImageText } from "./quick-add-vision.server";
 import { getAnomalies, getInventoryForecast, getWeeklyReport } from "./insights.server";
 import { checkSubscriptionPayment, initiateSubscriptionCheckout } from "./payments/paynow.server";
 import { exportBusinessData } from "./data-export.server";
@@ -943,6 +945,11 @@ export const parseQuickEntryFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     parseQuickEntry(context.supabase as Db, data.businessId, data.text),
   );
+
+export const extractQuickAddImageTextFn = createServerFn({ method: "POST" })
+  .middleware([...authAndRateLimit, ...quickEntryRateLimit])
+  .inputValidator((data: unknown) => parseAndSanitize(quickEntryImageExtractSchema, data))
+  .handler(async ({ data }) => extractQuickAddImageText(data.businessId, data));
 
 /* -------------------------------- insights -------------------------------- */
 

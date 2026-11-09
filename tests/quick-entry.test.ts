@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { quickEntrySchema } from "../src/lib/business.schemas";
 import {
   extractJson,
   isRawDraft,
@@ -8,6 +9,14 @@ import {
   resolveExpense,
   type QuickEntrySaleDraft,
 } from "../src/lib/quick-entry.server";
+
+describe("quickEntrySchema", () => {
+  it("allows file-sized notes for Quick Add", () => {
+    const text = "a".repeat(12_000);
+    const parsed = quickEntrySchema.parse({ businessId: "00000000-0000-4000-8000-000000000001", text });
+    expect(parsed.text.length).toBe(12_000);
+  });
+});
 
 describe("extractJson", () => {
   it("passes through a clean JSON object unchanged", () => {

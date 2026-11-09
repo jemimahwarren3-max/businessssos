@@ -31,6 +31,7 @@ import {
   addSale,
   getCustomers,
   getProducts,
+  extractQuickAddImageTextFn,
   parseQuickEntryFn,
   updateStock,
 } from "@/lib/business.functions";
@@ -50,7 +51,13 @@ import {
   quickEntrySaleHasProducts,
   quickEntrySaleIsStockOk,
 } from "@/lib/quick-entry.server";
-import { extractQuickAddFileText, QUICK_ADD_FILE_HELP } from "@/lib/quick-add-files";
+import {
+  extractQuickAddFileText,
+  isQuickAddImageFile,
+  quickAddImageMime,
+  QUICK_ADD_FILE_HELP,
+  readFileAsDataUrl,
+} from "@/lib/quick-add-files";
 
 const NONE = "__none";
 const EXAMPLES = [
@@ -169,6 +176,7 @@ export function QuickEntryDialog({
   }
 
   const parseFn = useServerFn(parseQuickEntryFn);
+  const extractImageFn = useServerFn(extractQuickAddImageTextFn);
   const createSaleFn = useServerFn(addSale);
   const createPurchaseFn = useServerFn(updateStock);
   const createExpenseFn = useServerFn(addExpense);
@@ -433,7 +441,7 @@ export function QuickEntryDialog({
             <input
               id="quick-add-file"
               type="file"
-              accept=".csv,.xlsx,.xls,.txt,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept=".csv,.xlsx,.xls,.txt,.docx,.pdf,image/jpeg,image/png,image/webp,application/pdf"
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -441,8 +449,19 @@ export function QuickEntryDialog({
                 void (async () => {
                   try {
                     let next = "";
-                    const lower = file.name.toLowerCase();
-                    next = await extractQuickAddFileText(file);
+                    if (isQuickAddImageFile(file)) {
+                      if (!businessId) return;
+                      const dataUrl = await readFileAsDataUrl(file);
+                      next = await extractImageFn({
+                        data: {
+                          businessId,
+                          base64: dataUrl,
+                          mimeType: quickAddImageMime(file),
+                        },
+                      });
+                    } else {
+                      next = await extractQuickAddFileText(file);
+                    }
                     if (!next.trim()) {
                       toast.error("That file did not contain any rows we could read.");
                       return;

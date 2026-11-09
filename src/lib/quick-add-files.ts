@@ -1,6 +1,7 @@
 import { parseCsvText, parseSpreadsheetFile } from "@/lib/spreadsheet";
 
 const MAX_QUICK_ADD_CHARS = 12_000;
+const MAX_PDF_PAGES = 20;
 
 function rowsToPlainText(rows: string[][]): string {
   return rows
@@ -17,6 +18,59 @@ async function extractDocxText(file: File): Promise<string> {
   return result.value.trim().slice(0, MAX_QUICK_ADD_CHARS);
 }
 
+async function extractPdfText(file: File): Promise<string> {
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
+
+  const data = new Uint8Array(await file.arrayBuffer());
+  const doc = await pdfjs.getDocument({ data, useSystemFonts: true }).promise;
+  const chunks: string[] = [];
+  const pageCount = Math.min(doc.numPages, MAX_PDF_PAGES);
+
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+    const page = await doc.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const line = content.items
+      .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
+      .join(" ")
+      .trim();
+    if (line) chunks.push(line);
+  }
+
+  const text = chunks.join("\n").trim();
+  if (!text) {
+    throw new Error(
+      "That PDF has no selectable text. It may be a scan. Use a clear photo instead, or export to Excel.",
+    );
+  }
+  return text.slice(0, MAX_QUICK_ADD_CHARS);
+}
+
+export function isQuickAddImageFile(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  if (/\.(png|jpe?g|webp|heic)$/.test(lower)) return true;
+  return file.type.startsWith("image/");
+}
+
+export async function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read that file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+export function quickAddImageMime(file: File): "image/jpeg" | "image/png" | "image/webp" {
+  const type = file.type.toLowerCase();
+  if (type === "image/png") return "image/png";
+  if (type === "image/webp") return "image/webp";
+  return "image/jpeg";
+}
+
 /** Turn an uploaded note or spreadsheet into text the Quick Add AI can read. */
 export async function extractQuickAddFileText(file: File): Promise<string> {
   const lower = file.name.toLowerCase();
@@ -28,6 +82,9 @@ export async function extractQuickAddFileText(file: File): Promise<string> {
     if (!text) throw new Error("That Word file did not contain any text we could read.");
     return text;
   }
+  if (lower.endsWith(".pdf")) {
+    return extractPdfText(file);
+  }
   if (lower.endsWith(".csv") || lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
     const rows = await parseSpreadsheetFile(file);
     const plain = rowsToPlainText(rows);
@@ -37,23 +94,16 @@ export async function extractQuickAddFileText(file: File): Promise<string> {
   if (lower.endsWith(".doc")) {
     throw new Error("Save older .doc files as .docx or export to Excel/CSV, then attach again.");
   }
-  if (lower.endsWith(".pdf")) {
-    throw new Error(
-      "PDF invoices are not read here yet. Export to Excel/CSV, copy the text into the box, or type a short note.",
-    );
-  }
-  if (/\.(png|jpe?g|gif|webp|heic)$/.test(lower)) {
-    throw new Error(
-      "Photos are not read here. Quick Add needs text or spreadsheet rows. Retype the sale or attach Excel/Word instead.",
-    );
+  if (isQuickAddImageFile(file)) {
+    throw new Error("IMAGE_NEEDS_SERVER");
   }
   throw new Error(
-    "Use CSV, Excel (.xlsx), Word (.docx), or plain text. PDF and images are not supported in Quick Add yet.",
+    "Use CSV, Excel (.xlsx), Word (.docx), PDF with text, or a photo (JPEG/PNG).",
   );
 }
 
 export const QUICK_ADD_FILE_HELP =
-  "Works: Excel, CSV, Word (.docx), text. PDF and photos are not supported yet (no reliable text in the browser). Type a note or export to Excel.";
+  "Excel, CSV, Word, PDF (text), or a photo of a list. Photos are read on the server when Gemini is configured.";
 
 /** Optional: paste from clipboard with loose CSV detection. */
 export function normalizeQuickAddPaste(text: string): string {

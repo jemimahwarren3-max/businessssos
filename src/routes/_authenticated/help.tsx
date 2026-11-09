@@ -173,9 +173,9 @@ function Help() {
             </li>
           </ol>
           <p>
-            <strong>PDF and photos</strong> are not read in Quick Add yet. Invoices in PDF or
-            pictures of a notebook need typing or an Excel/Word export first. That keeps imports
-            accurate without running photo recognition on your device.
+            <strong>PDF</strong> works when the file has selectable text (not a flat scan).
+            <strong> Photos</strong> of a list or invoice are read on the server when Gemini is
+            configured; you still review the draft before anything is saved.
           </p>
           <p>
             For bulk historical imports with no stock impact, use{" "}
