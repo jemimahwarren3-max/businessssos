@@ -310,4 +310,4 @@ alter table public.audit_logs
       'service.created', 'service.updated', 'booking.created',
       'platform_access.approved', 'platform_access.declined', 'platform_access.ended'
     )
-  );
+  ) not valid;
