@@ -5,6 +5,7 @@
 // VITE_SENTRY_DSN_BACKEND (server). DSNs are public, rate-limited keys.
 const clientDsn = import.meta.env["VITE_SENTRY_DSN"] as string | undefined;
 const serverDsn = import.meta.env["VITE_SENTRY_DSN_BACKEND"] as string | undefined;
+const release = import.meta.env["VITE_SENTRY_RELEASE"] as string | undefined;
 
 let initialized = false;
 
@@ -27,7 +28,14 @@ export async function initSentry(): Promise<void> {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
+    ...(release ? { release } : {}),
     tracesSampleRate: 0,
+    ignoreErrors: [
+      // Benign browser / extension noise; not actionable in the app.
+      "ResizeObserver loop limit exceeded",
+      "ResizeObserver loop completed with undelivered notifications",
+      "Non-Error promise rejection captured",
+    ],
   });
 }
 

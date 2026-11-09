@@ -451,7 +451,9 @@ export function AppShell({
     ? rawCommerceModel
     : "products";
   const groups = navGroupsFor(commerceModel);
-  const permissions = workspace.data?.permissions ?? [];
+  const permissions = Array.isArray(workspace.data?.permissions)
+    ? workspace.data.permissions
+    : [];
   const mobileNav = mobileNavFor(groups, permissions);
   const moreNav = visibleNavItems(
     [...groups.flatMap((group) => group.items), ...SECONDARY_NAV],

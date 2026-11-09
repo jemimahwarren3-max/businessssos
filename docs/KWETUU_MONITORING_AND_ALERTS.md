@@ -24,3 +24,17 @@ Do not log session cookies, service role keys, Paynow keys, or `MAIL_FLUSH_SECRE
 - Backup password failure
 - Recurring invoices 401
 - AI provider 429 / budget
+
+## Known Sentry issues (triage log)
+
+Use **release** on each event (set via `VITE_SENTRY_RELEASE` at Docker build) to confirm a fix landed in production.
+
+| Short id | Symptom | Cause | Fix | Status |
+|----------|---------|-------|-----|--------|
+| KWETUU-BACKEND-1 | Workspace load 500 for support impersonation | `supabaseAdmin.rpc` lost `this` when passed through a wrapper | `82c72c9` `impersonation.server.ts` | On `master` (deploy to confirm volume drops) |
+| KWETUU-FRONTEND-3 / -5 | Public shop "data could not be read" | `publicStoreSchema` rejected `null` text columns | `8422504` `.catch("")` on store text fields; prefer `.nullish().catch("")` | On `master` |
+| (unscoped) | Online orders error page, `e.filter is not a function` | React Query key `["storefront", businessId]` shared between admin store object and orders list | Separate key `storefront-orders`, array guards (`order-desk.ts`, `loadStoreOrders`) | **PR #130** until merged |
+
+### Operator API access (optional)
+
+Cloud agents cannot read the Sentry API without a team token. To enable automated triage, add a **read-only** org auth token as `SENTRY_AUTH_TOKEN` in Cursor secrets (not in the client bundle). Issues live under the Kwetuu frontend and backend projects tied to the deploy DSNs.
