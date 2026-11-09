@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractJson,
   isRawDraft,
+  quickEntrySaleFailureReason,
   quickEntrySaleIsStockOk,
   resolveCustomer,
   resolveExpense,
@@ -79,6 +80,36 @@ describe("resolveExpense", () => {
     expect(resolveExpense({ type: "expense", amount: "not a number" })).toEqual({
       type: "unknown",
     });
+  });
+});
+
+describe("quickEntrySaleFailureReason", () => {
+  const base: QuickEntrySaleDraft = {
+    type: "sale",
+    items: [],
+    customerId: "",
+    customerName: "Mary",
+    customerPhone: "",
+    paymentMethod: "cash",
+    saleDate: "",
+  };
+
+  it("explains stock shortage with quantities", () => {
+    const reason = quickEntrySaleFailureReason({
+      ...base,
+      items: [
+        {
+          name: "Shirt",
+          quantity: 6,
+          productId: "p1",
+          unitPrice: 10,
+          taxRate: 0,
+          availableStock: 2,
+          stockOk: false,
+        },
+      ],
+    });
+    expect(reason).toMatch(/only 2 in stock/i);
   });
 });
 

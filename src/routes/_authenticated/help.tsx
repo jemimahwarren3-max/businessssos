@@ -167,10 +167,16 @@ function Help() {
               an existing customer from the list.
             </li>
             <li>
-              Tap <strong>Record sale</strong> (or record a batch from a spreadsheet). Sales are
-              blocked when stock on hand is not enough.
+              Tap <strong>Record sale</strong>, or record a batch from a spreadsheet. Ready lines
+              save; any line that fails shows the customer or sale and the reason (missing product,
+              not enough stock, or a server error). Stock is checked again on save.
             </li>
           </ol>
+          <p>
+            <strong>PDF and photos</strong> are not read in Quick Add yet. Invoices in PDF or
+            pictures of a notebook need typing or an Excel/Word export first. That keeps imports
+            accurate without running photo recognition on your device.
+          </p>
           <p>
             For bulk historical imports with no stock impact, use{" "}
             <Link

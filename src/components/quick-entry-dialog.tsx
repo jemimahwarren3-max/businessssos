@@ -45,8 +45,12 @@ import {
 } from "@/lib/business.schemas";
 import { readableError } from "@/lib/format";
 import type { QuickEntryDraft, QuickEntrySaleDraft } from "@/lib/quick-entry.server";
-import { quickEntrySaleHasProducts, quickEntrySaleIsStockOk } from "@/lib/quick-entry.server";
-import { extractQuickAddFileText } from "@/lib/quick-add-files";
+import {
+  quickEntrySaleFailureReason,
+  quickEntrySaleHasProducts,
+  quickEntrySaleIsStockOk,
+} from "@/lib/quick-entry.server";
+import { extractQuickAddFileText, QUICK_ADD_FILE_HELP } from "@/lib/quick-add-files";
 
 const NONE = "__none";
 const EXAMPLES = [
@@ -103,6 +107,11 @@ export function QuickEntryDialog({
   const [expenseForm, setExpenseForm] = useState<ExpenseDraftState | null>(null);
   const [customerForm, setCustomerForm] = useState<CustomerDraftState | null>(null);
   const [saleBatch, setSaleBatch] = useState<QuickEntrySaleDraft[] | null>(null);
+  const [batchOutcome, setBatchOutcome] = useState<{
+    recorded: number;
+    skipped: { label: string; reason: string }[];
+    failed: { label: string; reason: string }[];
+  } | null>(null);
 
   function saleDraftToForm(sale: QuickEntrySaleDraft): SaleDraftState {
     return {
@@ -194,6 +203,7 @@ export function QuickEntryDialog({
     setExpenseForm(null);
     setCustomerForm(null);
     setSaleBatch(null);
+    setBatchOutcome(null);
   }
 
   function close() {
@@ -329,27 +339,56 @@ export function QuickEntryDialog({
   const saleBatchMutation = useMutation({
     mutationFn: async () => {
       if (!saleBatch?.length) throw new Error("No sales to record");
-      for (const sale of saleBatch) {
-        if (!quickEntrySaleHasProducts(sale) || !quickEntrySaleIsStockOk(sale)) {
-          throw new Error(
-            `Sale for ${sale.customerName || "walk-in"} has missing products or not enough stock.`,
-          );
+      const skipped: { label: string; reason: string }[] = [];
+      const failed: { label: string; reason: string }[] = [];
+      let recorded = 0;
+      for (let index = 0; index < saleBatch.length; index++) {
+        const sale = saleBatch[index]!;
+        const label =
+          sale.customerName.trim() ||
+          (sale.saleDate ? `Sale ${sale.saleDate}` : `Sale ${index + 1}`);
+        const preflight = quickEntrySaleFailureReason(sale);
+        if (preflight) {
+          skipped.push({ label, reason: preflight });
+          continue;
         }
-        await submitSale(sale, saleDraftToForm(sale));
+        try {
+          await submitSale(sale, saleDraftToForm(sale));
+          recorded += 1;
+        } catch (error) {
+          failed.push({
+            label,
+            reason: readableError(error as Error, "Could not save this sale."),
+          });
+        }
       }
+      if (recorded === 0 && skipped.length + failed.length === 0) {
+        throw new Error("No sales to record.");
+      }
+      return { recorded, skipped, failed };
     },
-    onSuccess: async () => {
-      toast.success(
-        saleBatch?.length === 1
-          ? "Sale recorded."
-          : `${saleBatch?.length ?? 0} sales recorded from your file.`,
-      );
-      close();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["products"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-        queryClient.invalidateQueries({ queryKey: ["customers"] }),
-      ]);
+    onSuccess: async (outcome) => {
+      setBatchOutcome(outcome);
+      if (outcome.recorded > 0) {
+        toast.success(
+          outcome.recorded === 1
+            ? "1 sale recorded."
+            : `${outcome.recorded} sales recorded from your file.`,
+        );
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["products"] }),
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+          queryClient.invalidateQueries({ queryKey: ["customers"] }),
+        ]);
+      }
+      const problemCount = outcome.skipped.length + outcome.failed.length;
+      if (problemCount > 0) {
+        toast.error(
+          `${problemCount} sale${problemCount === 1 ? "" : "s"} skipped or failed. See the list below for reasons.`,
+          { duration: 8000 },
+        );
+      }
+      if (outcome.recorded > 0 && problemCount === 0) close();
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't record those sales.")),
   });
@@ -359,10 +398,8 @@ export function QuickEntryDialog({
   const saleStockValid =
     saleForm != null &&
     (draft?.type === "sale" ? quickEntrySaleIsStockOk(draft) : saleForm.stockByLine.every(Boolean));
-  const saleBatchReady =
-    saleBatch != null &&
-    saleBatch.length > 0 &&
-    saleBatch.every((s) => quickEntrySaleHasProducts(s) && quickEntrySaleIsStockOk(s));
+  const saleBatchReadyCount =
+    saleBatch?.filter((s) => quickEntrySaleFailureReason(s) === null).length ?? 0;
   const purchaseValid =
     purchaseForm != null && Boolean(purchaseForm.productId) && Number(purchaseForm.quantity) > 0;
 
@@ -379,8 +416,8 @@ export function QuickEntryDialog({
           <DialogTitle>Quick add</DialogTitle>
           <DialogDescription>
             Say what to record (for example &quot;Sales 9 November&quot;) or attach Excel, Word, or
-            CSV. Kwetuu matches products, adds new customers when needed, and will not sell items
-            that are out of stock.
+            CSV. Kwetuu matches products and adds new customers when needed. Out-of-stock lines are
+            skipped in a batch; the server still checks stock on every sale.
           </DialogDescription>
         </DialogHeader>
 
@@ -436,6 +473,7 @@ export function QuickEntryDialog({
                 <span className="text-xs text-muted-foreground">Using {fileLabel}</span>
               ) : null}
             </div>
+            <p className="text-xs text-muted-foreground">{QUICK_ADD_FILE_HELP}</p>
             <div className="flex flex-wrap gap-1.5">
               {EXAMPLES.map((example) => (
                 <button
@@ -469,37 +507,69 @@ export function QuickEntryDialog({
         ) : draft.type === "sale_batch" && saleBatch ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Found {saleBatch.length} sale{saleBatch.length === 1 ? "" : "s"} in your file. Each
-              line is checked against stock on hand; new customers are created automatically.
+              Found {saleBatch.length} sale{saleBatch.length === 1 ? "" : "s"} in your file.
+              {saleBatchReadyCount > 0
+                ? ` ${saleBatchReadyCount} can be recorded now. The rest will be skipped with a reason.`
+                : " None are ready to record yet, fix the reasons below or edit your file."}
             </p>
             <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-border p-3 text-sm">
               {saleBatch.map((sale, index) => {
-                const ok = quickEntrySaleHasProducts(sale) && quickEntrySaleIsStockOk(sale);
+                const reason = quickEntrySaleFailureReason(sale);
                 const label = sale.customerName.trim() || "Walk-in";
                 const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
                 return (
-                  <li key={`${label}-${index}`} className={ok ? "" : "text-destructive"}>
-                    <span className="font-medium">{label}</span>
-                    {sale.saleDate ? ` · ${sale.saleDate}` : ""}: {itemCount} item
-                    {itemCount === 1 ? "" : "s"}
-                    {!ok ? " (fix stock or product match)" : ""}
+                  <li key={`${label}-${index}`}>
+                    <span className={reason ? "text-destructive" : "text-foreground"}>
+                      <span className="font-medium">{label}</span>
+                      {sale.saleDate ? ` · ${sale.saleDate}` : ""}: {itemCount} item
+                      {itemCount === 1 ? "" : "s"}
+                    </span>
+                    {reason ? (
+                      <span className="mt-0.5 block text-[13px] text-destructive">{reason}</span>
+                    ) : (
+                      <span className="mt-0.5 block text-[13px] text-muted-foreground">
+                        Ready to record
+                      </span>
+                    )}
                   </li>
                 );
               })}
             </ul>
+            {batchOutcome ? (
+              <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <p>
+                  Recorded <span className="font-medium">{batchOutcome.recorded}</span> sale
+                  {batchOutcome.recorded === 1 ? "" : "s"}.
+                </p>
+                {[...batchOutcome.skipped, ...batchOutcome.failed].length > 0 ? (
+                  <ul className="space-y-1 text-[13px] text-destructive">
+                    {[...batchOutcome.skipped, ...batchOutcome.failed].map((row) => (
+                      <li key={`${row.label}-${row.reason}`}>
+                        <span className="font-medium">{row.label}:</span> {row.reason}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
             <DialogFooter>
               <Button variant="ghost" onClick={reset}>
                 Back
               </Button>
-              <Button
-                disabled={!saleBatchReady || saleBatchMutation.isPending}
-                onClick={() => saleBatchMutation.mutate()}
-              >
-                {saleBatchMutation.isPending ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                ) : null}
-                Record {saleBatch.length} sale{saleBatch.length === 1 ? "" : "s"}
-              </Button>
+              {batchOutcome?.recorded ? (
+                <Button onClick={close}>Done</Button>
+              ) : (
+                <Button
+                  disabled={saleBatchReadyCount === 0 || saleBatchMutation.isPending}
+                  onClick={() => saleBatchMutation.mutate()}
+                >
+                  {saleBatchMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  Record {saleBatchReadyCount} ready sale
+                  {saleBatchReadyCount === 1 ? "" : "s"}
+                </Button>
+              )}
             </DialogFooter>
           </div>
         ) : draft.type === "unknown" ? (

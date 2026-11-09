@@ -37,10 +37,23 @@ export async function extractQuickAddFileText(file: File): Promise<string> {
   if (lower.endsWith(".doc")) {
     throw new Error("Save older .doc files as .docx or export to Excel/CSV, then attach again.");
   }
+  if (lower.endsWith(".pdf")) {
+    throw new Error(
+      "PDF invoices are not read here yet. Export to Excel/CSV, copy the text into the box, or type a short note.",
+    );
+  }
+  if (/\.(png|jpe?g|gif|webp|heic)$/.test(lower)) {
+    throw new Error(
+      "Photos are not read here. Quick Add needs text or spreadsheet rows. Retype the sale or attach Excel/Word instead.",
+    );
+  }
   throw new Error(
-    "Attach CSV, Excel (.xlsx), plain text, or Word (.docx). For photos or PDF, type a short note instead.",
+    "Use CSV, Excel (.xlsx), Word (.docx), or plain text. PDF and images are not supported in Quick Add yet.",
   );
 }
+
+export const QUICK_ADD_FILE_HELP =
+  "Works: Excel, CSV, Word (.docx), text. PDF and photos are not supported yet (no reliable text in the browser). Type a note or export to Excel.";
 
 /** Optional: paste from clipboard with loose CSV detection. */
 export function normalizeQuickAddPaste(text: string): string {

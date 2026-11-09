@@ -273,6 +273,28 @@ export function quickEntrySaleHasProducts(sale: QuickEntrySaleDraft): boolean {
   return sale.items.length > 0 && sale.items.every((item) => Boolean(item.productId));
 }
 
+/** Human-readable blocker before calling create_sale (stock is still enforced on the server). */
+export function quickEntrySaleFailureReason(sale: QuickEntrySaleDraft): string | null {
+  if (sale.items.length === 0) return "No items on this sale.";
+  const unmatched = sale.items.filter((item) => !item.productId);
+  if (unmatched.length > 0) {
+    const names = unmatched.map((item) => item.name).filter(Boolean);
+    return names.length
+      ? `No matching product for: ${names.join(", ")}. Pick or add them in Inventory first.`
+      : "One or more lines need a product from your catalogue.";
+  }
+  const overStock = sale.items.filter((item) => !item.stockOk);
+  if (overStock.length > 0) {
+    return overStock
+      .map(
+        (item) =>
+          `${item.name}: selling ${item.quantity} but only ${item.availableStock} in stock`,
+      )
+      .join("; ");
+  }
+  return null;
+}
+
 export async function parseQuickEntry(
   supabase: Db,
   businessId: string,
