@@ -13,7 +13,10 @@ export const Route = createFileRoute("/features")({
         content: "Storefront, till, stock, invoices, and Paynow checkout on one catalogue.",
       },
       { property: "og:title", content: `Features | ${BRAND.name}` },
-      { property: "og:description", content: "Storefront, till, stock, invoices, and Paynow checkout on one catalogue." },
+      {
+        property: "og:description",
+        content: "Storefront, till, stock, invoices, and Paynow checkout on one catalogue.",
+      },
     ],
     links: [{ rel: "canonical", href: `${BRAND.appUrl}/features` }],
   }),

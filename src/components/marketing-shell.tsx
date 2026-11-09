@@ -9,7 +9,7 @@ import { MARKETING_NAV } from "@/lib/marketing-nav";
 export function MarketingShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <div className="marketplace-theme min-h-screen">
+    <div className="marketplace-theme min-h-screen overflow-x-clip">
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between gap-4 px-5">
           <Logo to="/" />

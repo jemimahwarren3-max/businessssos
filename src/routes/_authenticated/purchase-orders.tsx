@@ -142,179 +142,180 @@ function PurchaseOrders() {
 
   return (
     <>
-    <AppShell
-      businessName={workspace.data.business.name}
-      role={workspace.data.role}
-      plan={workspace.data.plan}
-      isReadOnly={workspace.data.isReadOnly}
-      billingEnabled={workspace.data.billingEnabled}
-      title="Purchase Orders"
-      subtitle="Every order you've sent to a supplier, in one place."
-      actions={
-        rows.length > 0 ? (
-          <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
-            <Download className="size-4" aria-hidden="true" /> Export to Excel
-          </Button>
-        ) : null
-      }
-    >
-      <div className="surface overflow-hidden">
-        {purchaseOrders.isLoading ? (
-          <div className="space-y-3 p-5">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-12" />
-            ))}
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="px-6 py-16 text-center">
-            <ClipboardList className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
-            <h2 className="mt-3 text-lg font-semibold">No purchase orders yet</h2>
-            <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-              Use the "Order" button on a supplier's row in Suppliers to create one.
-            </p>
-          </div>
-        ) : (
-          <>
-            <ul className="divide-y divide-border lg:hidden">
-              {rows.map((po) => {
-                const isBusy =
-                  statusMutation.isPending && statusMutation.variables?.purchaseOrderId === po.id;
-                return (
-                  <li key={po.id} className="px-5 py-4">
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">{po.po_number}</p>
-                        <p className="truncate text-[13px] text-muted-foreground">
-                          {po.supplier_name ?? "No supplier"} · {formatMoney(po.total, currency)}
-                        </p>
-                      </div>
-                      <StatusBadge status={po.status} />
-                    </div>
-                    {canManage && po.status === "sent" ? (
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5"
-                          disabled={isBusy}
-                          onClick={() => markReceived(po)}
-                        >
-                          {isBusy ? (
-                            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                          ) : null}
-                          Mark received
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={isBusy}
-                          onClick={() => cancelOrder(po)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-
-            <table className="hidden w-full text-sm lg:table">
-              <thead>
-                <tr className="border-b border-border text-left text-[12px] uppercase tracking-wide text-muted-foreground">
-                  <th className="px-5 py-3 font-medium">PO</th>
-                  <th className="px-5 py-3 font-medium">Supplier</th>
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-5 py-3 font-medium">Total</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  {canManage ? <th className="px-5 py-3 font-medium">Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+      <AppShell
+        businessName={workspace.data.business.name}
+        role={workspace.data.role}
+        plan={workspace.data.plan}
+        isReadOnly={workspace.data.isReadOnly}
+        billingEnabled={workspace.data.billingEnabled}
+        title="Purchase Orders"
+        subtitle="Every order you've sent to a supplier, in one place."
+        actions={
+          rows.length > 0 ? (
+            <Button variant="outline" className="gap-1.5" onClick={exportExcel}>
+              <Download className="size-4" aria-hidden="true" /> Export to Excel
+            </Button>
+          ) : null
+        }
+      >
+        <div className="surface overflow-hidden">
+          {purchaseOrders.isLoading ? (
+            <div className="space-y-3 p-5">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-12" />
+              ))}
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <ClipboardList className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
+              <h2 className="mt-3 text-lg font-semibold">No purchase orders yet</h2>
+              <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
+                Use the "Order" button on a supplier's row in Suppliers to create one.
+              </p>
+            </div>
+          ) : (
+            <>
+              <ul className="divide-y divide-border lg:hidden">
                 {rows.map((po) => {
                   const isBusy =
                     statusMutation.isPending && statusMutation.variables?.purchaseOrderId === po.id;
                   return (
-                    <tr key={po.id}>
-                      <td className="px-5 py-3 font-medium">{po.po_number}</td>
-                      <td className="px-5 py-3 text-muted-foreground">
-                        {po.supplier_name ?? "No supplier"}
-                      </td>
-                      <td className="px-5 py-3 text-muted-foreground">
-                        {friendlyDate(po.order_date)}
-                      </td>
-                      <td className="px-5 py-3 font-medium tabular-nums">
-                        {formatMoney(po.total, currency)}
-                      </td>
-                      <td className="px-5 py-3">
+                    <li key={po.id} className="px-5 py-4">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{po.po_number}</p>
+                          <p className="truncate text-[13px] text-muted-foreground">
+                            {po.supplier_name ?? "No supplier"} · {formatMoney(po.total, currency)}
+                          </p>
+                        </div>
                         <StatusBadge status={po.status} />
-                      </td>
-                      {canManage ? (
-                        <td className="px-5 py-3">
-                          {po.status === "sent" ? (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1.5"
-                                disabled={isBusy}
-                                onClick={() => markReceived(po)}
-                              >
-                                {isBusy ? (
-                                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                                ) : null}
-                                Mark received
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={isBusy}
-                                onClick={() => cancelOrder(po)}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          ) : null}
-                        </td>
+                      </div>
+                      {canManage && po.status === "sent" ? (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            disabled={isBusy}
+                            onClick={() => markReceived(po)}
+                          >
+                            {isBusy ? (
+                              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                            ) : null}
+                            Mark received
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={isBusy}
+                            onClick={() => cancelOrder(po)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                       ) : null}
-                    </tr>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
-          </>
-        )}
-      </div>
-    </AppShell>
+              </ul>
 
-    <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            {pendingAction?.action === "received"
-              ? `Mark ${pendingAction.po.po_number} as received? This adds its items to stock.`
-              : `Cancel ${pendingAction?.po.po_number}? This can't be undone.`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Go back</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              if (pendingAction) {
-                statusMutation.mutate({
-                  purchaseOrderId: pendingAction.po.id,
-                  status: pendingAction.action,
-                });
-              }
-              setPendingAction(null);
-            }}
-          >
-            {pendingAction?.action === "received" ? "Mark received" : "Cancel order"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+              <table className="hidden w-full text-sm lg:table">
+                <thead>
+                  <tr className="border-b border-border text-left text-[12px] uppercase tracking-wide text-muted-foreground">
+                    <th className="px-5 py-3 font-medium">PO</th>
+                    <th className="px-5 py-3 font-medium">Supplier</th>
+                    <th className="px-5 py-3 font-medium">Date</th>
+                    <th className="px-5 py-3 font-medium">Total</th>
+                    <th className="px-5 py-3 font-medium">Status</th>
+                    {canManage ? <th className="px-5 py-3 font-medium">Actions</th> : null}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {rows.map((po) => {
+                    const isBusy =
+                      statusMutation.isPending &&
+                      statusMutation.variables?.purchaseOrderId === po.id;
+                    return (
+                      <tr key={po.id}>
+                        <td className="px-5 py-3 font-medium">{po.po_number}</td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {po.supplier_name ?? "No supplier"}
+                        </td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {friendlyDate(po.order_date)}
+                        </td>
+                        <td className="px-5 py-3 font-medium tabular-nums">
+                          {formatMoney(po.total, currency)}
+                        </td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={po.status} />
+                        </td>
+                        {canManage ? (
+                          <td className="px-5 py-3">
+                            {po.status === "sent" ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5"
+                                  disabled={isBusy}
+                                  onClick={() => markReceived(po)}
+                                >
+                                  {isBusy ? (
+                                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                                  ) : null}
+                                  Mark received
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={isBusy}
+                                  onClick={() => cancelOrder(po)}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : null}
+                          </td>
+                        ) : null}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      </AppShell>
+
+      <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction?.action === "received"
+                ? `Mark ${pendingAction.po.po_number} as received? This adds its items to stock.`
+                : `Cancel ${pendingAction?.po.po_number}? This can't be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingAction) {
+                  statusMutation.mutate({
+                    purchaseOrderId: pendingAction.po.id,
+                    status: pendingAction.action,
+                  });
+                }
+                setPendingAction(null);
+              }}
+            >
+              {pendingAction?.action === "received" ? "Mark received" : "Cancel order"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

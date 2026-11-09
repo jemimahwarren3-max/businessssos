@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { readableError } from "@/lib/format";
-import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
+import { getStorefrontOrdersFn } from "@/lib/storefront/storefront.functions";
 
 export const Route = createFileRoute("/_authenticated/online-orders")({
   head: () => ({
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/online-orders")({
 function OnlineOrdersPage() {
   const workspace = useWorkspace();
   const businessId = workspace.data?.business.id;
-  const load = useServerFn(getStorefrontAdminFn);
+  const load = useServerFn(getStorefrontOrdersFn);
   const admin = useQuery({
     queryKey: ["storefront", businessId],
     enabled: Boolean(businessId),
@@ -59,8 +59,8 @@ function OnlineOrdersPage() {
       {admin.data && businessId ? (
         <OnlineOrdersFulfilmentPanel
           businessId={businessId}
-          orders={admin.data.orders}
-          storeName={admin.data.store?.storeName ?? workspace.data.business.name}
+          orders={admin.data}
+          storeName={workspace.data.business.name}
           showTitle={false}
         />
       ) : null}

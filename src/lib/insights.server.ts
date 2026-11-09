@@ -237,17 +237,20 @@ export async function getAnomalies(supabase: Db, businessId: string): Promise<An
       .from("sales")
       .select("total, created_at")
       .eq("business_id", businessId)
+      .eq("is_historical", false)
       .in("status", ["completed", "partially_refunded"])
       .gte("created_at", windowStart.toISOString()),
     supabase
       .from("expenses")
       .select("amount, category, vendor, expense_date")
       .eq("business_id", businessId)
+      .eq("is_historical", false)
       .gte("expense_date", windowStart.toISOString().slice(0, 10)),
     supabase
       .from("expenses")
       .select("amount, category")
       .eq("business_id", businessId)
+      .eq("is_historical", false)
       .gte("expense_date", categoryWindowStart.toISOString().slice(0, 10)),
   ]);
 

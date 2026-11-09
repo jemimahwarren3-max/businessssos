@@ -23,6 +23,7 @@ import {
   LogOut,
   MapPin,
   Megaphone,
+  MoreHorizontal,
   Package,
   Receipt,
   Settings,
@@ -45,6 +46,7 @@ import {
 } from "@/lib/business.functions";
 import { HintTooltip } from "@/components/hint-tooltip";
 import { Logo } from "@/components/logo";
+import { QuickAddMenu } from "@/components/quick-add-menu";
 import { QuickEntryDialog } from "@/components/quick-entry-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,13 +62,8 @@ import { getStorefrontAdminFn } from "@/lib/storefront/storefront.functions";
 import { deriveStoreLaunchDisplay } from "@/lib/storefront/launch-status";
 import { friendlyDate } from "@/lib/format";
 import { clearOfflineCacheOnLogout } from "@/lib/offline/db";
-import { HEADER_HINTS, MAIN_NAV_HINTS, SECONDARY_NAV_HINTS } from "@/lib/nav-hints";
-import {
-  isCommerceModel,
-  navShowsInventoryFirst,
-  navShowsServicesFirst,
-  type CommerceModel,
-} from "@/lib/commerce-model";
+import { HEADER_HINTS, MAIN_NAV_HINTS } from "@/lib/nav-hints";
+import { isCommerceModel, navShowsServicesFirst, type CommerceModel } from "@/lib/commerce-model";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -75,49 +72,66 @@ type NavItem = {
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
+  permission?: string;
   showLaunchBadge?: boolean;
 };
 
 function navGroupsFor(model: CommerceModel): { label: string; items: NavItem[] }[] {
   const serviceItems: NavItem[] = [
-    { to: "/services", label: "Services", icon: Briefcase },
-    { to: "/bookings", label: "Bookings", icon: CalendarDays },
+    { to: "/services", label: "Services", icon: Briefcase, permission: "business.settings" },
+    { to: "/bookings", label: "Bookings", icon: CalendarDays, permission: "business.settings" },
   ];
   const stockItems: NavItem[] = [
     {
       to: "/inventory",
-      label: navShowsInventoryFirst(model) ? "Inventory" : "Products",
+      label: "Products & inventory",
       icon: Boxes,
+      permission: "inventory.import",
     },
-    { to: "/lay-by", label: "Lay-by", icon: Wallet },
-    { to: "/suppliers", label: "Suppliers", icon: Truck },
-    { to: "/purchase-orders", label: "Purchase orders", icon: ClipboardList },
+    { to: "/lay-by", label: "Lay-by", icon: Wallet, permission: "sales.create" },
+    { to: "/suppliers", label: "Suppliers", icon: Truck, permission: "suppliers.view" },
+    {
+      to: "/purchase-orders",
+      label: "Purchase orders",
+      icon: ClipboardList,
+      permission: "purchase_orders.create",
+    },
   ];
   const businessItems: NavItem[] = navShowsServicesFirst(model)
     ? [
-        { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
+        { to: "/sales", label: "Sales", icon: ShoppingCart, permission: "sales.create" },
         ...serviceItems,
-        { to: "/customers", label: "Customers", icon: Users },
-        { to: "/invoices", label: "Invoices", icon: FileText },
-        { to: "/quotes", label: "Quotes", icon: FileCheck2 },
-        { to: "/expenses", label: "Expenses", icon: Receipt },
+        { to: "/customers", label: "Customers", icon: Users, permission: "customers.create" },
+        { to: "/invoices", label: "Invoices", icon: FileText, permission: "invoices.manage" },
+        { to: "/quotes", label: "Quotes", icon: FileCheck2, permission: "quotes.manage" },
+        { to: "/expenses", label: "Expenses", icon: Receipt, permission: "expenses.create" },
         ...stockItems,
-        { to: "/reports", label: "Reports", icon: BarChart3 },
-        { to: "/branches", label: "Branches", icon: MapPin },
+        { to: "/reports", label: "Reports", icon: BarChart3, permission: "reports.financial" },
+        { to: "/branches", label: "Branches", icon: MapPin, permission: "business.settings" },
       ]
     : [
-        { to: "/sales", label: "Sales & POS", icon: ShoppingCart },
-        { to: "/inventory", label: "Inventory", icon: Boxes },
-        { to: "/customers", label: "Customers", icon: Users },
-        { to: "/lay-by", label: "Lay-by", icon: Wallet },
-        { to: "/invoices", label: "Invoices", icon: FileText },
-        { to: "/quotes", label: "Quotes", icon: FileCheck2 },
-        { to: "/expenses", label: "Expenses", icon: Receipt },
-        { to: "/suppliers", label: "Suppliers", icon: Truck },
-        { to: "/purchase-orders", label: "Purchase orders", icon: ClipboardList },
+        { to: "/sales", label: "Sales", icon: ShoppingCart, permission: "sales.create" },
+        {
+          to: "/inventory",
+          label: "Products & inventory",
+          icon: Boxes,
+          permission: "inventory.import",
+        },
+        { to: "/customers", label: "Customers", icon: Users, permission: "customers.create" },
+        { to: "/lay-by", label: "Lay-by", icon: Wallet, permission: "sales.create" },
+        { to: "/invoices", label: "Invoices", icon: FileText, permission: "invoices.manage" },
+        { to: "/quotes", label: "Quotes", icon: FileCheck2, permission: "quotes.manage" },
+        { to: "/expenses", label: "Expenses", icon: Receipt, permission: "expenses.create" },
+        { to: "/suppliers", label: "Suppliers", icon: Truck, permission: "suppliers.view" },
+        {
+          to: "/purchase-orders",
+          label: "Purchase orders",
+          icon: ClipboardList,
+          permission: "purchase_orders.create",
+        },
         ...serviceItems,
-        { to: "/reports", label: "Reports", icon: BarChart3 },
-        { to: "/branches", label: "Branches", icon: MapPin },
+        { to: "/reports", label: "Reports", icon: BarChart3, permission: "reports.financial" },
+        { to: "/branches", label: "Branches", icon: MapPin, permission: "business.settings" },
       ];
   return [
     {
@@ -128,28 +142,146 @@ function navGroupsFor(model: CommerceModel): { label: string; items: NavItem[] }
     {
       label: "Online shop",
       items: [
-        { to: "/storefront", label: "My Online Store", icon: Store, showLaunchBadge: true },
-        { to: "/online-orders", label: "Orders & fulfilment", icon: Package },
+        {
+          to: "/storefront",
+          label: "Online Store",
+          icon: Store,
+          permission: "business.settings",
+          showLaunchBadge: true,
+        },
+        {
+          to: "/online-orders",
+          label: "Orders",
+          icon: Package,
+          permission: "orders.manage",
+        },
       ],
     },
     {
       label: "Growth & AI",
       items: [
-        { to: "/growth", label: "Grow", icon: Megaphone },
-        { to: "/insights", label: "Insights", icon: Lightbulb },
-        { to: "/assistant", label: "AI Assistant", icon: Sparkles },
+        { to: "/growth", label: "Grow", icon: Megaphone, permission: "reports.financial" },
+        { to: "/insights", label: "Insights", icon: Lightbulb, permission: "reports.financial" },
+        {
+          to: "/assistant",
+          label: "AI Briefing",
+          icon: Sparkles,
+          permission: "ai.use",
+        },
       ],
     },
   ];
 }
 
-function mobileNavFor(model: CommerceModel, groups: { items: NavItem[] }[]) {
-  const nav = groups.flatMap((group) => group.items);
-  const paths = navShowsServicesFirst(model)
-    ? (["/dashboard", "/sales", "/services", "/bookings"] as const)
-    : (["/dashboard", "/sales", "/inventory", "/invoices"] as const);
-  return paths.map((to) => nav.find((item) => item.to === to)).filter(Boolean) as NavItem[];
+const PRIMARY_NAV_PATHS = ["/dashboard", "/sales", "/inventory", "/online-orders", "/reports"];
+
+function visibleNavItems(items: NavItem[], permissions: string[]) {
+  return items.filter((item) => !item.permission || permissions.includes(item.permission));
 }
+
+function mobileNavFor(groups: { items: NavItem[] }[], permissions: string[]) {
+  const nav = groups.flatMap((group) => group.items);
+  return visibleNavItems(
+    [
+      { to: "/dashboard", label: "Home", icon: LayoutDashboard },
+      ...PRIMARY_NAV_PATHS.slice(1).map((to) => nav.find((item) => item.to === to)),
+    ].filter((item): item is NavItem => item !== undefined),
+    permissions,
+  );
+}
+
+function MoreNavMenu({
+  items,
+  activePath,
+  launchBadge,
+  mobile = false,
+}: {
+  items: NavItem[];
+  activePath: string;
+  launchBadge: string | null;
+  mobile?: boolean;
+}) {
+  if (items.length === 0) return null;
+  const active = items.some((item) => activePath.startsWith(item.to));
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size={mobile ? "default" : "sm"}
+          aria-label="More navigation"
+          className={
+            mobile
+              ? cn(
+                  "flex h-auto min-h-11 w-full flex-col gap-1 rounded-none px-1 py-2.5 text-[11px]",
+                  active ? "text-primary" : "text-muted-foreground",
+                )
+              : "gap-1.5"
+          }
+        >
+          <MoreHorizontal className="size-5" aria-hidden="true" />
+          More
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align={mobile ? "end" : "start"}
+        className="max-h-[70vh] w-60 overflow-y-auto"
+      >
+        {items.map((item) => (
+          <DropdownMenuItem key={item.to} asChild>
+            <Link to={item.to} className="flex items-center gap-2">
+              <item.icon className="size-4" aria-hidden="true" />
+              <span className="min-w-0 flex-1">{item.label}</span>
+              {item.showLaunchBadge && launchBadge ? (
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                  {launchBadge}
+                </Badge>
+              ) : null}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+const SECONDARY_NAV: NavItem[] = [
+  { to: "/expenses", label: "Expenses", icon: Receipt, permission: "expenses.create" },
+  { to: "/assistant", label: "AI Briefing", icon: Sparkles, permission: "ai.use" },
+  { to: "/storefront", label: "Online Store", icon: Store, permission: "business.settings" },
+  { to: "/customers", label: "Customers", icon: Users, permission: "customers.create" },
+  { to: "/settings/team", label: "Employees", icon: Users, permission: "users.view" },
+  {
+    to: "/settings/business",
+    label: "Business Settings",
+    icon: Briefcase,
+    permission: "business.settings",
+  },
+  {
+    to: "/settings/billing",
+    label: "Subscription",
+    icon: Settings,
+    permission: "business.billing",
+  },
+  { to: "/cash-drawer", label: "Cash drawer", icon: Wallet, permission: "sales.create" },
+  { to: "/time-clock", label: "Time clock" as const, icon: Clock, permission: "users.view" },
+  {
+    to: "/settings/payments",
+    label: "Payments",
+    icon: CreditCard,
+    permission: "business.settings",
+  },
+  {
+    to: "/settings/data",
+    label: "Export data",
+    icon: Download,
+    permission: "business.export_data",
+  },
+  { to: "/settings/audit-log", label: "Audit log", icon: History, permission: "reports.financial" },
+  { to: "/settings/account", label: "Account", icon: UserX },
+  { to: "/help", label: "Help", icon: HelpCircle },
+];
 
 export const ROLE_LABEL: Record<string, string> = {
   owner: "Owner",
@@ -297,6 +429,7 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const signOutServerFn = useServerFn(signOutFn);
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   // Reuses the ["workspace"] query every page already populates, no extra
   // network request in practice, just reading businessId back out of it.
@@ -317,11 +450,23 @@ export function AppShell({
     ? rawCommerceModel
     : "products";
   const groups = navGroupsFor(commerceModel);
-  const mobileNav = mobileNavFor(commerceModel, groups);
+  const permissions = workspace.data?.permissions ?? [];
+  const mobileNav = mobileNavFor(groups, permissions);
+  const moreNav = visibleNavItems(
+    [...groups.flatMap((group) => group.items), ...SECONDARY_NAV],
+    permissions,
+  ).filter(
+    (item, index, items) =>
+      !PRIMARY_NAV_PATHS.includes(item.to) &&
+      (item.to !== "/settings/billing" || billingEnabled) &&
+      items.findIndex((candidate) => candidate.to === item.to) === index,
+  );
+  const canUseQuickAdd = permissions.includes("ai.use");
+  const canManageBilling = permissions.includes("business.billing");
   const loadStorefront = useServerFn(getStorefrontAdminFn);
   const storefrontLaunch = useQuery({
     queryKey: ["storefront-launch-nav", businessId],
-    enabled: Boolean(businessId),
+    enabled: Boolean(businessId) && permissions.includes("business.settings"),
     queryFn: () => loadStorefront({ data: { businessId: businessId! } }),
     staleTime: 90_000,
   });
@@ -358,88 +503,7 @@ export function AppShell({
         >
           Skip to main content
         </a>
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
-          <div className="px-5 py-4">
-            <Logo to="/dashboard" className="[&_img]:ml-0 [&_img]:h-10 [&_img]:my-0" />
-          </div>
-          <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-2" aria-label="Main">
-            {groups.map((group) => (
-              <div key={group.label}>
-                <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group.label}
-                </p>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const active = pathname.startsWith(item.to);
-                    const hint = MAIN_NAV_HINTS[item.to] ?? "";
-                    return (
-                      <HintTooltip key={item.to} hint={hint} side="right">
-                        <Link
-                          to={item.to}
-                          title={hint}
-                          className={cn(
-                            "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                            active
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "text-sidebar-foreground hover:bg-sidebar-accent/60",
-                          )}
-                        >
-                          <item.icon className="size-4.5 shrink-0" aria-hidden="true" />
-                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                          {item.showLaunchBadge && launchBadge ? (
-                            <Badge
-                              variant="outline"
-                              className="max-w-[7rem] shrink-0 truncate px-1.5 py-0 text-[10px] font-medium"
-                            >
-                              {launchBadge}
-                            </Badge>
-                          ) : null}
-                        </Link>
-                      </HintTooltip>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-          <div className="space-y-1 border-t border-sidebar-border p-3 text-sm">
-            {(
-              [
-                { to: "/settings/business", label: "Business", icon: Briefcase },
-                { to: "/settings/team", label: "Team", icon: Users },
-                { to: "/cash-drawer", label: "Cash drawer", icon: Wallet },
-                { to: "/time-clock", label: "Time clock", icon: Clock },
-                { to: "/settings/payments", label: "Payments", icon: CreditCard },
-                { to: "/settings/billing", label: "Billing", icon: Settings },
-                { to: "/settings/data", label: "Export data", icon: Download },
-                { to: "/settings/audit-log", label: "Audit log", icon: History },
-                { to: "/settings/account", label: "Account", icon: UserX },
-                { to: "/help", label: "Help", icon: HelpCircle },
-              ] as const
-            ).map(({ to, label, icon: Icon }) => {
-              const hint = SECONDARY_NAV_HINTS[to] ?? "";
-              return (
-                <HintTooltip key={to} hint={hint} side="right">
-                  <Link
-                    to={to}
-                    title={hint}
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-                  >
-                    <Icon className="size-4.5" aria-hidden="true" /> {label}
-                  </Link>
-                </HintTooltip>
-              );
-            })}
-            <button
-              onClick={signOut}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
-            >
-              <LogOut className="size-4.5" aria-hidden="true" /> Sign out
-            </button>
-          </div>
-        </aside>
-
-        <div className="lg:pl-60">
+        <div>
           <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
             <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
               <div className="flex min-w-0 items-center gap-2 lg:hidden">
@@ -456,19 +520,21 @@ export function AppShell({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <ThemeToggle />
-                <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setQuickAddOpen(true)}
-                  >
-                    <Wand2 className="size-4" aria-hidden="true" />
-                    <span className="hidden sm:inline">Quick add</span>
-                  </Button>
-                </HintTooltip>
+                {canUseQuickAdd ? (
+                  <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setQuickMenuOpen(true)}
+                    >
+                      <Wand2 className="size-4" aria-hidden="true" />
+                      <span className="hidden sm:inline">Quick add</span>
+                    </Button>
+                  </HintTooltip>
+                ) : null}
                 <NotificationsBell businessId={workspace.data?.business.id} />
-                {billingEnabled ? (
+                {billingEnabled && canManageBilling ? (
                   <HintTooltip hint={HEADER_HINTS.plan} side="bottom">
                     <Link to="/settings/billing" className="hidden sm:inline-flex">
                       <Badge variant="outline" className="cursor-default capitalize">
@@ -495,6 +561,33 @@ export function AppShell({
                 </DropdownMenu>
               </div>
             </div>
+            <nav
+              className="mx-auto hidden max-w-6xl items-center gap-1 px-4 pb-2 lg:flex"
+              aria-label="Primary desktop navigation"
+            >
+              {mobileNav.map((item) => {
+                const active = pathname.startsWith(item.to);
+                const hint = MAIN_NAV_HINTS[item.to] ?? "";
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    title={hint}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <item.icon className="size-4 shrink-0" aria-hidden="true" />
+                    <span>{item.to === "/dashboard" ? "Home" : item.label}</span>
+                  </Link>
+                );
+              })}
+              <MoreNavMenu items={moreNav} activePath={pathname} launchBadge={launchBadge} />
+            </nav>
           </header>
 
           {workspace.data?.isImpersonating ? (
@@ -539,12 +632,14 @@ export function AppShell({
                   Your trial has ended. You can still view everything, but upgrade to keep creating
                   and editing.
                 </span>
-                <Link
-                  to="/settings/billing"
-                  className="shrink-0 font-semibold underline underline-offset-2"
-                >
-                  Upgrade now
-                </Link>
+                {canManageBilling ? (
+                  <Link
+                    to="/settings/billing"
+                    className="shrink-0 font-semibold underline underline-offset-2"
+                  >
+                    Upgrade now
+                  </Link>
+                ) : null}
               </div>
             </div>
           ) : isOperateLocked && billingEnabled ? (
@@ -554,12 +649,14 @@ export function AppShell({
                   Setup is free. Pay for Pro when you are ready to publish your shop or use the
                   sales counter.
                 </span>
-                <Link
-                  to="/settings/billing"
-                  className="shrink-0 font-semibold text-primary underline underline-offset-2"
-                >
-                  Go to billing
-                </Link>
+                {canManageBilling ? (
+                  <Link
+                    to="/settings/billing"
+                    className="shrink-0 font-semibold text-primary underline underline-offset-2"
+                  >
+                    Go to billing
+                  </Link>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -587,28 +684,40 @@ export function AppShell({
           className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur lg:hidden"
           aria-label="Primary"
         >
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-6">
             {mobileNav.map((item) => {
               const active = pathname.startsWith(item.to);
-              const hint = MAIN_NAV_HINTS[item.to] ?? "";
               return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  title={hint}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
+                    "flex min-h-14 flex-col items-center justify-center gap-1 px-0.5 py-2 text-center text-[10px] font-medium leading-tight",
                     active ? "text-primary" : "text-muted-foreground",
                   )}
                 >
                   <item.icon className="size-5" aria-hidden="true" />
-                  {item.label}
+                  {item.to === "/dashboard"
+                    ? "Home"
+                    : item.to === "/inventory"
+                      ? "Products"
+                      : item.label}
                 </Link>
               );
             })}
+            <MoreNavMenu items={moreNav} activePath={pathname} launchBadge={launchBadge} mobile />
           </div>
         </nav>
 
+        <QuickAddMenu
+          open={quickMenuOpen}
+          onOpenChange={setQuickMenuOpen}
+          onTypeNote={() => {
+            setQuickMenuOpen(false);
+            setQuickAddOpen(true);
+          }}
+        />
         <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
       </div>
     </TooltipProvider>

@@ -191,7 +191,7 @@ function Landing() {
 
   return (
     <MarketingShell>
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-12 md:grid-cols-2 md:pt-20">
+      <section className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 pb-20 pt-12 md:grid-cols-2 md:pt-20">
         <div className="rise">
           <p className="mb-5 inline-block rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground">
             Karibu · Mauya · Welcome home
@@ -229,7 +229,7 @@ function Landing() {
       </section>
 
       <section className="bg-secondary py-20">
-        <div className="mx-auto grid max-w-6xl gap-6 px-5 md:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-5 md:grid-cols-2">
           <div className="rounded-[2rem] bg-card p-8 md:p-10">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary">
               For shoppers
@@ -289,7 +289,7 @@ function Landing() {
 
       <section id="how-it-works" className="mx-auto max-w-6xl px-5 py-20">
         <h2 className="text-4xl md:text-5xl">Opening a store takes five small steps.</h2>
-        <div className="mt-10 grid gap-3 md:grid-cols-5">
+        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-5">
           {SETUP_STEPS.map((step, index) => (
             <div key={step.title} className="rounded-2xl bg-card p-5 shadow-soft">
               <span className="tabular-nums text-sm text-muted-foreground">0{index + 1}</span>

@@ -120,7 +120,8 @@ export function StorefrontOverview({
           No products yet. Add items in{" "}
           <Link to="/inventory" className="font-medium text-primary underline">
             Inventory
-          </Link>. The same products appear here when you publish them to the shop.
+          </Link>
+          . The same products appear here when you publish them to the shop.
         </p>
       ) : publishedCount === 0 ? (
         <p className="rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">

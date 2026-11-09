@@ -12,7 +12,10 @@ export const Route = createFileRoute("/about")({
         content: `${BRAND.name} helps Zimbabwean small businesses manage inventory, sales, customers, invoices and expenses, and sell through a branded online shop.`,
       },
       { property: "og:title", content: `About | ${BRAND.name}` },
-      { property: "og:description", content: `${BRAND.name} helps Zimbabwean small businesses manage inventory, sales, customers, invoices and expenses, and sell through a branded online shop.` },
+      {
+        property: "og:description",
+        content: `${BRAND.name} helps Zimbabwean small businesses manage inventory, sales, customers, invoices and expenses, and sell through a branded online shop.`,
+      },
     ],
     links: [{ rel: "canonical", href: `${BRAND.appUrl}/about` }],
   }),

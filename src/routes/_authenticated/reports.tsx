@@ -110,6 +110,7 @@ function Reports() {
   const canViewCommission = hasPermission(workspace.data, "roles.manage");
 
   const [range, setRange] = useState("30");
+  const [includeHistorical, setIncludeHistorical] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [detailedImportOpen, setDetailedImportOpen] = useState(false);
   const fetchReports = useServerFn(getReports);
@@ -127,9 +128,12 @@ function Reports() {
   }, [workspace.isLoading, workspace.data, navigate]);
 
   const reports = useQuery({
-    queryKey: ["reports", businessId, range],
+    queryKey: ["reports", businessId, range, includeHistorical],
     enabled: Boolean(businessId) && canView,
-    queryFn: () => fetchReports({ data: { businessId: businessId!, days: Number(range) } }),
+    queryFn: () =>
+      fetchReports({
+        data: { businessId: businessId!, days: Number(range), includeHistorical },
+      }),
   });
   const serviceReports = useQuery({
     queryKey: ["service-reports", businessId, range],
@@ -258,6 +262,14 @@ function Reports() {
               <Upload className="size-4" aria-hidden="true" /> Import detailed sales
             </Button>
           ) : null}
+          <label className="flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm">
+            <input
+              type="checkbox"
+              checked={includeHistorical}
+              onChange={(event) => setIncludeHistorical(event.target.checked)}
+            />
+            Include historical data
+          </label>
           <Tabs value={range} onValueChange={setRange}>
             <TabsList>
               {RANGES.map((r) => (
@@ -723,7 +735,7 @@ function Reports() {
         open={detailedImportOpen}
         onOpenChange={setDetailedImportOpen}
         title="Import detailed sales"
-        description="Real transactions, matched against your existing products and customers, decrements stock, and shows up in Top Products/Top Customers. Leave Unit Price blank to use the product's current price."
+        description="Historical transactions matched to your products and customers. They appear in Top Products and Top Customers without changing current stock. Leave Unit Price blank to use the product's current price."
         columns={SALE_LINE_IMPORT_COLUMNS}
         templateFilename="detailed-sales-template"
         parseRow={(record, rowNumber) => {

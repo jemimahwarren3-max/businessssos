@@ -364,12 +364,15 @@ export const getReports = createServerFn({ method: "POST" })
   .middleware(authAndRateLimit)
   .inputValidator((data: unknown) =>
     parseAndSanitize(
-      businessIdSchema.extend({ days: z.coerce.number().int().min(1).max(365) }),
+      businessIdSchema.extend({
+        days: z.coerce.number().int().min(1).max(365),
+        includeHistorical: z.boolean().default(false),
+      }),
       data,
     ),
   )
   .handler(async ({ data, context }) =>
-    loadReports(context.supabase as Db, data.businessId, data.days),
+    loadReports(context.supabase as Db, data.businessId, data.days, data.includeHistorical),
   );
 
 export const getLocations = createServerFn({ method: "POST" })

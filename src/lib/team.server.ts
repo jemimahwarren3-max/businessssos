@@ -42,7 +42,7 @@ export async function listPendingInvites(
   supabase: Db,
   businessId: string,
 ): Promise<PendingInvite[]> {
-  await assertPermission(supabase, businessId, "users.view");
+  await assertRole(supabase, businessId, ["owner"]);
   const { data, error } = await supabase
     .from("business_invites")
     .select("id, role, expires_at, created_at")
@@ -67,6 +67,7 @@ export async function createInvite(
   role: string,
 ): Promise<{ token: string }> {
   await assertPermission(supabase, businessId, "users.invite");
+  await assertRole(supabase, businessId, ["owner"]);
   if (role === "owner") {
     throw new AppError("You cannot invite someone as owner.");
   }
@@ -92,6 +93,7 @@ export async function revokeInvite(
   inviteId: string,
 ): Promise<void> {
   await assertPermission(supabase, businessId, "users.invite");
+  await assertRole(supabase, businessId, ["owner"]);
   const { error } = await supabase.rpc("revoke_business_invite", {
     _business_id: businessId,
     _invite_id: inviteId,
@@ -179,8 +181,7 @@ export async function acceptInvite(supabase: Db, token: string): Promise<{ busin
  * via staffSignIn below, which resolves back to this address. Uses
  * supabaseAdmin only for the auth-user creation itself, the business_members
  * insert goes through the caller's own RLS-scoped client, same as every
- * other write in this file, since the existing "bootstrap or admin add
- * member" policy already permits an owner/admin adding anyone. */
+ * other write in this file, through the owner-only team-member insert policy. */
 export async function createStaffAccount(
   supabase: Db,
   businessId: string,
@@ -190,6 +191,7 @@ export async function createStaffAccount(
   role: string,
 ): Promise<{ userId: string }> {
   await assertPermission(supabase, businessId, "users.invite");
+  await assertRole(supabase, businessId, ["owner"]);
   if (role === "owner") {
     throw new AppError("You cannot create a staff login as owner.");
   }
