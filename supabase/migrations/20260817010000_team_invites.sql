@@ -254,4 +254,4 @@ alter table public.audit_logs
       'purchase_order.created', 'sales.imported_detailed', 'customers.imported',
       'team.invited', 'team.invite_revoked', 'team.role_changed', 'team.member_removed'
     )
-  );
+  ) not valid;
