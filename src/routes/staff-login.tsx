@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -12,8 +13,13 @@ import { getPostAuthDestination } from "@/lib/auth/auth.functions";
 import { navigateAfterAuth } from "@/lib/auth/post-auth-navigate";
 import { staffSignInFn, verifyShopLoginFn } from "@/lib/business.functions";
 
+const staffLoginSearchSchema = z.object({
+  shop: z.string().max(120).optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/staff-login")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => staffLoginSearchSchema.parse(search),
   head: () => ({
     meta: [{ title: `Staff sign-in | ${BRAND.name}` }, { name: "robots", content: "noindex" }],
   }),
@@ -21,6 +27,7 @@ export const Route = createFileRoute("/staff-login")({
 });
 
 function StaffLogin() {
+  const { shop } = Route.useSearch();
   const verifyShopFn = useServerFn(verifyShopLoginFn);
   const staffSignIn = useServerFn(staffSignInFn);
   const fetchDestination = useServerFn(getPostAuthDestination);
@@ -33,6 +40,11 @@ function StaffLogin() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [personalPassword, setPersonalPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const name = shop?.trim();
+    if (name) setBusinessNameInput(name);
+  }, [shop]);
 
   function backToShopStep() {
     setStep("shop");
