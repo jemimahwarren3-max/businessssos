@@ -93,12 +93,27 @@ jobs:
 
       - run: npm ci
 
+      - name: Build production preview
+        run: npm run build
+        env:
+          APP_URL: http://127.0.0.1:8080
+          SHOP_HOSTS: "true"
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET }}
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Smoke tests (production, read-only)
+      - name: Smoke tests (local preview)
         env:
-          E2E_BASE_URL: https://mykwetuu.com
+          E2E_BASE_URL: http://127.0.0.1:8080
+          SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET }}
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
         run: npx playwright test --config e2e/playwright.config.ts --project=smoke
 
       - name: Upload test results
