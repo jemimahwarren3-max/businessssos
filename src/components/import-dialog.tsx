@@ -14,7 +14,7 @@ import {
 import {
   downloadCsvTemplate,
   parseSpreadsheetFile,
-  rowsToRecords,
+  rowsToRecordsSmart,
   type ImportColumn,
 } from "@/lib/spreadsheet";
 import { readableError } from "@/lib/format";
@@ -62,6 +62,7 @@ export function ImportDialog<T>({
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState<ImportRow<T>[]>([]);
   const [headerError, setHeaderError] = useState("");
+  const [columnMappingHint, setColumnMappingHint] = useState("");
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{
     imported: number;
@@ -74,6 +75,7 @@ export function ImportDialog<T>({
     setFileName("");
     setRows([]);
     setHeaderError("");
+    setColumnMappingHint("");
     setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -83,15 +85,27 @@ export function ImportDialog<T>({
     setResult(null);
     try {
       const parsed = await parseSpreadsheetFile(file);
-      const { records, missingRequired } = rowsToRecords(parsed, columns);
+      const { records, missingRequired, columnMapping } = rowsToRecordsSmart(parsed, columns);
       if (missingRequired.length > 0) {
+        const hint =
+          columnMapping.length > 0
+            ? ` We did match: ${columnMapping.map((m) => `${m.fromHeader} → ${m.field}`).join(", ")}.`
+            : " Add a header row with your product or item names, or download the template.";
         setHeaderError(
-          `Missing required column${missingRequired.length > 1 ? "s" : ""}: ${missingRequired.join(", ")}`,
+          `Could not find required column${missingRequired.length > 1 ? "s" : ""}: ${missingRequired.join(", ")}.${hint}`,
         );
+        setColumnMappingHint("");
         setRows([]);
         return;
       }
       setHeaderError("");
+      if (columnMapping.length > 0) {
+        setColumnMappingHint(
+          `Matched your sheet: ${columnMapping.map((m) => `"${m.fromHeader}" → ${m.field}`).join(", ")}.`,
+        );
+      } else {
+        setColumnMappingHint("");
+      }
       setRows(
         records.map((record, index) => ({
           ...parseRow(record, index + 2),
@@ -242,6 +256,9 @@ export function ImportDialog<T>({
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 {headerError}
               </p>
+            ) : null}
+            {!headerError && columnMappingHint ? (
+              <p className="text-[13px] text-muted-foreground">{columnMappingHint}</p>
             ) : null}
             {invalidRows.length > 0 ? (
               <Button
