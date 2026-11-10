@@ -287,8 +287,7 @@ export function quickEntrySaleFailureReason(sale: QuickEntrySaleDraft): string |
   if (overStock.length > 0) {
     return overStock
       .map(
-        (item) =>
-          `${item.name}: selling ${item.quantity} but only ${item.availableStock} in stock`,
+        (item) => `${item.name}: selling ${item.quantity} but only ${item.availableStock} in stock`,
       )
       .join("; ");
   }

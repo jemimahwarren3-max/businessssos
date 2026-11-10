@@ -13,7 +13,10 @@ import {
 describe("quickEntrySchema", () => {
   it("allows file-sized notes for Quick Add", () => {
     const text = "a".repeat(12_000);
-    const parsed = quickEntrySchema.parse({ businessId: "00000000-0000-4000-8000-000000000001", text });
+    const parsed = quickEntrySchema.parse({
+      businessId: "00000000-0000-4000-8000-000000000001",
+      text,
+    });
     expect(parsed.text.length).toBe(12_000);
   });
 });

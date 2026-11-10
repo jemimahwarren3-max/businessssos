@@ -90,6 +90,7 @@ export async function extractQuickAddImageText(
     ?.map((part) => part.text ?? "")
     .join("")
     .trim();
-  if (!text) throw new AppError("Could not read text from that photo. Try a clearer picture or Excel.");
+  if (!text)
+    throw new AppError("Could not read text from that photo. Try a clearer picture or Excel.");
   return text.slice(0, 12_000);
 }

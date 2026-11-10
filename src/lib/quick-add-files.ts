@@ -97,9 +97,7 @@ export async function extractQuickAddFileText(file: File): Promise<string> {
   if (isQuickAddImageFile(file)) {
     throw new Error("IMAGE_NEEDS_SERVER");
   }
-  throw new Error(
-    "Use CSV, Excel (.xlsx), Word (.docx), PDF with text, or a photo (JPEG/PNG).",
-  );
+  throw new Error("Use CSV, Excel (.xlsx), Word (.docx), PDF with text, or a photo (JPEG/PNG).");
 }
 
 export const QUICK_ADD_FILE_HELP =
