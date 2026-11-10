@@ -43,6 +43,7 @@ import {
   setStaffPasswordFn,
   updateTeamMemberRoleFn,
 } from "@/lib/business.functions";
+import { QrCodeImage } from "@/components/qr-code-image";
 import { friendlyDate, readableError } from "@/lib/format";
 import { buildInviteWhatsAppMessage } from "@/lib/whatsapp";
 
@@ -70,6 +71,10 @@ function Team() {
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
   const businessName = workspace.data?.business.name ?? "";
+  const staffSignInUrl =
+    businessName && typeof window !== "undefined"
+      ? `${window.location.origin}/staff-login?shop=${encodeURIComponent(businessName)}`
+      : "";
   const canManage = hasPermission(workspace.data, "users.view");
   const canManagePermissions = hasPermission(workspace.data, "roles.manage");
   const isOwner = workspace.data?.role === "owner";
@@ -318,19 +323,36 @@ function Team() {
         ) : undefined
       }
     >
-      <div className="surface mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
-        <div>
-          <p
-            className="text-sm font-semibold"
-            title={`Everyone on your team, including you, signs in with your business name (${businessName}), the shop password, then their own name and password.`}
-          >
-            Shop sign-in
+      <div className="surface mb-4 flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p
+              className="text-sm font-semibold"
+              title={`Everyone on your team, including you, signs in with your business name (${businessName}), the shop password, then their own name and password.`}
+            >
+              Shop sign-in
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setShopPasswordOpen(true)}>
+              Set shop password
+            </Button>
+          </div>
+          <p className="text-[13px] text-muted-foreground">
+            Cashiers and stock staff use <strong>/staff-login</strong> on a phone or tablet, not the
+            owner email login.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShopPasswordOpen(true)}>
-            Set shop password
-          </Button>
+          {isOwner && staffSignInUrl ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <QrCodeImage
+                value={staffSignInUrl}
+                label={`QR code to open staff sign-in for ${businessName}`}
+                size={176}
+              />
+              <p className="max-w-sm text-[13px] text-muted-foreground">
+                Scan on Android or iPhone to open sign-in with your shop name filled in. Share the
+                QR in the shop. Staff still enter the shop password and their own password.
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -678,12 +700,22 @@ function Team() {
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{ROLE_LABEL[inviteLink.role] ?? inviteLink.role}</Badge>
               </div>
-              <div className="surface break-all p-3 text-[13px] text-muted-foreground">
-                {inviteLink.link}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <QrCodeImage
+                  value={inviteLink.link}
+                  label={`QR code for team invite (${inviteLink.role})`}
+                  size={176}
+                />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="surface break-all p-3 text-[13px] text-muted-foreground">
+                    {inviteLink.link}
+                  </div>
+                  <p className="text-[13px] text-muted-foreground">
+                    Let them scan the QR or copy the link. We cannot show it again after you close
+                    this.
+                  </p>
+                </div>
               </div>
-              <p className="text-[13px] text-muted-foreground">
-                Copy this link now. We cannot show it again after you close this.
-              </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"

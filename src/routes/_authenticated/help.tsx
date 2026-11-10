@@ -365,10 +365,11 @@ function Help() {
           </p>
           <p>
             An owner or admin adds people from the <strong>Team</strong> page in the sidebar, pick a
-            role and generate a link, then send it however you like (WhatsApp, SMS, email). Whoever
-            opens it signs in or creates an account and joins your business with that role. Roles
-            can be changed or a member removed from the same page; a business always keeps at least
-            one owner.
+            role and generate a link. A <strong>QR code</strong> appears so staff can scan it on
+            Android or iPhone. You can still copy the link or share via WhatsApp. Whoever opens it
+            signs in or creates an account and joins your business with that role. Roles can be
+            changed or a member removed from the same page; a business always keeps at least one
+            owner.
           </p>
           <p>
             Day to day, everyone signs in at <strong>/staff-login</strong> with your business name
@@ -382,8 +383,10 @@ function Help() {
             <strong>/staff-login</strong> in two steps: first your business name and a shared{" "}
             <strong>shop password</strong> (set from the same card on the Team page, required before
             anyone can even see who's on the team), then pick a name and enter that person's own
-            password. An owner/admin can reset a staff member's password from their row if they
-            forget it, these accounts have no real email, so "Forgot password" won't work for them.
+            password. The Team page also shows a QR for <strong>staff sign-in</strong> with your
+            shop name prefilled. An owner/admin can reset a staff member's password from their row
+            if they forget it, these accounts have no real email, so "Forgot password" won't work
+            for them.
           </p>
         </Section>
 

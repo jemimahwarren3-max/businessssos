@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { endImpersonationFn, getPlatformAnnouncementFn } from "@/lib/admin/admin.functions";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { signOutFn } from "@/lib/auth/auth.functions";
 import {
   getNotificationsFn,
@@ -435,6 +436,7 @@ export function AppShell({
   // Reuses the ["workspace"] query every page already populates, no extra
   // network request in practice, just reading businessId back out of it.
   const workspace = useWorkspace();
+  const isMobile = useIsMobile();
   const endImpersonation = useServerFn(endImpersonationFn);
   const stopImpersonation = useMutation({
     mutationFn: () =>
@@ -547,11 +549,26 @@ export function AppShell({
                   </Button>
                 </HintTooltip>
                 {hasPermission(workspace.data, "business.export_data") ? (
-                  <HintTooltip hint="Download your data as Excel or JSON" side="bottom">
-                    <Button variant="outline" size="sm" className="gap-1" asChild>
+                  <HintTooltip
+                    hint={
+                      isMobile
+                        ? "Export your shop data. On Android, use the browser menu to add Kwetuu to your home screen."
+                        : "Export your data as Excel, JSON, or PDF"
+                    }
+                    side="bottom"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      asChild
+                      aria-label="Export my data"
+                    >
                       <Link to="/settings/data">
                         <Download className="size-4" aria-hidden="true" />
-                        <span className="hidden sm:inline">Download</span>
+                        <span className={isMobile ? "inline text-xs" : "hidden sm:inline"}>
+                          {isMobile ? "Export" : "Download"}
+                        </span>
                       </Link>
                     </Button>
                   </HintTooltip>
