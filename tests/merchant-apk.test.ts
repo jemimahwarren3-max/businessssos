@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach } from "vitest";
-import { loadMerchantApkDownload } from "../src/lib/merchant-apk.server";
+import { loadMerchantApkDownload, loadMerchantAppInstall } from "../src/lib/merchant-apk.server";
 
 describe("loadMerchantApkDownload", () => {
   const keys = [
@@ -7,6 +7,7 @@ describe("loadMerchantApkDownload", () => {
     "MERCHANT_APK_VERSION",
     "MERCHANT_APK_SHA256",
     "MERCHANT_APK_UPDATED_AT",
+    "MERCHANT_PLAY_STORE_URL",
   ] as const;
 
   afterEach(() => {
@@ -28,5 +29,11 @@ describe("loadMerchantApkDownload", () => {
     process.env["MERCHANT_APK_VERSION"] = "2026.11.10";
     expect(loadMerchantApkDownload().available).toBe(true);
     expect(loadMerchantApkDownload().url).toContain("kwetuu.apk");
+  });
+
+  it("exposes Play Store when MERCHANT_PLAY_STORE_URL is set", () => {
+    process.env["MERCHANT_PLAY_STORE_URL"] =
+      "https://play.google.com/store/apps/details?id=com.mykwetuu.app";
+    expect(loadMerchantAppInstall().playStoreAvailable).toBe(true);
   });
 });

@@ -1,10 +1,15 @@
-/** Public merchant APK metadata (sideload before Play Store). Set on Cloud Run, not in the client bundle. */
+/** Public merchant install metadata. Set on Cloud Run, not in the client bundle. */
 export type MerchantApkDownload = {
   available: boolean;
   url: string;
   version: string;
   sha256: string;
   updatedAt: string;
+};
+
+export type MerchantAppInstallInfo = MerchantApkDownload & {
+  playStoreUrl: string;
+  playStoreAvailable: boolean;
 };
 
 export function loadMerchantApkDownload(): MerchantApkDownload {
@@ -18,5 +23,15 @@ export function loadMerchantApkDownload(): MerchantApkDownload {
     version,
     sha256,
     updatedAt,
+  };
+}
+
+export function loadMerchantAppInstall(): MerchantAppInstallInfo {
+  const apk = loadMerchantApkDownload();
+  const playStoreUrl = process.env["MERCHANT_PLAY_STORE_URL"]?.trim() ?? "";
+  return {
+    ...apk,
+    playStoreUrl,
+    playStoreAvailable: playStoreUrl.length > 0,
   };
 }

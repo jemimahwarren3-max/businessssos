@@ -98,7 +98,7 @@ Merchants install like Telegram: **APK sideload** or **Chrome → Add to Home sc
 3. Set on Cloud Run: `MERCHANT_APK_URL`, optional `MERCHANT_APK_VERSION`, `MERCHANT_APK_SHA256`, `MERCHANT_APK_UPDATED_AT`.
 4. The download button on `/download` goes live without redeploying the web bundle (server env only).
 
-Play Store listing is a later step; the page already says Play is coming soon.
+Play Store: follow **`docs/GOOGLE_PLAY_MERCHANT_SUBMISSION.md`**, upload the release `.aab`, then set `MERCHANT_PLAY_STORE_URL` on Cloud Run.
 
 ## Next steps (Phase B+)
 
