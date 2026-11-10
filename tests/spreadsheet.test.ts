@@ -37,11 +37,7 @@ describe("spreadsheet import parsing", () => {
       matchColumnsFuzzy(["Item Description", "SOH", "RSP"], productColumns)["name"],
     ).toBeGreaterThanOrEqual(0);
     const { records, missingRequired } = rowsToRecordsSmart(
-      [
-        ["Kwetuu stock list"],
-        ["Item Description", "SOH", "RSP"],
-        ["Sugar 2kg", "40", "3.50"],
-      ],
+      [["Kwetuu stock list"], ["Item Description", "SOH", "RSP"], ["Sugar 2kg", "40", "3.50"]],
       productColumns,
     );
     expect(missingRequired).toEqual([]);

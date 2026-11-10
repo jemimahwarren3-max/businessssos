@@ -298,10 +298,7 @@ export function rowsToRecords(
 }
 
 /** Strict match first, then fuzzy headers, header-row detection, and light positional hints. */
-export function rowsToRecordsSmart(
-  rows: string[][],
-  columns: ImportColumn[],
-): RowsToRecordsResult {
+export function rowsToRecordsSmart(rows: string[][], columns: ImportColumn[]): RowsToRecordsResult {
   const emptyRequired = columns.filter((c) => c.required).map((c) => c.label);
   if (rows.length === 0) {
     return { records: [], missingRequired: emptyRequired, columnMapping: [], headerRowIndex: 0 };
