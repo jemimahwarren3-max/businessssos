@@ -670,7 +670,13 @@ export const generateInvoiceDraftSchema = z.object({
 
 export const quickEntrySchema = z.object({
   businessId: z.string().uuid(),
-  text: z.string().trim().min(1).max(500),
+  text: z.string().trim().min(1).max(14_000),
+});
+
+export const quickEntryImageExtractSchema = z.object({
+  businessId: z.string().uuid(),
+  base64: z.string().min(20).max(6_000_000),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
 });
 
 /* --------------------------------- team ----------------------------------- */

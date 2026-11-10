@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   BarChart3,
   Boxes,
@@ -153,28 +153,39 @@ function Help() {
 
         <Section id="quick-add" icon={Wand2} title="Quick Add">
           <p>
-            The <strong>Quick add</strong> button in the top header (on every page) lets you type
-            what happened in plain language, or attach a CSV/Excel file for the same flow. Example:
-            &quot;Sold 3 shirts to Mary for $90&quot; or a supplier invoice spreadsheet.
+            The <strong>Quick add</strong> button opens one dialog. Type a short note (for example
+            &quot;Sales 9 November&quot;) or attach Excel, Word (.docx), CSV, or plain text. You can
+            combine both: attach a file and add a date or comment above it.
           </p>
           <ol>
             <li>
-              Click Quick add, type a note or use <strong>Attach file</strong> (CSV, Excel, or
-              text).
+              Tap <strong>Prepare</strong>. Kwetuu matches products to your inventory and reads
+              customer names from the file.
             </li>
-            <li>Review the draft it builds, every field is editable before anything is saved.</li>
             <li>
-              Confirm. It creates a real sale/expense/customer the same way the regular forms do.
+              Review the draft. New customers are created when you record a sale; you can still pick
+              an existing customer from the list.
+            </li>
+            <li>
+              Tap <strong>Record sale</strong>, or record a batch from a spreadsheet. Ready lines
+              save; any line that fails shows the customer or sale and the reason (missing product,
+              not enough stock, or a server error). Stock is checked again on save.
             </li>
           </ol>
           <p>
-            Press <strong>Ctrl+K</strong> (⌘K on Mac) or use the header <strong>Search</strong>{" "}
-            button to jump to any page. <strong>Download</strong> in the header opens full data
-            export.
+            <strong>PDF</strong> works when the file has selectable text (not a flat scan).
+            <strong> Photos</strong> of a list or invoice are read on the server when Gemini is
+            configured; you still review the draft before anything is saved.
           </p>
           <p>
-            If it can't confidently match a product you mention, it'll ask you to pick one rather
-            than guessing.
+            For bulk historical imports with no stock impact, use{" "}
+            <Link
+              to="/settings/data"
+              className="font-medium text-primary underline underline-offset-2"
+            >
+              Import &amp; download data
+            </Link>
+            . Press <strong>Ctrl+K</strong> (⌘K on Mac) for quick navigation.
           </p>
         </Section>
 

@@ -1,10 +1,25 @@
 import { describe, expect, it } from "vitest";
+import { quickEntrySchema } from "../src/lib/business.schemas";
 import {
   extractJson,
   isRawDraft,
+  quickEntrySaleFailureReason,
+  quickEntrySaleIsStockOk,
   resolveCustomer,
   resolveExpense,
+  type QuickEntrySaleDraft,
 } from "../src/lib/quick-entry.server";
+
+describe("quickEntrySchema", () => {
+  it("allows file-sized notes for Quick Add", () => {
+    const text = "a".repeat(12_000);
+    const parsed = quickEntrySchema.parse({
+      businessId: "00000000-0000-4000-8000-000000000001",
+      text,
+    });
+    expect(parsed.text.length).toBe(12_000);
+  });
+});
 
 describe("extractJson", () => {
   it("passes through a clean JSON object unchanged", () => {
@@ -27,6 +42,7 @@ describe("extractJson", () => {
 describe("isRawDraft", () => {
   it("accepts each known type discriminator", () => {
     expect(isRawDraft({ type: "sale" })).toBe(true);
+    expect(isRawDraft({ type: "sale_batch" })).toBe(true);
     expect(isRawDraft({ type: "expense" })).toBe(true);
     expect(isRawDraft({ type: "customer" })).toBe(true);
     expect(isRawDraft({ type: "unknown" })).toBe(true);
@@ -76,6 +92,81 @@ describe("resolveExpense", () => {
     expect(resolveExpense({ type: "expense", amount: "not a number" })).toEqual({
       type: "unknown",
     });
+  });
+});
+
+describe("quickEntrySaleFailureReason", () => {
+  const base: QuickEntrySaleDraft = {
+    type: "sale",
+    items: [],
+    customerId: "",
+    customerName: "Mary",
+    customerPhone: "",
+    paymentMethod: "cash",
+    saleDate: "",
+  };
+
+  it("explains stock shortage with quantities", () => {
+    const reason = quickEntrySaleFailureReason({
+      ...base,
+      items: [
+        {
+          name: "Shirt",
+          quantity: 6,
+          productId: "p1",
+          unitPrice: 10,
+          taxRate: 0,
+          availableStock: 2,
+          stockOk: false,
+        },
+      ],
+    });
+    expect(reason).toMatch(/only 2 in stock/i);
+  });
+});
+
+describe("quickEntrySaleIsStockOk", () => {
+  const base: QuickEntrySaleDraft = {
+    type: "sale",
+    items: [],
+    customerId: "",
+    customerName: "",
+    customerPhone: "",
+    paymentMethod: "cash",
+    saleDate: "",
+  };
+
+  it("requires every line to have enough stock", () => {
+    const ok = quickEntrySaleIsStockOk({
+      ...base,
+      items: [
+        {
+          name: "Shirt",
+          quantity: 2,
+          productId: "p1",
+          unitPrice: 10,
+          taxRate: 0,
+          availableStock: 5,
+          stockOk: true,
+        },
+      ],
+    });
+    expect(ok).toBe(true);
+    const bad = quickEntrySaleIsStockOk({
+      ...base,
+      items: [
+        {
+          name: "Shirt",
+          quantity: 6,
+          productId: "p1",
+          unitPrice: 10,
+          taxRate: 0,
+          availableStock: 5,
+          stockOk: false,
+        },
+      ],
+    });
+    expect(bad).toBe(false);
   });
 });
 

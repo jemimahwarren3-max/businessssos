@@ -8,22 +8,27 @@ import { checkRateLimit } from "./rate-limit.server";
 const CATEGORY_VALUES = EXPENSE_CATEGORIES.map((c) => c.value);
 const PAYMENT_VALUES = PAYMENT_METHODS.map((p) => p.value);
 
-const SYSTEM_PROMPT = `You turn one short message from a small-business owner into structured data.
+function buildSystemPrompt(): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `You turn a shop owner's short note (and optional pasted spreadsheet rows) into structured data.
 Output ONLY a single JSON object, no other text, matching exactly one of these shapes:
 
-Sale: {"type":"sale","items":[{"name":"item name","quantity":1}],"customerName":"optional name or omit","paymentMethod":"optional, one of cash|card|mobile_money|bank_transfer|credit"}
+Sale: {"type":"sale","items":[{"name":"item name","quantity":1,"unitPrice":"optional number"}],"customerName":"optional","customerPhone":"optional","paymentMethod":"optional cash|card|mobile_money|bank_transfer|credit","saleDate":"optional YYYY-MM-DD"}
+Sale batch: {"type":"sale_batch","sales":[{same fields as one sale per row/group}],"contextDate":"optional YYYY-MM-DD when user says a date for the whole file"}
 Purchase: {"type":"purchase","productName":"item name","quantity":1,"unitCost":"optional number","supplierName":"optional"}
-Expense: {"type":"expense","amount":0,"category":"optional, one of ${CATEGORY_VALUES.join("|")}","description":"optional","vendor":"optional"}
+Expense: {"type":"expense","amount":0,"category":"optional ${CATEGORY_VALUES.join("|")}","description":"optional","vendor":"optional"}
 Customer: {"type":"customer","name":"required","phone":"optional","email":"optional"}
 Unclear: {"type":"unknown"}
 
 Rules:
-- A sale is recording something already sold to a customer. A purchase is stock/goods the
-  business bought in, to resell or restock, e.g. "Bought 20 cases of Mazoe from ABC Suppliers
-  at $8 each". An expense is money paid out that isn't buying stock (rent, transport, etc).
-- Never invent a name, amount, or quantity that isn't stated or clearly implied.
-- If the message doesn't clearly match one of these, output {"type":"unknown"}.
-- Quantity defaults to 1 if not stated. Output valid JSON only, no markdown, no commentary.`;
+- A sale is goods already sold to someone. A purchase is stock bought in. An expense is money out that is not stock.
+- If the user says something like "sales 9 November" or "9 Nov sales", set saleDate or contextDate using year ${today.slice(0, 4)} unless another year is stated.
+- When tabular lines look like sales (customer, product, qty, price, date), use sale_batch with one sale object per row or per customer/day group.
+- Match product names to the text in the file; do not invent products, prices, or quantities not in the message.
+- Never invent customer names. If a name appears on a sale line, include customerName even when unknown in the system.
+- If the message doesn't clearly match one shape, output {"type":"unknown"}.
+- Quantity defaults to 1. Output valid JSON only, no markdown.`;
+}
 
 export type QuickEntryItem = {
   name: string;
@@ -31,16 +36,23 @@ export type QuickEntryItem = {
   productId: string;
   unitPrice: number;
   taxRate: number;
+  availableStock: number;
+  stockOk: boolean;
+};
+
+export type QuickEntrySaleDraft = {
+  type: "sale";
+  items: QuickEntryItem[];
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  paymentMethod: (typeof PAYMENT_VALUES)[number];
+  saleDate: string;
 };
 
 export type QuickEntryDraft =
-  | {
-      type: "sale";
-      items: QuickEntryItem[];
-      customerId: string;
-      customerName: string;
-      paymentMethod: (typeof PAYMENT_VALUES)[number];
-    }
+  | QuickEntrySaleDraft
+  | { type: "sale_batch"; sales: QuickEntrySaleDraft[] }
   | {
       type: "purchase";
       productName: string;
@@ -61,9 +73,16 @@ export type QuickEntryDraft =
 
 export type RawSale = {
   type: "sale";
-  items?: { name?: unknown; quantity?: unknown }[];
+  items?: { name?: unknown; quantity?: unknown; unitPrice?: unknown }[];
   customerName?: unknown;
+  customerPhone?: unknown;
   paymentMethod?: unknown;
+  saleDate?: unknown;
+};
+export type RawSaleBatch = {
+  type: "sale_batch";
+  sales?: RawSale[];
+  contextDate?: unknown;
 };
 export type RawPurchase = {
   type: "purchase";
@@ -81,13 +100,14 @@ export type RawExpense = {
 };
 export type RawCustomer = { type: "customer"; name?: unknown; phone?: unknown; email?: unknown };
 type RawUnknown = { type: "unknown" };
-type RawDraft = RawSale | RawPurchase | RawExpense | RawCustomer | RawUnknown;
+type RawDraft = RawSale | RawSaleBatch | RawPurchase | RawExpense | RawCustomer | RawUnknown;
 
 export function isRawDraft(value: unknown): value is RawDraft {
   if (!value || typeof value !== "object") return false;
   const type = (value as { type?: unknown }).type;
   return (
     type === "sale" ||
+    type === "sale_batch" ||
     type === "purchase" ||
     type === "expense" ||
     type === "customer" ||
@@ -115,11 +135,23 @@ function asNumber(value: unknown): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function asOptionalPrice(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function asSaleDate(value: unknown, fallback: string): string {
+  const text = asString(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  return fallback;
+}
+
 async function resolveSale(
   supabase: Db,
   businessId: string,
   raw: RawSale,
-): Promise<QuickEntryDraft> {
+  defaultSaleDate = "",
+): Promise<QuickEntrySaleDraft | { type: "unknown" }> {
   const rawItems = Array.isArray(raw.items) ? raw.items : [];
   const items: QuickEntryItem[] = [];
   for (const rawItem of rawItems) {
@@ -128,12 +160,18 @@ async function resolveSale(
     const quantity = asNumber(rawItem?.quantity) || 1;
     const matches = await listProducts(supabase, businessId, name);
     const match = matches[0];
+    const availableStock = match ? Number(match.stock) : 0;
+    const unitPrice = match
+      ? asOptionalPrice(rawItem?.unitPrice, Number(match.selling_price))
+      : asOptionalPrice(rawItem?.unitPrice, 0);
     items.push({
       name,
       quantity,
       productId: match?.id ?? "",
-      unitPrice: match ? Number(match.selling_price) : 0,
+      unitPrice,
       taxRate: match ? Number(match.tax_rate) : 0,
+      availableStock,
+      stockOk: Boolean(match?.id) && quantity <= availableStock,
     });
   }
   if (items.length === 0) return { type: "unknown" };
@@ -149,7 +187,39 @@ async function resolveSale(
     ? (asString(raw.paymentMethod) as (typeof PAYMENT_VALUES)[number])
     : "cash";
 
-  return { type: "sale", items, customerId, customerName, paymentMethod };
+  const saleDate = asSaleDate(raw.saleDate, defaultSaleDate);
+
+  return {
+    type: "sale",
+    items,
+    customerId,
+    customerName,
+    customerPhone: asString(raw.customerPhone),
+    paymentMethod,
+    saleDate,
+  };
+}
+
+async function resolveSaleBatch(
+  supabase: Db,
+  businessId: string,
+  raw: RawSaleBatch,
+): Promise<QuickEntryDraft> {
+  const contextDate = asSaleDate(raw.contextDate, "");
+  const rawSales = Array.isArray(raw.sales) ? raw.sales : [];
+  const sales: QuickEntrySaleDraft[] = [];
+  for (const entry of rawSales) {
+    const resolved = await resolveSale(
+      supabase,
+      businessId,
+      { ...entry, type: "sale" },
+      contextDate,
+    );
+    if (resolved.type === "sale") sales.push(resolved);
+  }
+  if (sales.length === 0) return { type: "unknown" };
+  if (sales.length === 1) return sales[0]!;
+  return { type: "sale_batch", sales };
 }
 
 async function resolvePurchase(
@@ -195,6 +265,35 @@ export function resolveCustomer(raw: RawCustomer): QuickEntryDraft {
   return { type: "customer", name, phone: asString(raw.phone), email: asString(raw.email) };
 }
 
+export function quickEntrySaleIsStockOk(sale: QuickEntrySaleDraft): boolean {
+  return sale.items.length > 0 && sale.items.every((item) => item.stockOk);
+}
+
+export function quickEntrySaleHasProducts(sale: QuickEntrySaleDraft): boolean {
+  return sale.items.length > 0 && sale.items.every((item) => Boolean(item.productId));
+}
+
+/** Human-readable blocker before calling create_sale (stock is still enforced on the server). */
+export function quickEntrySaleFailureReason(sale: QuickEntrySaleDraft): string | null {
+  if (sale.items.length === 0) return "No items on this sale.";
+  const unmatched = sale.items.filter((item) => !item.productId);
+  if (unmatched.length > 0) {
+    const names = unmatched.map((item) => item.name).filter(Boolean);
+    return names.length
+      ? `No matching product for: ${names.join(", ")}. Pick or add them in Inventory first.`
+      : "One or more lines need a product from your catalogue.";
+  }
+  const overStock = sale.items.filter((item) => !item.stockOk);
+  if (overStock.length > 0) {
+    return overStock
+      .map(
+        (item) => `${item.name}: selling ${item.quantity} but only ${item.availableStock} in stock`,
+      )
+      .join("; ");
+  }
+  return null;
+}
+
 export async function parseQuickEntry(
   supabase: Db,
   businessId: string,
@@ -210,7 +309,7 @@ export async function parseQuickEntry(
   }
 
   const messages: ChatMessage[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: buildSystemPrompt() },
     { role: "user", content: text },
   ];
 
@@ -225,7 +324,11 @@ export async function parseQuickEntry(
   }
 
   if (!isRawDraft(raw)) return { type: "unknown" };
-  if (raw.type === "sale") return resolveSale(supabase, businessId, raw);
+  if (raw.type === "sale") {
+    const sale = await resolveSale(supabase, businessId, raw);
+    return sale.type === "unknown" ? sale : sale;
+  }
+  if (raw.type === "sale_batch") return resolveSaleBatch(supabase, businessId, raw);
   if (raw.type === "purchase") return resolvePurchase(supabase, businessId, raw);
   if (raw.type === "expense") return resolveExpense(raw);
   if (raw.type === "customer") return resolveCustomer(raw);
