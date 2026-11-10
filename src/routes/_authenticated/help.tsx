@@ -127,10 +127,14 @@ function Help() {
       <div className="mt-6 space-y-4">
         <Section id="dashboard" icon={BarChart3} title="Dashboard">
           <p>
-            Your business at a glance: today's sales and profit, money customers currently owe you,
-            products running low, and a business health score with plain-language signals (e.g.
-            "profit margin dropped this week"). This is the first thing you should check each
-            morning.
+            On your phone, <strong>Quick actions</strong> sit at the top: Quick add, Sales & scan,
+            stock, expenses, and reports. Your online store is a collapsible reminder below the
+            numbers: tap it when you want launch steps or to open the live shop.
+          </p>
+          <p>
+            Your business at a glance: today's sales and profit, products running low, and recent
+            activity. Use Quick add or the round button above the bottom menu for voice, notes,
+            files, and photos without opening each module separately.
           </p>
         </Section>
 
@@ -149,9 +153,26 @@ function Help() {
             Works offline: sales made without a connection are queued and sync automatically once
             you're back online.
           </p>
+          <p>
+            <strong>Barcode readers:</strong> USB and Bluetooth scanners that act like a keyboard
+            work today. Plug in or pair the scanner, open Sales, tap the search box, then scan. The
+            code fills the box and finds the product. On a phone you can also tap the camera button
+            beside search to scan with the device camera.
+          </p>
+          <p>
+            <strong>Card swipe machines:</strong> Kwetuu does not plug into bank POS terminals yet.
+            Record the sale in Kwetuu with the matching method (card, EcoCash, cash, and so on)
+            after the swipe machine approves payment, or use Paynow on your online shop when that is
+            set up. Direct chip-and-pin or NFC from Kwetuu would need a certified payment
+            integration later.
+          </p>
         </Section>
 
         <Section id="quick-add" icon={Wand2} title="Quick Add">
+          <p>
+            On mobile, open Quick add from the home Quick actions row, the header{" "}
+            <strong>Add</strong> button, or the round wand button just above the bottom menu.
+          </p>
           <p>
             The <strong>Quick add</strong> button opens one dialog. Type a short note (for example
             &quot;Sales 9 November&quot;) or attach Excel, Word (.docx), CSV, or plain text. You can
