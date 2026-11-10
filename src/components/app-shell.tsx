@@ -32,6 +32,7 @@ import {
   Wallet,
   Sparkles,
   Truck,
+  User,
   UserX,
   Users,
   Wand2,
@@ -529,10 +530,13 @@ export function AppShell({
         </a>
         <div>
           <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
-            <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-              <div className="flex min-w-0 items-center gap-2 lg:hidden">
-                <Logo to="/dashboard" className="shrink-0 [&_img]:ml-0 [&_img]:h-9 [&_img]:my-0" />
-                <span className="truncate text-sm font-semibold">{businessName}</span>
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-3 lg:px-4 lg:py-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
+                <Logo
+                  to="/dashboard"
+                  className="shrink-0 [&_img]:ml-0 [&_img]:h-8 [&_img]:w-8 [&_img]:my-0"
+                />
+                <span className="truncate text-sm font-semibold leading-tight">{businessName}</span>
               </div>
               <div className="hidden min-w-0 items-center gap-2 lg:flex">
                 <span className="truncate text-sm font-semibold">{businessName}</span>
@@ -542,73 +546,97 @@ export function AppShell({
                   </Badge>
                 </HintTooltip>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <ThemeToggle />
-                <HintTooltip hint="Search pages and tools (Ctrl+K)" side="bottom">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="hidden gap-1.5 sm:inline-flex"
-                    onClick={() => {
-                      window.dispatchEvent(
-                        new KeyboardEvent("keydown", { key: "k", ctrlKey: true }),
-                      );
-                    }}
-                  >
-                    Search
-                  </Button>
-                </HintTooltip>
-                <HintTooltip
-                  hint="Step-by-step guide for sales, stock, imports and shortcuts"
-                  side="bottom"
-                >
-                  <Button variant="outline" size="sm" className="gap-1" asChild>
-                    <Link to="/help">
-                      <HelpCircle className="size-4" aria-hidden="true" />
-                      <span className="hidden sm:inline">Help</span>
-                    </Link>
-                  </Button>
-                </HintTooltip>
-                {hasPermission(workspace.data, "business.export_data") ? (
-                  <HintTooltip
-                    hint={
-                      isMobile
-                        ? "Export your shop data. On Android, use the browser menu to add Kwetuu to your home screen."
-                        : "Export your data as Excel, JSON, or PDF"
-                    }
-                    side="bottom"
-                  >
+              <div className="flex shrink-0 items-center gap-1 lg:gap-2">
+                <div className="hidden items-center gap-2 lg:flex">
+                  <ThemeToggle />
+                  <HintTooltip hint="Search pages and tools (Ctrl+K)" side="bottom">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="gap-1"
-                      asChild
-                      aria-label="Export my data"
+                      className="gap-1.5"
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new KeyboardEvent("keydown", { key: "k", ctrlKey: true }),
+                        );
+                      }}
                     >
-                      <Link to="/settings/data">
-                        <Download className="size-4" aria-hidden="true" />
-                        <span className={isMobile ? "inline text-xs" : "hidden sm:inline"}>
-                          {isMobile ? "Export" : "Download"}
-                        </span>
+                      Search
+                    </Button>
+                  </HintTooltip>
+                  <HintTooltip
+                    hint="Step-by-step guide for sales, stock, imports and shortcuts"
+                    side="bottom"
+                  >
+                    <Button variant="outline" size="sm" className="gap-1" asChild>
+                      <Link to="/help">
+                        <HelpCircle className="size-4" aria-hidden="true" />
+                        <span>Help</span>
                       </Link>
                     </Button>
                   </HintTooltip>
-                ) : null}
-                {canUseQuickAdd ? (
-                  <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
+                  {hasPermission(workspace.data, "business.export_data") ? (
+                    <HintTooltip hint="Export your data as Excel, JSON, or PDF" side="bottom">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        asChild
+                        aria-label="Export my data"
+                      >
+                        <Link to="/settings/data">
+                          <Download className="size-4" aria-hidden="true" />
+                          <span>Download</span>
+                        </Link>
+                      </Button>
+                    </HintTooltip>
+                  ) : null}
+                  {canUseQuickAdd ? (
+                    <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setQuickAddOpen(true)}
+                        aria-label="Quick add sale, stock, or expense"
+                      >
+                        <Wand2 className="size-4" aria-hidden="true" />
+                        Quick add
+                      </Button>
+                    </HintTooltip>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-0.5 lg:hidden">
+                  <HintTooltip
+                    hint="Step-by-step guide for sales, stock, imports and shortcuts"
+                    side="bottom"
+                  >
                     <Button
-                      variant="default"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => setQuickAddOpen(true)}
-                      aria-label="Quick add sale, stock, or expense"
+                      variant="ghost"
+                      size="icon"
+                      className="size-9 shrink-0"
+                      asChild
+                      aria-label="Help"
                     >
-                      <Wand2 className="size-4" aria-hidden="true" />
-                      <span className="sm:hidden">Add</span>
-                      <span className="hidden sm:inline">Quick add</span>
+                      <Link to="/help">
+                        <HelpCircle className="size-4" aria-hidden="true" />
+                      </Link>
                     </Button>
                   </HintTooltip>
-                ) : null}
+                  {canUseQuickAdd && !mobileQuickAddFab ? (
+                    <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="icon"
+                        className="size-9 shrink-0"
+                        aria-label="Quick add sale, stock, or expense"
+                        onClick={() => setQuickAddOpen(true)}
+                      >
+                        <Wand2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    </HintTooltip>
+                  ) : null}
+                </div>
                 <NotificationsBell businessId={workspace.data?.business.id} />
                 {billingEnabled && canManageBilling ? (
                   <HintTooltip hint={HEADER_HINTS.plan} side="bottom">
@@ -622,13 +650,34 @@ export function AppShell({
                 <DropdownMenu>
                   <HintTooltip hint={HEADER_HINTS.account} side="bottom">
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="gap-1">
-                        Account <ChevronDown className="size-4" aria-hidden="true" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-9 shrink-0 lg:w-auto lg:px-3"
+                        aria-label="Account menu"
+                      >
+                        <User className="size-4 lg:hidden" aria-hidden="true" />
+                        <span className="hidden items-center gap-1 lg:inline-flex">
+                          Account <ChevronDown className="size-4" aria-hidden="true" />
+                        </span>
                       </Button>
                     </DropdownMenuTrigger>
                   </HintTooltip>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{ROLE_LABEL[role] ?? role}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {hasPermission(workspace.data, "business.export_data") ? (
+                      <DropdownMenuItem asChild>
+                        <Link to="/settings/data">
+                          <Download className="size-4" aria-hidden="true" /> Export data
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem asChild>
+                      <Link to="/help">
+                        <HelpCircle className="size-4" aria-hidden="true" /> Help
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={signOut}>
                       <LogOut className="size-4" aria-hidden="true" /> Sign out
@@ -737,11 +786,14 @@ export function AppShell({
             </div>
           ) : null}
 
-          <main id="main-content" className="mx-auto max-w-6xl px-4 pb-28 pt-6 lg:pb-12">
-            <div className="flex flex-wrap items-start gap-4 sm:items-center sm:justify-between">
-              <div className="min-w-0">
+          <main
+            id="main-content"
+            className="mx-auto max-w-6xl px-3 pb-28 pt-4 sm:px-4 sm:pt-6 lg:pb-12"
+          >
+            <div className="flex flex-wrap items-start gap-3 sm:items-center sm:justify-between sm:gap-4">
+              <div className="min-w-0 flex-1">
                 <h1
-                  className="text-2xl font-bold tracking-tight sm:text-[28px]"
+                  className="text-xl font-bold tracking-tight sm:text-2xl sm:text-[28px]"
                   title={subtitleAsTooltip ? subtitle : undefined}
                 >
                   {title}

@@ -128,24 +128,31 @@ export function StoreLaunchCentre({
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex w-full items-start gap-3 rounded-lg p-4 text-left transition-colors hover:bg-muted/30"
+              className="flex w-full items-center gap-2 rounded-lg p-3 text-left transition-colors hover:bg-muted/30 sm:gap-3 sm:p-4"
             >
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Your online store</p>
-                <h2 id="store-launch-heading" className="text-base font-semibold tracking-tight">
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <p className="text-xs font-medium text-muted-foreground sm:text-sm">
+                  Your online store
+                </p>
+                <h2
+                  id="store-launch-heading"
+                  className="text-sm font-semibold leading-snug tracking-tight sm:text-base"
+                >
                   {display.headline}
                 </h2>
-                <p className="text-[13px] text-muted-foreground">
-                  {doneCount} of {steps.length} steps · tap to {defaultOpen ? "hide" : "open"}
+                <p className="text-[12px] text-muted-foreground sm:text-[13px]">
+                  {doneCount}/{steps.length} steps · tap to open
                 </p>
               </div>
-              <Badge
-                className={cn("shrink-0 capitalize", PHASE_STYLE[display.phase])}
-                variant="outline"
-              >
-                {display.badge}
-              </Badge>
-              <ChevronDown className="mt-1 size-5 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <Badge
+                  className={cn("max-w-[7.5rem] truncate capitalize", PHASE_STYLE[display.phase])}
+                  variant="outline"
+                >
+                  {display.badge}
+                </Badge>
+                <ChevronDown className="size-5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+              </div>
               <span className="sr-only">Show or hide online store launch steps</span>
             </button>
           </CollapsibleTrigger>
