@@ -10,7 +10,19 @@ export function normalizeProductLabel(value: string): string {
 }
 
 function significantTokens(hint: string): string[] {
-  const stop = new Set(["the", "and", "for", "with", "from", "qty", "item", "unit", "each", "case", "cases"]);
+  const stop = new Set([
+    "the",
+    "and",
+    "for",
+    "with",
+    "from",
+    "qty",
+    "item",
+    "unit",
+    "each",
+    "case",
+    "cases",
+  ]);
   return normalizeProductLabel(hint)
     .split(/\s+/)
     .filter((token) => token.length > 1 && !stop.has(token));

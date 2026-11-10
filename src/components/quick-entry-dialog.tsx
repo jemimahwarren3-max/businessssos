@@ -67,6 +67,7 @@ import {
   QUICK_ADD_FILE_HELP,
   readFileAsDataUrl,
 } from "@/lib/quick-add-files";
+import type { QuickAddIntent } from "@/lib/quick-entry-intent";
 
 const NONE = "__none";
 const EXAMPLES = [
@@ -118,6 +119,7 @@ export function QuickEntryDialog({
 
   const [text, setText] = useState("");
   const [fileLabel, setFileLabel] = useState("");
+  const [fileIntent, setFileIntent] = useState<QuickAddIntent | null>(null);
   const [draft, setDraft] = useState<QuickEntryDraft | null>(null);
   const [saleForm, setSaleForm] = useState<SaleDraftState | null>(null);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseDraftState | null>(null);
@@ -271,6 +273,7 @@ export function QuickEntryDialog({
     setPurchaseBatch(null);
     setBatchOutcome(null);
     setPurchaseBatchOutcome(null);
+    setFileIntent(null);
   }
 
   function close() {
@@ -278,8 +281,17 @@ export function QuickEntryDialog({
     reset();
   }
 
+  const prepareIntent: QuickAddIntent = fileLabel ? (fileIntent ?? "auto") : "auto";
+
   const parseMutation = useMutation({
-    mutationFn: () => parseFn({ data: { businessId: businessId!, text } }),
+    mutationFn: () => {
+      if (fileLabel && fileIntent === null) {
+        throw new Error("Choose what you want to add from this file.");
+      }
+      return parseFn({
+        data: { businessId: businessId!, text, intent: prepareIntent },
+      });
+    },
     onSuccess: (result) => {
       setDraft(result);
       if (result.type === "sale_batch") {
@@ -445,8 +457,7 @@ export function QuickEntryDialog({
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
-    onError: (error: Error) =>
-      toast.error(readableError(error, "Couldn't import those products.")),
+    onError: (error: Error) => toast.error(readableError(error, "Couldn't import those products.")),
   });
 
   const expenseMutation = useMutation({
@@ -623,7 +634,8 @@ export function QuickEntryDialog({
                         : `From file ${file.name}:\n${next}`,
                     );
                     setFileLabel(file.name);
-                    toast.success("File added. Tap Prepare to review, then record.");
+                    setFileIntent(null);
+                    toast.success("File added. Say what it is for, then tap Prepare.");
                   } catch (error) {
                     toast.error(readableError(error as Error, "Could not read that file."));
                   } finally {
@@ -644,6 +656,40 @@ export function QuickEntryDialog({
               ) : null}
             </div>
             <p className="text-xs text-muted-foreground">{QUICK_ADD_FILE_HELP}</p>
+            {fileLabel ? (
+              <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-sm font-medium text-foreground">
+                  What do you want to add from this file?
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ["inventory", "Inventory list"],
+                      ["sales", "Sales"],
+                      ["stock_in", "Stock received"],
+                      ["expense", "Expenses"],
+                      ["customer", "Customers"],
+                      ["auto", "Not sure"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={fileIntent === value ? "default" : "outline"}
+                      onClick={() => setFileIntent(value)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                {fileIntent === null ? (
+                  <p className="text-[13px] text-muted-foreground">
+                    Pick one so Kwetuu does not treat totals, credits, or allergy lines as products.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex flex-wrap gap-1.5">
               {EXAMPLES.map((example) => (
                 <button
@@ -662,7 +708,11 @@ export function QuickEntryDialog({
               </Button>
               <Button
                 className="gap-1.5"
-                disabled={!text.trim() || parseMutation.isPending}
+                disabled={
+                  !text.trim() ||
+                  parseMutation.isPending ||
+                  (Boolean(fileLabel) && fileIntent === null)
+                }
                 onClick={() => parseMutation.mutate()}
               >
                 {parseMutation.isPending ? (
@@ -745,14 +795,22 @@ export function QuickEntryDialog({
         ) : draft.type === "product_import" ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              This looks like an <strong>inventory spreadsheet</strong> ({draft.rows.length} product
-              {draft.rows.length === 1 ? "" : "s"} with stock, SOH, or prices). Kwetuu will create or
-              update products the same way as Inventory → Import.
+              <strong>
+                {draft.rows.length} product{draft.rows.length === 1 ? "" : "s"}
+              </strong>{" "}
+              ready for inventory. Review the list before you import.
             </p>
+            {draft.skippedJunk.length > 0 ? (
+              <p className="text-[13px] text-muted-foreground">
+                Left out {draft.skippedJunk.length} non-product row
+                {draft.skippedJunk.length === 1 ? "" : "s"} (totals, credits, allergies, and
+                similar): {draft.skippedJunk.slice(0, 5).join(", ")}
+                {draft.skippedJunk.length > 5 ? "…" : ""}
+              </p>
+            ) : null}
             {draft.columnMapping.length > 0 ? (
               <p className="text-[13px] text-muted-foreground">
-                Columns:{" "}
-                {draft.columnMapping.map((m) => `${m.fromHeader} → ${m.field}`).join(", ")}
+                Columns: {draft.columnMapping.map((m) => `${m.fromHeader} → ${m.field}`).join(", ")}
               </p>
             ) : null}
             <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border p-3 text-sm">

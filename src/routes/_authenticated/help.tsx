@@ -175,9 +175,9 @@ function Help() {
           </p>
           <p>
             The <strong>Quick add</strong> button opens one dialog. Type a short note (for example
-            &quot;Sales 9 November&quot;) or             attach Excel, Word (.docx), CSV, or plain text. For a stock or SOH
-            product list, type <strong>add inventory</strong> above the sheet or attach the
-            file as-is. Quick Add imports it like Inventory → Import.
+            &quot;Sales 9 November&quot;) or             attach Excel, Word (.docx), CSV, or plain text.             When you attach a file, choose <strong>what you want to add</strong> (inventory,
+            sales, stock received, and so on). Totals, credits, and allergy lines are left out of
+            inventory imports.
           </p>
           <ol>
             <li>

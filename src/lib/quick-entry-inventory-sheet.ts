@@ -1,9 +1,16 @@
 import { productImportRowSchema, type ProductImportRow } from "./business.schemas";
+import { isLikelyJunkQuickAddRow } from "./quick-entry-row-filter";
+import type { QuickAddIntent } from "./quick-entry-intent";
 import { parseCsvText, rowsToRecordsSmart, type ImportColumn } from "./spreadsheet";
 
 /** Same header vocabulary as Inventory → Import (SOH, retail price, and so on). */
 export const QUICK_ADD_PRODUCT_COLUMNS: ImportColumn[] = [
-  { key: "name", label: "Name", required: false, aliases: ["product", "item", "productname", "description", "goods"] },
+  {
+    key: "name",
+    label: "Name",
+    required: false,
+    aliases: ["product", "item", "productname", "description", "goods"],
+  },
   { key: "sku", label: "SKU", required: false, aliases: ["code", "productcode", "itemcode"] },
   { key: "barcode", label: "Barcode", required: false, aliases: ["upc", "ean"] },
   {
@@ -22,7 +29,16 @@ export const QUICK_ADD_PRODUCT_COLUMNS: ImportColumn[] = [
     key: "stock",
     label: "Stock",
     required: false,
-    aliases: ["quantity", "qty", "stockonhand", "soh", "onhand", "qtyonhand", "stockqty", "received"],
+    aliases: [
+      "quantity",
+      "qty",
+      "stockonhand",
+      "soh",
+      "onhand",
+      "qtyonhand",
+      "stockqty",
+      "received",
+    ],
   },
   {
     key: "minStock",
@@ -34,8 +50,9 @@ export const QUICK_ADD_PRODUCT_COLUMNS: ImportColumn[] = [
   { key: "taxRate", label: "Tax Rate", required: false, aliases: ["tax", "vat", "taxpercent"] },
 ];
 
-const INVENTORY_INTENT =
+export const INVENTORY_INTENT_PATTERN =
   /\b(add inventory|inventory list|stock take|stocktake|update stock|product list|products list|soh|opening stock)\b/i;
+const INVENTORY_INTENT = INVENTORY_INTENT_PATTERN;
 const SALE_HEADER_HINT = /\b(customer|client|sold to|buyer|invoice|receipt|amount paid)\b/i;
 
 export function quickAddTextToRows(text: string): string[][] {
@@ -45,7 +62,10 @@ export function quickAddTextToRows(text: string): string[][] {
     .slice(0, 250_000);
   if (!body) return [];
 
-  const lines = body.split("\n").map((line) => line.trim()).filter(Boolean);
+  const lines = body
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
   const keyValueLines = lines.filter((line) => line.includes("=") && line.includes(","));
   if (keyValueLines.length >= Math.max(1, Math.floor(lines.length * 0.4))) {
     const keyOrder: string[] = [];
@@ -99,7 +119,7 @@ function inferProductName(record: Record<string, string>): string {
 
 function recordToImportRow(record: Record<string, string>): ProductImportRow | null {
   const name = inferProductName(record);
-  if (!name) return null;
+  if (!name || isLikelyJunkQuickAddRow(name)) return null;
   const stockRaw = record["stock"]?.trim() ?? "";
   const hasStock = stockRaw !== "" && Number.isFinite(Number(stockRaw.replace(",", ".")));
   const hasPrice =
@@ -127,10 +147,15 @@ function recordToImportRow(record: Record<string, string>): ProductImportRow | n
 export type QuickAddProductImportParse = {
   rows: ProductImportRow[];
   columnMapping: { field: string; fromHeader: string }[];
+  skippedJunk: string[];
 };
 
 /** Stock / product spreadsheets (especially SOH columns) without treating them as sales. */
-export function tryParseProductInventoryImport(text: string): QuickAddProductImportParse | null {
+export function tryParseProductInventoryImport(
+  text: string,
+  intent: QuickAddIntent = "auto",
+): QuickAddProductImportParse | null {
+  if (intent === "sales" || intent === "expense" || intent === "customer") return null;
   const grid = quickAddTextToRows(text);
   if (grid.length < 2) return null;
 
@@ -138,25 +163,37 @@ export function tryParseProductInventoryImport(text: string): QuickAddProductImp
   if (smart.records.length === 0) return null;
 
   const rawHeaderText = (grid[0] ?? []).join(" ").toLowerCase();
-  const headerText = smart.columnMapping.map((entry) => entry.fromHeader).join(" ").toLowerCase();
+  const headerText = smart.columnMapping
+    .map((entry) => entry.fromHeader)
+    .join(" ")
+    .toLowerCase();
   const looksLikeSale = SALE_HEADER_HINT.test(`${rawHeaderText} ${headerText}`);
   const hasCustomerColumn = /\bcustomer\b|\bclient\b/.test(rawHeaderText);
   const hasStockColumn = smart.columnMapping.some((entry) => entry.field === "Stock");
   const hasNameColumn = smart.columnMapping.some((entry) => entry.field === "Name");
-  const intent = INVENTORY_INTENT.test(text);
-
-  if (hasCustomerColumn) return null;
-  if (looksLikeSale && !hasStockColumn) return null;
-  if (!intent && !hasStockColumn && !(hasNameColumn && smart.columnMapping.length >= 2)) {
-    return null;
+  const textIntent = INVENTORY_INTENT.test(text);
+  if (intent === "inventory" || intent === "stock_in") {
+    if (hasCustomerColumn && !hasStockColumn && !hasNameColumn) return null;
+  } else {
+    if (hasCustomerColumn) return null;
+    if (looksLikeSale && !hasStockColumn) return null;
+    if (!textIntent && !hasStockColumn && !(hasNameColumn && smart.columnMapping.length >= 2)) {
+      return null;
+    }
   }
 
   const rows: ProductImportRow[] = [];
+  const skippedJunk: string[] = [];
   for (const record of smart.records) {
+    const roughName = inferProductName(record);
+    if (roughName && isLikelyJunkQuickAddRow(roughName)) {
+      skippedJunk.push(roughName);
+      continue;
+    }
     const parsed = recordToImportRow(record);
     if (parsed) rows.push(parsed);
   }
   if (rows.length === 0) return null;
 
-  return { rows, columnMapping: smart.columnMapping };
+  return { rows, columnMapping: smart.columnMapping, skippedJunk };
 }

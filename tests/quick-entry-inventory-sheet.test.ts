@@ -26,6 +26,22 @@ Product=Blue Soap, Stock=10, Cost Price=1.20`;
     expect(result?.rows[0]?.stock).toBe(24);
   });
 
+  it("skips totals and allergy footer lines when intent is inventory", () => {
+    const text = `add inventory
+Product=Mazoe, SOH=5
+Product=Allergies, SOH=0
+Product=Total, SOH=0
+Product=Soap, SOH=3`;
+    const result = tryParseProductInventoryImport(text, "inventory");
+    expect(result?.rows.map((row) => row.name).sort()).toEqual(["Mazoe", "Soap"]);
+    expect(result?.skippedJunk).toEqual(expect.arrayContaining(["Allergies", "Total"]));
+  });
+
+  it("does not inventory-parse when user chose sales", () => {
+    const text = `Product=Mazoe, SOH=24`;
+    expect(tryParseProductInventoryImport(text, "sales")).toBeNull();
+  });
+
   it("skips obvious sale exports with customer column", () => {
     const text = `Customer=Mary, Product=Shirt, Qty=2, Amount=40`;
     expect(tryParseProductInventoryImport(text)).toBeNull();

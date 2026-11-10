@@ -943,7 +943,7 @@ export const parseQuickEntryFn = createServerFn({ method: "POST" })
   .middleware([...authAndRateLimit, ...quickEntryRateLimit])
   .inputValidator((data: unknown) => parseAndSanitize(quickEntrySchema, data))
   .handler(async ({ data, context }) =>
-    parseQuickEntry(context.supabase as Db, data.businessId, data.text),
+    parseQuickEntry(context.supabase as Db, data.businessId, data.text, data.intent),
   );
 
 export const extractQuickAddImageTextFn = createServerFn({ method: "POST" })

@@ -5,13 +5,20 @@ import type { ChatMessage } from "./ai/provider";
 import { AI_LIMITS } from "./ai/limits.server";
 import { checkRateLimit } from "./rate-limit.server";
 import { pickBestProductMatch } from "./quick-entry-product-match";
-import { tryParseProductInventoryImport } from "./quick-entry-inventory-sheet";
+import {
+  INVENTORY_INTENT_PATTERN,
+  tryParseProductInventoryImport,
+} from "./quick-entry-inventory-sheet";
+import type { QuickAddIntent } from "./quick-entry-intent";
+import { quickAddIntentForModel } from "./quick-entry-intent";
+import { isLikelyJunkQuickAddRow } from "./quick-entry-row-filter";
 import type { ProductImportRow } from "./business.schemas";
 
 const CATEGORY_VALUES = EXPENSE_CATEGORIES.map((c) => c.value);
 const PAYMENT_VALUES = PAYMENT_METHODS.map((p) => p.value);
 
-function buildSystemPrompt(catalogNames: string[]): string {
+function buildSystemPrompt(catalogNames: string[], intent: QuickAddIntent): string {
+  const intentBlock = `\n\n${quickAddIntentForModel(intent)}`;
   const today = new Date().toISOString().slice(0, 10);
   const catalogBlock =
     catalogNames.length > 0
@@ -40,7 +47,7 @@ Rules:
 - Do not invent quantities or prices not implied by the message. You may infer a sensible productName label from context.
 - Never invent customer names. If a name appears on a sale line, include customerName even when unknown in the system.
 - Prefer purchase_batch over unknown when multiple stock lines are clearly restock.
-- Quantity defaults to 1. Output valid JSON only, no markdown.${catalogBlock}`;
+- Quantity defaults to 1. Output valid JSON only, no markdown.${catalogBlock}${intentBlock}`;
 }
 
 export type QuickEntryItem = {
@@ -81,6 +88,7 @@ export type QuickEntryDraft =
       type: "product_import";
       rows: ProductImportRow[];
       columnMapping: { field: string; fromHeader: string }[];
+      skippedJunk: string[];
     }
   | {
       type: "expense";
@@ -202,7 +210,7 @@ async function resolveSale(
   const items: QuickEntryItem[] = [];
   for (const rawItem of rawItems) {
     const name = asString(rawItem?.name);
-    if (!name) continue;
+    if (!name || isLikelyJunkQuickAddRow(name)) continue;
     const quantity = asNumber(rawItem?.quantity) || 1;
     const match = await findProductForHint(supabase, businessId, name);
     const availableStock = match ? Number(match.stock) : 0;
@@ -371,6 +379,7 @@ export async function parseQuickEntry(
   supabase: Db,
   businessId: string,
   text: string,
+  intent: QuickAddIntent = "auto",
 ): Promise<QuickEntryDraft> {
   const withinDailyLimit = await checkRateLimit(
     `quick-entry-daily:business:${businessId}`,
@@ -381,12 +390,22 @@ export async function parseQuickEntry(
     throw new AppError("Quick Add has reached its daily usage limit. Please try again tomorrow.");
   }
 
-  const inventorySheet = tryParseProductInventoryImport(text);
-  if (inventorySheet && inventorySheet.rows.length > 0) {
+  const inventorySheet = tryParseProductInventoryImport(text, intent);
+  const hasStockMapping = Boolean(
+    inventorySheet?.columnMapping.some((entry) => entry.field === "Stock"),
+  );
+  const useInventorySheet =
+    inventorySheet &&
+    inventorySheet.rows.length > 0 &&
+    (intent === "inventory" ||
+      intent === "stock_in" ||
+      (intent === "auto" && (INVENTORY_INTENT_PATTERN.test(text) || hasStockMapping)));
+  if (useInventorySheet && inventorySheet) {
     return {
       type: "product_import",
       rows: inventorySheet.rows,
       columnMapping: inventorySheet.columnMapping,
+      skippedJunk: inventorySheet.skippedJunk,
     };
   }
 
@@ -394,7 +413,7 @@ export async function parseQuickEntry(
   const catalogNames = catalog.map((row) => row.name);
 
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt(catalogNames) },
+    { role: "system", content: buildSystemPrompt(catalogNames, intent) },
     { role: "user", content: text },
   ];
 
