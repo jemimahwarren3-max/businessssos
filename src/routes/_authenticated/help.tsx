@@ -387,10 +387,14 @@ function Help() {
           <p>
             An owner or admin adds people from the <strong>Team</strong> page in the sidebar, pick a
             role and generate a link. A <strong>QR code</strong> appears so staff can scan it on
-            Android or iPhone. You can still copy the link or share via WhatsApp. Whoever opens it
-            signs in or creates an account and joins your business with that role. Roles can be
-            changed or a member removed from the same page; a business always keeps at least one
-            owner.
+            Install Kwetuu on Android from the public{" "}
+            <a href="/download" className="font-medium text-primary underline underline-offset-2">
+              Download page
+            </a>{" "}
+            (APK before Google Play) or use Chrome <strong>Add to Home screen</strong>. On Android
+            or iPhone. You can still copy the link or share via WhatsApp. Whoever opens it signs in
+            or creates an account and joins your business with that role. Roles can be changed or a
+            member removed from the same page; a business always keeps at least one owner.
           </p>
           <p>
             Day to day, everyone signs in at <strong>/staff-login</strong> with your business name

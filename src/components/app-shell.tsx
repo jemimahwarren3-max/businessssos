@@ -28,6 +28,7 @@ import {
   Receipt,
   Settings,
   ShoppingCart,
+  Smartphone,
   Store,
   Wallet,
   Sparkles,
@@ -676,6 +677,11 @@ export function AppShell({
                     <DropdownMenuItem asChild>
                       <Link to="/help">
                         <HelpCircle className="size-4" aria-hidden="true" /> Help
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/download">
+                        <Smartphone className="size-4" aria-hidden="true" /> Get Android app
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

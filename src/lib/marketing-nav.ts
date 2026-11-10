@@ -2,6 +2,7 @@ export const MARKETING_NAV = [
   { to: "/stores" as const, label: "Browse stores" },
   { to: "/templates" as const, label: "Store designs" },
   { to: "/pricing" as const, label: "Pricing" },
+  { to: "/download" as const, label: "Android app" },
   { to: "/faq" as const, label: "FAQ" },
 ] as const;
 
