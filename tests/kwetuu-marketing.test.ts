@@ -40,6 +40,7 @@ describe("Kwetuu public site contract", () => {
       "Browse stores",
       "Store designs",
       "Pricing",
+      "Android app",
       "FAQ",
     ]);
     expect(MARKETING_EXISTING_STORE_PROMPT).toBe(

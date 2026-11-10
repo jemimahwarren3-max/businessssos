@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { loadMerchantApkDownload } from "@/lib/merchant-apk.server";
+import { loadMerchantAppInstall } from "@/lib/merchant-apk.server";
 
-/** APK link for /download — configured on the server when a release is published. */
+/** Install links for /download (APK sideload + Play Store). */
 export const getMerchantApkDownloadFn = createServerFn({ method: "GET" }).handler(async () =>
-  loadMerchantApkDownload(),
+  loadMerchantAppInstall(),
 );

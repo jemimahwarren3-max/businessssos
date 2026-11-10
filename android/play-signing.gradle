@@ -1,0 +1,34 @@
+// Release signing for Google Play uploads. CI sets ANDROID_KEYSTORE_FILE and passwords;
+// never commit the keystore. Local: copy android/keystore.properties.example to keystore.properties.
+def keystorePropsFile = rootProject.file("keystore.properties")
+// storeFile paths in keystore.properties are relative to the android/ directory.
+def hasReleaseKeystore = false
+
+if (keystorePropsFile.exists()) {
+    def keystoreProps = new Properties()
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+    android.signingConfigs {
+        release {
+            storeFile rootProject.file(keystoreProps["storeFile"])
+            storePassword keystoreProps["storePassword"]
+            keyAlias keystoreProps["keyAlias"]
+            keyPassword keystoreProps["keyPassword"]
+        }
+    }
+    hasReleaseKeystore = true
+} else if (System.getenv("ANDROID_KEYSTORE_FILE")?.trim()) {
+    def storePath = System.getenv("ANDROID_KEYSTORE_FILE").trim()
+    android.signingConfigs {
+        release {
+            storeFile file(storePath)
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
+            keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: ""
+            keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: ""
+        }
+    }
+    hasReleaseKeystore = true
+}
+
+if (hasReleaseKeystore) {
+    android.buildTypes.release.signingConfig android.signingConfigs.release
+}

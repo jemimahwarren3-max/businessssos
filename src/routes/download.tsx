@@ -103,15 +103,34 @@ function DownloadPage() {
           </InstallCard>
         </div>
 
-        <section className="surface mt-6 flex items-start gap-3 p-5 text-sm">
-          <Store className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <div>
-            <p className="font-medium">Google Play</p>
-            <p className="mt-1 text-muted-foreground">
-              Kwetuu on Play Store is planned. Until then, use the APK or the home-screen web app
-              above. Both use the same login and live data.
-            </p>
+        <section className="surface mt-6 space-y-3 p-5 text-sm" aria-labelledby="play-heading">
+          <div className="flex items-start gap-3">
+            <Store className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <h2 id="play-heading" className="font-medium">
+                Google Play
+              </h2>
+              {apk.playStoreAvailable ? (
+                <p className="mt-1 text-muted-foreground">
+                  Recommended for most merchants: install from Play Store, same app as the APK and
+                  web home screen.
+                </p>
+              ) : (
+                <p className="mt-1 text-muted-foreground">
+                  Play Store listing is being submitted. Use the APK or home-screen web app until
+                  the store link goes live on this page.
+                </p>
+              )}
+            </div>
           </div>
+          {apk.playStoreAvailable ? (
+            <Button asChild size="lg" className="w-full gap-2 sm:w-auto">
+              <a href={apk.playStoreUrl} rel="noopener noreferrer">
+                <Store className="size-4" aria-hidden="true" />
+                Get it on Google Play
+              </a>
+            </Button>
+          ) : null}
         </section>
 
         <section className="mt-6 flex gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm">
