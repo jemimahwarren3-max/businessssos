@@ -681,7 +681,14 @@ export const quickEntryImageExtractSchema = z.object({
 
 /* --------------------------------- team ----------------------------------- */
 
-export const teamRoleSchema = z.enum(["owner", "admin", "manager", "cashier", "accountant"]);
+export const teamRoleSchema = z.enum([
+  "owner",
+  "admin",
+  "manager",
+  "cashier",
+  "accountant",
+  "stock_assistant",
+]);
 export const inviteRoleSchema = z.enum(["admin", "manager", "cashier", "accountant"]);
 
 export const createInviteSchema = z.object({

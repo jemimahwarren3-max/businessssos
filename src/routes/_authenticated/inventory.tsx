@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import {
   addCategory,
   addProduct,
@@ -181,7 +181,9 @@ function Inventory() {
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
-  const canEdit = ["owner", "admin", "manager"].includes(workspace.data?.role ?? "");
+  const canManageProducts = hasPermission(workspace.data, "inventory.import");
+  const canAdjustStock = hasPermission(workspace.data, "inventory.adjust");
+  const canShowStockActions = canManageProducts || canAdjustStock;
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search);
@@ -507,7 +509,7 @@ function Inventory() {
           );
         },
       },
-      ...(canEdit
+      ...(canShowStockActions
         ? [
             {
               id: "actions",
@@ -568,7 +570,7 @@ function Inventory() {
         : []),
     ],
     [
-      canEdit,
+      canShowStockActions,
       canManageOnline,
       currency,
       onlineListingMutation,
@@ -637,7 +639,7 @@ function Inventory() {
               <Download className="size-4" aria-hidden="true" /> Export to Excel
             </Button>
           ) : null}
-          {canEdit ? (
+          {canManageProducts ? (
             <>
               <Button variant="outline" className="gap-1.5" onClick={() => setCategoriesOpen(true)}>
                 Categories
@@ -767,7 +769,7 @@ function Inventory() {
               <Button className="mt-5" variant="outline" onClick={() => setSearch("")}>
                 Clear search
               </Button>
-            ) : canEdit ? (
+            ) : canManageProducts ? (
               <Button className="mt-5 gap-1.5" onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" aria-hidden="true" /> Add your first product
               </Button>
@@ -879,7 +881,7 @@ function Inventory() {
                           <MessageCircle className="size-3.5" aria-hidden="true" /> Share
                         </a>
                       </Button>
-                      {canEdit ? (
+                      {canShowStockActions ? (
                         <>
                           <Button
                             size="sm"

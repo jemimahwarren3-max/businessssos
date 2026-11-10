@@ -177,8 +177,16 @@ function navGroupsFor(model: CommerceModel): { label: string; items: NavItem[] }
 
 const PRIMARY_NAV_PATHS = ["/dashboard", "/sales", "/inventory", "/online-orders", "/reports"];
 
+function navPermissionAllowed(permission: string, permissions: string[]) {
+  if (permissions.includes(permission)) return true;
+  if (permission === "inventory.import" && permissions.includes("inventory.view")) return true;
+  return false;
+}
+
 function visibleNavItems(items: NavItem[], permissions: string[]) {
-  return items.filter((item) => !item.permission || permissions.includes(item.permission));
+  return items.filter(
+    (item) => !item.permission || navPermissionAllowed(item.permission, permissions),
+  );
 }
 
 function mobileNavFor(groups: { items: NavItem[] }[], permissions: string[]) {
@@ -291,6 +299,7 @@ export const ROLE_LABEL: Record<string, string> = {
   manager: "Manager",
   cashier: "Cashier",
   accountant: "Accountant",
+  stock_assistant: "Stock assistant",
 };
 
 const SEVERITY_DOT: Record<string, string> = {
