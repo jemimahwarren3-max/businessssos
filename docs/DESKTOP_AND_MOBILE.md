@@ -4,13 +4,13 @@ Phase **B** packaging proof. The merchant app remains **TanStack Start** with se
 
 ## Prerequisites
 
-| Tool | Desktop (Windows) | Android APK |
-| ---- | ------------------- | ----------- |
-| Node.js ≥ 22.12 | Yes | Yes |
-| Rust + MSVC (Windows) | Yes |, |
-| [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) | Yes | Optional (Tauri Android later) |
-| Android Studio + SDK |, | Yes |
-| JDK 17+ |, | Yes |
+| Tool                                                             | Desktop (Windows) | Android APK                    |
+| ---------------------------------------------------------------- | ----------------- | ------------------------------ |
+| Node.js ≥ 22.12                                                  | Yes               | Yes                            |
+| Rust + MSVC (Windows)                                            | Yes               | ,                              |
+| [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) | Yes               | Optional (Tauri Android later) |
+| Android Studio + SDK                                             | ,                 | Yes                            |
+| JDK 17+                                                          | ,                 | Yes                            |
 
 Cloud CI can build Linux `.deb` / AppImage after installing [Tauri Linux deps](https://v2.tauri.app/start/prerequisites/#linux) (`libwebkit2gtk-4.1-dev`, etc.). **Windows `.exe` (NSIS) must be built on Windows** (or a Windows CI runner). This repo pins Rust ≥ 1.90 via `rust-toolchain.toml`.
 
@@ -63,7 +63,7 @@ npm run mobile:sync
 npx cap open android
 ```
 
-Build **Debug APK** from Android Studio: *Build → Build Bundle(s) / APK(s) → Build APK(s)*.
+Build **Debug APK** from Android Studio: _Build → Build Bundle(s) / APK(s) → Build APK(s)_.
 
 ### Remote URL mode (default)
 
@@ -77,17 +77,28 @@ CAPACITOR_SERVER_URL= npm run mobile:sync
 
 ### Release signing
 
-Do **not** commit keystores or passwords. Use Android Studio *Generate signed bundle / APK* with a keystore stored outside the repo. Document checksums on the public download page when ready (Phase 6).
+Do **not** commit keystores or passwords. Use Android Studio _Generate signed bundle / APK_ with a keystore stored outside the repo. Document checksums on the public download page when ready (Phase 6).
 
 ## npm scripts
 
-| Script | Purpose |
-| ------ | ------- |
-| `npm run desktop:dev` | Tauri + local Vite |
-| `npm run desktop:build` | Tauri release bundles |
-| `npm run mobile:build:web` | Vite/Nitro build only |
-| `npm run mobile:sync` | Build + `cap sync android` |
-| `npm run mobile:open:android` | Open Android Studio |
+| Script                        | Purpose                    |
+| ----------------------------- | -------------------------- |
+| `npm run desktop:dev`         | Tauri + local Vite         |
+| `npm run desktop:build`       | Tauri release bundles      |
+| `npm run mobile:build:web`    | Vite/Nitro build only      |
+| `npm run mobile:sync`         | Build + `cap sync android` |
+| `npm run mobile:open:android` | Open Android Studio        |
+
+## Android download page (before Google Play)
+
+Merchants install like Telegram: **APK sideload** or **Chrome → Add to Home screen** at [`/download`](/download).
+
+1. Run workflow **Android merchant APK** (tag `merchant-android-YYYY.MM.DD` or manual dispatch).
+2. Publish the artifact URL (GitHub Release asset or your CDN).
+3. Set on Cloud Run: `MERCHANT_APK_URL`, optional `MERCHANT_APK_VERSION`, `MERCHANT_APK_SHA256`, `MERCHANT_APK_UPDATED_AT`.
+4. The download button on `/download` goes live without redeploying the web bundle (server env only).
+
+Play Store listing is a later step; the page already says Play is coming soon.
 
 ## Next steps (Phase B+)
 

@@ -114,6 +114,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
             <Link to="/pricing" className="block hover:text-background">
               Pricing
             </Link>
+            <Link to="/download" className="block hover:text-background">
+              Android app
+            </Link>
             <Link to="/about" className="block hover:text-background">
               About
             </Link>
