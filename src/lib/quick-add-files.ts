@@ -4,11 +4,25 @@ const MAX_QUICK_ADD_CHARS = 12_000;
 const MAX_PDF_PAGES = 20;
 
 function rowsToPlainText(rows: string[][]): string {
-  return rows
-    .slice(0, 80)
-    .map((row) => row.join("\t"))
-    .join("\n")
-    .slice(0, MAX_QUICK_ADD_CHARS);
+  if (rows.length === 0) return "";
+  const headerIdx = rows.findIndex((row, index) => {
+    if (index > 6) return false;
+    const textCells = row.filter((c) => c.trim() && !/^\d+([.,]\d+)?$/.test(c.trim()));
+    return textCells.length >= Math.min(2, row.length);
+  });
+  const start = headerIdx >= 0 ? headerIdx : 0;
+  const header = rows[start] ?? [];
+  const data = rows.slice(start + 1, start + 81);
+  const lines = data.map((row) => {
+    const parts = header.map((label, i) => {
+      const name = label.trim() || `Column${i + 1}`;
+      const value = (row[i] ?? "").trim();
+      return value ? `${name}=${value}` : "";
+    });
+    const joined = parts.filter(Boolean).join(", ");
+    return joined || row.join("\t");
+  });
+  return lines.join("\n").slice(0, MAX_QUICK_ADD_CHARS);
 }
 
 async function extractDocxText(file: File): Promise<string> {

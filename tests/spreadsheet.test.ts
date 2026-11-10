@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { matchColumns, parseCsvText, rowsToRecords } from "@/lib/spreadsheet";
+import {
+  matchColumns,
+  matchColumnsFuzzy,
+  parseCsvText,
+  rowsToRecords,
+  rowsToRecordsSmart,
+} from "@/lib/spreadsheet";
 
 const productColumns = [
   { key: "name", label: "Name", required: true, aliases: ["product"] },
@@ -24,6 +30,18 @@ describe("spreadsheet import parsing", () => {
       name: 0,
       stock: 1,
     });
+  });
+
+  it("fuzzy-matches informal product sheet headers", () => {
+    expect(
+      matchColumnsFuzzy(["Item Description", "SOH", "RSP"], productColumns)["name"],
+    ).toBeGreaterThanOrEqual(0);
+    const { records, missingRequired } = rowsToRecordsSmart(
+      [["Kwetuu stock list"], ["Item Description", "SOH", "RSP"], ["Sugar 2kg", "40", "3.50"]],
+      productColumns,
+    );
+    expect(missingRequired).toEqual([]);
+    expect(records[0]).toMatchObject({ name: "Sugar 2kg", stock: "40" });
   });
 
   it("reports missing required columns and maps optional stock values", () => {

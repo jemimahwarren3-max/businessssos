@@ -24,6 +24,8 @@ Rules:
 - A sale is goods already sold to someone. A purchase is stock bought in. An expense is money out that is not stock.
 - If the user says something like "sales 9 November" or "9 Nov sales", set saleDate or contextDate using year ${today.slice(0, 4)} unless another year is stated.
 - When tabular lines look like sales (customer, product, qty, price, date), use sale_batch with one sale object per row or per customer/day group.
+- Spreadsheet headers may use any common labels (Item, Product, Qty, SOH, Client, Amount, Date, Unit Price, RSP). Read Column=value pairs literally; map them to the JSON fields above.
+- If several rows share one customer, you may group items into one sale per customer or one sale per row when each row is a separate transaction.
 - Match product names to the text in the file; do not invent products, prices, or quantities not in the message.
 - Never invent customer names. If a name appears on a sale line, include customerName even when unknown in the system.
 - If the message doesn't clearly match one shape, output {"type":"unknown"}.
