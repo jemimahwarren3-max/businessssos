@@ -8,12 +8,15 @@ import {
   CircleDollarSign,
   PackagePlus,
   Receipt,
+  ScanBarcode,
   ShoppingCart,
+  Wand2,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
+import { openQuickAddDialog } from "@/lib/quick-add-events";
 import { getDashboard, getNotifyEmailFn, getWorkspace } from "@/lib/business.functions";
 import { formatMoney, formatNumber, greeting, readableError } from "@/lib/format";
 import { StoreLaunchCentre } from "@/components/storefront/store-launch-centre";
@@ -63,6 +66,7 @@ function Dashboard() {
   const canReadInventory = hasPermission(workspace.data, "inventory.import");
   const canReadFinancials = hasPermission(workspace.data, "reports.financial");
   const canManageStore = hasPermission(workspace.data, "business.settings");
+  const canUseQuickAdd = hasPermission(workspace.data, "ai.use");
 
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
@@ -187,73 +191,112 @@ function Dashboard() {
       title={`${greeting()}`}
       subtitleAsTooltip
       subtitle={`Business activity for ${workspace.data.business.name}`}
+      mobileQuickAddFab={canUseQuickAdd}
     >
-      {canManageStore && storefront.data ? (
-        <div className="mb-4">
-          <StoreLaunchCentre
-            admin={storefront.data}
-            billingEnabled={workspace.data.billingEnabled}
-            isOperateLocked={workspace.data.isOperateLocked}
-            notificationsConfigured={notifyEmail.data === true}
-            compact
-            {...(storefront.data.store?.slug
-              ? { publicUrl: storePublicUrl(storefront.data.store.slug) }
-              : {})}
-          />
-        </div>
-      ) : null}
-      {storefront.isError ? (
-        <p role="alert" className="mb-4 text-sm text-destructive">
-          {readableError(storefront.error, "Store status is temporarily unavailable.")}
-        </p>
-      ) : null}
-      <section aria-label="Business summary">
-        <h2 className="sr-only">Business summary</h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map((card) => (
-            <StatCard
-              key={card.label}
-              label={card.label}
-              value={dashboard.isError ? "Unavailable" : card.value}
-              hint={card.hint}
-              icon={card.icon}
+      <div className="flex flex-col gap-6">
+        {actions.length > 0 || canUseQuickAdd ? (
+          <section className="order-1 lg:order-3" aria-labelledby="quick-actions-heading">
+            <h2 id="quick-actions-heading" className="mb-3 text-base font-semibold">
+              Quick actions
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {canUseQuickAdd ? (
+                <Button
+                  type="button"
+                  variant="default"
+                  className="min-h-12 justify-start gap-2 sm:col-span-2 lg:col-span-1"
+                  onClick={() => openQuickAddDialog()}
+                >
+                  <Wand2 className="size-4 shrink-0" aria-hidden="true" />
+                  Quick add
+                </Button>
+              ) : null}
+              {canCreateSales ? (
+                <Button asChild variant="outline" className="min-h-12 justify-start gap-2">
+                  <Link to="/sales">
+                    <ScanBarcode className="size-4 shrink-0" aria-hidden="true" />
+                    Sales & scan
+                  </Link>
+                </Button>
+              ) : null}
+              {actions.map((action) =>
+                action.to === "/sales" ? null : (
+                  <Button
+                    key={action.to}
+                    asChild
+                    variant="outline"
+                    className="min-h-12 justify-start gap-2"
+                  >
+                    <Link to={action.to}>
+                      <action.icon className="size-4 shrink-0" aria-hidden="true" />
+                      {action.label}
+                    </Link>
+                  </Button>
+                ),
+              )}
+            </div>
+            {canUseQuickAdd ? (
+              <p className="mt-2 text-[13px] text-muted-foreground">
+                Type or paste a note, attach a file, or take a photo. Kwetuu turns it into sales,
+                stock, or expenses when it is clear enough.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        <section className="order-2 lg:order-2" aria-label="Business summary">
+          <h2 className="sr-only">Business summary</h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {summaryCards.map((card) => (
+              <StatCard
+                key={card.label}
+                label={card.label}
+                value={dashboard.isError ? "Unavailable" : card.value}
+                hint={card.hint}
+                icon={card.icon}
+              />
+            ))}
+            {dashboard.isLoading
+              ? [0, 1, 2, 3]
+                  .slice(summaryCards.length)
+                  .map((item) => (
+                    <div key={item} className="surface h-28 animate-pulse" aria-hidden="true" />
+                  ))
+              : null}
+          </div>
+          {dashboard.isError ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <p role="alert" className="text-sm text-destructive">
+                {readableError(dashboard.error, "Business summary could not be loaded.")}
+              </p>
+              <Button variant="outline" size="sm" onClick={() => void dashboard.refetch()}>
+                Try again
+              </Button>
+            </div>
+          ) : null}
+        </section>
+
+        {canManageStore && storefront.data ? (
+          <div className="order-3 lg:order-1">
+            <StoreLaunchCentre
+              admin={storefront.data}
+              billingEnabled={workspace.data.billingEnabled}
+              isOperateLocked={workspace.data.isOperateLocked}
+              notificationsConfigured={notifyEmail.data === true}
+              compact
+              reminder
+              {...(storefront.data.store?.slug
+                ? { publicUrl: storePublicUrl(storefront.data.store.slug) }
+                : {})}
             />
-          ))}
-          {dashboard.isLoading
-            ? [0, 1, 2, 3]
-                .slice(summaryCards.length)
-                .map((item) => (
-                  <div key={item} className="surface h-28 animate-pulse" aria-hidden="true" />
-                ))
-            : null}
-        </div>
-        {dashboard.isError ? (
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <p role="alert" className="text-sm text-destructive">
-              {readableError(dashboard.error, "Business summary could not be loaded.")}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => void dashboard.refetch()}>
-              Try again
-            </Button>
           </div>
         ) : null}
-      </section>
-
-      {actions.length > 0 ? (
-        <section className="mt-6">
-          <h2 className="mb-3 text-base font-semibold">Quick actions</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {actions.map((action) => (
-              <Button key={action.to} asChild variant="outline" className="min-h-12 justify-start">
-                <Link to={action.to}>
-                  <action.icon className="size-4" aria-hidden="true" />
-                  {action.label}
-                </Link>
-              </Button>
-            ))}
-          </div>
-        </section>
-      ) : null}
+        {storefront.isError ? (
+          <p role="alert" className="order-3 text-sm text-destructive lg:order-1">
+            {readableError(storefront.error, "Store status is temporarily unavailable.")}
+          </p>
+        ) : null}
+      </div>
 
       <section className="surface mt-6 p-5" aria-labelledby="recent-activity-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">

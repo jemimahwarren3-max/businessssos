@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { AdminStore } from "@/lib/storefront/contract";
 import {
   buildLaunchSteps,
@@ -25,6 +27,7 @@ export function StoreLaunchCentre({
   publicUrl,
   notificationsConfigured = false,
   compact = false,
+  reminder = false,
 }: {
   admin: AdminStore;
   billingEnabled: boolean;
@@ -33,7 +36,10 @@ export function StoreLaunchCentre({
   publicUrl?: string;
   notificationsConfigured?: boolean;
   compact?: boolean;
+  /** On phones: collapsed summary row; tap to expand launch steps (dashboard home). */
+  reminder?: boolean;
 }) {
+  const isMobile = useIsMobile();
   const display = deriveStoreLaunchDisplay({
     checklist: admin.checklist,
     storeStatus: admin.store?.status,
@@ -42,25 +48,11 @@ export function StoreLaunchCentre({
   });
   const steps = buildLaunchSteps(admin.checklist, { notificationsConfigured });
   const doneCount = steps.filter((s) => s.done).length;
+  const useReminderShell = reminder && isMobile;
+  const defaultOpen = !useReminderShell || (display.phase !== "live" && doneCount < steps.length);
 
-  return (
-    <section
-      className={cn("surface space-y-4", compact ? "p-4" : "p-5")}
-      aria-labelledby="store-launch-heading"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">Your online store</p>
-          <h2 id="store-launch-heading" className="text-xl font-semibold tracking-tight">
-            {compact ? "Store launch centre" : "Everything you need to start selling online"}
-          </h2>
-          <p className="text-sm text-muted-foreground">{display.headline}</p>
-        </div>
-        <Badge className={cn("shrink-0 capitalize", PHASE_STYLE[display.phase])} variant="outline">
-          {display.badge}
-        </Badge>
-      </div>
-
+  const body = (
+    <>
       {!compact ? (
         <p className="rounded-lg bg-muted/50 px-3 py-2 text-[13px] text-muted-foreground">
           <strong className="font-medium text-foreground">Business tools vs online shop:</strong>{" "}
@@ -102,12 +94,76 @@ export function StoreLaunchCentre({
           </Button>
         ) : null}
         <Button asChild size="sm" variant="outline">
+          <Link to="/storefront">Manage online store</Link>
+        </Button>
+        <Button asChild size="sm" variant="outline">
           <Link to="/online-orders">Online orders</Link>
         </Button>
         <Button asChild size="sm" variant="ghost">
           <Link to="/inventory">Manage inventory</Link>
         </Button>
       </div>
+    </>
+  );
+
+  const headingBlock = (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0 space-y-1">
+        <p className="text-sm font-medium text-muted-foreground">Your online store</p>
+        <h2 id="store-launch-heading" className="text-xl font-semibold tracking-tight">
+          {compact ? "Online store reminder" : "Everything you need to start selling online"}
+        </h2>
+        <p className="text-sm text-muted-foreground">{display.headline}</p>
+      </div>
+      <Badge className={cn("shrink-0 capitalize", PHASE_STYLE[display.phase])} variant="outline">
+        {display.badge}
+      </Badge>
+    </div>
+  );
+
+  if (useReminderShell) {
+    return (
+      <Collapsible defaultOpen={defaultOpen} className="group surface">
+        <section aria-labelledby="store-launch-heading">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-start gap-3 rounded-lg p-4 text-left transition-colors hover:bg-muted/30"
+            >
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Your online store</p>
+                <h2 id="store-launch-heading" className="text-base font-semibold tracking-tight">
+                  {display.headline}
+                </h2>
+                <p className="text-[13px] text-muted-foreground">
+                  {doneCount} of {steps.length} steps · tap to {defaultOpen ? "hide" : "open"}
+                </p>
+              </div>
+              <Badge
+                className={cn("shrink-0 capitalize", PHASE_STYLE[display.phase])}
+                variant="outline"
+              >
+                {display.badge}
+              </Badge>
+              <ChevronDown className="mt-1 size-5 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+              <span className="sr-only">Show or hide online store launch steps</span>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 border-t border-border px-4 pb-4 pt-3">
+            {body}
+          </CollapsibleContent>
+        </section>
+      </Collapsible>
+    );
+  }
+
+  return (
+    <section
+      className={cn("surface space-y-4", compact ? "p-4" : "p-5")}
+      aria-labelledby="store-launch-heading"
+    >
+      {headingBlock}
+      {body}
     </section>
   );
 }

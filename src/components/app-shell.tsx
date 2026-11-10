@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -50,6 +50,7 @@ import { Logo } from "@/components/logo";
 import { AppNavigator } from "@/components/app-navigator";
 import { QuickAddMenu } from "@/components/quick-add-menu";
 import { QuickEntryDialog } from "@/components/quick-entry-dialog";
+import { OPEN_QUICK_ADD_EVENT } from "@/lib/quick-add-events";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -424,6 +425,7 @@ export function AppShell({
   subtitle,
   subtitleAsTooltip = false,
   actions,
+  mobileQuickAddFab = false,
 }: {
   children: ReactNode;
   businessName: string;
@@ -435,6 +437,8 @@ export function AppShell({
   subtitle?: string;
   subtitleAsTooltip?: boolean;
   actions?: ReactNode;
+  /** Floating Quick Add on phones (e.g. dashboard home). */
+  mobileQuickAddFab?: boolean;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -474,7 +478,15 @@ export function AppShell({
       items.findIndex((candidate) => candidate.to === item.to) === index,
   );
   const canUseQuickAdd = permissions.includes("ai.use");
+  const showMobileQuickAddFab = mobileQuickAddFab && isMobile && canUseQuickAdd;
   const canManageBilling = permissions.includes("business.billing");
+
+  useEffect(() => {
+    if (!canUseQuickAdd) return;
+    const onOpen = () => setQuickAddOpen(true);
+    window.addEventListener(OPEN_QUICK_ADD_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_QUICK_ADD_EVENT, onOpen);
+  }, [canUseQuickAdd]);
   const loadStorefront = useServerFn(getStorefrontAdminFn);
   const storefrontLaunch = useQuery({
     queryKey: ["storefront-launch-nav", businessId],
@@ -589,8 +601,10 @@ export function AppShell({
                       size="sm"
                       className="gap-1.5"
                       onClick={() => setQuickAddOpen(true)}
+                      aria-label="Quick add sale, stock, or expense"
                     >
                       <Wand2 className="size-4" aria-hidden="true" />
+                      <span className="sm:hidden">Add</span>
                       <span className="hidden sm:inline">Quick add</span>
                     </Button>
                   </HintTooltip>
@@ -771,6 +785,22 @@ export function AppShell({
             <MoreNavMenu items={moreNav} activePath={pathname} launchBadge={launchBadge} mobile />
           </div>
         </nav>
+
+        {showMobileQuickAddFab ? (
+          <div className="pointer-events-none fixed inset-x-0 bottom-[4.25rem] z-40 flex justify-end px-4 lg:hidden">
+            <HintTooltip hint={HEADER_HINTS.quickAdd} side="left">
+              <Button
+                type="button"
+                size="lg"
+                className="pointer-events-auto size-14 rounded-full shadow-lg"
+                aria-label="Quick add sale, stock, or expense"
+                onClick={() => setQuickAddOpen(true)}
+              >
+                <Wand2 className="size-6" aria-hidden="true" />
+              </Button>
+            </HintTooltip>
+          </div>
+        ) : null}
 
         <QuickAddMenu
           open={quickMenuOpen}
