@@ -64,15 +64,26 @@ describeStaging("morning desk: rails, takings, credit book", () => {
     expect(row?.method).toBe("mobile_money");
   });
 
-  it("still refuses cash until the drawer is open", async () => {
-    await expect(
-      asUser(
-        owner,
-        `select public.create_sale('${biz}', null, 0, 'cash', 'no drawer',
-          '[{"productId":"${product}","quantity":1,"unitPrice":10}]'::jsonb,
-          '${newId()}', null, 'cash');`,
-      ),
-    ).rejects.toThrow(/open the cash drawer/i);
+  it("records cash without a manual open-drawer step", async () => {
+    const key = newId();
+    await asUser(
+      owner,
+      `select public.create_sale('${biz}', null, 0, 'cash', 'auto drawer',
+        '[{"productId":"${product}","quantity":1,"unitPrice":10}]'::jsonb,
+        '${key}', null, 'cash');`,
+    );
+    const [session] = await sql<{ id: string }>(`
+      select id from public.cash_sessions
+      where business_id = '${biz}' and closed_at is null
+      limit 1;
+    `);
+    expect(session?.id).toBeTruthy();
+    const [row] = await sql<{ method: string }>(`
+      select payment_method::text as method from public.sales
+      where business_id = '${biz}' and idempotency_key = '${key}'
+      limit 1;
+    `);
+    expect(row?.method).toBe("cash");
   });
 
   it("records a credit sale, then a repayment that cannot exceed the balance", async () => {

@@ -86,8 +86,9 @@ export function filterOrderDeskRows(
   orders: OrderListRow[],
   input: { query: string; filter: OrderDeskFilter },
 ): OrderListRow[] {
+  const rows = Array.isArray(orders) ? orders : [];
   const q = input.query.trim().toLowerCase();
-  return orders.filter((order) => {
+  return rows.filter((order) => {
     if (!matchesOrderDeskFilter(order, input.filter)) return false;
     if (!q) return true;
     const haystack = [

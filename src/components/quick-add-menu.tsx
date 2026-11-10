@@ -35,7 +35,7 @@ const OPTIONS = [
   },
   {
     label: "Import files",
-    help: "Upload a CSV or Excel file. You check it before anything is saved.",
+    help: "Upload CSV or Excel for bulk import, or use Quick add to let AI read a file first.",
     to: "/settings/data",
     icon: FileUp,
   },

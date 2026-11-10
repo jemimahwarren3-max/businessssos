@@ -154,16 +154,24 @@ function Help() {
         <Section id="quick-add" icon={Wand2} title="Quick Add">
           <p>
             The <strong>Quick add</strong> button in the top header (on every page) lets you type
-            what happened in plain language instead of filling in a form, for example "Sold 3 shirts
-            to Mary for $90" or "Paid $45 for transport."
+            what happened in plain language, or attach a CSV/Excel file for the same flow. Example:
+            &quot;Sold 3 shirts to Mary for $90&quot; or a supplier invoice spreadsheet.
           </p>
           <ol>
-            <li>Click Quick add and describe the sale, expense, or new customer.</li>
+            <li>
+              Click Quick add, type a note or use <strong>Attach file</strong> (CSV, Excel, or
+              text).
+            </li>
             <li>Review the draft it builds, every field is editable before anything is saved.</li>
             <li>
               Confirm. It creates a real sale/expense/customer the same way the regular forms do.
             </li>
           </ol>
+          <p>
+            Press <strong>Ctrl+K</strong> (⌘K on Mac) or use the header <strong>Search</strong>{" "}
+            button to jump to any page. <strong>Download</strong> in the header opens full data
+            export.
+          </p>
           <p>
             If it can't confidently match a product you mention, it'll ask you to pick one rather
             than guessing.

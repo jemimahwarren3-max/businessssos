@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Wand2 } from "lucide-react";
+import { FileUp, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,6 +45,7 @@ import {
 } from "@/lib/business.schemas";
 import { readableError } from "@/lib/format";
 import type { QuickEntryDraft } from "@/lib/quick-entry.server";
+import { parseSpreadsheetFile } from "@/lib/spreadsheet";
 
 const NONE = "__none";
 const EXAMPLES = [
@@ -90,6 +91,7 @@ export function QuickEntryDialog({
   const currency = workspace.data?.business.currency ?? "USD";
 
   const [text, setText] = useState("");
+  const [fileLabel, setFileLabel] = useState("");
   const [draft, setDraft] = useState<QuickEntryDraft | null>(null);
   const [saleForm, setSaleForm] = useState<SaleDraftState | null>(null);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseDraftState | null>(null);
@@ -124,6 +126,7 @@ export function QuickEntryDialog({
 
   function reset() {
     setText("");
+    setFileLabel("");
     setDraft(null);
     setSaleForm(null);
     setPurchaseForm(null);
@@ -289,8 +292,8 @@ export function QuickEntryDialog({
         <DialogHeader>
           <DialogTitle>Quick add</DialogTitle>
           <DialogDescription>
-            Describe what happened, a sale, a purchase, an expense, or a new customer, and confirm
-            before it's saved.
+            Type what happened, or attach a CSV/Excel file. Kwetuu reads it and shows a draft for
+            you to confirm before anything is saved.
           </DialogDescription>
         </DialogHeader>
 
@@ -303,6 +306,58 @@ export function QuickEntryDialog({
               rows={3}
               autoFocus
             />
+            <input
+              id="quick-add-file"
+              type="file"
+              accept=".csv,.xlsx,.xls,.txt"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                void (async () => {
+                  try {
+                    let next = "";
+                    const lower = file.name.toLowerCase();
+                    if (lower.endsWith(".txt")) {
+                      next = (await file.text()).trim().slice(0, 12_000);
+                    } else {
+                      const rows = await parseSpreadsheetFile(file);
+                      next = rows
+                        .slice(0, 40)
+                        .map((row) => row.join("\t"))
+                        .join("\n")
+                        .slice(0, 12_000);
+                    }
+                    if (!next.trim()) {
+                      toast.error("That file did not contain any rows we could read.");
+                      return;
+                    }
+                    setText((prev) =>
+                      prev.trim()
+                        ? `${prev.trim()}\n\nFrom file ${file.name}:\n${next}`
+                        : `From file ${file.name}:\n${next}`,
+                    );
+                    setFileLabel(file.name);
+                    toast.success("File added. Tap Understand to turn it into a draft.");
+                  } catch (error) {
+                    toast.error(readableError(error as Error, "Could not read that file."));
+                  } finally {
+                    event.target.value = "";
+                  }
+                })();
+              }}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
+                <label htmlFor="quick-add-file" className="cursor-pointer">
+                  <FileUp className="size-4" aria-hidden="true" />
+                  Attach file
+                </label>
+              </Button>
+              {fileLabel ? (
+                <span className="text-xs text-muted-foreground">Using {fileLabel}</span>
+              ) : null}
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {EXAMPLES.map((example) => (
                 <button

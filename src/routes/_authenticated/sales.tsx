@@ -43,7 +43,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SaleReceiptPrintView, type SaleReceiptProps } from "@/components/sale-receipt-print-view";
 import { useDebounce } from "@/hooks/use-debounce";
 import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
-import { addSale, getCashDrawerFn, getCustomers, getProducts } from "@/lib/business.functions";
+import { addSale, getCustomers, getProducts } from "@/lib/business.functions";
 import { formatMoney, formatNumber, readableError } from "@/lib/format";
 import {
   POS_PAYMENT_RAILS,
@@ -181,20 +181,11 @@ function Sales() {
   const fetchProducts = useServerFn(getProducts);
   const fetchCustomers = useServerFn(getCustomers);
   const createSaleFn = useServerFn(addSale);
-  const loadDrawer = useServerFn(getCashDrawerFn);
-
   useEffect(() => {
     if (!workspace.isLoading && workspace.data === null) {
       navigate({ to: "/onboarding", replace: true });
     }
   }, [workspace.isLoading, workspace.data, navigate]);
-
-  const drawer = useQuery({
-    queryKey: ["cash-drawer", businessId],
-    enabled: Boolean(businessId) && isOnline,
-    queryFn: () => loadDrawer({ data: { businessId: businessId! } }),
-  });
-  const cashDrawerOpen = drawer.data?.open === true;
 
   const products = useQuery({
     queryKey: ["products", businessId, debouncedSearch],
@@ -475,13 +466,11 @@ function Sales() {
       ? "Add a product to the cart to start a sale."
       : needsCustomer && !customerId
         ? "Choose a customer for a credit sale."
-        : needsDrawer && isOnline && !cashDrawerOpen
-          ? "Open the cash drawer to take cash."
-          : splitPay && remaining !== 0
-            ? `Split payments are ${remaining > 0 ? "short" : "over"} by ${formatMoney(Math.abs(remaining), currency)}.`
-            : splitPay && activeTenders.some((tender) => tender.amount <= 0)
-              ? "Every payment needs an amount above zero."
-              : null;
+        : splitPay && remaining !== 0
+          ? `Split payments are ${remaining > 0 ? "short" : "over"} by ${formatMoney(Math.abs(remaining), currency)}.`
+          : splitPay && activeTenders.some((tender) => tender.amount <= 0)
+            ? "Every payment needs an amount above zero."
+            : null;
   const hasUnconfirmedRail = activeTenders.some(
     (tender) => tender.rail === "ecocash" || tender.rail === "innbucks" || tender.rail === "zipit",
   );
@@ -1106,19 +1095,13 @@ function Sales() {
                 Select a customer for credit sales, it's added to what they owe.
               </p>
             ) : null}
-            {needsDrawer && isOnline && !cashDrawerOpen ? (
-              <p className="text-[13px] text-warning-foreground">
-                Open the{" "}
+            {needsDrawer ? (
+              <p className="text-[12px] text-muted-foreground">
+                Cash, EcoCash, bank and other methods are saved on this sale. Use{" "}
                 <Link to="/cash-drawer" className="underline">
-                  cash drawer
+                  Cash in till
                 </Link>{" "}
-                before taking cash. EcoCash, InnBucks, ZIPIT, bank, card and credit still work, and
-                only the cash part goes in the till.
-              </p>
-            ) : null}
-            {needsDrawer && !isOnline ? (
-              <p className="text-[13px] text-warning-foreground">
-                This cash sale will sync after you open the cash drawer.
+                when you want to count notes against the till, not before every sale.
               </p>
             ) : null}
             {hasUnconfirmedRail ? (
@@ -1161,7 +1144,6 @@ function Sales() {
                 !draftReady ||
                 cart.length === 0 ||
                 (needsCustomer && !customerId) ||
-                (needsDrawer && isOnline && !cashDrawerOpen) ||
                 (splitPay &&
                   (remaining !== 0 || activeTenders.some((tender) => tender.amount <= 0)))
               }

@@ -37,7 +37,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { endImpersonationFn, getPlatformAnnouncementFn } from "@/lib/admin/admin.functions";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import { signOutFn } from "@/lib/auth/auth.functions";
 import {
   getNotificationsFn,
@@ -46,6 +46,7 @@ import {
 } from "@/lib/business.functions";
 import { HintTooltip } from "@/components/hint-tooltip";
 import { Logo } from "@/components/logo";
+import { AppNavigator } from "@/components/app-navigator";
 import { QuickAddMenu } from "@/components/quick-add-menu";
 import { QuickEntryDialog } from "@/components/quick-entry-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -450,7 +451,7 @@ export function AppShell({
     ? rawCommerceModel
     : "products";
   const groups = navGroupsFor(commerceModel);
-  const permissions = workspace.data?.permissions ?? [];
+  const permissions = Array.isArray(workspace.data?.permissions) ? workspace.data.permissions : [];
   const mobileNav = mobileNavFor(groups, permissions);
   const moreNav = visibleNavItems(
     [...groups.flatMap((group) => group.items), ...SECONDARY_NAV],
@@ -520,6 +521,41 @@ export function AppShell({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <ThemeToggle />
+                <HintTooltip hint="Search pages and tools (Ctrl+K)" side="bottom">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="hidden gap-1.5 sm:inline-flex"
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new KeyboardEvent("keydown", { key: "k", ctrlKey: true }),
+                      );
+                    }}
+                  >
+                    Search
+                  </Button>
+                </HintTooltip>
+                <HintTooltip
+                  hint="Step-by-step guide for sales, stock, imports and shortcuts"
+                  side="bottom"
+                >
+                  <Button variant="outline" size="sm" className="gap-1" asChild>
+                    <Link to="/help">
+                      <HelpCircle className="size-4" aria-hidden="true" />
+                      <span className="hidden sm:inline">Help</span>
+                    </Link>
+                  </Button>
+                </HintTooltip>
+                {hasPermission(workspace.data, "business.export_data") ? (
+                  <HintTooltip hint="Download your data as Excel or JSON" side="bottom">
+                    <Button variant="outline" size="sm" className="gap-1" asChild>
+                      <Link to="/settings/data">
+                        <Download className="size-4" aria-hidden="true" />
+                        <span className="hidden sm:inline">Download</span>
+                      </Link>
+                    </Button>
+                  </HintTooltip>
+                ) : null}
                 {canUseQuickAdd ? (
                   <HintTooltip hint={HEADER_HINTS.quickAdd} side="bottom">
                     <Button
@@ -719,6 +755,7 @@ export function AppShell({
           }}
         />
         <QuickEntryDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
+        <AppNavigator />
       </div>
     </TooltipProvider>
   );

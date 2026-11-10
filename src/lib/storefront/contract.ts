@@ -2,6 +2,9 @@ import { z } from "zod";
 import { TEMPLATE_IDS } from "./templates";
 import { STOREFRONT_THEME_DEFAULTS, STOREFRONT_THEME_SCHEMA } from "./theme";
 
+/** Postgres text columns are often null; public payloads must still parse as strings. */
+const nullableStoreText = z.preprocess((value) => (value == null ? "" : value), z.string());
+
 const deliveryZoneSchema = z.object({
   id: z.string().max(40),
   name: z.string().max(80),
@@ -181,21 +184,21 @@ export const publicStoreSchema = z.object({
   slug: z.string(),
   status: z.enum(["draft", "published"]),
   templateId: z.enum(TEMPLATE_IDS).catch("modern-minimal"),
-  storeName: z.string().catch(""),
-  tagline: z.string().catch(""),
-  about: z.string().catch(""),
-  whatsapp: z.string().catch(""),
-  email: z.string().catch(""),
-  phone: z.string().catch(""),
-  address: z.string().catch(""),
+  storeName: nullableStoreText.catch(""),
+  tagline: nullableStoreText.catch(""),
+  about: nullableStoreText.catch(""),
+  whatsapp: nullableStoreText.catch(""),
+  email: nullableStoreText.catch(""),
+  phone: nullableStoreText.catch(""),
+  address: nullableStoreText.catch(""),
   logoUrl: z.string().nullable(),
   accentColor: z.string().nullable(),
   theme: STOREFRONT_THEME_SCHEMA.catch(STOREFRONT_THEME_DEFAULTS),
   content: storefrontContentSchema.default(EMPTY_STOREFRONT_CONTENT),
-  heroTitle: z.string().catch(""),
-  heroSubtitle: z.string().catch(""),
-  policies: z.string().catch(""),
-  hours: z.string().catch(""),
+  heroTitle: nullableStoreText.catch(""),
+  heroSubtitle: nullableStoreText.catch(""),
+  policies: nullableStoreText.catch(""),
+  hours: nullableStoreText.catch(""),
   socials: z.object({
     instagram: z.string().nullable(),
     facebook: z.string().nullable(),
