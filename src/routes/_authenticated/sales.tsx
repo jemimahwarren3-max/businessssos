@@ -175,7 +175,6 @@ function Sales() {
   // only rotates once the sale actually succeeds or the cart is cleared.
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [draftReady, setDraftReady] = useState(false);
-  const [restoredBanner, setRestoredBanner] = useState(false);
 
   const isOnline = useOnlineStatus();
   const fetchProducts = useServerFn(getProducts);
@@ -249,7 +248,6 @@ function Sales() {
           setPaymentRail(draft.paymentRail);
           setSplitPay(draft.splitPay);
           setTenders(draft.tenders);
-          setRestoredBanner(true);
         }
       } catch {
         // Private browsing / IndexedDB blocked — POS still works in memory.
@@ -483,7 +481,6 @@ function Sales() {
     setSplitPay(false);
     setTenders([]);
     setIdempotencyKey(crypto.randomUUID());
-    setRestoredBanner(false);
     if (businessId) await clearPosDraft(businessId).catch(() => undefined);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["products"] }),
@@ -664,21 +661,6 @@ function Sales() {
         </Button>
       }
     >
-      {restoredBanner ? (
-        <div className="surface mb-4 flex items-start justify-between gap-3 border-warning/40 bg-warning-soft p-3.5 text-[13px] text-warning-foreground">
-          <p>Restored cart from before the power cut. Check it before charging.</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="shrink-0 text-warning-foreground"
-            onClick={() => setRestoredBanner(false)}
-          >
-            Dismiss
-          </Button>
-        </div>
-      ) : null}
-
       {!isOnline ? (
         <div className="surface mb-4 flex items-center gap-2.5 border-warning/40 bg-warning-soft p-3.5 text-[13px] text-warning-foreground">
           <WifiOff className="size-4 shrink-0" aria-hidden="true" />
@@ -780,7 +762,6 @@ function Sales() {
                 className="gap-1 text-muted-foreground"
                 onClick={() => {
                   setCart([]);
-                  setRestoredBanner(false);
                   if (businessId) void clearPosDraft(businessId).catch(() => undefined);
                 }}
               >
