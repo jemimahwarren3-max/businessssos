@@ -180,17 +180,17 @@ function Help() {
           </p>
           <ol>
             <li>
-              Tap <strong>Prepare</strong>. Kwetuu matches products to your inventory and reads
-              customer names from the file.
+              Tap <strong>Prepare</strong>. Kwetuu works out whether you mean sales, stock received,
+              or expenses, even when product names are informal or missing in the file.
             </li>
             <li>
-              Review the draft. New customers are created when you record a sale; you can still pick
-              an existing customer from the list.
+              Review the draft. Stock received can create new products when nothing in your
+              catalogue matches. Sales still need enough stock on hand; new customers are added when
+              needed.
             </li>
             <li>
-              Tap <strong>Record sale</strong>, or record a batch from a spreadsheet. Ready lines
-              save; any line that fails shows the customer or sale and the reason (missing product,
-              not enough stock, or a server error). Stock is checked again on save.
+              Tap <strong>Record sale</strong>, <strong>Add to inventory</strong>, or the batch
+              buttons. Skipped lines show the reason (not enough stock on a sale, and so on).
             </li>
           </ol>
           <p>

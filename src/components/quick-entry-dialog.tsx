@@ -28,6 +28,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import {
   addCustomer,
   addExpense,
+  addProduct,
   addSale,
   getCustomers,
   getProducts,
@@ -40,13 +41,19 @@ import {
   EXPENSE_CATEGORIES,
   expenseSchema,
   PAYMENT_METHODS,
+  productSchema,
   saleSchema,
   stockAdjustSchema,
   type LineItemInput,
 } from "@/lib/business.schemas";
 import { readableError } from "@/lib/format";
-import type { QuickEntryDraft, QuickEntrySaleDraft } from "@/lib/quick-entry.server";
+import type {
+  QuickEntryDraft,
+  QuickEntryPurchaseDraft,
+  QuickEntrySaleDraft,
+} from "@/lib/quick-entry.server";
 import {
+  quickEntryPurchaseFailureReason,
   quickEntrySaleFailureReason,
   quickEntrySaleHasProducts,
   quickEntrySaleIsStockOk,
@@ -114,11 +121,13 @@ export function QuickEntryDialog({
   const [expenseForm, setExpenseForm] = useState<ExpenseDraftState | null>(null);
   const [customerForm, setCustomerForm] = useState<CustomerDraftState | null>(null);
   const [saleBatch, setSaleBatch] = useState<QuickEntrySaleDraft[] | null>(null);
+  const [purchaseBatch, setPurchaseBatch] = useState<QuickEntryPurchaseDraft[] | null>(null);
   const [batchOutcome, setBatchOutcome] = useState<{
     recorded: number;
     skipped: { label: string; reason: string }[];
     failed: { label: string; reason: string }[];
   } | null>(null);
+  const [purchaseBatchOutcome, setPurchaseBatchOutcome] = useState<typeof batchOutcome>(null);
 
   function saleDraftToForm(sale: QuickEntrySaleDraft): SaleDraftState {
     return {
@@ -175,16 +184,60 @@ export function QuickEntryDialog({
     return createSaleFn({ data: parsed });
   }
 
+  async function resolveProductIdForPurchase(form: PurchaseDraftState): Promise<string> {
+    if (form.productId) return form.productId;
+    const name = form.productName.trim();
+    if (!name) throw new Error("Product name is required");
+    const cost = Number(form.unitCost) || 0;
+    const created = await createProductFn({
+      data: productSchema.parse({
+        businessId: businessId!,
+        name,
+        sku: "",
+        barcode: "",
+        unit: "unit",
+        costPrice: cost,
+        sellingPrice: cost > 0 ? cost : 0,
+        stock: 0,
+        minStock: 0,
+        taxRate: 0,
+        description: "",
+        supplierId: "",
+        categoryId: "",
+      }),
+    });
+    return String((created as { id: string }).id);
+  }
+
+  async function recordPurchaseStock(form: PurchaseDraftState) {
+    const productId = await resolveProductIdForPurchase(form);
+    const cost = Number(form.unitCost) || 0;
+    const supplier = form.supplierName.trim();
+    const reasonParts = ["Recorded via Quick Add"];
+    if (supplier) reasonParts.push(`from ${supplier}`);
+    if (cost > 0) reasonParts.push(`at ${cost}/unit`);
+    const parsed = stockAdjustSchema.parse({
+      businessId,
+      productId,
+      movementType: "stock_in",
+      quantity: form.quantity,
+      reason: reasonParts.join(" "),
+    });
+    return createPurchaseFn({ data: parsed });
+  }
+
   const parseFn = useServerFn(parseQuickEntryFn);
   const extractImageFn = useServerFn(extractQuickAddImageTextFn);
   const createSaleFn = useServerFn(addSale);
   const createPurchaseFn = useServerFn(updateStock);
+  const createProductFn = useServerFn(addProduct);
   const createExpenseFn = useServerFn(addExpense);
   const createCustomerFn = useServerFn(addCustomer);
   const fetchCustomers = useServerFn(getCustomers);
   const fetchProducts = useServerFn(getProducts);
 
-  const needsProducts = draft?.type === "sale" || draft?.type === "purchase";
+  const needsProducts =
+    draft?.type === "sale" || draft?.type === "purchase" || draft?.type === "purchase_batch";
   const customers = useQuery({
     queryKey: ["customers", businessId, ""],
     enabled: Boolean(businessId) && draft?.type === "sale",
@@ -211,7 +264,9 @@ export function QuickEntryDialog({
     setExpenseForm(null);
     setCustomerForm(null);
     setSaleBatch(null);
+    setPurchaseBatch(null);
     setBatchOutcome(null);
+    setPurchaseBatchOutcome(null);
   }
 
   function close() {
@@ -225,12 +280,19 @@ export function QuickEntryDialog({
       setDraft(result);
       if (result.type === "sale_batch") {
         setSaleBatch(result.sales);
+        setPurchaseBatch(null);
+        setSaleForm(null);
+      } else if (result.type === "purchase_batch") {
+        setPurchaseBatch(result.purchases);
+        setSaleBatch(null);
         setSaleForm(null);
       } else if (result.type === "sale") {
         setSaleBatch(null);
+        setPurchaseBatch(null);
         setSaleForm(saleDraftToForm(result));
       } else {
         setSaleBatch(null);
+        setPurchaseBatch(null);
         setSaleForm(null);
       }
       if (result.type === "purchase") {
@@ -276,23 +338,9 @@ export function QuickEntryDialog({
   });
 
   const purchaseMutation = useMutation({
-    mutationFn: async () => {
-      const cost = Number(purchaseForm!.unitCost) || 0;
-      const supplier = purchaseForm!.supplierName.trim();
-      const reasonParts = ["Recorded via Quick Add"];
-      if (supplier) reasonParts.push(`from ${supplier}`);
-      if (cost > 0) reasonParts.push(`at ${cost}/unit`);
-      const parsed = stockAdjustSchema.parse({
-        businessId,
-        productId: purchaseForm!.productId,
-        movementType: "stock_in",
-        quantity: purchaseForm!.quantity,
-        reason: reasonParts.join(" "),
-      });
-      return createPurchaseFn({ data: parsed });
-    },
+    mutationFn: async () => recordPurchaseStock(purchaseForm!),
     onSuccess: async () => {
-      toast.success("Purchase recorded, stock updated.");
+      toast.success("Stock updated.");
       close();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["products"] }),
@@ -300,6 +348,67 @@ export function QuickEntryDialog({
       ]);
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't record that purchase.")),
+  });
+
+  const purchaseBatchMutation = useMutation({
+    mutationFn: async () => {
+      if (!purchaseBatch?.length) throw new Error("No stock lines to record");
+      const skipped: { label: string; reason: string }[] = [];
+      const failed: { label: string; reason: string }[] = [];
+      let recorded = 0;
+      for (let index = 0; index < purchaseBatch.length; index++) {
+        const line = purchaseBatch[index]!;
+        const label = line.productName.trim() || `Line ${index + 1}`;
+        const preflight = quickEntryPurchaseFailureReason(line);
+        if (preflight) {
+          skipped.push({ label, reason: preflight });
+          continue;
+        }
+        const form: PurchaseDraftState = {
+          productId: line.productId,
+          productName: line.productName,
+          quantity: String(line.quantity),
+          unitCost: line.unitCost ? String(line.unitCost) : "",
+          supplierName: line.supplierName,
+        };
+        try {
+          await recordPurchaseStock(form);
+          recorded += 1;
+        } catch (error) {
+          failed.push({
+            label,
+            reason: readableError(error as Error, "Could not add this stock line."),
+          });
+        }
+      }
+      if (recorded === 0 && skipped.length + failed.length === 0) {
+        throw new Error("No stock to record.");
+      }
+      return { recorded, skipped, failed };
+    },
+    onSuccess: async (outcome) => {
+      setPurchaseBatchOutcome(outcome);
+      if (outcome.recorded > 0) {
+        toast.success(
+          outcome.recorded === 1
+            ? "1 product restocked."
+            : `${outcome.recorded} products restocked from your file.`,
+        );
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["products"] }),
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        ]);
+      }
+      const problemCount = outcome.skipped.length + outcome.failed.length;
+      if (problemCount > 0) {
+        toast.error(
+          `${problemCount} line${problemCount === 1 ? "" : "s"} skipped or failed. See the list below.`,
+          { duration: 8000 },
+        );
+      }
+      if (outcome.recorded > 0 && problemCount === 0) close();
+    },
+    onError: (error: Error) => toast.error(readableError(error, "Couldn't record that stock.")),
   });
 
   const expenseMutation = useMutation({
@@ -408,8 +517,12 @@ export function QuickEntryDialog({
     (draft?.type === "sale" ? quickEntrySaleIsStockOk(draft) : saleForm.stockByLine.every(Boolean));
   const saleBatchReadyCount =
     saleBatch?.filter((s) => quickEntrySaleFailureReason(s) === null).length ?? 0;
+  const purchaseBatchReadyCount =
+    purchaseBatch?.filter((line) => quickEntryPurchaseFailureReason(line) === null).length ?? 0;
   const purchaseValid =
-    purchaseForm != null && Boolean(purchaseForm.productId) && Number(purchaseForm.quantity) > 0;
+    purchaseForm != null &&
+    purchaseForm.productName.trim().length > 0 &&
+    Number(purchaseForm.quantity) > 0;
 
   return (
     <Dialog
@@ -423,9 +536,9 @@ export function QuickEntryDialog({
         <DialogHeader>
           <DialogTitle>Quick add</DialogTitle>
           <DialogDescription>
-            Say what to record (for example &quot;Sales 9 November&quot;) or attach Excel, Word, or
-            CSV. Kwetuu matches products and adds new customers when needed. Out-of-stock lines are
-            skipped in a batch; the server still checks stock on every sale.
+            Describe sales, stock received, or expenses in plain language or attach a file. Kwetuu
+            guesses products from what you mean, creates new ones when needed, and matches your
+            catalogue when it can.
           </DialogDescription>
         </DialogHeader>
 
@@ -591,6 +704,76 @@ export function QuickEntryDialog({
               )}
             </DialogFooter>
           </div>
+        ) : draft.type === "purchase_batch" && purchaseBatch ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Found {purchaseBatch.length} stock line{purchaseBatch.length === 1 ? "" : "s"}.
+              {purchaseBatchReadyCount > 0
+                ? ` ${purchaseBatchReadyCount} can be added now. Unmatched names create new products.`
+                : " Fix the reasons below or edit your file."}
+            </p>
+            <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-border p-3 text-sm">
+              {purchaseBatch.map((line, index) => {
+                const reason = quickEntryPurchaseFailureReason(line);
+                const matchNote = line.productId ? "Matched in inventory" : "Will create if needed";
+                return (
+                  <li key={`${line.productName}-${index}`}>
+                    <span className={reason ? "text-destructive" : "text-foreground"}>
+                      <span className="font-medium">{line.productName || `Line ${index + 1}`}</span>
+                      {": "}
+                      {line.quantity} unit{line.quantity === 1 ? "" : "s"}
+                    </span>
+                    {reason ? (
+                      <span className="mt-0.5 block text-[13px] text-destructive">{reason}</span>
+                    ) : (
+                      <span className="mt-0.5 block text-[13px] text-muted-foreground">
+                        {matchNote}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {purchaseBatchOutcome ? (
+              <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <p>
+                  Updated stock for{" "}
+                  <span className="font-medium">{purchaseBatchOutcome.recorded}</span> product
+                  {purchaseBatchOutcome.recorded === 1 ? "" : "s"}.
+                </p>
+                {[...purchaseBatchOutcome.skipped, ...purchaseBatchOutcome.failed].length > 0 ? (
+                  <ul className="space-y-1 text-[13px] text-destructive">
+                    {[...purchaseBatchOutcome.skipped, ...purchaseBatchOutcome.failed].map(
+                      (row) => (
+                        <li key={`${row.label}-${row.reason}`}>
+                          <span className="font-medium">{row.label}:</span> {row.reason}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+            <DialogFooter>
+              <Button variant="ghost" onClick={reset}>
+                Back
+              </Button>
+              {purchaseBatchOutcome?.recorded ? (
+                <Button onClick={close}>Done</Button>
+              ) : (
+                <Button
+                  disabled={purchaseBatchReadyCount === 0 || purchaseBatchMutation.isPending}
+                  onClick={() => purchaseBatchMutation.mutate()}
+                >
+                  {purchaseBatchMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  Add stock for {purchaseBatchReadyCount} line
+                  {purchaseBatchReadyCount === 1 ? "" : "s"}
+                </Button>
+              )}
+            </DialogFooter>
+          </div>
         ) : draft.type === "unknown" ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
@@ -731,20 +914,44 @@ export function QuickEntryDialog({
         ) : draft.type === "purchase" && purchaseForm ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="qe-purchase-product">Product</Label>
+              <Label htmlFor="qe-purchase-name">What you received</Label>
+              <Input
+                id="qe-purchase-name"
+                maxLength={160}
+                value={purchaseForm.productName}
+                onChange={(e) =>
+                  setPurchaseForm({
+                    ...purchaseForm,
+                    productName: e.target.value,
+                    productId:
+                      productOptions.find((p) => p.name === e.target.value)?.id ??
+                      purchaseForm.productId,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="qe-purchase-product">Match to inventory (optional)</Label>
               <Select
                 value={purchaseForm.productId || NONE}
-                onValueChange={(value) =>
-                  setPurchaseForm({ ...purchaseForm, productId: value === NONE ? "" : value })
-                }
+                onValueChange={(value) => {
+                  if (value === NONE) {
+                    setPurchaseForm({ ...purchaseForm, productId: "" });
+                    return;
+                  }
+                  const picked = productOptions.find((p) => p.id === value);
+                  setPurchaseForm({
+                    ...purchaseForm,
+                    productId: value,
+                    productName: picked?.name ?? purchaseForm.productName,
+                  });
+                }}
               >
                 <SelectTrigger id="qe-purchase-product">
-                  <SelectValue placeholder={`Which product is "${purchaseForm.productName}"?`} />
+                  <SelectValue placeholder="Use catalogue match or create new" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE} disabled>
-                    Pick a product
-                  </SelectItem>
+                  <SelectItem value={NONE}>Create new product with this name</SelectItem>
                   {productOptions.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
@@ -753,16 +960,9 @@ export function QuickEntryDialog({
                 </SelectContent>
               </Select>
               {!purchaseForm.productId ? (
-                <p className="text-[13px] text-warning-foreground">
-                  Couldn't match "{purchaseForm.productName}" to a product, pick one, or add it
-                  first from{" "}
-                  <Link
-                    to="/inventory"
-                    className="font-medium text-primary underline underline-offset-2"
-                  >
-                    Inventory
-                  </Link>
-                  .
+                <p className="text-[13px] text-muted-foreground">
+                  No close match found. Confirming creates &quot;{purchaseForm.productName}&quot; in
+                  inventory and adds the quantity.
                 </p>
               ) : null}
             </div>
@@ -814,7 +1014,7 @@ export function QuickEntryDialog({
                 {purchaseMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : null}
-                Confirm purchase
+                Add to inventory
               </Button>
             </DialogFooter>
           </div>
