@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LineItemsEditor, type ProductOption } from "@/components/line-items-editor";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import {
   addCustomer,
   addExpense,
@@ -33,6 +33,7 @@ import {
   getCustomers,
   getProducts,
   extractQuickAddImageTextFn,
+  importProductsFn,
   parseQuickEntryFn,
   updateStock,
 } from "@/lib/business.functions";
@@ -40,13 +41,14 @@ import {
   customerSchema,
   EXPENSE_CATEGORIES,
   expenseSchema,
+  importProductsSchema,
   PAYMENT_METHODS,
   productSchema,
   saleSchema,
   stockAdjustSchema,
   type LineItemInput,
 } from "@/lib/business.schemas";
-import { readableError } from "@/lib/format";
+import { formatMoney, readableError } from "@/lib/format";
 import type {
   QuickEntryDraft,
   QuickEntryPurchaseDraft,
@@ -112,6 +114,7 @@ export function QuickEntryDialog({
   const queryClient = useQueryClient();
   const businessId = workspace.data?.business.id;
   const currency = workspace.data?.business.currency ?? "USD";
+  const canImportProducts = hasPermission(workspace.data, "inventory.import");
 
   const [text, setText] = useState("");
   const [fileLabel, setFileLabel] = useState("");
@@ -231,6 +234,7 @@ export function QuickEntryDialog({
   const createSaleFn = useServerFn(addSale);
   const createPurchaseFn = useServerFn(updateStock);
   const createProductFn = useServerFn(addProduct);
+  const importProducts = useServerFn(importProductsFn);
   const createExpenseFn = useServerFn(addExpense);
   const createCustomerFn = useServerFn(addCustomer);
   const fetchCustomers = useServerFn(getCustomers);
@@ -286,6 +290,11 @@ export function QuickEntryDialog({
         setPurchaseBatch(result.purchases);
         setSaleBatch(null);
         setSaleForm(null);
+      } else if (result.type === "product_import") {
+        setSaleBatch(null);
+        setPurchaseBatch(null);
+        setSaleForm(null);
+        setPurchaseForm(null);
       } else if (result.type === "sale") {
         setSaleBatch(null);
         setPurchaseBatch(null);
@@ -409,6 +418,35 @@ export function QuickEntryDialog({
       if (outcome.recorded > 0 && problemCount === 0) close();
     },
     onError: (error: Error) => toast.error(readableError(error, "Couldn't record that stock.")),
+  });
+
+  const productImportMutation = useMutation({
+    mutationFn: async () => {
+      if (draft?.type !== "product_import") throw new Error("No import draft");
+      const parsed = importProductsSchema.parse({
+        businessId,
+        rows: draft.rows,
+      });
+      return importProducts({ data: parsed });
+    },
+    onSuccess: async (result) => {
+      toast.success(
+        result.imported === 1
+          ? "1 product added to inventory."
+          : `${result.imported} products added to inventory.`,
+      );
+      if (result.skipped > 0) {
+        toast.error(
+          `${result.skipped} row${result.skipped === 1 ? "" : "s"} skipped.${result.errors.length ? ` ${result.errors[0]}` : ""}`,
+          { duration: 8000 },
+        );
+      }
+      close();
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "Couldn't import those products.")),
   });
 
   const expenseMutation = useMutation({
@@ -547,7 +585,7 @@ export function QuickEntryDialog({
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Sales 9 November — or describe a sale, purchase, or expense"
+              placeholder="Add inventory — or sales, stock received, expenses"
               rows={3}
               autoFocus
             />
@@ -702,6 +740,58 @@ export function QuickEntryDialog({
                   {saleBatchReadyCount === 1 ? "" : "s"}
                 </Button>
               )}
+            </DialogFooter>
+          </div>
+        ) : draft.type === "product_import" ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This looks like an <strong>inventory spreadsheet</strong> ({draft.rows.length} product
+              {draft.rows.length === 1 ? "" : "s"} with stock, SOH, or prices). Kwetuu will create or
+              update products the same way as Inventory → Import.
+            </p>
+            {draft.columnMapping.length > 0 ? (
+              <p className="text-[13px] text-muted-foreground">
+                Columns:{" "}
+                {draft.columnMapping.map((m) => `${m.fromHeader} → ${m.field}`).join(", ")}
+              </p>
+            ) : null}
+            <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border p-3 text-sm">
+              {draft.rows.slice(0, 12).map((row) => (
+                <li key={`${row.name}-${row.sku}`}>
+                  <span className="font-medium">{row.name}</span>
+                  {row.stock > 0 ? (
+                    <span className="text-muted-foreground"> · stock {row.stock}</span>
+                  ) : null}
+                  {row.sellingPrice > 0 ? (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · sell {formatMoney(row.sellingPrice, currency)}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+              {draft.rows.length > 12 ? (
+                <li className="text-muted-foreground">…and {draft.rows.length - 12} more</li>
+              ) : null}
+            </ul>
+            {!canImportProducts ? (
+              <p className="text-[13px] text-destructive">
+                Your role cannot import products. Ask an owner or admin, or use Inventory → Import.
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button variant="ghost" onClick={reset}>
+                Back
+              </Button>
+              <Button
+                disabled={!canImportProducts || productImportMutation.isPending}
+                onClick={() => productImportMutation.mutate()}
+              >
+                {productImportMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                Add {draft.rows.length} to inventory
+              </Button>
             </DialogFooter>
           </div>
         ) : draft.type === "purchase_batch" && purchaseBatch ? (

@@ -5,6 +5,8 @@ import type { ChatMessage } from "./ai/provider";
 import { AI_LIMITS } from "./ai/limits.server";
 import { checkRateLimit } from "./rate-limit.server";
 import { pickBestProductMatch } from "./quick-entry-product-match";
+import { tryParseProductInventoryImport } from "./quick-entry-inventory-sheet";
+import type { ProductImportRow } from "./business.schemas";
 
 const CATEGORY_VALUES = EXPENSE_CATEGORIES.map((c) => c.value);
 const PAYMENT_VALUES = PAYMENT_METHODS.map((p) => p.value);
@@ -75,6 +77,11 @@ export type QuickEntryDraft =
   | { type: "sale_batch"; sales: QuickEntrySaleDraft[] }
   | QuickEntryPurchaseDraft
   | { type: "purchase_batch"; purchases: QuickEntryPurchaseDraft[] }
+  | {
+      type: "product_import";
+      rows: ProductImportRow[];
+      columnMapping: { field: string; fromHeader: string }[];
+    }
   | {
       type: "expense";
       amount: number;
@@ -372,6 +379,15 @@ export async function parseQuickEntry(
   );
   if (!withinDailyLimit) {
     throw new AppError("Quick Add has reached its daily usage limit. Please try again tomorrow.");
+  }
+
+  const inventorySheet = tryParseProductInventoryImport(text);
+  if (inventorySheet && inventorySheet.rows.length > 0) {
+    return {
+      type: "product_import",
+      rows: inventorySheet.rows,
+      columnMapping: inventorySheet.columnMapping,
+    };
   }
 
   const catalog = await listProducts(supabase, businessId, "", undefined, 120);
