@@ -2546,6 +2546,15 @@ export type Database = {
         };
         Returns: number;
       };
+      archive_products: {
+        Args: {
+          _business_id: string;
+          _product_ids: string[];
+        };
+        Returns: {
+          archived_count: number;
+        }[];
+      };
       apply_stock_delta: {
         Args: {
           _business_id: string;

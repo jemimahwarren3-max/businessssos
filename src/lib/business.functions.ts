@@ -19,6 +19,7 @@ import {
   generateInvoiceDraftSchema,
   importCustomersSchema,
   importExpensesSchema,
+  archiveProductsSchema,
   importProductsSchema,
   importSalesDetailedSchema,
   importSalesHistorySchema,
@@ -172,6 +173,7 @@ import {
   getQuoteDetail,
   importCustomers,
   importExpenses,
+  archiveProducts,
   importProducts,
   importSalesDetailed,
   importSalesHistory,
@@ -827,6 +829,13 @@ export const importProductsFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => parseAndSanitize(importProductsSchema, data))
   .handler(async ({ data, context }) =>
     importProducts(context.supabase as Db, context.userId, data),
+  );
+
+export const archiveProductsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(archiveProductsSchema, data))
+  .handler(async ({ data, context }) =>
+    archiveProducts(context.supabase as Db, context.userId, data),
   );
 
 export const importExpensesFn = createServerFn({ method: "POST" })
