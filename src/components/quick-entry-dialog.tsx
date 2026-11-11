@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { FileUp, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +69,12 @@ import {
   readFileAsDataUrl,
 } from "@/lib/quick-add-files";
 import type { QuickAddIntent } from "@/lib/quick-entry-intent";
+import {
+  INVENTORY_IMPORT_BEFORE_YOU_IMPORT,
+  INVENTORY_IMPORT_COLUMN_GUIDE,
+  INVENTORY_IMPORT_NO_UNDO,
+} from "@/lib/inventory-import-guide";
+import type { ProductImportRow } from "@/lib/business.schemas";
 
 const NONE = "__none";
 const EXAMPLES = [
@@ -120,6 +127,9 @@ export function QuickEntryDialog({
   const [text, setText] = useState("");
   const [fileLabel, setFileLabel] = useState("");
   const [fileIntent, setFileIntent] = useState<QuickAddIntent | null>(null);
+  const [importApplyStock, setImportApplyStock] = useState(true);
+  const [importApplyCost, setImportApplyCost] = useState(false);
+  const [importApplySell, setImportApplySell] = useState(false);
   const [draft, setDraft] = useState<QuickEntryDraft | null>(null);
   const [saleForm, setSaleForm] = useState<SaleDraftState | null>(null);
   const [purchaseForm, setPurchaseForm] = useState<PurchaseDraftState | null>(null);
@@ -274,6 +284,18 @@ export function QuickEntryDialog({
     setBatchOutcome(null);
     setPurchaseBatchOutcome(null);
     setFileIntent(null);
+    setImportApplyStock(true);
+    setImportApplyCost(false);
+    setImportApplySell(false);
+  }
+
+  function productRowsForImport(rows: ProductImportRow[]): ProductImportRow[] {
+    return rows.map((row) => ({
+      ...row,
+      stock: importApplyStock ? row.stock : 0,
+      costPrice: importApplyCost ? row.costPrice : 0,
+      sellingPrice: importApplySell ? row.sellingPrice : 0,
+    }));
   }
 
   function close() {
@@ -437,7 +459,7 @@ export function QuickEntryDialog({
       if (draft?.type !== "product_import") throw new Error("No import draft");
       const parsed = importProductsSchema.parse({
         businessId,
-        rows: draft.rows,
+        rows: productRowsForImport(draft.rows),
       });
       return importProducts({ data: parsed });
     },
@@ -688,6 +710,23 @@ export function QuickEntryDialog({
                     Pick one so Kwetuu does not treat totals, credits, or allergy lines as products.
                   </p>
                 ) : null}
+                {fileIntent === "inventory" ? (
+                  <div className="mt-2 space-y-2 border-t border-border pt-2 text-[13px] text-muted-foreground">
+                    <p className="font-medium text-foreground">Label your spreadsheet like this</p>
+                    <ul className="list-inside list-disc space-y-0.5">
+                      {INVENTORY_IMPORT_COLUMN_GUIDE.map((entry) => (
+                        <li key={entry.label}>
+                          <span className="text-foreground">{entry.label}:</span> {entry.headers}
+                        </li>
+                      ))}
+                    </ul>
+                    <ul className="list-inside list-disc space-y-0.5">
+                      {INVENTORY_IMPORT_BEFORE_YOU_IMPORT.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <div className="flex flex-wrap gap-1.5">
@@ -813,21 +852,59 @@ export function QuickEntryDialog({
                 Columns: {draft.columnMapping.map((m) => `${m.fromHeader} → ${m.field}`).join(", ")}
               </p>
             ) : null}
+            <p className="text-[13px] text-muted-foreground">{INVENTORY_IMPORT_NO_UNDO}</p>
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <p className="text-sm font-medium">What should we take from the file?</p>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Checkbox
+                  checked={importApplyStock}
+                  onCheckedChange={(value) => setImportApplyStock(value === true)}
+                />
+                Stock / SOH (opening quantity)
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Checkbox
+                  checked={importApplyCost}
+                  onCheckedChange={(value) => setImportApplyCost(value === true)}
+                />
+                Cost price (what you paid)
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Checkbox
+                  checked={importApplySell}
+                  onCheckedChange={(value) => setImportApplySell(value === true)}
+                />
+                Retail / selling price
+              </label>
+              {!importApplyStock && !importApplyCost && !importApplySell ? (
+                <p className="text-[13px] text-destructive">
+                  Turn on at least one field to import.
+                </p>
+              ) : null}
+            </div>
             <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border p-3 text-sm">
-              {draft.rows.slice(0, 12).map((row) => (
-                <li key={`${row.name}-${row.sku}`}>
-                  <span className="font-medium">{row.name}</span>
-                  {row.stock > 0 ? (
-                    <span className="text-muted-foreground"> · stock {row.stock}</span>
-                  ) : null}
-                  {row.sellingPrice > 0 ? (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · sell {formatMoney(row.sellingPrice, currency)}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
+              {productRowsForImport(draft.rows)
+                .slice(0, 12)
+                .map((row) => (
+                  <li key={`${row.name}-${row.sku}`}>
+                    <span className="font-medium">{row.name}</span>
+                    {importApplyStock && row.stock > 0 ? (
+                      <span className="text-muted-foreground"> · stock {row.stock}</span>
+                    ) : null}
+                    {importApplyCost && row.costPrice > 0 ? (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · cost {formatMoney(row.costPrice, currency)}
+                      </span>
+                    ) : null}
+                    {importApplySell && row.sellingPrice > 0 ? (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · sell {formatMoney(row.sellingPrice, currency)}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
               {draft.rows.length > 12 ? (
                 <li className="text-muted-foreground">…and {draft.rows.length - 12} more</li>
               ) : null}
@@ -842,7 +919,11 @@ export function QuickEntryDialog({
                 Back
               </Button>
               <Button
-                disabled={!canImportProducts || productImportMutation.isPending}
+                disabled={
+                  !canImportProducts ||
+                  productImportMutation.isPending ||
+                  (!importApplyStock && !importApplyCost && !importApplySell)
+                }
                 onClick={() => productImportMutation.mutate()}
               >
                 {productImportMutation.isPending ? (

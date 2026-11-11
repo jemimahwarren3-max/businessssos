@@ -64,6 +64,11 @@ import { getStorefrontAdminFn, saveListingFn } from "@/lib/storefront/storefront
 import type { AdminStore } from "@/lib/storefront/contract";
 import type { ImportColumn } from "@/lib/spreadsheet";
 import { storePublicUrl } from "@/lib/storefront/host";
+import {
+  INVENTORY_IMPORT_BEFORE_YOU_IMPORT,
+  INVENTORY_IMPORT_COLUMN_GUIDE,
+  INVENTORY_IMPORT_NO_UNDO,
+} from "@/lib/inventory-import-guide";
 import { downloadXlsx } from "@/lib/xlsx-export";
 import { buildProductWhatsAppMessage, buildWhatsAppShareUrl } from "@/lib/whatsapp";
 
@@ -1003,7 +1008,7 @@ function Inventory() {
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Import products and opening stock"
-        description="Upload a .csv or Excel spreadsheet (.xlsx) with product details and a Stock or SOH column. Opening quantities are recorded as stock-in movements."
+        description={`Upload Excel or CSV with a header row. ${INVENTORY_IMPORT_COLUMN_GUIDE.map((c) => `${c.label}: ${c.headers}`).join(". ")}. ${INVENTORY_IMPORT_BEFORE_YOU_IMPORT[1]} ${INVENTORY_IMPORT_NO_UNDO}`}
         columns={PRODUCT_IMPORT_COLUMNS}
         templateFilename="products-template"
         parseRow={(record, rowNumber) => {
