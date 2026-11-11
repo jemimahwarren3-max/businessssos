@@ -907,6 +907,25 @@ export async function importProducts(
   return { imported, skipped: errors.length, errors };
 }
 
+export async function archiveProducts(
+  supabase: Db,
+  userId: string,
+  input: { businessId: string; productIds: string[] },
+): Promise<{ archived: number }> {
+  await assertPermission(supabase, input.businessId, "inventory.import");
+  await assertCanWrite(supabase, input.businessId);
+  const { data, error } = await supabase.rpc("archive_products", {
+    _business_id: input.businessId,
+    _product_ids: input.productIds,
+  });
+  if (error) dbFail("archive products", error);
+  const row = Array.isArray(data) ? data[0] : null;
+  const archived = Number(
+    (row as { archived_count?: number } | null)?.archived_count ?? 0,
+  );
+  return { archived };
+}
+
 export async function adjustStock(supabase: Db, input: StockAdjustInput) {
   await assertCanWrite(supabase, input.businessId);
   const { data, error } = await supabase.rpc("adjust_stock", {

@@ -567,6 +567,12 @@ export const importProductsSchema = z.object({
   rows: z.array(productImportRowSchema).min(1).max(500),
 });
 
+export const archiveProductsSchema = z.object({
+  businessId: z.string().uuid(),
+  productIds: z.array(z.string().uuid()).min(1).max(500),
+});
+export type ArchiveProductsInput = z.infer<typeof archiveProductsSchema>;
+
 export const expenseImportRowSchema = z.object({
   expenseDate: z.string().min(1, "Date is required"),
   category: z.enum([

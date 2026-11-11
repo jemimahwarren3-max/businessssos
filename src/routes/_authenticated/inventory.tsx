@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
+  CheckSquare,
   Download,
   Loader2,
   MessageCircle,
@@ -11,6 +12,7 @@ import {
   Package,
   Plus,
   Search,
+  Trash2,
   Upload,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -18,7 +20,18 @@ import { DeferredImage } from "@/components/deferred-image";
 import { DataTable, type ColumnDef } from "@/components/data-table";
 import { ImportDialog } from "@/components/import-dialog";
 import { ProductCreateForm } from "@/components/product-create-form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +55,7 @@ import { hasPermission, useWorkspace } from "@/hooks/use-workspace";
 import {
   addCategory,
   addProduct,
+  archiveProductsFn,
   getCategories,
   getLocationStock,
   getLocations,
@@ -200,6 +214,9 @@ function Inventory() {
   const [stockQty, setStockQty] = useState("");
   const [stockReason, setStockReason] = useState("");
   const [productLimit, setProductLimit] = useState(100);
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(() => new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const fetchProducts = useServerFn(getProducts);
   const fetchLocations = useServerFn(getLocations);
@@ -209,6 +226,7 @@ function Inventory() {
   const setPexelsProductImage = useServerFn(setPexelsProductImageFn);
   const adjustStock = useServerFn(updateStock);
   const importProductsRows = useServerFn(importProductsFn);
+  const archiveProducts = useServerFn(archiveProductsFn);
   const fetchCategories = useServerFn(getCategories);
   const createCategoryFn = useServerFn(addCategory);
   const fetchLocationStock = useServerFn(getLocationStock);
@@ -352,6 +370,29 @@ function Inventory() {
     onError: (error: Error) => toast.error(readableError(error, "We couldn't add that product.")),
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: async () =>
+      archiveProducts({
+        data: {
+          businessId: businessId!,
+          productIds: [...selectedProductIds],
+        },
+      }),
+    onSuccess: async ({ archived }) => {
+      setDeleteConfirmOpen(false);
+      setBulkSelectMode(false);
+      setSelectedProductIds(new Set());
+      toast.success(
+        archived === 1 ? "1 product removed." : `${archived} products removed from inventory.`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["storefront", businessId] });
+    },
+    onError: (error: Error) =>
+      toast.error(readableError(error, "We could not remove those products.")),
+  });
+
   const stockMutation = useMutation({
     mutationFn: async () => {
       if (!stockTarget) throw new Error("No product selected");
@@ -391,8 +432,56 @@ function Inventory() {
     ? filteredRows.map((p) => ({ ...p, stock: stockMap.get(p.id) ?? 0 }))
     : filteredRows;
   const categoryList = categories.data ?? [];
+  const allVisibleSelected = rows.length > 0 && rows.every((row) => selectedProductIds.has(row.id));
+  const someVisibleSelected = rows.some((row) => selectedProductIds.has(row.id));
+
+  function toggleProductSelected(productId: string) {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  }
+
+  const selectAllVisibleProducts = useCallback(() => {
+    setSelectedProductIds(new Set(rows.map((row) => row.id)));
+  }, [rows]);
+
+  function exitBulkSelect() {
+    setBulkSelectMode(false);
+    setSelectedProductIds(new Set());
+  }
+
   const columns = useMemo<ColumnDef<ProductRow, unknown>[]>(
     () => [
+      ...(canManageProducts && bulkSelectMode
+        ? [
+            {
+              id: "select",
+              header: () => (
+                <Checkbox
+                  aria-label="Select all products on this page"
+                  checked={
+                    allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false
+                  }
+                  onCheckedChange={(checked) => {
+                    if (checked === true) selectAllVisibleProducts();
+                    else setSelectedProductIds(new Set());
+                  }}
+                />
+              ),
+              enableSorting: false,
+              cell: ({ row }) => (
+                <Checkbox
+                  aria-label={`Select ${row.original.name}`}
+                  checked={selectedProductIds.has(row.original.id)}
+                  onCheckedChange={() => toggleProductSelected(row.original.id)}
+                />
+              ),
+            } satisfies ColumnDef<ProductRow, unknown>,
+          ]
+        : []),
       {
         accessorKey: "name",
         header: "Product",
@@ -570,10 +659,16 @@ function Inventory() {
         : []),
     ],
     [
-      canShowStockActions,
+      allVisibleSelected,
+      bulkSelectMode,
       canManageOnline,
+      canManageProducts,
+      canShowStockActions,
       currency,
       onlineListingMutation,
+      selectedProductIds,
+      selectAllVisibleProducts,
+      someVisibleSelected,
       storefront.data,
       storefront.isLoading,
       workspace.data?.business.name,
@@ -710,7 +805,55 @@ function Inventory() {
             </SelectContent>
           </Select>
         ) : null}
+        {canManageProducts && rows.length > 0 ? (
+          bulkSelectMode ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={selectAllVisibleProducts}>
+                Select all on page
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedProductIds(new Set())}
+              >
+                Clear
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="gap-1"
+                disabled={selectedProductIds.size === 0}
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="size-3.5" aria-hidden="true" />
+                Delete {selectedProductIds.size || ""} selected
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={exitBulkSelect}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => setBulkSelectMode(true)}
+            >
+              <CheckSquare className="size-4" aria-hidden="true" />
+              Select products
+            </Button>
+          )
+        ) : null}
       </div>
+      {bulkSelectMode && selectedProductIds.size > 0 ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          {selectedProductIds.size} selected. Load more products below if you need a longer list,
+          then select again.
+        </p>
+      ) : null}
       {locations.data && locations.data.length > 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
           {locationFilter ? (
@@ -831,6 +974,14 @@ function Inventory() {
                       </a>
                     </div>
                     <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+                      {bulkSelectMode ? (
+                        <Checkbox
+                          className="col-span-3"
+                          aria-label={`Select ${product.name}`}
+                          checked={selectedProductIds.has(product.id)}
+                          onCheckedChange={() => toggleProductSelected(product.id)}
+                        />
+                      ) : null}
                       {product.image_url ? (
                         <DeferredImage
                           src={product.image_url}
@@ -851,57 +1002,59 @@ function Inventory() {
                       </div>
                       <StockBadge product={product} />
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" className="gap-1" asChild>
-                        <a
-                          href={buildWhatsAppShareUrl(
-                            buildProductWhatsAppMessage({
-                              businessName: workspace.data?.business.name ?? "",
-                              productName: product.name,
-                              price: Number(product.selling_price),
-                              currency,
-                              availability:
-                                Number(product.stock) <= 0
-                                  ? "Out of stock"
-                                  : `${formatNumber(Number(product.stock))} ${product.unit} available`,
-                              url:
-                                storefront.data?.store?.slug &&
-                                onlineProduct?.slug &&
-                                onlineProduct.published
-                                  ? storePublicUrl(
-                                      storefront.data.store.slug,
-                                      `/products/${onlineProduct.slug}`,
-                                    )
-                                  : null,
-                            }),
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <MessageCircle className="size-3.5" aria-hidden="true" /> Share
-                        </a>
-                      </Button>
-                      {canShowStockActions ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1"
-                            onClick={() => setStockTarget({ product, mode: "in" })}
+                    {!bulkSelectMode ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" className="gap-1" asChild>
+                          <a
+                            href={buildWhatsAppShareUrl(
+                              buildProductWhatsAppMessage({
+                                businessName: workspace.data?.business.name ?? "",
+                                productName: product.name,
+                                price: Number(product.selling_price),
+                                currency,
+                                availability:
+                                  Number(product.stock) <= 0
+                                    ? "Out of stock"
+                                    : `${formatNumber(Number(product.stock))} ${product.unit} available`,
+                                url:
+                                  storefront.data?.store?.slug &&
+                                  onlineProduct?.slug &&
+                                  onlineProduct.published
+                                    ? storePublicUrl(
+                                        storefront.data.store.slug,
+                                        `/products/${onlineProduct.slug}`,
+                                      )
+                                    : null,
+                              }),
+                            )}
+                            target="_blank"
+                            rel="noreferrer"
                           >
-                            <Plus className="size-3.5" aria-hidden="true" /> Stock in
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1"
-                            onClick={() => setStockTarget({ product, mode: "out" })}
-                          >
-                            <Minus className="size-3.5" aria-hidden="true" /> Stock out
-                          </Button>
-                        </>
-                      ) : null}
-                    </div>
+                            <MessageCircle className="size-3.5" aria-hidden="true" /> Share
+                          </a>
+                        </Button>
+                        {canShowStockActions ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => setStockTarget({ product, mode: "in" })}
+                            >
+                              <Plus className="size-3.5" aria-hidden="true" /> Stock in
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => setStockTarget({ product, mode: "out" })}
+                            >
+                              <Minus className="size-3.5" aria-hidden="true" /> Stock out
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -1089,6 +1242,36 @@ function Inventory() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Remove {selectedProductIds.size} product{selectedProductIds.size === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Selected products disappear from inventory and your online shop. Past sales that used
+              them are kept. There is no undo button; only delete mistakes you are sure about.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archiveMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={archiveMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                archiveMutation.mutate();
+              }}
+            >
+              {archiveMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Remove products
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
