@@ -165,6 +165,7 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261109100000_stock_assistant_role.sql" },
   { file: "20261109110000_stock_assistant_permissions.sql" },
   { file: "20261109120000_cash_sale_auto_session.sql" },
+  { file: "20261111130000_archive_products.sql" },
 ];
 
 /** Readiness probes for master-checklist verification (staging). */
