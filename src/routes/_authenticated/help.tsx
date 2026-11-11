@@ -223,6 +223,10 @@ function Help() {
               permanent in the app.
             </li>
             <li>
+              After a messy Quick Add import, use <strong>Select likely junk</strong> to pre-tick
+              rows whose names look like totals, credits, or allergy lines, then delete them.
+            </li>
+            <li>
               Set a <strong>Min Stock</strong> level so low-stock items surface on the Dashboard and
               in Reports before you run out.
             </li>

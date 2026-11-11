@@ -920,9 +920,7 @@ export async function archiveProducts(
   });
   if (error) dbFail("archive products", error);
   const row = Array.isArray(data) ? data[0] : null;
-  const archived = Number(
-    (row as { archived_count?: number } | null)?.archived_count ?? 0,
-  );
+  const archived = Number((row as { archived_count?: number } | null)?.archived_count ?? 0);
   return { archived };
 }
 

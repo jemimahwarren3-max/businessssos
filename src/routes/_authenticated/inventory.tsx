@@ -77,6 +77,7 @@ import { getOnlineProductReadiness } from "@/lib/storefront/product-readiness";
 import { getStorefrontAdminFn, saveListingFn } from "@/lib/storefront/storefront.functions";
 import type { AdminStore } from "@/lib/storefront/contract";
 import type { ImportColumn } from "@/lib/spreadsheet";
+import { isLikelyBadImportProductName } from "@/lib/quick-entry-row-filter";
 import { storePublicUrl } from "@/lib/storefront/host";
 import { downloadXlsx } from "@/lib/xlsx-export";
 import { buildProductWhatsAppMessage, buildWhatsAppShareUrl } from "@/lib/whatsapp";
@@ -451,6 +452,25 @@ function Inventory() {
   function exitBulkSelect() {
     setBulkSelectMode(false);
     setSelectedProductIds(new Set());
+  }
+
+  const likelyJunkOnPage = useMemo(
+    () => rows.filter((row) => isLikelyBadImportProductName(row.name)),
+    [rows],
+  );
+
+  function selectLikelyJunkOnPage() {
+    setBulkSelectMode(true);
+    setSelectedProductIds(new Set(likelyJunkOnPage.map((row) => row.id)));
+    if (likelyJunkOnPage.length === 0) {
+      toast.message(
+        "No obvious junk names on this page. Try Load more or search for Total, Credit, Allerg.",
+      );
+    } else {
+      toast.message(
+        `Selected ${likelyJunkOnPage.length} row${likelyJunkOnPage.length === 1 ? "" : "s"} with junk-like names.`,
+      );
+    }
   }
 
   const columns = useMemo<ColumnDef<ProductRow, unknown>[]>(
@@ -835,16 +855,28 @@ function Inventory() {
               </Button>
             </div>
           ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              onClick={() => setBulkSelectMode(true)}
-            >
-              <CheckSquare className="size-4" aria-hidden="true" />
-              Select products
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setBulkSelectMode(true)}
+              >
+                <CheckSquare className="size-4" aria-hidden="true" />
+                Select products
+              </Button>
+              {likelyJunkOnPage.length > 0 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={selectLikelyJunkOnPage}
+                >
+                  Select likely junk ({likelyJunkOnPage.length})
+                </Button>
+              ) : null}
+            </div>
           )
         ) : null}
       </div>
