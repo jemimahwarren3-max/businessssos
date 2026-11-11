@@ -671,6 +671,9 @@ export const generateInvoiceDraftSchema = z.object({
 export const quickEntrySchema = z.object({
   businessId: z.string().uuid(),
   text: z.string().trim().min(1).max(14_000),
+  intent: z
+    .enum(["auto", "inventory", "sales", "stock_in", "expense", "customer"])
+    .default("auto"),
 });
 
 export const quickEntryImageExtractSchema = z.object({

@@ -175,22 +175,25 @@ function Help() {
           </p>
           <p>
             The <strong>Quick add</strong> button opens one dialog. Type a short note (for example
-            &quot;Sales 9 November&quot;) or attach Excel, Word (.docx), CSV, or plain text. You can
-            combine both: attach a file and add a date or comment above it.
+            &quot;Sales 9 November&quot;) or             attach Excel, Word (.docx), CSV, or plain text.             When you attach a file, choose <strong>what you want to add</strong> (inventory,
+            sales, stock received, and so on). For inventory, label columns <strong>Stock or
+            SOH</strong> for quantity, <strong>Cost</strong> for what you paid, and{" "}
+            <strong>Retail or RSP</strong> for selling price. Before you confirm, pick which columns
+            to apply; use <strong>Back</strong> to cancel. Imports are not auto-reversed afterward.
           </p>
           <ol>
             <li>
-              Tap <strong>Prepare</strong>. Kwetuu matches products to your inventory and reads
-              customer names from the file.
+              Tap <strong>Prepare</strong>. Kwetuu works out whether you mean sales, stock received,
+              or expenses, even when product names are informal or missing in the file.
             </li>
             <li>
-              Review the draft. New customers are created when you record a sale; you can still pick
-              an existing customer from the list.
+              Review the draft. Stock received can create new products when nothing in your
+              catalogue matches. Sales still need enough stock on hand; new customers are added when
+              needed.
             </li>
             <li>
-              Tap <strong>Record sale</strong>, or record a batch from a spreadsheet. Ready lines
-              save; any line that fails shows the customer or sale and the reason (missing product,
-              not enough stock, or a server error). Stock is checked again on save.
+              Tap <strong>Record sale</strong>, <strong>Add to inventory</strong>, or the batch
+              buttons. Skipped lines show the reason (not enough stock on a sale, and so on).
             </li>
           </ol>
           <p>
