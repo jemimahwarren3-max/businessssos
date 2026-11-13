@@ -1,12 +1,12 @@
 # Kwetuu Issue Register
 
-**Date:** 3 November 2026 (Africa/Harare)  
-**Head:** `2606441` (origin/master after PR #115)  
+**Date:** 13 November 2026 (Africa/Harare) — delta in `FULL_AUDIT_2026-11-13.md`  
+**Head (last full review):** `7ee7db7` (origin/master after PR #138)  
 **Supersedes:** the 8-item register from the onboarding-journey draft (`ISS-001`–`ISS-008`). Those IDs are retired. Several of those items are already fixed (`ISS-003` dashboard `/setup` redirect) or were mis-severity (`ISS-008` staging journey SQL is now in the manifest).
 
-Status values: **Open** · **Open (approval)** · **Open (ops)** · **Open (product)** · **Informational**.
+Status values: **Open** · **Open (approval)** · **Open (ops)** · **Open (product)** · **Informational** · **Mitigated** · **Fixed**.
 
-No issue is marked Fixed in this register, Stage 4 has not started.
+Stage 4 repair batches continue; see `FULL_AUDIT_2026-11-13.md` for November sweep.
 
 ---
 
@@ -24,7 +24,7 @@ No issue is marked Fixed in this register, Stage 4 has not started.
 - **Affected files:** `supabase/migrations/20261103080000_onboarding_journey.sql` (function at `get_setup_progress`); `src/lib/business.server.ts` (`getSetupProgress`); `src/lib/business.functions.ts` (`getSetupProgressFn`)
 - **Proposed fix:** Small additive migration: `CREATE OR REPLACE` with `is_business_member(_business_id, auth.uid())` (or owner-only, matching writes). Raise on failure. Add `assertMember` in `getSetupProgress`. Do **not** disable RLS. Add a staging isolation assertion.
 - **Verification test:** Staging: user A cannot `rpc get_setup_progress` for user B’s business. Unit: handler calls `assertMember`.
-- **Status:** In progress (repair branch)
+- **Status:** **Mitigated** in git (Nov 2026): `assertMember` in `getSetupProgress`; `20261103100000_get_setup_progress_member.sql` on staging manifest. `20261104010000_security_hardening.sql` exists but is **not** on manifest. Mark **Fixed** only after direct RPC probe on staging/production confirms `B0020` for non-members.
 - **DB change:** Yes, non-destructive `CREATE OR REPLACE FUNCTION`
 - **External dependency:** None
 
@@ -312,6 +312,23 @@ No issue is marked Fixed in this register, Stage 4 has not started.
 - **Description:** Documented in `src/start.ts`. Session is httpOnly. Not a silent ignore, known tradeoff.
 - **Status:** Informational
 
+### KW-037: Service-commerce SQL not on staging manifest
+
+- **Module:** Database / CI
+- **Severity:** P1
+- **Description:** Migrations `20261104010000_security_hardening.sql` and `20261104090000`–`20261104095000` (services, bookings, hybrid POS) exist in `supabase/migrations/` but are **not** in `scripts/staging-manifest.mjs`. CI staging apply will not create them. Merchant routes (`/services`, `/bookings`, public service booking) may 500 on staging.
+- **Proposed fix:** Add manifest entries + `STAGING_READINESS_CHECKS` probes before advertising hybrid commerce.
+- **Status:** Open
+- **DB change:** Manifest only (SQL already authored)
+
+### KW-038: Junk catalogue rows from imports / Quick Add
+
+- **Module:** Inventory / Quick Add
+- **Severity:** P1 (merchant UX)
+- **Description:** SOH sheets and mixed files can create products named like totals, credits, or allergy footers. Master has smart Excel mapping (#137) but **no** junk filter or bulk archive. Open PRs #139 (intent + filter) and #140 (bulk delete + select likely junk).
+- **Proposed fix:** Merge #140 then #139; help copy on inventory cleanup.
+- **Status:** In progress (PRs #139–#140)
+
 ---
 
 ## Retired items (previous register)
@@ -331,12 +348,12 @@ No issue is marked Fixed in this register, Stage 4 has not started.
 
 ## Summary counts
 
-| Severity       | Count  | IDs                          |
-| -------------- | ------ | ---------------------------- |
-| P0             | 1      | KW-001                       |
-| P1             | 12     | KW-002–KW-005, KW-010–KW-016 |
-| P2             | 9      | KW-020–KW-028                |
-| P3             | 6      | KW-030–KW-035                |
-| **Open total** | **28** |                              |
+| Severity       | Count  | IDs                                       |
+| -------------- | ------ | ----------------------------------------- |
+| P0             | 1      | KW-001 (**Mitigated** in git; verify RPC) |
+| P1             | 14     | KW-002–KW-005, KW-010–KW-016, KW-037–038 |
+| P2             | 9      | KW-020–KW-028                             |
+| P3             | 6      | KW-030–KW-035                             |
+| **Open total** | **30** |                                           |
 
-Cross-tenant **write** isolation was not shown broken in code review. KW-001 is the confirmed cross-tenant **read** hole.
+Cross-tenant **write** isolation was not shown broken in code review. KW-001 cross-tenant **read** is mitigated in application code and member SQL on manifest; confirm with staging RPC probe before closing.
