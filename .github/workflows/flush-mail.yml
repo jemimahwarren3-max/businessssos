@@ -47,6 +47,13 @@ jobs:
                   wa_cfg=bool(whatsapp.get("configured")),
               )
           )
+          claim_err = bool(email.get("claimError")) or bool(whatsapp.get("claimError"))
+          if claim_err:
+              print(
+                  "Claim warning (not counted as failed delivery): "
+                  + (email.get("reason") or whatsapp.get("reason") or "unknown"),
+                  file=sys.stderr,
+              )
           if failed:
               reason = email.get("reason") or whatsapp.get("reason") or "Delivery failed."
               print(reason, file=sys.stderr)

@@ -115,7 +115,7 @@ export async function extractQuickAddFileText(file: File): Promise<string> {
 }
 
 export const QUICK_ADD_FILE_HELP =
-  "Excel, CSV, Word, PDF (text), or a photo of a list. Photos are read on the server when Gemini is configured.";
+  "Excel, CSV, Word, PDF (text), or a photo. For inventory, label columns Stock/SOH, Cost, and Retail clearly (see guide when you choose Inventory list).";
 
 /** Optional: paste from clipboard with loose CSV detection. */
 export function normalizeQuickAddPaste(text: string): string {

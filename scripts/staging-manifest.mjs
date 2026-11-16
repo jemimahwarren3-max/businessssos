@@ -165,6 +165,14 @@ export const STAGING_MIGRATION_MANIFEST = [
   { file: "20261109100000_stock_assistant_role.sql" },
   { file: "20261109110000_stock_assistant_permissions.sql" },
   { file: "20261109120000_cash_sale_auto_session.sql" },
+  { file: "20261104010000_security_hardening.sql" },
+  { file: "20261104090000_service_commerce.sql" },
+  { file: "20261104091000_service_bookings_pos.sql" },
+  { file: "20261104092000_service_public_and_pos.sql" },
+  { file: "20261104093000_create_sale_services.sql" },
+  { file: "20261104094000_public_booking_slots.sql" },
+  { file: "20261104095000_service_reports_staff_hours.sql" },
+  { file: "20261105131754_allow_pexels_product_images.sql" },
   { file: "20261111130000_archive_products.sql" },
 ];
 
@@ -339,6 +347,25 @@ export const STAGING_READINESS_CHECKS = [
       where n.nspname = 'public'
         and p.proname = 'get_setup_progress'
         and pg_get_functiondef(p.oid) like '%is_business_member%'
+    ) as ok`,
+  },
+  {
+    id: "archive_products",
+    label: "archive_products() bulk product removal",
+    sql: `select exists (
+      select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'archive_products'
+    ) as ok`,
+  },
+  {
+    id: "commerce_model",
+    label: "businesses.commerce_model (products / services / hybrid)",
+    sql: `select exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'businesses'
+        and column_name = 'commerce_model'
     ) as ok`,
   },
 ];

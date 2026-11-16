@@ -52,7 +52,10 @@ describe("shop Paynow credential encryption", () => {
       integrationKey: "private-integration-key",
       needsReEncryption: false,
     });
-    expect(() => openPaynowSecrets(`${ciphertext.slice(0, -2)}aa`)).toThrow();
+    const payload = Buffer.from(ciphertext.slice(3), "base64url");
+    payload[payload.length - 1] ^= 0xff;
+    const tampered = `v1.${payload.toString("base64url")}`;
+    expect(() => openPaynowSecrets(tampered)).toThrow();
   });
 
   it("reads previous-key ciphertext so it can be re-encrypted on access", () => {
