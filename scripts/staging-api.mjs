@@ -45,36 +45,56 @@ export function missingStagingTokenAction(token, requireFlag = process.env.REQUI
   return requireStagingSqlEnabled(requireFlag) ? "fail" : "skip";
 }
 
+function sleepMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /** @returns {Promise<Record<string, unknown>[]>} */
 export async function runStagingSql(query, token = getAccessToken()) {
   if (!token) {
     throw new Error("SUPABASE_ACCESS_TOKEN is required.");
   }
   getStagingRef();
-  const res = await fetch(
-    `https://api.supabase.com/v1/projects/${STAGING_PROJECT_REF}/database/query`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query }),
-    },
-  );
-  const text = await res.text();
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    throw new Error(`SQL ${res.status} (non-JSON): ${text.slice(0, 1500)}`);
-  }
-  if (!res.ok) {
+  const url = `https://api.supabase.com/v1/projects/${STAGING_PROJECT_REF}/database/query`;
+  const body = JSON.stringify({ query });
+  let lastError;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (attempt > 0) {
+      await sleepMs(2000 * 2 ** (attempt - 1));
+    }
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body,
+      });
+    } catch (cause) {
+      lastError = cause;
+      continue;
+    }
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new Error(`SQL ${res.status} (non-JSON): ${text.slice(0, 1500)}`);
+    }
+    if (res.ok) {
+      return /** @type {Record<string, unknown>[]} */ (json);
+    }
     const message =
       json && typeof json === "object" && "message" in json
         ? String(json.message)
         : text.slice(0, 1500);
-    throw new Error(`SQL ${res.status}: ${message}`);
+  const retryable = res.status >= 500 || res.status === 429;
+    lastError = new Error(`SQL ${res.status}: ${message}`);
+    if (!retryable || attempt === 3) {
+      throw lastError;
+    }
   }
-  return /** @type {Record<string, unknown>[]} */ (json);
+  throw lastError instanceof Error ? lastError : new Error("Staging SQL request failed.");
 }
