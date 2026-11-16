@@ -53,7 +53,8 @@ describe("shop Paynow credential encryption", () => {
       needsReEncryption: false,
     });
     const payload = Buffer.from(ciphertext.slice(3), "base64url");
-    payload[payload.length - 1] ^= 0xff;
+    expect(payload.length).toBeGreaterThan(0);
+    payload[payload.length - 1]! ^= 0xff;
     const tampered = `v1.${payload.toString("base64url")}`;
     expect(() => openPaynowSecrets(tampered)).toThrow();
   });
