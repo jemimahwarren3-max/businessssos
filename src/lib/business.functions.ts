@@ -19,6 +19,7 @@ import {
   generateInvoiceDraftSchema,
   importCustomersSchema,
   importExpensesSchema,
+  archiveProductsSchema,
   importProductsSchema,
   importSalesDetailedSchema,
   importSalesHistorySchema,
@@ -172,6 +173,7 @@ import {
   getQuoteDetail,
   importCustomers,
   importExpenses,
+  archiveProducts,
   importProducts,
   importSalesDetailed,
   importSalesHistory,
@@ -829,6 +831,13 @@ export const importProductsFn = createServerFn({ method: "POST" })
     importProducts(context.supabase as Db, context.userId, data),
   );
 
+export const archiveProductsFn = createServerFn({ method: "POST" })
+  .middleware(authAndRateLimit)
+  .inputValidator((data: unknown) => parseAndSanitize(archiveProductsSchema, data))
+  .handler(async ({ data, context }) =>
+    archiveProducts(context.supabase as Db, context.userId, data),
+  );
+
 export const importExpensesFn = createServerFn({ method: "POST" })
   .middleware([...authAndRateLimit, ...importRateLimit])
   .inputValidator((data: unknown) => parseAndSanitize(importExpensesSchema, data))
@@ -943,7 +952,7 @@ export const parseQuickEntryFn = createServerFn({ method: "POST" })
   .middleware([...authAndRateLimit, ...quickEntryRateLimit])
   .inputValidator((data: unknown) => parseAndSanitize(quickEntrySchema, data))
   .handler(async ({ data, context }) =>
-    parseQuickEntry(context.supabase as Db, data.businessId, data.text),
+    parseQuickEntry(context.supabase as Db, data.businessId, data.text, data.intent),
   );
 
 export const extractQuickAddImageTextFn = createServerFn({ method: "POST" })

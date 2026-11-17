@@ -4,32 +4,50 @@ import { getAIProvider } from "./ai/get-provider.server";
 import type { ChatMessage } from "./ai/provider";
 import { AI_LIMITS } from "./ai/limits.server";
 import { checkRateLimit } from "./rate-limit.server";
+import { pickBestProductMatch } from "./quick-entry-product-match";
+import {
+  INVENTORY_INTENT_PATTERN,
+  tryParseProductInventoryImport,
+} from "./quick-entry-inventory-sheet";
+import type { QuickAddIntent } from "./quick-entry-intent";
+import { quickAddIntentForModel } from "./quick-entry-intent";
+import { isLikelyJunkQuickAddRow } from "./quick-entry-row-filter";
+import type { ProductImportRow } from "./business.schemas";
 
 const CATEGORY_VALUES = EXPENSE_CATEGORIES.map((c) => c.value);
 const PAYMENT_VALUES = PAYMENT_METHODS.map((p) => p.value);
 
-function buildSystemPrompt(): string {
+function buildSystemPrompt(catalogNames: string[], intent: QuickAddIntent): string {
+  const intentBlock = `\n\n${quickAddIntentForModel(intent)}`;
   const today = new Date().toISOString().slice(0, 10);
+  const catalogBlock =
+    catalogNames.length > 0
+      ? `\nProducts in this shop (map casual descriptions to the closest name when you can): ${catalogNames.slice(0, 120).join("; ")}`
+      : "";
   return `You turn a shop owner's short note (and optional pasted spreadsheet rows) into structured data.
 Output ONLY a single JSON object, no other text, matching exactly one of these shapes:
 
-Sale: {"type":"sale","items":[{"name":"item name","quantity":1,"unitPrice":"optional number"}],"customerName":"optional","customerPhone":"optional","paymentMethod":"optional cash|card|mobile_money|bank_transfer|credit","saleDate":"optional YYYY-MM-DD"}
+Sale: {"type":"sale","items":[{"name":"item label","quantity":1,"unitPrice":"optional number"}],"customerName":"optional","customerPhone":"optional","paymentMethod":"optional cash|card|mobile_money|bank_transfer|credit","saleDate":"optional YYYY-MM-DD"}
 Sale batch: {"type":"sale_batch","sales":[{same fields as one sale per row/group}],"contextDate":"optional YYYY-MM-DD when user says a date for the whole file"}
-Purchase: {"type":"purchase","productName":"item name","quantity":1,"unitCost":"optional number","supplierName":"optional"}
+Purchase: {"type":"purchase","productName":"best label","quantity":1,"unitCost":"optional number","supplierName":"optional"}
+Purchase batch: {"type":"purchase_batch","purchases":[{same fields as one purchase per stock line}],"supplierName":"optional shared supplier"}
 Expense: {"type":"expense","amount":0,"category":"optional ${CATEGORY_VALUES.join("|")}","description":"optional","vendor":"optional"}
 Customer: {"type":"customer","name":"required","phone":"optional","email":"optional"}
 Unclear: {"type":"unknown"}
 
 Rules:
-- A sale is goods already sold to someone. A purchase is stock bought in. An expense is money out that is not stock.
+- Understand intent, not only formal product names. "Orange drink", "those 2L juices", "the blue soap" are valid productName values; pick the closest catalogue name when listed below.
+- A sale is goods already sold to someone. A purchase is stock bought in or stock received. An expense is money out that is not stock.
+- Restock, delivery, goods received, stock take additions, bought from supplier → purchase or purchase_batch, not sale.
+- Tables with SOH, stock, qty received, cost, supplier, delivery and no customer → purchase_batch (one purchase per row).
 - If the user says something like "sales 9 November" or "9 Nov sales", set saleDate or contextDate using year ${today.slice(0, 4)} unless another year is stated.
-- When tabular lines look like sales (customer, product, qty, price, date), use sale_batch with one sale object per row or per customer/day group.
-- Spreadsheet headers may use any common labels (Item, Product, Qty, SOH, Client, Amount, Date, Unit Price, RSP). Read Column=value pairs literally; map them to the JSON fields above.
-- If several rows share one customer, you may group items into one sale per customer or one sale per row when each row is a separate transaction.
-- Match product names to the text in the file; do not invent products, prices, or quantities not in the message.
+- When tabular lines look like sales (customer, product, qty, price, date), use sale_batch.
+- Spreadsheet headers may use any common labels (Item, Product, Qty, SOH, Stock, Client, Amount, Date, Unit Price, RSP, Received). Read Column=value pairs literally.
+- Every sale or purchase line needs a productName: use description, SKU column, or row context when the Name column is empty. Never drop a row only because Name is blank.
+- Do not invent quantities or prices not implied by the message. You may infer a sensible productName label from context.
 - Never invent customer names. If a name appears on a sale line, include customerName even when unknown in the system.
-- If the message doesn't clearly match one shape, output {"type":"unknown"}.
-- Quantity defaults to 1. Output valid JSON only, no markdown.`;
+- Prefer purchase_batch over unknown when multiple stock lines are clearly restock.
+- Quantity defaults to 1. Output valid JSON only, no markdown.${catalogBlock}${intentBlock}`;
 }
 
 export type QuickEntryItem = {
@@ -52,16 +70,25 @@ export type QuickEntrySaleDraft = {
   saleDate: string;
 };
 
+export type QuickEntryPurchaseDraft = {
+  type: "purchase";
+  productName: string;
+  productId: string;
+  quantity: number;
+  unitCost: number;
+  supplierName: string;
+};
+
 export type QuickEntryDraft =
   | QuickEntrySaleDraft
   | { type: "sale_batch"; sales: QuickEntrySaleDraft[] }
+  | QuickEntryPurchaseDraft
+  | { type: "purchase_batch"; purchases: QuickEntryPurchaseDraft[] }
   | {
-      type: "purchase";
-      productName: string;
-      productId: string;
-      quantity: number;
-      unitCost: number;
-      supplierName: string;
+      type: "product_import";
+      rows: ProductImportRow[];
+      columnMapping: { field: string; fromHeader: string }[];
+      skippedJunk: string[];
     }
   | {
       type: "expense";
@@ -93,6 +120,11 @@ export type RawPurchase = {
   unitCost?: unknown;
   supplierName?: unknown;
 };
+export type RawPurchaseBatch = {
+  type: "purchase_batch";
+  purchases?: RawPurchase[];
+  supplierName?: unknown;
+};
 export type RawExpense = {
   type: "expense";
   amount?: unknown;
@@ -102,7 +134,8 @@ export type RawExpense = {
 };
 export type RawCustomer = { type: "customer"; name?: unknown; phone?: unknown; email?: unknown };
 type RawUnknown = { type: "unknown" };
-type RawDraft = RawSale | RawSaleBatch | RawPurchase | RawExpense | RawCustomer | RawUnknown;
+type RawDraft =
+  RawSale | RawSaleBatch | RawPurchase | RawPurchaseBatch | RawExpense | RawCustomer | RawUnknown;
 
 export function isRawDraft(value: unknown): value is RawDraft {
   if (!value || typeof value !== "object") return false;
@@ -111,10 +144,29 @@ export function isRawDraft(value: unknown): value is RawDraft {
     type === "sale" ||
     type === "sale_batch" ||
     type === "purchase" ||
+    type === "purchase_batch" ||
     type === "expense" ||
     type === "customer" ||
     type === "unknown"
   );
+}
+
+type ProductRow = Awaited<ReturnType<typeof listProducts>>[number];
+
+async function findProductForHint(
+  supabase: Db,
+  businessId: string,
+  hint: string,
+): Promise<ProductRow | undefined> {
+  const trimmed = hint.trim();
+  if (!trimmed) return undefined;
+  const narrow = await listProducts(supabase, businessId, trimmed, undefined, 50);
+  const bestNarrow = pickBestProductMatch(trimmed, narrow);
+  if (bestNarrow) return narrow.find((row) => row.id === bestNarrow.id);
+  const catalog = await listProducts(supabase, businessId, "", undefined, 400);
+  const best = pickBestProductMatch(trimmed, catalog);
+  if (!best) return undefined;
+  return catalog.find((row) => row.id === best.id);
 }
 
 /** Some models wrap JSON in a markdown code
@@ -158,10 +210,9 @@ async function resolveSale(
   const items: QuickEntryItem[] = [];
   for (const rawItem of rawItems) {
     const name = asString(rawItem?.name);
-    if (!name) continue;
+    if (!name || isLikelyJunkQuickAddRow(name)) continue;
     const quantity = asNumber(rawItem?.quantity) || 1;
-    const matches = await listProducts(supabase, businessId, name);
-    const match = matches[0];
+    const match = await findProductForHint(supabase, businessId, name);
     const availableStock = match ? Number(match.stock) : 0;
     const unitPrice = match
       ? asOptionalPrice(rawItem?.unitPrice, Number(match.selling_price))
@@ -228,22 +279,40 @@ async function resolvePurchase(
   supabase: Db,
   businessId: string,
   raw: RawPurchase,
-): Promise<QuickEntryDraft> {
+  sharedSupplier = "",
+): Promise<QuickEntryPurchaseDraft | { type: "unknown" }> {
   const productName = asString(raw.productName);
   const quantity = asNumber(raw.quantity) || 1;
   if (!productName) return { type: "unknown" };
 
-  const matches = await listProducts(supabase, businessId, productName);
-  const match = matches[0];
+  const match = await findProductForHint(supabase, businessId, productName);
+  const supplierName = asString(raw.supplierName) || sharedSupplier;
 
   return {
     type: "purchase",
-    productName,
+    productName: match?.name ?? productName,
     productId: match?.id ?? "",
     quantity,
     unitCost: asNumber(raw.unitCost),
-    supplierName: asString(raw.supplierName),
+    supplierName,
   };
+}
+
+async function resolvePurchaseBatch(
+  supabase: Db,
+  businessId: string,
+  raw: RawPurchaseBatch,
+): Promise<QuickEntryDraft> {
+  const sharedSupplier = asString(raw.supplierName);
+  const rawPurchases = Array.isArray(raw.purchases) ? raw.purchases : [];
+  const purchases: QuickEntryPurchaseDraft[] = [];
+  for (const entry of rawPurchases) {
+    const resolved = await resolvePurchase(supabase, businessId, entry, sharedSupplier);
+    if (resolved.type === "purchase") purchases.push(resolved);
+  }
+  if (purchases.length === 0) return { type: "unknown" };
+  if (purchases.length === 1) return purchases[0]!;
+  return { type: "purchase_batch", purchases };
 }
 
 export function resolveExpense(raw: RawExpense): QuickEntryDraft {
@@ -282,7 +351,7 @@ export function quickEntrySaleFailureReason(sale: QuickEntrySaleDraft): string |
   if (unmatched.length > 0) {
     const names = unmatched.map((item) => item.name).filter(Boolean);
     return names.length
-      ? `No matching product for: ${names.join(", ")}. Pick or add them in Inventory first.`
+      ? `Pick a product for: ${names.join(", ")} in the list below, or add them in Inventory.`
       : "One or more lines need a product from your catalogue.";
   }
   const overStock = sale.items.filter((item) => !item.stockOk);
@@ -296,10 +365,21 @@ export function quickEntrySaleFailureReason(sale: QuickEntrySaleDraft): string |
   return null;
 }
 
+export function quickEntryPurchaseFailureReason(
+  purchase: Pick<QuickEntryPurchaseDraft, "productName" | "productId" | "quantity">,
+): string | null {
+  if (purchase.quantity <= 0) return "Quantity must be at least 1.";
+  if (!purchase.productId && !purchase.productName.trim()) {
+    return "Name what you received so we can match or create the product.";
+  }
+  return null;
+}
+
 export async function parseQuickEntry(
   supabase: Db,
   businessId: string,
   text: string,
+  intent: QuickAddIntent = "auto",
 ): Promise<QuickEntryDraft> {
   const withinDailyLimit = await checkRateLimit(
     `quick-entry-daily:business:${businessId}`,
@@ -310,8 +390,30 @@ export async function parseQuickEntry(
     throw new AppError("Quick Add has reached its daily usage limit. Please try again tomorrow.");
   }
 
+  const inventorySheet = tryParseProductInventoryImport(text, intent);
+  const hasStockMapping = Boolean(
+    inventorySheet?.columnMapping.some((entry) => entry.field === "Stock"),
+  );
+  const useInventorySheet =
+    inventorySheet &&
+    inventorySheet.rows.length > 0 &&
+    (intent === "inventory" ||
+      intent === "stock_in" ||
+      (intent === "auto" && (INVENTORY_INTENT_PATTERN.test(text) || hasStockMapping)));
+  if (useInventorySheet && inventorySheet) {
+    return {
+      type: "product_import",
+      rows: inventorySheet.rows,
+      columnMapping: inventorySheet.columnMapping,
+      skippedJunk: inventorySheet.skippedJunk,
+    };
+  }
+
+  const catalog = await listProducts(supabase, businessId, "", undefined, 120);
+  const catalogNames = catalog.map((row) => row.name);
+
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt() },
+    { role: "system", content: buildSystemPrompt(catalogNames, intent) },
     { role: "user", content: text },
   ];
 
@@ -331,7 +433,11 @@ export async function parseQuickEntry(
     return sale.type === "unknown" ? sale : sale;
   }
   if (raw.type === "sale_batch") return resolveSaleBatch(supabase, businessId, raw);
-  if (raw.type === "purchase") return resolvePurchase(supabase, businessId, raw);
+  if (raw.type === "purchase") {
+    const purchase = await resolvePurchase(supabase, businessId, raw);
+    return purchase.type === "unknown" ? purchase : purchase;
+  }
+  if (raw.type === "purchase_batch") return resolvePurchaseBatch(supabase, businessId, raw);
   if (raw.type === "expense") return resolveExpense(raw);
   if (raw.type === "customer") return resolveCustomer(raw);
   return { type: "unknown" };

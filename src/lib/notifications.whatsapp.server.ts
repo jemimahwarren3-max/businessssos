@@ -27,6 +27,7 @@ export type FlushWhatsAppResult = {
   skipped: number;
   failed: number;
   configured: boolean;
+  claimError?: boolean;
   reason?: string;
 };
 
@@ -172,8 +173,9 @@ export async function flushWhatsAppOutboxAdmin(): Promise<FlushWhatsAppResult> {
       return {
         sent: 0,
         skipped: 0,
-        failed: 1,
+        failed: 0,
         configured: true,
+        claimError: true,
         reason: "Could not claim queued WhatsApp messages.",
       };
     }
@@ -184,8 +186,9 @@ export async function flushWhatsAppOutboxAdmin(): Promise<FlushWhatsAppResult> {
     return {
       sent: 0,
       skipped: 0,
-      failed: 1,
+      failed: 0,
       configured: true,
+      claimError: true,
       reason: "Could not process queued WhatsApp messages.",
     };
   }

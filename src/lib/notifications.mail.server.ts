@@ -26,6 +26,8 @@ export type FlushMailResult = {
   skipped: number;
   failed: number;
   configured: boolean;
+  /** Queues could not be claimed (RPC/schema); not a delivery failure. */
+  claimError?: boolean;
   reason?: string;
 };
 
@@ -191,8 +193,9 @@ export async function flushNotificationOutboxForBusiness(
       return {
         sent: 0,
         skipped: 0,
-        failed: 1,
+        failed: 0,
         configured: true,
+        claimError: true,
         reason: migrationMissing
           ? "The notification outbox migration is missing from this database."
           : "Could not claim queued notification emails.",
@@ -205,8 +208,9 @@ export async function flushNotificationOutboxForBusiness(
     return {
       sent: 0,
       skipped: 0,
-      failed: 1,
+      failed: 0,
       configured: true,
+      claimError: true,
       reason: "Could not process queued notification emails.",
     };
   }
@@ -231,8 +235,9 @@ export async function flushNotificationOutboxAdmin(): Promise<FlushMailResult> {
       return {
         sent: 0,
         skipped: 0,
-        failed: 1,
+        failed: 0,
         configured: true,
+        claimError: true,
         reason: migrationMissing
           ? "The notification outbox migration is missing from this database."
           : "Could not claim queued notification emails.",
@@ -245,8 +250,9 @@ export async function flushNotificationOutboxAdmin(): Promise<FlushMailResult> {
     return {
       sent: 0,
       skipped: 0,
-      failed: 1,
+      failed: 0,
       configured: true,
+      claimError: true,
       reason: "Could not process queued notification emails.",
     };
   }

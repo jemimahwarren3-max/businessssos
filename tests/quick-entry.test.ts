@@ -3,6 +3,7 @@ import { quickEntrySchema } from "../src/lib/business.schemas";
 import {
   extractJson,
   isRawDraft,
+  quickEntryPurchaseFailureReason,
   quickEntrySaleFailureReason,
   quickEntrySaleIsStockOk,
   resolveCustomer,
@@ -43,6 +44,7 @@ describe("isRawDraft", () => {
   it("accepts each known type discriminator", () => {
     expect(isRawDraft({ type: "sale" })).toBe(true);
     expect(isRawDraft({ type: "sale_batch" })).toBe(true);
+    expect(isRawDraft({ type: "purchase_batch" })).toBe(true);
     expect(isRawDraft({ type: "expense" })).toBe(true);
     expect(isRawDraft({ type: "customer" })).toBe(true);
     expect(isRawDraft({ type: "unknown" })).toBe(true);
@@ -167,6 +169,24 @@ describe("quickEntrySaleIsStockOk", () => {
       ],
     });
     expect(bad).toBe(false);
+  });
+});
+
+describe("quickEntryPurchaseFailureReason", () => {
+  it("allows unmatched names when a label is present", () => {
+    expect(
+      quickEntryPurchaseFailureReason({
+        productName: "Orange drink",
+        productId: "",
+        quantity: 5,
+      }),
+    ).toBeNull();
+  });
+
+  it("requires a label or match", () => {
+    expect(
+      quickEntryPurchaseFailureReason({ productName: "  ", productId: "", quantity: 2 }),
+    ).toMatch(/name what you received/i);
   });
 });
 
