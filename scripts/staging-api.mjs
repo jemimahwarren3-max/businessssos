@@ -90,7 +90,7 @@ export async function runStagingSql(query, token = getAccessToken()) {
       json && typeof json === "object" && "message" in json
         ? String(json.message)
         : text.slice(0, 1500);
-  const retryable = res.status >= 500 || res.status === 429;
+    const retryable = res.status >= 500 || res.status === 429;
     lastError = new Error(`SQL ${res.status}: ${message}`);
     if (!retryable || attempt === 3) {
       throw lastError;
