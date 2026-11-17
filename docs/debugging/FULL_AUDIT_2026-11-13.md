@@ -1,6 +1,9 @@
 # Kwetuu full system audit
 
 **Date:** 13 November 2026 (Africa/Harare, UTC+2)  
+
+**Follow-up (17 Nov):** [`FULL_AUDIT_2026-11-17.md`](./FULL_AUDIT_2026-11-17.md) — open PRs, master vs #142.
+
 **Git head reviewed:** `origin/master` at `7ee7db7` (after PR #138 Google Play AAB)  
 **Branch used for this pass:** `cursor/full-audit-dafe` (audit artefact only; no product code changes)  
 **Supersedes for breadth:** onboarding-era drafts that marked everything WORKING. Still read `docs/debugging/SYSTEM_AUDIT.md` (3 Nov 2026) for module tables and `docs/debugging/ISSUE_REGISTER.md` for ticket IDs.
