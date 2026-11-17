@@ -1,5 +1,7 @@
 # Kwetuu System Audit: Stage 1 Discovery
 
+> **November 2026 full sweep:** see [`FULL_AUDIT_2026-11-13.md`](./FULL_AUDIT_2026-11-13.md) for executive summary, manifest drift, import/Quick Add vertical, open PRs #139–#140, and automated test results. This file remains the detailed 3 November module tables.
+
 **Date:** 3 November 2026 (Africa/Harare)  
 **Head:** `2606441` (origin/master after PR #115)  
 **Branch that produced this report:** `cursor/system-debug-audit-dafe`  
